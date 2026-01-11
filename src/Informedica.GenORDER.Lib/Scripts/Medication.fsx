@@ -39,11 +39,165 @@ module HelperFunctions =
             |> Order.solveMinMax true OrderLogging.noOp
 
 
+    let run logger med cmds =
+        let rec loop cmds ord =
+            match cmds with
+            | [] -> ord
+            | cmd::rest ->
+                match ord with
+                | Error (_, msgs) ->
+                    failwith $"Errors occured: {msgs}"
+                | Ok ord ->
+                   ord
+                   |> cmd
+                   |> OrderProcessor.processPipeline logger None
+                   |> loop rest
+
+
+        med
+        |> Medication.toOrderDto
+        |> Order.Dto.fromDto
+        |> function
+          | Error msg -> failwith $"{msg}"
+          | Ok ord -> ord |> Ok |> loop cmds
+
+
+
+
 module GenFormResult = Utils.GenFormResult
 open HelperFunctions
 
 
 let logger = OrderLogging.createConsoleLogger ()
+
+
+let amfo =
+    let au = Units.Weight.kiloGram
+    let fu = Units.Volume.milliLiter
+    let su = Units.Mass.milliGram
+    let du = Units.Mass.milliGram |> Units.per au |> Units.per Units.Time.day
+    let cu = su |> Units.per fu
+
+    { Medication.template with
+        Id = "1"
+        Name = "amfotericine b liposomaal"
+        Route = "INTRAVENEUS"
+        Quantities = None //50N |> ValueUnit.singleWithUnit fu |> Some
+        OrderType = DiscontinuousOrder
+        Adjust = 14N |> ValueUnit.singleWithUnit au |> Some
+        Frequencies =
+            Units.Count.times
+            |> Units.per Units.Time.day
+            |> ValueUnit.singleWithValue 1N
+            |> Some
+        DoseCount = 1N |> ValueUnit.singleWithUnit Units.Count.times |> MinMax.createExact
+        Components =
+            [
+                { Medication.productComponent with
+                    Name = "amfotericine b liposomaal"
+                    Form = "poeder voor oplossing voor infusie"
+                    Quantities = 1N |> ValueUnit.singleWithUnit fu |> Some
+                    Divisible = Some 10N
+                    Substances =
+                        [
+                            { Medication.SubstanceItem.item with
+                                Name = "saccharose"
+                                Concentrations =
+                                    Units.Mass.milliGram
+                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.singleWithValue 72N
+                                    |> Some
+                            }
+                            { Medication.SubstanceItem.item with
+                                Name = "amfotericine b liposomaal"
+                                Concentrations =
+                                    Units.Mass.milliGram
+                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.singleWithValue 4N
+                                    |> Some
+                                Dose =
+                                    { DoseLimit.limit with
+                                        DoseLimitTarget = "amfotericine b liposomaal" |> SubstanceLimitTarget
+                                        AdjustUnit = au |> Some
+                                        PerTimeAdjust =
+                                            { MinMax.empty with
+                                                Min = 3N |> ValueUnit.singleWithUnit du |> Limit.inclusive |> Some
+                                                Max = 5N |> ValueUnit.singleWithUnit du |> Limit.inclusive |> Some
+                                            }
+                                    }
+                                    |> Some
+                                Solution =
+                                    { SolutionLimit.limit with
+                                        SolutionLimitTarget = "amfotericine b liposomaal" |> SubstanceLimitTarget
+                                        Concentration =
+                                            { MinMax.empty with
+                                                Min =
+                                                    su
+                                                    |> Units.per Units.Volume.milliLiter
+                                                    |> ValueUnit.singleWithValue (2N/10N)
+                                                    |> Limit.inclusive
+                                                    |> Some
+                                                Max =
+                                                    su
+                                                    |> Units.per Units.Volume.milliLiter
+                                                    |> ValueUnit.singleWithValue 2N
+                                                    |> Limit.inclusive
+                                                    |> Some
+                                            }
+                                    }
+                                    |> Some
+                            }
+                        ]
+                }
+                { Medication.productComponent with
+                    Name = "gluc 10%"
+                    Form = "vloeistof"
+                    Quantities = 1N |> ValueUnit.singleWithUnit fu |> Some
+                    Divisible = Some 10N
+                    Substances =
+                        [
+                            { Medication.SubstanceItem.item with
+                                Name = "energie"
+                                Concentrations =
+                                    Units.Energy.kiloCalorie
+                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.singleWithValue (4N / 10N)
+                                    |> Some
+                            }
+                            { Medication.SubstanceItem.item with
+                                Name = "koolhydraat"
+                                Concentrations =
+                                    Units.Mass.gram
+                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.singleWithValue (1N / 10N)
+                                    |> Some
+                            }
+
+                        ]
+                }
+
+            ]
+    }
+
+
+amfo
+|> Medication.toString
+|> print
+
+
+[
+    CalcMinMax
+    CalcValues
+    fun ord ->
+        (ord, SetMedianComponentQuantity amfo.Components[0].Name)
+        |> OrderCommand.ChangeProperty
+    fun ord ->
+        (ord, SetMedianComponentQuantity amfo.Components[1].Name)
+        |> OrderCommand.ChangeProperty
+]
+|> run logger amfo
+//|> printOrderTable
+|> ignore
 
 
 let morfCont =
@@ -91,8 +245,7 @@ let morfCont =
                                     { MinMax.empty with
                                         Max =
                                             su
-                                            |> Units.per
-                                                Units.Volume.milliLiter
+                                            |> Units.per Units.Volume.milliLiter
                                             |> ValueUnit.singleWithValue 1N
                                             |> Limit.inclusive
                                             |> Some
@@ -146,36 +299,20 @@ morfCont
 |> print
 
 
-morfCont
-|> Medication.toOrderDto
-|> Order.Dto.fromDto
-|> function
-    | Error e -> $"{e}" |> failwith
-    | Ok ord ->
-       ord
-       |> CalcMinMax
-       |> OrderProcessor.processPipeline logger None
-       |> printOrderTable
-(*
-|> Result.bind (fun ord ->
-    (
-        ord,
-        IncreaseComponentQuantity ("morfine", 1000)
-    )
-    |> ChangeProperty
-    |> OrderProcessor.processPipeline logger None
-    |> printOrderTable
-)
-*)
-|> Result.bind (fun ord ->
-    (
-        ord,
-        SetMedianComponentQuantity "morfine"
-    )
-    |> ChangeProperty
-    |> OrderProcessor.processPipeline logger None
-    |> printOrderTable
-)
+[
+    CalcMinMax
+    CalcValues
+    fun ord ->
+        (ord, SetMedianComponentQuantity morfCont.Components[0].Name)
+        |> OrderCommand.ChangeProperty
+    (*
+    fun ord ->
+        (ord, SetMedianComponentQuantity morfCont.Components[1].Name)
+        |> OrderCommand.ChangeProperty
+    *)
+]
+|> run logger morfCont
+//|> printOrderTable
 |> ignore
 
 

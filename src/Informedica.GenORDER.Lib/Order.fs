@@ -3573,6 +3573,15 @@ module Order =
 
             let msg = [ exn |> Informedica.GenSolver.Lib.Types.Exceptions.UnexpectedException ]
             Error (ord, msg)
+        // TODO: use result function
+        |> function
+            | Ok ord ->
+                ord |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
+                ord |> Ok
+            | Error (ord, msgs) ->
+                ord |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
+                (ord, msgs) |> Error
+
 
 
     /// <summary>
@@ -3608,6 +3617,7 @@ module Order =
         else
             let orbQty = ord.Orderable.OrderableQuantity |> Quantity.toOrdVar
             // the increments used to increase
+            // TODO: use increment from constraint
             let incrs u =
                 [ 1N/20N; 1N/10N; 1N/2N; 1N; 5N; 10N; 20N ]
                 |> List.map (ValueUnit.singleWithUnit u)
@@ -3707,11 +3717,11 @@ module Order =
     /// Loop through all the OrderVariables in an Order to
     /// turn min incr max to values
     /// </summary>
-    /// <param name="useAll">Whether to use all values or restrict the number of values</param>
+    /// <param name="useMaxNumberOfValues">Whether to use max number of values or restrict the number of values</param>
     /// <param name="minTime">Whether to minimize the time before processing</param>
     /// <param name="logger">The logger</param>
     /// <param name="ord">The Order</param>
-    let minIncrMaxToValues useAll minTime logger ord =
+    let minIncrMaxToValues useMaxNumberOfValues minTime logger ord =
         let mutable isSolved = false
 
         let rec loop ord =
@@ -3731,19 +3741,30 @@ module Order =
                         flag <- true
 
                         let n =
-                            if useAll then None
-                            else
-                                match ord.Schedule with
-                                | Continuous _ -> 100
-                                | Once
-                                | Discontinuous _ -> 10
-                                | OnceTimed _
-                                | Timed _ ->
+                            match ord.Schedule with
+                            | Continuous _ ->
+                                if useMaxNumberOfValues then 1_000
+                                else 100
+                            | Once
+                            | Discontinuous _ ->
+                                if useMaxNumberOfValues then
+                                    if ord.Orderable.Components |> List.length > 1 then 20
+                                    else 100
+                                else 10
+                            | OnceTimed _
+                            | Timed _ ->
+                                if useMaxNumberOfValues then
                                     if ord.Orderable.Components |> List.length > 2 then 5 else 10
-                                |> Some
+                                else
+                                    if ord.Orderable.Components |> List.length > 2 then 5 else 20
+                            |> Some
 
                         ovar
                         |> OrderVariable.minIncrMaxToValues n
+                        |> fun ovar ->
+                            Events.MinIncrMaxToValues ovar
+                            |> Logging.logInfo logger
+                            ovar
                 )
 
             if not flag then ord

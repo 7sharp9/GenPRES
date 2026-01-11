@@ -1082,46 +1082,6 @@ module Order =
                             |> select true "" None ignore None false
                     }
                     {
-                        // component orderable quantity
-                        match state.Order with
-                        | Some ord when ord.Orderable.Components |> Array.length > 1 ->
-                            let navigate =
-                                {|
-                                    first = fun () -> SetMinComponentQuantityProperty |> dispatch
-                                    decrease = fun () -> 1 |> DecreaseComponentQuantityProperty |> dispatch
-                                    median = fun () -> SetMedianComponentQuantityProperty |> dispatch
-                                    increase = fun () -> 1 |> IncreaseComponentQuantityProperty |> dispatch
-                                    last = fun () -> SetMaxComponentQuantityProperty |> dispatch
-                                |}
-                                |> Some
-
-                            ord.Orderable.Components
-                            |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
-                            |> Option.bind _.OrderableQuantity.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                            |> Option.defaultValue [||]
-                            |> select false "Bereiding Hoeveelheid" None (ChangeComponentOrderableQuantity >> dispatch) navigate false
-                        | _ ->
-                            [||]
-                            |> select true "" None ignore None false
-                    }
-                    {
-                        // component dose quantity
-                        match state.Order with
-                        | Some ord when ord.Schedule.IsContinuous |> not &&
-                                        ord.Orderable.Components |> Array.length > 1 &&
-                                        itms |> Array.isEmpty ->
-                            ord.Orderable.Components
-                            |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
-                            |> Option.bind _.Dose.Quantity.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                            |> Option.defaultValue [||]
-                            |> select false "Keer Dosering" None (ChangeComponentDoseQuantity >> dispatch) None false
-                        | _ ->
-                            [||]
-                            |> select true "" None ignore None false
-                    }
-                    {
                         // substance name
                         match state.Order with
                         | Some ord ->
@@ -1261,6 +1221,66 @@ module Order =
                             |> select true "" None ignore None false
                     }
                     {
+                        // component orderable quantity
+                        match state.Order with
+                        | Some ord when ord.Orderable.Components |> Array.length > 1 ->
+                            let cmp =
+                                ord.Orderable.Components
+                                |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
+
+                            let vals =
+                                cmp
+                                |> Option.bind _.OrderableQuantity.Variable.Vals
+                                |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
+                                |> Option.defaultValue [||]
+
+                            let navigate =
+                                let c = vals |> Array.length
+
+                                let show =
+                                    match cmp with
+                                    | None -> false
+                                    | Some cmp ->
+                                        cmp.OrderableQuantity.Constraints.Min.IsSome &&
+                                        cmp.OrderableQuantity.Constraints.Incr.IsSome && 
+                                        cmp.OrderableQuantity.Constraints.Max.IsSome ||
+                                        c = 1 || c > 10
+                                        
+                                if not show then None
+                                else
+                                    {|
+                                        first = fun () -> SetMinComponentQuantityProperty |> dispatch
+                                        decrease = fun () -> 1 |> DecreaseComponentQuantityProperty |> dispatch
+                                        median = fun () -> SetMedianComponentQuantityProperty |> dispatch
+                                        increase = fun () -> 1 |> IncreaseComponentQuantityProperty |> dispatch
+                                        last = fun () -> SetMaxComponentQuantityProperty |> dispatch
+                                    |}
+                                    |> Some
+
+                            vals
+                            |> select false "Bereiding Hoeveelheid" None (ChangeComponentOrderableQuantity >> dispatch) navigate false
+                        | _ ->
+                            [||]
+                            |> select true "" None ignore None false
+                    }
+                    {
+                        // component dose quantity
+                        match state.Order with
+                        | Some ord when ord.Schedule.IsContinuous |> not &&
+                                        ord.Orderable.Components |> Array.length > 1 &&
+                                        itms |> Array.isEmpty ->
+                            ord.Orderable.Components
+                            |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
+                            |> Option.bind _.Dose.Quantity.Variable.Vals
+                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
+                            |> Option.defaultValue [||]
+                            |> select false "Keer Dosering" None (ChangeComponentDoseQuantity >> dispatch) None false
+                        | _ ->
+                            [||]
+                            |> select true "" None ignore None false
+                    }
+
+                    {
                         // orderable dose quantity
                         match state.Order with
                         | Some ord when ord.Schedule.IsContinuous |> not ->
@@ -1378,7 +1398,9 @@ module Order =
                             |> Some
 
                         match state.Order with
-                        | Some ord ->
+                        | Some ord when ord.Schedule.IsContinuous ||
+                                        ord.Schedule.IsTimed ||
+                                        ord.Schedule.IsOnceTimed ->
                             ord.Orderable.Dose.Rate.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                             |> Option.defaultValue [||]

@@ -68,6 +68,9 @@ module OrderLogging =
 
 
     let printOrderEvent = function
+        | Events.MinIncrMaxToValues ovar ->
+            $"OrderVariable to values {ovar.Variable |> Variable.count}: {ovar |> OrderVariable.toString true}"
+
         | Events.SolverReplaceUnit (n, u) ->
             $"replaced {n |> Name.toString} unit with {u |> ValueUnit.unitToString}"
 
@@ -188,7 +191,7 @@ module OrderLogging =
         match msg.Message with
         | :? OrderMessage as m ->
             match m with
-            | OrderException(Exceptions.OrderCouldNotBeCreated exn) -> 
+            | OrderException(Exceptions.OrderCouldNotBeCreated exn) ->
                 $"Order couldn not be created:\n{exn}"
             | OrderException (Exceptions.OrderCouldNotBeSolved(s, o)) ->
                 writeErrorMessage $"""

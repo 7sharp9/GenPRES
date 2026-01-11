@@ -481,6 +481,7 @@ module Equation =
 
     // The actual solving function
     let private solve_ onlyMinIncrMax log eq =
+
         let reorder = List.rotations >> List.mapi (fun i x -> i, x)
         // perform a calculation with op1 for list reduction and
         // op1 for the first var and the reduced list
@@ -489,7 +490,7 @@ module Equation =
         if eq |> isSolved then eq, Unchanged
         else
             // log starting the equation solve
-            eq
+            (onlyMinIncrMax, eq)
             |> Events.EquationStartedSolving
             |> Logger.logInfo log
 
