@@ -577,6 +577,7 @@ module Types =
 
         /// Events that can occur during order processing
         type Event =
+            | MinIncrMaxToValues of OrderVariable
             | MedicationCreated of string
             | ComponentItemsHarmonized of string
             | SolverReplaceUnit of (Name * Unit)

@@ -1046,12 +1046,28 @@ module Variable =
             /// <remarks>
             /// The minimum and maximum values are always kept.
             /// </remarks>
-            let prune n =
+            let prune incr n =
+                let rec loop m incr (xs : BigRational []) =
+                    let filtered =
+                        xs
+                        |> Array.filter (fun x -> (x / (incr * m)).Denominator = 1I)
+
+                    if filtered |> Array.length <= n then filtered
+                    else loop (m + 1N) incr xs
+
                 fun vu ->
+                    let u = vu |> ValueUnit.getUnit
                     let v =
-                        vu
-                        |> ValueUnit.getValue
-                        |> Array.prune n //Constants.PRUNE
+                        match incr |> Option.map ValueUnit.getBaseValue with
+                        | Some [| incr |] ->
+                            vu
+                            |> ValueUnit.convertTo u
+                            |> ValueUnit.getValue
+                            |> loop 1N incr
+                        | _ ->
+                            vu
+                            |> ValueUnit.getValue
+                            |> Array.prune n //Constants.PRUNE
                     vu
                     |> ValueUnit.setValue v
                 |> map
@@ -1394,8 +1410,8 @@ module Variable =
         /// Only a `ValueSet` can be pruned. The other `ValueRange`s
         /// are left untouched.
         /// </remarks>
-        let prune n =
-            map id id id id id id id (ValueSet.prune n)
+        let prune incr n =
+            map id id id id id id id (ValueSet.prune incr n)
 
 
         /// <summary>
@@ -3718,8 +3734,9 @@ module Variable =
                         |> fun vr ->
                             if n |> Option.isNone then vr
                             else
+                                let incr = var.Values |> ValueRange.getIncr |> Option.map Increment.toValueUnit
                                 vr
-                                |> ValueRange.prune n.Value
+                                |> ValueRange.prune incr n.Value
                 }
             with
             | e ->

@@ -250,11 +250,13 @@ module OrderProcessor =
                     ScheduleTime Time.setToNonZeroPositive
 
                 // orderable quantity is calculated by adding component quantities
-                OrderableQuantity Quantity.applyConstraints
+                // but cannot be fixed to a certain maximum as this is determined by
+                // the component quantities
+                OrderableQuantity Quantity.applyOnlyMinIncrConstraints
                 // the component that has to be set to a min, max or median value
                 // first has to be set to the min, incr, max constraints for that component
-                ComponentOrderableQuantity (cmp, Quantity.applyConstraints)
-                ItemOrderableQuantity (cmp, "", Quantity.applyConstraints)
+                ComponentOrderableQuantity (cmp, Quantity.applyOnlyMinIncrConstraints)
+                ItemOrderableQuantity (cmp, "", Quantity.applyOnlyMinIncrConstraints)
 
                 // keep the orderable dose rate constant but change the
                 // orderable dose, need to keep the dose quantity incr!
@@ -272,6 +274,7 @@ module OrderProcessor =
                         // component
                         ComponentDose (cn, Dose.applyConstraints)
                         ItemDose (cn, "", Dose.applyConstraints)
+
                         ComponentOrderableConcentration (cn, Concentration.applyConstraints)
                         ItemOrderableConcentration (cn, "", Concentration.applyConstraints)
                     else
@@ -279,8 +282,14 @@ module OrderProcessor =
                         // recalculate the dose
                         ComponentDose (cn, Dose.setToNonZeroPositive)
                         ItemDose (cn, "", Dose.setToNonZeroPositive)
+
+                        ComponentOrderableConcentration (cn, Concentration.applyConstraints)
+                        ItemOrderableConcentration (cn, "", Concentration.applyConstraints)
+
+                        (* VERSION 2026-01-09
                         ComponentOrderableConcentration (cn, Concentration.setToNonZeroPositive)
                         ItemOrderableConcentration (cn, "", Concentration.setToNonZeroPositive)
+                        *)
             ]
         // recalc
         |> solveMinMax printErr logger
@@ -591,7 +600,7 @@ module OrderProcessor =
                 step.Run ord
                 |> function
                 | Ok ord ->
-                    ord |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
+                    //ord |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
                     Ok ord
                 | Error (ord, msgs) ->
                     $"Error in {step.Name}"
@@ -607,13 +616,14 @@ module OrderProcessor =
 
         // Core step functions
         let calcMinMaxStep increaseIncrement ord =
+            // TODO: need to simplify unnecessary match
             match calcMinMax logger normDose increaseIncrement ord with
             | Ok o -> Ok o
             | Error (o, errs) ->
-                o |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
+                //o |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
                 Error (o, errs)
 
-        let calcValuesStep useAll ord = ord |> minIncrMaxToValues useAll true logger |> Ok
+        let calcValuesStep useMax ord = ord |> minIncrMaxToValues useMax true logger |> Ok
 
         let solveStep ord = solveOrder true logger ord
 
@@ -653,10 +663,11 @@ module OrderProcessor =
             |> runPipeline ord
 
         | ReCalcValues ord ->
+            let useMax = ord.Orderable.Components |> List.length <= 2
             [
                 { Name = "recalc-values: apply-constraints"; Guard = (fun _ -> true); Run = applyConstraintsStep };
-                { Name = "recalc-values: calc-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep false };
-                { Name = "recalc-values: calc-values"; Guard = (fun _ -> true); Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2) }
+                { Name = "recalc-values: calc-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep true };
+                { Name = "recalc-values: calc-values"; Guard = (fun _ -> true); Run = calcValuesStep useMax }
             ]
             |> runPipeline ord
 

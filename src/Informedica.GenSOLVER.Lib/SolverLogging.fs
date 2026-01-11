@@ -106,8 +106,9 @@ module SolverLogging =
 
 
     let printSolverEvent = function
-        | EquationStartedSolving eq ->
-            $"=== Start solving Equation ===\n{eq |> Equation.toStringShort}"
+        | EquationStartedSolving (minmax,eq) ->
+            let s = if minmax then "Min/Max" else "Values"
+            $"=== Start solving Equation {s} ===\n{eq |> Equation.toStringShort}"
 
         | EquationStartCalculation (op1, op2, y, xs) ->
             $"start calculating: {Equation.calculationToString false op1 op2 y xs}"

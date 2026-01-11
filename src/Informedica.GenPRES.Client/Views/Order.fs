@@ -1082,6 +1082,21 @@ module Order =
                             |> select true "" None ignore None false
                     }
                     {
+                        // substance name
+                        match state.Order with
+                        | Some ord ->
+                            if ord.Orderable.Components |> Array.isEmpty ||
+                               itms |> Array.length <= 1 then JSX.jsx $"<></>"
+                            else
+                                itms
+                                |> Array.map _.Name
+                                |> Array.map (fun s -> s, s)
+                                |> select false "Stoffen" state.SelectedItem (ChangeItem >> dispatch) None false
+                        | _ ->
+                            [||]
+                            |> select true "" None ignore None false
+                    }
+                    {
                         // frequency
                         match state.Order with
                         | Some ord ->
@@ -1102,61 +1117,6 @@ module Order =
                                     |}
                                     |> Some
                             select false (Terms.``Order Frequency`` |> getTerm "Frequentie") None (ChangeFrequency >> dispatch) navigate true xs
-                        | _ ->
-                            [||]
-                            |> select true "" None ignore None false
-                    }
-                    {
-                        // component orderable quantity
-                        match state.Order with
-                        | Some ord when ord.Orderable.Components |> Array.length > 1 ->
-                            let navigate =
-                                {|
-                                    first = fun () -> SetMinComponentQuantityProperty |> dispatch
-                                    decrease = fun () -> 1 |> DecreaseComponentQuantityProperty |> dispatch
-                                    median = fun () -> SetMedianComponentQuantityProperty |> dispatch
-                                    increase = fun () -> 1 |> IncreaseComponentQuantityProperty |> dispatch
-                                    last = fun () -> SetMaxComponentQuantityProperty |> dispatch
-                                |}
-                                |> Some
-
-                            ord.Orderable.Components
-                            |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
-                            |> Option.bind _.OrderableQuantity.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                            |> Option.defaultValue [||]
-                            |> select false "Bereiding Hoeveelheid" None (ChangeComponentOrderableQuantity >> dispatch) navigate false
-                        | _ ->
-                            [||]
-                            |> select true "" None ignore None false
-                    }
-                    {
-                        // component dose quantity
-                        match state.Order with
-                        | Some ord when ord.Schedule.IsContinuous |> not &&
-                                        ord.Orderable.Components |> Array.length > 1 &&
-                                        itms |> Array.isEmpty ->
-                            ord.Orderable.Components
-                            |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
-                            |> Option.bind _.Dose.Quantity.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                            |> Option.defaultValue [||]
-                            |> select false "Keer Dosering" None (ChangeComponentDoseQuantity >> dispatch) None false
-                        | _ ->
-                            [||]
-                            |> select true "" None ignore None false
-                    }
-                    {
-                        // substance name
-                        match state.Order with
-                        | Some ord ->
-                            if ord.Orderable.Components |> Array.isEmpty ||
-                               itms |> Array.length <= 1 then JSX.jsx $"<></>"
-                            else
-                                itms
-                                |> Array.map _.Name
-                                |> Array.map (fun s -> s, s)
-                                |> select false "Stoffen" state.SelectedItem (ChangeItem >> dispatch) None false
                         | _ ->
                             [||]
                             |> select true "" None ignore None false
@@ -1260,6 +1220,66 @@ module Order =
                             [||]
                             |> select true "" None ignore None false
                     }
+                    {
+                        // component orderable quantity
+                        match state.Order with
+                        | Some ord when ord.Orderable.Components |> Array.length > 1 ->
+                            let cmp =
+                                ord.Orderable.Components
+                                |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
+
+                            let vals =
+                                cmp
+                                |> Option.bind _.OrderableQuantity.Variable.Vals
+                                |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
+                                |> Option.defaultValue [||]
+
+                            let navigate =
+                                let c = vals |> Array.length
+
+                                let show =
+                                    match cmp with
+                                    | None -> false
+                                    | Some cmp ->
+                                        cmp.OrderableQuantity.Constraints.Min.IsSome &&
+                                        cmp.OrderableQuantity.Constraints.Incr.IsSome && 
+                                        cmp.OrderableQuantity.Constraints.Max.IsSome ||
+                                        c = 1 || c > 10
+                                        
+                                if not show then None
+                                else
+                                    {|
+                                        first = fun () -> SetMinComponentQuantityProperty |> dispatch
+                                        decrease = fun () -> 1 |> DecreaseComponentQuantityProperty |> dispatch
+                                        median = fun () -> SetMedianComponentQuantityProperty |> dispatch
+                                        increase = fun () -> 1 |> IncreaseComponentQuantityProperty |> dispatch
+                                        last = fun () -> SetMaxComponentQuantityProperty |> dispatch
+                                    |}
+                                    |> Some
+
+                            vals
+                            |> select false "Bereiding Hoeveelheid" None (ChangeComponentOrderableQuantity >> dispatch) navigate false
+                        | _ ->
+                            [||]
+                            |> select true "" None ignore None false
+                    }
+                    {
+                        // component dose quantity
+                        match state.Order with
+                        | Some ord when ord.Schedule.IsContinuous |> not &&
+                                        ord.Orderable.Components |> Array.length > 1 &&
+                                        itms |> Array.isEmpty ->
+                            ord.Orderable.Components
+                            |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
+                            |> Option.bind _.Dose.Quantity.Variable.Vals
+                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
+                            |> Option.defaultValue [||]
+                            |> select false "Keer Dosering" None (ChangeComponentDoseQuantity >> dispatch) None false
+                        | _ ->
+                            [||]
+                            |> select true "" None ignore None false
+                    }
+
                     {
                         // orderable dose quantity
                         match state.Order with

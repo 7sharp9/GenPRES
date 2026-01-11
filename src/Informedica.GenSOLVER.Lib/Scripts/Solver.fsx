@@ -80,7 +80,7 @@ module TestSolver =
 
     let solve n p eqs =
         let n = n |> Name.createExc
-        Api.solve true (fun _ -> id) logger n p eqs
+        Api.solve true (fun _ eqs -> eqs |> List.mapi (fun i e -> (i, e))) logger n p eqs
 
     let solveAll = Api.solveAll false logger
 
@@ -137,3 +137,70 @@ eqs
                 eqs |> Solver.printEqs true (fun s -> printfn $"{s}") |> ignore
             | Error _ -> failwith "errors"
     | Error _ -> failwith "errors"
+
+
+let min =
+    Units.Volume.milliLiter
+    |> ValueUnit.singleWithValue 1N
+    |> Variable.ValueRange.Minimum.create true
+    |> Some
+
+let incr =
+    Units.Volume.milliLiter
+    |> ValueUnit.singleWithValue 1N
+    |> Variable.ValueRange.Increment.create
+    |> Some
+
+let max =
+    Units.Volume.milliLiter
+    |> ValueUnit.singleWithValue 1000N
+    |> Variable.ValueRange.Maximum.create true
+    |> Some
+
+{ Variable.empty ("test" |> Variable.Name.createExc) with
+    Values =
+        Variable.ValueRange.create min incr max None
+}
+|> Variable.minIncrMaxToValues (Some 10)
+
+
+open Informedica.Utils.Lib
+
+let prune incr n =
+    let rec loop m incr (xs : BigRational []) =
+        let filtered =
+            xs
+            |> Array.filter (fun x -> (x / (incr * m)).Denominator = 1I)
+
+        if filtered |> Array.length <= n then filtered
+        else loop (m + 1N) incr xs
+
+    fun vu ->
+        let u = vu |> ValueUnit.getUnit
+        let v =
+            match incr |> Option.map ValueUnit.getBaseValue with
+            | Some [| incr |] ->
+                vu
+                |> ValueUnit.convertTo u
+                |> ValueUnit.getValue
+                |> loop 1N incr
+            | _ ->
+                vu
+                |> ValueUnit.getValue
+                |> Array.prune n //Constants.PRUNE
+        vu
+        |> ValueUnit.setValue v
+
+
+let prune10 =
+    Units.Volume.liter
+    |> ValueUnit.singleWithValue (5N / 1000N)
+    |> Some
+    |> prune
+
+
+Units.Volume.milliLiter
+|> ValueUnit.withValue [| 5N..5N..1000N |]
+|> prune10 50
+|> ValueUnit.getValue
+|> Array.length

@@ -165,7 +165,7 @@ module rec Types =
     module Events =
 
         type Event =
-            | EquationStartedSolving of Equation
+            | EquationStartedSolving of minmax: bool * Equation
             | EquationStartCalculation of
                 op1: (Variable -> Variable -> Variable) *
                 op2: (Variable -> Variable -> Variable) *
