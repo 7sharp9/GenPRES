@@ -323,6 +323,9 @@ module OrderProcessor =
         | SetMinComponentQuantity cmp -> ord |> orderPropertySetComponentQuantity printErr logger Quantity.setMinValue cmp
         | SetMaxComponentQuantity cmp -> ord |> orderPropertySetComponentQuantity printErr logger Quantity.setMaxValue cmp
         | SetMedianComponentQuantity cmp -> ord |> orderPropertySetComponentQuantity printErr logger Quantity.setMedianValue cmp
+        | ComponentInStock(cmp, onlyInStock) ->
+            ConsoleWriter.writeWarningMessage $"{cmd} not implemented" true false
+            ord |> Ok
 
 
     let orderPropertyChangeFrequency ord =
