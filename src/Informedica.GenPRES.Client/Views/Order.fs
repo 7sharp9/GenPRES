@@ -49,14 +49,14 @@ module Order =
             // Frequency property commands
             | DecreaseFrequencyProperty
             | IncreaseFrequencyProperty
-            | SetMinFrequencyProperty 
+            | SetMinFrequencyProperty
             | SetMaxFrequencyProperty
             | SetMedianFrequencyProperty
             // Dose Quantity property commands
             | DecreaseDoseQuantityProperty of ntimes: int
             | IncreaseDoseQuantityProperty of ntimes: int
-            | SetMinDoseQuantityProperty 
-            | SetMaxDoseQuantityProperty 
+            | SetMinDoseQuantityProperty
+            | SetMaxDoseQuantityProperty
             | SetMedianDoseQuantityProperty
             // Rate property commands
             | DecreaseDoseRateProperty of ntimes: int
@@ -129,29 +129,29 @@ module Order =
         let update
             updateOrderScenario
             resetOrderScenario
-            (navigate : 
-                {| 
+            (navigate :
+                {|
                     setFreqMin : OrderLoader -> unit
                     setFreqDec : OrderLoader -> unit
-                    setFreqMed : OrderLoader -> unit 
+                    setFreqMed : OrderLoader -> unit
                     setFreqInc : OrderLoader -> unit
                     setFreqMax : OrderLoader -> unit
 
                     setRateMin : OrderLoader -> unit
                     setRateDec : OrderLoader -> unit
-                    setRateMed : OrderLoader -> unit 
+                    setRateMed : OrderLoader -> unit
                     setRateInc : OrderLoader -> unit
                     setRateMax : OrderLoader -> unit
 
                     setDoseQtyMin : OrderLoader -> unit
                     setDoseQtyDec : OrderLoader -> unit
-                    setDoseQtyMed : OrderLoader -> unit 
+                    setDoseQtyMed : OrderLoader -> unit
                     setDoseQtyInc : OrderLoader -> unit
                     setDoseQtyMax : OrderLoader -> unit
 
                     setComponentQtyMin : OrderLoader -> unit
                     setComponentQtyDec : OrderLoader -> unit
-                    setComponentQtyMed : OrderLoader -> unit 
+                    setComponentQtyMed : OrderLoader -> unit
                     setComponentQtyInc : OrderLoader -> unit
                     setComponentQtyMax : OrderLoader -> unit
 
@@ -189,7 +189,7 @@ module Order =
             let handleNav nav =
                 match state.Order with
                 | None -> state, Cmd.none
-                | Some ord -> 
+                | Some ord ->
                     // dispatch to parent
                     OrderLoader.create state.SelectedComponent state.SelectedItem ord
                     |> nav
@@ -568,7 +568,7 @@ module Order =
                                                                         itm.ComponentConcentration
                                                                         |> setOvar s
                                                                 }
-                                                            | _ -> 
+                                                            | _ ->
                                                                 if itm.Name <> iname then itm
                                                                 else
                                                                     { itm with
@@ -848,7 +848,7 @@ module Order =
                 |> props.refreshOrderScenario
             | _ -> ()
 
-        let navigate = 
+        let navigate =
             let create nav =
                 fun (ol : OrderLoader) ->
                     match props.orderContext with
@@ -1241,11 +1241,11 @@ module Order =
                                     match cmp with
                                     | None -> false
                                     | Some cmp ->
-                                        cmp.OrderableQuantity.Constraints.Min.IsSome &&
-                                        cmp.OrderableQuantity.Constraints.Incr.IsSome && 
-                                        cmp.OrderableQuantity.Constraints.Max.IsSome ||
+                                        cmp.OrderableQuantity.Variable.Min.IsSome &&
+                                        cmp.OrderableQuantity.Variable.Incr.IsSome &&
+                                        cmp.OrderableQuantity.Variable.Max.IsSome ||
                                         c = 1 || c > 10
-                                        
+
                                 if not show then None
                                 else
                                     {|
@@ -1272,14 +1272,13 @@ module Order =
                             ord.Orderable.Components
                             |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
                             |> Option.bind _.Dose.Quantity.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
+                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 2} {v.Unit}"))
                             |> Option.defaultValue [||]
                             |> select false "Keer Dosering" None (ChangeComponentDoseQuantity >> dispatch) None false
                         | _ ->
                             [||]
                             |> select true "" None ignore None false
                     }
-
                     {
                         // orderable dose quantity
                         match state.Order with
@@ -1308,7 +1307,7 @@ module Order =
                         | Some i, Some ord ->
                             match itms |> Array.tryItem i with
                             | Some itm ->
-                                let cname, iname = 
+                                let cname, iname =
                                     ord.Orderable.Components |> Array.tryHead |> Option.map _.Name |> Option.defaultValue ""
                                     , itm.Name
 
@@ -1320,22 +1319,22 @@ module Order =
                                 |> fun xs -> if xs |> Array.length <= 1 then [||] else xs
                                 |> select false "Product Sterkte" None (change >> dispatch) None true
                             | None ->
-                                match 
+                                match
                                     ord.Orderable.Components
                                     |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value) with
                                 | Some cmp ->
                                     match cmp.Items |> Array.tryFind (fun i -> i.Name = cmp.Name) with
-                                    | Some itm -> 
+                                    | Some itm ->
                                         let change = fun s -> (cmp.Name, itm.Name, s) |> ChangeSubstanceComponentConcentration
 
                                         itm.ComponentConcentration.Variable.Vals
                                         |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
                                         |> Option.defaultValue [||]
                                         |> select false "Product Sterkte" None (change >> dispatch) None true
-                                    | None -> 
+                                    | None ->
                                         [||]
                                         |> select true "" None ignore None false
-                                | None -> 
+                                | None ->
                                     [||]
                                     |> select true "" None ignore None false
 
