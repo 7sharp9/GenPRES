@@ -992,11 +992,11 @@ module OrderVariable =
     /// as the minimum floor since it's the smallest valid positive
     /// increment-aligned value.
     /// </summary>
-    /// <param name="isIncr">Whether the operation is an increase, otherwise decrease</param>
+    /// <param name="isStepUp">Whether the operation is an increase, otherwise decrease</param>
     /// <param name="n">The number of increases or decreases</param>
     /// <param name="ovar">The OrderVariable to step</param>
     /// <returns>The OrderVariable with stepped value, unchanged if no increment constraint</returns>
-    let step isIncr n (ovar : OrderVariable) =
+    let step isStepUp n (ovar : OrderVariable) =
         if ovar.Constraints.Incr.IsNone then ovar
         else
             let minVal, maxVal =
@@ -1013,7 +1013,7 @@ module OrderVariable =
                     (n |> BigRational.fromInt |> ValueUnit.singleWithUnit Units.Count.times) * incr
 
             let vr =
-                match isIncr, minVal, maxVal with
+                match isStepUp, minVal, maxVal with
                 // Increase: there is both a min and max
                 | true, Some minVal, Some maxVal ->
                     // A specific value has been set, increase that value
@@ -1024,7 +1024,6 @@ module OrderVariable =
                         minVal + (incr |> calcIncr (n - 1))
                 // Increase: prefer stepping from minVal, otherwise from maxVal
                 | true, Some minVal, None ->
-                    printfn $"calculated minVal + (incr |> calcIncr (n - 1)): {minVal + (incr |> calcIncr (n - 1))}"
                     let vu = minVal + (incr |> calcIncr (n - 1))
                     // check when minVal is actually a non zero min
                     if vu <? incr then incr else vu
@@ -1032,7 +1031,6 @@ module OrderVariable =
                     maxVal + (incr |> calcIncr (n - 1))
                 // Fallback when no min or max: use incr as the base value
                 | true, _, _ ->
-                    printfn $"calculated incr + incr |> calcIncr (n - 1): {incr + incr |> calcIncr (n - 1)}"
                     incr + incr |> calcIncr (n - 1)
                 // Decrease: there is both a min and a max
                 | false, Some minVal, Some maxVal ->

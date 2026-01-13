@@ -307,6 +307,7 @@ module Types =
         | SetMinComponentQuantity of cmp: string
         | SetMaxComponentQuantity of cmp: string
         | SetMedianComponentQuantity of cmp: string
+        | ComponentInStock of cmp: string * onlyInStock: bool
 
 
     /// The different possible order types
