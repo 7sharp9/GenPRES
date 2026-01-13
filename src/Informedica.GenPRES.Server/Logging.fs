@@ -110,9 +110,9 @@ module Logging
         |> AgentLogging.AgentLoggerDefaults.withLevel Level.Informative
         |> AgentLogging.AgentLoggerDefaults.withMaxMessages (Some 10_000)
         |> AgentLogging.AgentLoggerDefaults.withFlushInterval (TimeSpan.FromSeconds 10.)
-        |> AgentLogging.AgentLoggerDefaults.withMinFlushInterval (TimeSpan.FromSeconds 1.)
+        |> AgentLogging.AgentLoggerDefaults.withMinFlushInterval (TimeSpan.FromMilliseconds 10.)
         |> AgentLogging.AgentLoggerDefaults.withMaxFlushInterval (TimeSpan.FromSeconds 20.)
-        |> AgentLogging.AgentLoggerDefaults.withFlushThreshold 1_000
+        |> AgentLogging.AgentLoggerDefaults.withFlushThreshold 100
 
 
     type Loggers =

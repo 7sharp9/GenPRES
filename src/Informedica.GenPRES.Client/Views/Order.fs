@@ -1264,34 +1264,31 @@ module Order =
                             |> select true "" None ignore None false
                     }
                     {
-                        // component dose quantity
-                        match state.Order with
-                        | Some ord when ord.Schedule.IsContinuous |> not &&
-                                        ord.Orderable.Components |> Array.length > 1 &&
-                                        itms |> Array.isEmpty ->
-                            ord.Orderable.Components
-                            |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
-                            |> Option.bind _.Dose.Quantity.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 2} {v.Unit}"))
-                            |> Option.defaultValue [||]
-                            |> select false "Keer Dosering" None (ChangeComponentDoseQuantity >> dispatch) None false
-                        | _ ->
-                            [||]
-                            |> select true "" None ignore None false
-                    }
-                    {
                         // orderable dose quantity
                         match state.Order with
                         | Some ord when ord.Schedule.IsContinuous |> not ->
+                            // only show nav if all components have
+                            // a distinct orderable quantity
+                            let showNav =
+                                ord.Orderable.Components
+                                |> Array.forall (fun cmp ->
+                                    cmp.OrderableQuantity.Variable.Vals
+                                    |> Option.map (fun vu ->
+                                        vu.Value |> Array.length = 1
+                                    )
+                                    |> Option.defaultValue false
+                                )
                             let navigate =
-                                {|
-                                    first = fun () -> SetMinDoseQuantityProperty |> dispatch
-                                    decrease = fun () -> 1 |> DecreaseDoseQuantityProperty |> dispatch
-                                    median = fun () -> SetMedianDoseQuantityProperty |> dispatch
-                                    increase = fun () -> 1 |> IncreaseDoseQuantityProperty |> dispatch
-                                    last = fun () -> SetMaxDoseQuantityProperty |> dispatch
-                                |}
-                                |> Some
+                                if not showNav then None
+                                else
+                                    {|
+                                        first = fun () -> SetMinDoseQuantityProperty |> dispatch
+                                        decrease = fun () -> 1 |> DecreaseDoseQuantityProperty |> dispatch
+                                        median = fun () -> SetMedianDoseQuantityProperty |> dispatch
+                                        increase = fun () -> 1 |> IncreaseDoseQuantityProperty |> dispatch
+                                        last = fun () -> SetMaxDoseQuantityProperty |> dispatch
+                                    |}
+                                    |> Some
 
                             ord.Orderable.Dose.Quantity.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
