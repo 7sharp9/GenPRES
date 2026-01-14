@@ -105,9 +105,9 @@ module Logging
         agent |> FileDirectoryAgent.setPolicyWithPattern dir MAX_LOG_FILES "*.log"
 
 
-    let config =
+    let getConfig level =
         AgentLogging.AgentLoggerDefaults.config
-        |> AgentLogging.AgentLoggerDefaults.withLevel Level.Informative
+        |> AgentLogging.AgentLoggerDefaults.withLevel level
         |> AgentLogging.AgentLoggerDefaults.withMaxMessages (Some 10_000)
         |> AgentLogging.AgentLoggerDefaults.withFlushInterval (TimeSpan.FromSeconds 10.)
         |> AgentLogging.AgentLoggerDefaults.withMinFlushInterval (TimeSpan.FromMilliseconds 10.)
@@ -124,7 +124,8 @@ module Logging
         | ParenteraliaLogger
 
 
-    let private loggers =
+    let getLoggers level =
+        let config = getConfig level
         [
             RequestLogger, OrderLogging.createAgentLogger config
             OrderLogger, OrderLogging.createAgentLogger config
@@ -136,8 +137,10 @@ module Logging
         |> Map.ofList
 
 
-    let getLogger (loggerType: Loggers) =
-        loggers[loggerType]
+    let getLogger level (loggerType: Loggers) =
+        match level with
+        | Some level -> getLoggers(level)[loggerType] |> Some
+        | None -> None
 
 
     let loggingEnabled =
@@ -149,22 +152,34 @@ module Logging
         |> Option.defaultValue false
 
 
-    let setComponentName (componentName: string option) (logger: AgentLogging.AgentLogger) =
+    let loggingLevel =
+        Env.getItem "GENPRES_LOG"
+        |> Option.bind (fun (s: string)  ->
+            match s.Trim().ToLowerInvariant() with
+            | "d" -> Level.Debug |> Some
+            | "i" -> Level.Informative |> Some
+            | "w" -> Level.Warning |> Some
+            | "e" -> Level.Error |> Some
+            | _ -> None
+        )
 
-        if loggingEnabled then
 
-            let path = getRecommendedLogPath componentName
+    let setComponentName (componentName: string option) (logger: AgentLogging.AgentLogger option) =
 
-            async {
-                let dirAgent = getDirAgent path
-                let! pruned = FileDirectoryAgent.pruneAsync path dirAgent
-                match pruned with
-                | Ok n when n > 0 -> writeInfoMessage $"🧹 Pruned {n} old log file(s)\n"
-                | Ok _ -> ()
-                | Error s -> writeErrorMessage $"❌ Log path prune errored with: {s}\n"
-                dirAgent |> Agent.dispose
+        match loggingLevel, logger with
+        | Some level, Some logger ->
 
-                logger.Start (Some path) config.DefaultLevel
-            }
+                let path = getRecommendedLogPath componentName
 
-        else async { () }
+                async {
+                    let dirAgent = getDirAgent path
+                    let! pruned = FileDirectoryAgent.pruneAsync path dirAgent
+                    match pruned with
+                    | Ok n when n > 0 -> writeInfoMessage $"🧹 Pruned {n} old log file(s)\n"
+                    | Ok _ -> ()
+                    | Error s -> writeErrorMessage $"❌ Log path prune errored with: {s}\n"
+                    dirAgent |> Agent.dispose
+
+                    logger.Start (Some path) level
+                }
+        | _, _ -> async { () }

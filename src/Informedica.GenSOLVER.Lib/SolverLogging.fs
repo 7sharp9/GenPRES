@@ -205,7 +205,7 @@ module SolverLogging =
     let logSolverEvent (logger: Logger) (event: Events.Event) =
         event
         |> SolverEventMessage
-        |> Logging.logInfo logger
+        |> Logging.logDebug logger
 
 
     let logSolverWarning (logger: Logger) (event: Events.Event) =

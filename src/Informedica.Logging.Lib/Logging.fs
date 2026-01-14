@@ -13,9 +13,9 @@ type TimeStamp = DateTime
 
 [<RequireQualifiedAccess>]
 type Level =
+    | Debug
     | Informative
     | Warning
-    | Debug
     | Error
 
 
@@ -467,8 +467,8 @@ module AgentLogging =
                             | LogEvent ev ->
                                 let shouldLog =
                                     let levelValue = function
-                                        | Level.Informative -> 0
-                                        | Level.Debug -> 1
+                                        | Level.Debug -> 0
+                                        | Level.Informative -> 1
                                         | Level.Warning -> 2
                                         | Level.Error -> 3
                                     levelValue ev.Level >= levelValue level

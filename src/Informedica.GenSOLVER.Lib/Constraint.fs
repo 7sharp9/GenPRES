@@ -73,7 +73,7 @@ module Constraint =
         |> fun cs ->
             cs
             |> Events.ConstraintSortOrder
-            |> Logger.logInfo log
+            |> Logger.logDebug log
 
             cs
             |> List.map snd
@@ -106,7 +106,7 @@ module Constraint =
         |> fun var ->
             c
             |> Events.ConstraintApplied
-            |> Logger.logInfo log
+            |> Logger.logDebug log
 
             var
 
@@ -130,6 +130,6 @@ module Constraint =
         |> fun eqs ->
             c
             |> Events.ConstrainedSolved
-            |> Logger.logInfo log
+            |> Logger.logDebug log
 
             eqs
