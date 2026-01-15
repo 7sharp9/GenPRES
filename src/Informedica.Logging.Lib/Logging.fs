@@ -102,14 +102,15 @@ module Logging =
         )
 
 
+    let levelValue = function
+        | Level.Debug -> 0
+        | Level.Informative -> 1
+        | Level.Warning -> 2
+        | Level.Error -> 3
+
+
     /// Filter messages by level
     let filterByLevel (minLevel: Level) (logger: Logger) : Logger =
-        let levelValue = function
-            | Level.Informative -> 0
-            | Level.Debug -> 1
-            | Level.Warning -> 2
-            | Level.Error -> 3
-
         create (fun msg ->
             if levelValue msg.Level >= levelValue minLevel then
                 logger.Log msg
@@ -466,12 +467,7 @@ module AgentLogging =
 
                             | LogEvent ev ->
                                 let shouldLog =
-                                    let levelValue = function
-                                        | Level.Debug -> 0
-                                        | Level.Informative -> 1
-                                        | Level.Warning -> 2
-                                        | Level.Error -> 3
-                                    levelValue ev.Level >= levelValue level
+                                    Logging.levelValue ev.Level >= Logging.levelValue level
                                 if shouldLog then
                                     let elapsed = timer.Elapsed.TotalSeconds
                                     addMessage elapsed ev
