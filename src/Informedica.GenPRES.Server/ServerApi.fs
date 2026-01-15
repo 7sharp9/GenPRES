@@ -981,16 +981,19 @@ module Command =
     open Shared.Api
 
     let processCmd provider cmd =
-        let orderLogger = Logging.getLogger Logging.loggingLevel Logging.OrderLogger
-        let logger =
-            orderLogger
-            |> Option.map _.Logger
-            |> Option.defaultValue Informedica.GenOrder.Lib.OrderLogging.noOp
+        let agent, logger =
+            match Logging.loggingLevel with
+            | None -> None, Informedica.GenOrder.Lib.OrderLogging.noOp
+            | Some level ->
+                let agent =
+                    Logging.getLogger level Logging.OrderLogger
+                (Some agent, agent.Logger)
 
         match cmd with
         | OrderContextCmd ctxCmd ->
             async {
-                do! orderLogger |> Logging.setComponentName (Some "OrderContext")
+                if agent.IsSome then
+                    do! agent.Value |> Logging.setComponentName (Some "OrderContext")
 
                 return
                     ctxCmd
@@ -1000,7 +1003,8 @@ module Command =
 
         | TreatmentPlanCmd (UpdateTreatmentPlan tp) ->
             async {
-                do! orderLogger |> Logging.setComponentName (Some "TreatmentPlan")
+                if agent.IsSome then
+                    do! agent.Value |> Logging.setComponentName (Some "TreatmentPlan")
                 return
                     tp
                     |> TreatmentPlan.updateTreatmentPlan logger provider

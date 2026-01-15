@@ -113,7 +113,7 @@ module Logging
         |> AgentLogging.AgentLoggerDefaults.withFlushThreshold 100
 
 
-    type Loggers =
+    type LoggerType =
         | RequestLogger
         | OrderLogger
         | ResourcesLogger
@@ -122,23 +122,19 @@ module Logging
         | ParenteraliaLogger
 
 
-    let getLoggers level =
-        let config = getConfig level
-        [
-            RequestLogger, OrderLogging.createAgentLogger config
-            OrderLogger, OrderLogging.createAgentLogger config
-            ResourcesLogger, OrderLogging.createAgentLogger config
-            FormularyLogger, OrderLogging.createAgentLogger config
-            TherapyTreatmentPlanLogger, OrderLogging.createAgentLogger config
-            ParenteraliaLogger, OrderLogging.createAgentLogger config
-        ]
-        |> Map.ofList
+    let mutable loggers :  Map<(LoggerType * Informedica.Logging.Lib.Level), AgentLogging.AgentLogger> = [] |> Map.ofList
 
 
-    let getLogger level (loggerType: Loggers) =
-        match level with
-        | Some level -> getLoggers(level)[loggerType] |> Some
-        | None -> None
+    let getLogger (level: Level) (loggerType: LoggerType) =
+        match loggers |> Map.tryFind (loggerType, level) with
+        | Some logger -> logger
+        | None ->
+            let logger =
+                level
+                |> getConfig
+                |> OrderLogging.createAgentLogger
+            loggers <- loggers.Add((loggerType, level), logger)
+            logger
 
 
     let loggingEnabled =
@@ -164,10 +160,9 @@ module Logging
         )
 
 
-    let setComponentName (componentName: string option) (logger: AgentLogging.AgentLogger option) =
-
-        match loggingLevel, logger with
-        | Some level, Some logger ->
+    let setComponentName (componentName: string option) (logger: AgentLogging.AgentLogger) =
+        match loggingLevel with
+        | Some level ->
 
                 let path = getRecommendedLogPath componentName
 
@@ -182,4 +177,4 @@ module Logging
 
                     logger.Start (Some path) level
                 }
-        | _, _ -> async { () }
+        | None -> async { () }

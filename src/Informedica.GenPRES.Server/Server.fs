@@ -57,10 +57,13 @@ let port =
 
 let provider =
     let logger =
-        Logging.getLogger Logging.loggingLevel Logging.ResourcesLogger
-        |> (fun logger ->
-            logger |> Logging.setComponentName (Some "Provider") |> Async.RunSynchronously
-            logger
+        Logging.loggingLevel
+        |> Option.map (fun level ->
+            Logging.getLogger level Logging.ResourcesLogger
+            |> (fun logger ->
+                logger |> Logging.setComponentName (Some "Provider") |> Async.RunSynchronously
+                logger
+            )
         )
         |> Option.map _.Logger
         |> Option.defaultValue Informedica.GenOrder.Lib.Logging.noOp
@@ -72,16 +75,17 @@ let provider =
 
 let logClientIP : HttpHandler =
     fun (next : HttpFunc) (ctx : HttpContext) ->
-        match Logging.getLogger Logging.loggingLevel Logging.RequestLogger with
+        match Logging.loggingLevel with
         | None -> next ctx
-        | Some logger ->
+        | Some level ->
             let clientIP = getClientIP ctx
             let path = ctx.Request.Path.ToString()
             let method = ctx.Request.Method
+            let logger = Logging.getLogger level Logging.RequestLogger
 
             async {
                 do!
-                    Some logger
+                    logger
                     |> Logging.setComponentName (Some "Client_Request")
 
                 Logging.ServerLogging.logRequest logger method path clientIP
@@ -113,23 +117,20 @@ type LoggerShutdown() =
             Task.CompletedTask
 
         member _.StopAsync _ =
-            match Logging.loggingLevel with
-            | Some level ->
-                let loggers = Logging.getLoggers level
-                [|
-                    for kv in loggers do
-                        let logger = kv.Value
+            [|
+                for kv in Logging.loggers do
+                    let logger = kv.Value
 
-                        writeInfoMessage $"Trying to Stop {kv.Key}"
-                        try
-                            logger.StopAsync()
-                        with ex ->
-                            writeDebugMessage $"Logger shutdown failed: {ex.Message}"
-                            async { return () }
-                |]
-                |> Async.Parallel
-                |> Async.StartAsTask :> Task
-            | None -> Task.CompletedTask
+                    writeInfoMessage $"Trying to Stop {kv.Key}"
+                    try
+                        logger.StopAsync()
+                    with ex ->
+                        writeDebugMessage $"Logger shutdown failed: {ex.Message}"
+                        async { return () }
+            |]
+            |> Async.Parallel
+            |> Async.StartAsTask :> Task
+
 
 let application = application {
     url ("http://*:" + port.ToString() + "/")
