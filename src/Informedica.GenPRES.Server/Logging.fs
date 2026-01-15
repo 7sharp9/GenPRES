@@ -37,9 +37,7 @@ module Logging
             |> Logging.logInfo logger.Logger
 
 
-
     let [<Literal>] MAX_LOG_FILES = 10_000
-
 
 
     let getAssemblyPath () =
@@ -146,9 +144,11 @@ module Logging
     let loggingEnabled =
         Env.getItem "GENPRES_LOG"
         |> Option.map (fun s ->
-            match s.Trim().ToLowerInvariant() with
-            | "1" | "true" | "yes" | "on" -> true
-            | _ -> false)
+            s
+            |> String.trim
+            |> String.isNullOrWhiteSpace
+            |> not
+        )
         |> Option.defaultValue false
 
 
