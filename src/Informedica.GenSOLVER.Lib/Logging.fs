@@ -15,6 +15,10 @@ module Logger =
 
 
     /// Log an informative solver event
+    let logDebug logger evt = logMessage Level.Debug logger evt
+
+
+    /// Log an informative solver event
     let logInfo logger evt = logMessage Level.Informative logger evt
 
 

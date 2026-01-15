@@ -148,7 +148,7 @@ module Solver =
 
                     (n, sorted)
                     |> Events.SolverLoopedQue
-                    |> Logger.logInfo log
+                    |> Logger.logDebug log
 
                     sorted |> List.map snd
 
@@ -229,7 +229,7 @@ module Solver =
                 | _  ->
                     (onlyMinIncrMax, rpl)
                     |> Events.SolverStartSolving
-                    |> Logger.logInfo log
+                    |> Logger.logDebug log
 
                     loop 0 rpl (Ok rst)
                     (*
@@ -254,13 +254,13 @@ module Solver =
             | Ok eqs ->
                 eqs
                 |> Events.SolverFinishedSolving
-                |> Logger.logInfo log
+                |> Logger.logDebug log
 
                 eqs |> Ok
             | Error (eqs, m) ->
                 eqs
                 |> Events.SolverFinishedSolving
-                |> Logger.logInfo log
+                |> Logger.logDebug log
 
                 Error (eqs, m)
 

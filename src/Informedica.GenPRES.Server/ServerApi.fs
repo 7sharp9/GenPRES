@@ -981,24 +981,33 @@ module Command =
     open Shared.Api
 
     let processCmd provider cmd =
+        let agent, logger =
+            match Logging.loggingLevel with
+            | None -> None, Informedica.GenOrder.Lib.OrderLogging.noOp
+            | Some level ->
+                let agent =
+                    Logging.getLogger level Logging.OrderLogger
+                (Some agent, agent.Logger)
+
         match cmd with
         | OrderContextCmd ctxCmd ->
             async {
-                let logger = Logging.getLogger Logging.OrderLogger
-                do! logger |> Logging.setComponentName (Some "OrderContext")
+                if agent.IsSome then
+                    do! agent.Value |> Logging.setComponentName (Some "OrderContext")
+
                 return
                     ctxCmd
-                    |> OrderContext.evaluate logger.Logger provider
+                    |> OrderContext.evaluate logger provider
                     |> Result.map (OrderContextUpdated >> OrderContextResp)
             }
 
         | TreatmentPlanCmd (UpdateTreatmentPlan tp) ->
             async {
-                let logger = Logging.getLogger Logging.TherapyTreatmentPlanLogger
-                do! logger |> Logging.setComponentName (Some "TreatmentPlan")
+                if agent.IsSome then
+                    do! agent.Value |> Logging.setComponentName (Some "TreatmentPlan")
                 return
                     tp
-                    |> TreatmentPlan.updateTreatmentPlan logger.Logger provider
+                    |> TreatmentPlan.updateTreatmentPlan logger provider
                     |> TreatmentPlan.calculateTotals
                     |> TreatmentPlanUpdated
                     |> TreatmentPlanResp
@@ -1007,8 +1016,6 @@ module Command =
 
         | TreatmentPlanCmd (FilterTreatmentPlan tp) ->
             async {
-                let logger = Logging.getLogger Logging.TherapyTreatmentPlanLogger
-                do! logger |> Logging.setComponentName (Some "TreatmentPlan")
                 return
                     tp
                     |> TreatmentPlan.calculateTotals
@@ -1019,8 +1026,6 @@ module Command =
 
         | FormularyCmd form ->
             async {
-                let logger = Logging.getLogger Logging.FormularyLogger
-                do! logger |> Logging.setComponentName (Some "Formulary")
                 return
                     form
                     |> Formulary.get provider
@@ -1029,8 +1034,6 @@ module Command =
 
         | ParenteraliaCmd par ->
             async {
-                let logger = Logging.getLogger Logging.ParenteraliaLogger
-                do! logger |> Logging.setComponentName (Some "Parenteralia")
                 return
                     par
                     |> Parenteralia.get provider

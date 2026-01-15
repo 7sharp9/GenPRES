@@ -397,7 +397,7 @@ module Equation =
                         // log starting the calculation
                         (op1, op2, y, xs)
                         |> Events.EquationStartCalculation
-                        |> Logger.logInfo log
+                        |> Logger.logDebug log
 
                         xs
                         |> calc op1 op2
@@ -406,7 +406,7 @@ module Equation =
                             // log finishing the calculation
                             (y::xs, false)
                             |> Events.EquationFinishedCalculation
-                            |> Logger.logInfo log
+                            |> Logger.logDebug log
 
                             n, None
                         | Some var ->
@@ -425,14 +425,14 @@ module Equation =
                                 // log finishing the calculation
                                 ([yNew], true)
                                 |> Events.EquationFinishedCalculation
-                                |> Logger.logInfo log
+                                |> Logger.logDebug log
 
                                 n, Some yNew
                             else
                                 // log finishing the calculation
                                 ([], false)
                                 |> Events.EquationFinishedCalculation
-                                |> Logger.logInfo log
+                                |> Logger.logDebug log
 
                                 n, None
         ) (0, None)
@@ -492,7 +492,7 @@ module Equation =
             // log starting the equation solve
             (onlyMinIncrMax, eq)
             |> Events.EquationStartedSolving
-            |> Logger.logInfo log
+            |> Logger.logDebug log
 
             // get the vars and the matching operators
             let vars, op1, op2 =
@@ -549,7 +549,7 @@ module Equation =
                         // log finishing equation solving
                         (eq, sr)
                         |> Events.EquationFinishedSolving
-                        |> Logger.logInfo log
+                        |> Logger.logDebug log
 
                         eq, sr
 

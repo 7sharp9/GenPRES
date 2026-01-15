@@ -96,7 +96,7 @@ Substance.load ()
 
 // first check the target Directory
 sourcePath
-|> Path.combineWith "./src/Server/data/cache/README.md"
+|> Path.combineWith "./src/Informedica.GenPRES.Server/data/cache/README.md"
 |> File.exists
 
 // copy the cache files to the cache folder
@@ -105,11 +105,11 @@ open Fli
 cli {
     Shell BASH
     WorkingDirectory sourcePath
-    Command "cp ./data/cache/*.cache ./src/Server/data/cache"
+    Command "cp ./data/cache/*.cache ./src/Informedica.GenPRES.Server/data/cache"
 }
 |> Command.execute
 
 // check one of the copied files to the target directory
 sourcePath
-|> Path.combineWith "./src/Server/data/cache/product.cache"
+|> Path.combineWith "./src/Informedica.GenPRES.Server/data/cache/product.cache"
 |> File.exists

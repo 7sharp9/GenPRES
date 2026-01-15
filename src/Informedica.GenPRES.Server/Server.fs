@@ -40,7 +40,7 @@ $"""
 GENPRES_URL_ID={tryGetEnv "GENPRES_URL_ID" |> Option.defaultValue "1IZ3sbmrM4W4OuSYELRmCkdxpN9SlBI-5TLSvXWhHVmA"}
 GENPRES_LOG={tryGetEnv "GENPRES_LOG" |> Option.defaultValue "0"}
 GENPRES_PROD={tryGetEnv "GENPRES_PROD" |> Option.defaultValue "0"}
-GENPRES_DEBUG={tryGetEnv "GENPRES_DEBUG" |> Option.defaultValue "1"}
+GENPRES_DEBUG={tryGetEnv "GENPRES_DEBUG" |> Option.defaultValue "i"}
 
 === System Info ===
 
@@ -56,35 +56,45 @@ let port =
 
 
 let provider =
-    let logger = Logging.getLogger Logging.ResourcesLogger
-
-    logger
-    |> Logging.setComponentName (Some "Provider")
-    |> Async.RunSynchronously
+    let logger =
+        Logging.loggingLevel
+        |> Option.map (fun level ->
+            Logging.getLogger level Logging.ResourcesLogger
+            |> (fun logger ->
+                logger |> Logging.setComponentName (Some "Provider") |> Async.RunSynchronously
+                logger
+            )
+        )
+        |> Option.map _.Logger
+        |> Option.defaultValue Informedica.GenOrder.Lib.Logging.noOp
 
     tryGetEnv "GENPRES_URL_ID"
     |> Option.defaultValue "1IZ3sbmrM4W4OuSYELRmCkdxpN9SlBI-5TLSvXWhHVmA"
-    |> Informedica.GenForm.Lib.Api.getCachedProviderWithDataUrlId logger.Logger
+    |> Informedica.GenForm.Lib.Api.getCachedProviderWithDataUrlId logger
 
 
 let logClientIP : HttpHandler =
     fun (next : HttpFunc) (ctx : HttpContext) ->
-        let logger = Logging.getLogger Logging.RequestLogger
-        let clientIP = getClientIP ctx
-        let path = ctx.Request.Path.ToString()
-        let method = ctx.Request.Method
+        match Logging.loggingLevel with
+        | None -> next ctx
+        | Some level ->
+            let clientIP = getClientIP ctx
+            let path = ctx.Request.Path.ToString()
+            let method = ctx.Request.Method
+            let logger = Logging.getLogger level Logging.RequestLogger
 
-        async {
-            do!
-                logger
-                |> Logging.setComponentName (Some "Client_Request")
-            Logging.ServerLogging.logRequest logger method path clientIP
-            return ()
-        }
-        |> Async.Start
+            async {
+                do!
+                    logger
+                    |> Logging.setComponentName (Some "Client_Request")
 
-        // Continue with the next handler
-        next ctx
+                Logging.ServerLogging.logRequest logger method path clientIP
+                return ()
+            }
+            |> Async.Start
+
+            // Continue with the next handler
+            next ctx
 
 
 let webApi =
@@ -107,15 +117,21 @@ type LoggerShutdown() =
             Task.CompletedTask
 
         member _.StopAsync _ =
-            let logger = Logging.getLogger Logging.RequestLogger
+            lock Logging.loggerLock (fun () ->
+                [|
+                    for kv in Logging.loggers do
+                        let logger = kv.Value
 
-            writeInfoMessage "Trying to Stop Server Async"
-            try
-                // TODO: need to stop all loggers
-                logger.StopAsync() |> Async.StartAsTask :> Task
-            with ex ->
-                writeDebugMessage $"Logger shutdown failed: {ex.Message}"
-                Task.CompletedTask
+                        writeInfoMessage $"Trying to Stop {kv.Key}"
+                        try
+                            logger.StopAsync()
+                        with ex ->
+                            writeDebugMessage $"Logger shutdown failed: {ex.Message}"
+                            async { return () }
+                |]
+                |> Async.Parallel
+                |> Async.StartAsTask :> Task
+            )
 
 
 let application = application {
