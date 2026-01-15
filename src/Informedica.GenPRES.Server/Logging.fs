@@ -122,7 +122,7 @@ module Logging
         | ParenteraliaLogger
 
 
-    let private loggerLock = obj ()
+    let internal loggerLock = obj ()
 
 
     let mutable loggers :  Map<(LoggerType * Informedica.Logging.Lib.Level), AgentLogging.AgentLogger> = [] |> Map.ofList

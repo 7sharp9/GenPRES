@@ -117,19 +117,21 @@ type LoggerShutdown() =
             Task.CompletedTask
 
         member _.StopAsync _ =
-            [|
-                for kv in Logging.loggers do
-                    let logger = kv.Value
+            lock Logging.loggerLock (fun () ->
+                [|
+                    for kv in Logging.loggers do
+                        let logger = kv.Value
 
-                    writeInfoMessage $"Trying to Stop {kv.Key}"
-                    try
-                        logger.StopAsync()
-                    with ex ->
-                        writeDebugMessage $"Logger shutdown failed: {ex.Message}"
-                        async { return () }
-            |]
-            |> Async.Parallel
-            |> Async.StartAsTask :> Task
+                        writeInfoMessage $"Trying to Stop {kv.Key}"
+                        try
+                            logger.StopAsync()
+                        with ex ->
+                            writeDebugMessage $"Logger shutdown failed: {ex.Message}"
+                            async { return () }
+                |]
+                |> Async.Parallel
+                |> Async.StartAsTask :> Task
+            )
 
 
 let application = application {
