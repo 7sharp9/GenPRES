@@ -120,7 +120,7 @@ type LoggerShutdown() =
                     for kv in loggers do
                         let logger = kv.Value
 
-                        writeInfoMessage "Trying to Stop Server Async"
+                        writeInfoMessage $"Trying to Stop {kv.Key}"
                         try
                             logger.StopAsync()
                         with ex ->
