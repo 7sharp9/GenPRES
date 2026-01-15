@@ -122,19 +122,24 @@ module Logging
         | ParenteraliaLogger
 
 
+    let private loggerLock = obj ()
+
+
     let mutable loggers :  Map<(LoggerType * Informedica.Logging.Lib.Level), AgentLogging.AgentLogger> = [] |> Map.ofList
 
 
     let getLogger (level: Level) (loggerType: LoggerType) =
-        match loggers |> Map.tryFind (loggerType, level) with
-        | Some logger -> logger
-        | None ->
-            let logger =
-                level
-                |> getConfig
-                |> OrderLogging.createAgentLogger
-            loggers <- loggers.Add((loggerType, level), logger)
-            logger
+        lock loggerLock (fun () ->
+            match loggers |> Map.tryFind (loggerType, level) with
+            | Some logger -> logger
+            | None ->
+                let logger =
+                    level
+                    |> getConfig
+                    |> OrderLogging.createAgentLogger
+                loggers <- loggers.Add((loggerType, level), logger)
+                logger
+        )
 
 
     let loggingEnabled =
