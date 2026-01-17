@@ -1,6 +1,8 @@
 
 #time
 
+#r "nuget: expecto"
+
 // load demo or product cache
 
 #load "load.fsx"
@@ -12,6 +14,8 @@ open Informedica.GenForm.Lib
 open Informedica.GenUnits.Lib
 open Informedica.GenOrder.Lib
 
+open Expecto
+open Expecto.Flip
 
 
 module HelperFunctions =
@@ -68,6 +72,98 @@ module HelperFunctions =
 
 
 module Scenarios =
+
+    let pcmSuppText = """
+Id: 047f9e19-4cfc-43cb-b7ee-f88f23d2eab6
+Name: paracetamol
+Quantity:
+Quantities:
+Route: RECTAAL
+OrderType: DiscontinuousOrder
+Adjust: 14 kg
+Frequencies: 3;4 x/dag
+Time:
+Dose: 1 stuk/dosis
+Div:
+DoseCount: 1 x
+Components:
+	Name: paracetamol
+	Form: zetpil
+	Quantities: 1 stuk
+	Divisible: 1
+	Dose:
+	Solution:
+	Substances:
+
+		Name: paracetamol
+		Concentrations: 120;240;500;1 000;125;250;60;30;360;90;750;180 mg/stuk
+		Dose: paracetamol, 10 - 20 mg/kg/dosis
+		Solution:
+"""
+
+    let pcmSupp =
+        let au = Units.Weight.kiloGram
+        let fu = Units.General.general "stuk"
+        let su = Units.Mass.milliGram
+        let cu = su |> Units.per fu
+        let tu = Units.Time.day
+
+        { Medication.template with
+            Id = "047f9e19-4cfc-43cb-b7ee-f88f23d2eab6"
+            Name = "paracetamol"
+            Components =
+                [
+                    {
+                        Medication.productComponent with
+                            Name = "paracetamol"
+                            Form = "zetpil"
+                            Quantities =
+                                1N
+                                |> ValueUnit.singleWithUnit fu
+                                |> Some
+                            Divisible = Some 1N
+                            Substances =
+                                [
+                                    {
+                                        Medication.substanceItem with
+                                            Name = "paracetamol"
+                                            Concentrations =
+                                                [| 120; 240; 500; 1_000; 125; 250;60; 30; 360; 90; 750; 180|]
+                                                |> Array.map BigRational.fromInt
+                                                |> ValueUnit.withUnit cu
+                                                |> Some
+                                            Dose =
+                                                { DoseLimit.limit with
+                                                    DoseLimitTarget = "paracetamol" |> SubstanceLimitTarget
+                                                    AdjustUnit = su |> Some
+                                                    QuantityAdjust =
+                                                        MinMax.createInclIncl
+                                                            (10N |> ValueUnit.singleWithUnit (su |> Units.per au |> Units.per tu))
+                                                            (20N |> ValueUnit.singleWithUnit (su |> Units.per au |> Units.per tu))
+                                                }
+                                                |> Some
+                                    }
+                                ]
+                    }
+                ]
+            Route = "RECTAAL"
+            OrderType = DiscontinuousOrder
+            Adjust = 14N |> ValueUnit.singleWithUnit au |> Some
+            Frequencies =
+                [|3N; 4N |]
+                |> ValueUnit.withUnit (Units.Count.times |> Units.per tu)
+                |> Some
+            DoseCount = 1N |> ValueUnit.singleWithUnit Units.Count.times |> MinMax.createExact
+            Dose =
+                { DoseLimit.limit with
+                    Quantity =
+                        1N
+                        |> ValueUnit.singleWithUnit fu
+                        |> MinMax.createExact
+                }
+                |> Some
+        }
+
 
 
     let amfo =
@@ -1045,6 +1141,30 @@ open HelperFunctions
 
 let logger = OrderLogging.createConsoleLogger ()
 
+
+let tests =
+    let normalizeWords (s: string) =
+        s.Split([| ' '; '\t'; '\n'; '\r' |], System.StringSplitOptions.RemoveEmptyEntries)
+        |> String.concat " "
+
+    testList "medication" [
+        test "pcm supp to string" {
+            let actual =
+                Scenarios.pcmSupp
+                |> Medication.toString
+                |> String.concat "\n"
+                |> normalizeWords
+
+            let expected =
+                Scenarios.pcmSuppText
+                |> normalizeWords
+
+            actual
+            |> Expect.equal "should be" expected
+        }
+    ]
+
+runTestsWithCLIArgs [] [||] tests
 
 Scenarios.amfo
 |> Medication.toString
