@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/claude-code) when working with code in this repository.
 
+## Session Startup
+
+**At the start of each session**, automatically check the FSI MCP server status:
+
+```
+mcp__fsi-mcp__get_fsi_status
+```
+
+This establishes whether the F# Interactive MCP server is available for the session. If running, prefer using the MCP tools for all F# interactive work (see "Running FSI Scripts" below).
+
 ## Quick Reference
 
 ### Build Commands
