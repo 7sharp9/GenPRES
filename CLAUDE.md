@@ -151,6 +151,80 @@ Test scenarios are defined in `tests/Informedica.GenORDER.Tests/Scenarios.fs` an
 - `tpn` / `tpnComplete` - Total parenteral nutrition
 - `fullMedication` - Fully populated medication (all fields set)
 
+## Script-Only Development
+
+**CRITICAL:** Never modify source files (`.fs`) in the codebase. All new features, fixes, enhancements, and experiments must be implemented exclusively in FSI script files (`.fsx`). The user will manually review and migrate verified code to the codebase.
+
+### Rules
+
+1. **NEVER edit `.fs` source files** - Only work in `.fsx` script files
+2. **Use `Scripts/` directories** - Each library has a `Scripts/` folder for development
+3. **Load compiled code** via `#load "load.fsx"` to access existing library functions
+4. **Extend or shadow modules** to add new functionality
+5. **Write tests** in the same script to verify implementations
+6. **Leave migration to the user** - They will move verified code to source files
+
+### Extending Modules
+
+Shadow an existing module and use `open` to include all its functions automatically:
+
+```fsharp
+#load "load.fsx"
+
+open Informedica.GenOrder.Lib
+
+// Shadow the Medication module to add new functions
+module Medication =
+    // Open the original module - all existing functions become available
+    open Informedica.GenOrder.Lib.Medication
+
+    // Add new function
+    let fromString (s: string) : Result<Medication, string list> =
+        // implementation...
+
+    // Existing functions like toString, template, toOrderDto are now
+    // automatically available as Medication.toString, etc.
+```
+
+This pattern allows calling both new and existing functions through the same module name:
+
+```fsharp
+let text = myMed |> Medication.toString       // original function
+let parsed = text |> Medication.fromString    // new function
+```
+
+### Testing in Scripts
+
+Write tests directly in the script file:
+
+```fsharp
+#r "nuget: expecto"
+
+open Expecto
+open Expecto.Flip
+
+let tests =
+    testList "feature tests" [
+        test "roundtrip works" {
+            let original = Scenarios.pcmSupp
+            let text = original |> Medication.toString |> String.concat "\n"
+            match text |> Medication.fromString with
+            | Error errs -> failwith $"Parse failed: {errs}"
+            | Ok parsed ->
+                parsed.Id |> Expect.equal "Id matches" original.Id
+        }
+    ]
+
+runTestsWithCLIArgs [] [||] tests
+```
+
+### Benefits
+
+- **Safe** - Source files are never modified by Claude
+- **Verifiable** - User can review and validate before migrating
+- **Iterative** - Rapid FSI feedback without compilation cycles
+- **Traceable** - All changes are contained in script files
+
 ## Common Errors and Solutions
 
 ### "Specify which project or solution file to use"
