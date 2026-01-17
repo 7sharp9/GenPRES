@@ -48,6 +48,9 @@ fsi.AddPrinter<System.DateTime> _.ToShortDateString()
 *)
 
 
+// load test scenarios
+#load "../../../tests/Informedica.GenOrder.Tests/Scenarios.fs"
+
 
 open System
 open Informedica.Utils.Lib
