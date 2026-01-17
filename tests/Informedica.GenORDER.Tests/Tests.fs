@@ -15,10 +15,10 @@ module Tests
     Environment.SetEnvironmentVariable("GENPRES_URL_ID", "1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM")
 
     // Original test data used by several tests below
-    let testDrugOrders = [
+    let testMedicationOrders = [
         { Medication.template with
             Id = "DO1"
-            Name = "Test Drug Order 1"
+            Name = "Test Medication Order 1"
             OrderType = DiscontinuousOrder
             Frequencies = ValueUnit.create Units.Time.day [| 1N .. 4N |] |> Some
             Components = [
@@ -55,7 +55,7 @@ module Tests
         }
         { Medication.template with
             Id = "DO2"
-            Name = "Test Drug Order 2"
+            Name = "Test Medication Order 2"
             OrderType = TimedOrder
             Components = [
                 { Medication.productComponent with
@@ -91,13 +91,13 @@ module Tests
 
         let private noLogger = Logging.noOp
 
-        // Build an Order from testDrugOrders with realistic constraints to enable value calculation
+        // Build an Order from testMedicationOrders with realistic constraints to enable value calculation
         let private mkConstrainedOrder () =
-            let drugOrder =
-                testDrugOrders
+            let medicationOrder =
+                testMedicationOrders
                 |> List.tryFind (fun d -> match d.OrderType with | TimedOrder -> true | _ -> false)
-                |> Option.defaultValue (testDrugOrders |> List.head)
-            drugOrder
+                |> Option.defaultValue (testMedicationOrders |> List.head)
+            medicationOrder
             |> Medication.toOrderDto
             |> Dto.fromDto
             |> Result.get
@@ -204,10 +204,10 @@ module Tests
         open Informedica.GenOrder.Lib.Medication
 
         /// <summary>
-        /// Map a DrugOrder record to a DrugOrderDto record.
-        /// The DrugOrder will map the constraints of the DrugOrderDto.
+        /// Map a medication order record to a OrderDto record.
+        /// The medication order will map the constraints of the OrderDto.
         /// </summary>
-        /// <param name="d">The DrugOrder to convert</param>
+        /// <param name="d">The Medication to convert</param>
         let toOrderDto (d : Medication) =
             let vuToDto = Option.bind (ValueUnit.Dto.toDto false "English")
 
@@ -588,15 +588,15 @@ module Tests
 
 
     // Add your test modules here
-    module DrugOrderTests =
+    module MedicationOrderTests =
 
 
-        let tests = testList "DrugOrder" [
-            test "drugOrder default values" {
-                let drugOrder = Medication.template
-                drugOrder.Id |> Expect.equal "should be empty" ""
-                drugOrder.Name |> Expect.equal "should be empty" ""
-                drugOrder.Components |> Expect.isEmpty "should be empty"
+        let tests = testList "Medication Orders" [
+            test "medication default values" {
+                let medOrd = Medication.template
+                medOrd.Id |> Expect.equal "should be empty" ""
+                medOrd.Name |> Expect.equal "should be empty" ""
+                medOrd.Components |> Expect.isEmpty "should be empty"
             }
 
             test "productComponent default values" {
@@ -614,23 +614,23 @@ module Tests
             }
 
             testList "ToDto" [
-                test "ToDto converts DrugOrder to OrderDto" {
-                    let drugOrder = testDrugOrders |> List.head
-                    let dto = Medication.toOrderDto drugOrder
+                test "ToDto converts medication to OrderDto" {
+                    let medOrd = testMedicationOrders |> List.head
+                    let dto = Medication.toOrderDto medOrd
 
-                    dto.Id |> Expect.equal "should match Id" drugOrder.Id
+                    dto.Id |> Expect.equal "should match Id" medOrd.Id
                     dto.Schedule.IsDiscontinuous |> Expect.isTrue "should be discontinuous"
-                    dto.Orderable.Name |> Expect.equal "should match Name" drugOrder.Name
+                    dto.Orderable.Name |> Expect.equal "should match Name" medOrd.Name
                     dto.Orderable.Components |> Expect.hasLength "should have 2 components" 2
                     dto.Orderable.Components[0].Items |> Expect.hasLength "should have 3 items in first component" 2
                 }
 
                 test "ToDto reference function to OrderDto" {
-                    let drugOrder = testDrugOrders |> List.head
-                    let ord1 = Medication.toOrderDto drugOrder |> Order.Dto.fromDto |> Result.get
+                    let medOrd = testMedicationOrders |> List.head
+                    let ord1 = Medication.toOrderDto medOrd |> Order.Dto.fromDto |> Result.get
 
                     // Check if the dto the same as ToOrderDto.toOrderDto
-                    let ord2 = ToOrderDto.toOrderDto drugOrder |> Order.Dto.fromDto |> Result.get
+                    let ord2 = ToOrderDto.toOrderDto medOrd |> Order.Dto.fromDto |> Result.get
 
                     ord1.Adjust
                     |> Expect.equal "should be equal" ord2.Adjust
@@ -652,7 +652,7 @@ module Tests
                     ord1.Orderable.OrderableQuantity
                     |> Expect.notEqual "should NOT be equal" ord2.Orderable.OrderableQuantity
 
-                    printfn $"{drugOrder.Components[0].Dose}"
+                    printfn $"{medOrd.Components[0].Dose}"
                     ord1.Orderable.Dose.Quantity
                     |> Expect.notEqual "should NOT be equal" ord2.Orderable.Dose.Quantity
                 }
@@ -675,7 +675,7 @@ module Tests
 
         /// Helper to create a test order with configurable dose constraints
         let private createTestOrderWithConstraints hasQuantityConstraints hasQuantityAdjustConstraints adjustUnit =
-            let drugOrder =
+            let medicationOrder =
                 { Medication.template with
                     Id = "DOSE_TEST"
                     Name = "Dose Printout Test Order"
@@ -722,7 +722,7 @@ module Tests
                     ]
                 }
 
-            let dto = Medication.toOrderDto drugOrder
+            let dto = Medication.toOrderDto medicationOrder
             dto
             |> Dto.fromDto
             |> Result.map Order.applyConstraints
@@ -896,7 +896,7 @@ module Tests
             testList "Edge cases and integration" [
                 test "Once order with useAdj=true shows QuantityAdjust constraints correctly" {
                     let un = Units.Mass.milliGram |> Units.per Units.Weight.kiloGram
-                    let drugOrder =
+                    let medOrd =
                         { Medication.template with
                             Id = "ONCE_TEST"
                             Name = "Once Order Test"
@@ -924,7 +924,7 @@ module Tests
                             ]
                         }
 
-                    let order = Medication.toOrderDto drugOrder |> Dto.fromDto |> Result.get
+                    let order = Medication.toOrderDto medOrd |> Dto.fromDto |> Result.get
                     let pres, _, _ = order |> Print.printOrderToString true [||]
 
                     // For Once orders with adjusted dose, should show QuantityAdjust
@@ -980,7 +980,7 @@ module Tests
     [<Tests>]
     let tests =
         testList "GenOrder Tests" [
-            DrugOrderTests.tests
+            MedicationOrderTests.tests
             TypeTests.tests
             DosePrintoutTests.tests
         ]

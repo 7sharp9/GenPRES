@@ -437,7 +437,7 @@ module OrderContext =
             pr
             |> Medication.fromRule logger
             |> Array.choose (Medication.toOrderDto >> Order.Dto.fromDto >> Result.toOption)
-            // Note: multiple solution rules can result in multiple drugorders
+            // Note: multiple solution rules can result in multiple medication templates
             |> Array.map (fun ord -> async { return ord |> evaluateOrder logger pr })
             |> Async.Parallel
         *)

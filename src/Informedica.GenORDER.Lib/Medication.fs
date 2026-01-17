@@ -379,7 +379,7 @@ module Medication =
         )
 
 
-    /// Add an optional solution rule to a DrugOrder
+    /// Add an optional solution rule to a medication order
     let addSolution (pat: Patient) sr med =
         match sr with
         | None -> med
@@ -502,7 +502,7 @@ module Medication =
 
 
     /// <summary>
-    /// Create DrugOrders from a PrescriptionRule
+    /// Create medication order templates from a PrescriptionRule
     /// </summary>
     /// <param name="logger">The logger instance for logging medication creation events</param>
     /// <param name="pr">The PrescriptionRule to use</param>
@@ -736,7 +736,7 @@ module Medication =
 
             cmpDto
 
-        /// Create component DTOs from DrugOrder components
+        /// Create component DTOs from medication order template components
         let createComponentDtos (med : Medication) =
             [ for pc in med.Components -> createSingleComponentDto med pc ]
 

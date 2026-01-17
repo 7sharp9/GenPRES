@@ -36,13 +36,17 @@ fsi.AddPrinter<System.DateTime> _.ToShortDateString()
 #load "../Exceptions.fs"
 #load "../OrderVariable.fs"
 #load "../Solver.fs"
+#load "../EquationMapping.fs"
 #load "../Order.fs"
+#load "../OrderProcessor.fs"
 #load "../Totals.fs"
-#load "../OrderLogger.fs"
-#load "../DrugOrder.fs"
+#load "../Medication.fs"
+#load "../Nutrition.fs"
 #load "../Patient.fs"
+#load "../OrderLogging.fs"
 #load "../Api.fs"
 *)
+
 
 
 open System
