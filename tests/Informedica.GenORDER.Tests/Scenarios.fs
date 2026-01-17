@@ -1069,3 +1069,210 @@ Components:
             Quantities = None
         }
 
+
+    /// Expected text output for the fully populated medication scenario
+    let fullMedicationText = """
+Id: full-med-test-001
+Name: Test Medication Complete
+Quantity: 10 - 100 mL
+Quantities: 50 mL
+Route: INTRAVENEUS
+OrderType: TimedOrder
+Adjust: 15 kg
+Frequencies: 1;2 x/dag
+Time: 30 - 120 min
+Dose: 5 - 10 mL/dosis
+Div: 2
+DoseCount: 1 - 2 x
+Components:
+	Name: Main Component
+	Form: infuusvloeistof
+	Quantities: 1 mL
+	Divisible: 10
+	Dose: Main Component, 1 - 5 mL/kg/dosis
+	Solution: 10 - 50 mL
+	Substances:
+
+		Name: Active Substance
+		Concentrations: 10 mg/mL
+		Dose: Active Substance, 1 - 10 mg/kg/dag
+		Solution: 0,5 - 2 mg/mL
+	Name: Diluent Component
+	Form: vloeistof
+	Quantities: 1 mL
+	Divisible: 1
+	Dose:
+	Solution:
+	Substances:
+
+		Name: sodium
+		Concentrations: 0,15 mmol/mL
+		Dose:
+		Solution:
+"""
+
+
+    /// Fully populated medication for testing all Medication fields
+    let fullMedication =
+        let volUnit = Units.Volume.milliLiter
+        let massUnit = Units.Mass.milliGram
+        let weightUnit = Units.Weight.kiloGram
+        let timeUnit = Units.Time.day
+        let concUnit = massUnit |> Units.per volUnit
+        let molarConcUnit = Units.Molar.milliMole |> Units.per volUnit
+
+        { Medication.template with
+            Id = "full-med-test-001"
+            Name = "Test Medication Complete"
+            Quantity =
+                { MinMax.empty with
+                    Min = 10N |> ValueUnit.singleWithUnit volUnit |> Limit.inclusive |> Some
+                    Max = 100N |> ValueUnit.singleWithUnit volUnit |> Limit.inclusive |> Some
+                }
+            Quantities =
+                50N
+                |> ValueUnit.singleWithUnit volUnit
+                |> Some
+            Route = "INTRAVENEUS"
+            OrderType = TimedOrder
+            Frequencies =
+                [| 1N; 2N |]
+                |> ValueUnit.withUnit (Units.Count.times |> Units.per timeUnit)
+                |> Some
+            Time =
+                { MinMax.empty with
+                    Min = 30N |> ValueUnit.singleWithUnit Units.Time.minute |> Limit.inclusive |> Some
+                    Max = 120N |> ValueUnit.singleWithUnit Units.Time.minute |> Limit.inclusive |> Some
+                }
+            Dose =
+                { DoseLimit.limit with
+                    DoseLimitTarget = OrderableLimitTarget
+                    Quantity =
+                        { MinMax.empty with
+                            Min = 5N |> ValueUnit.singleWithUnit volUnit |> Limit.inclusive |> Some
+                            Max = 10N |> ValueUnit.singleWithUnit volUnit |> Limit.inclusive |> Some
+                        }
+                }
+                |> Some
+            Div = Some 2N
+            DoseCount =
+                { MinMax.empty with
+                    Min = 1N |> ValueUnit.singleWithUnit Units.Count.times |> Limit.inclusive |> Some
+                    Max = 2N |> ValueUnit.singleWithUnit Units.Count.times |> Limit.inclusive |> Some
+                }
+            Adjust = 15N |> ValueUnit.singleWithUnit weightUnit |> Some
+            Components =
+                [
+                    // Main component with all fields populated
+                    {
+                        Medication.productComponent with
+                            Name = "Main Component"
+                            Form = "infuusvloeistof"
+                            Quantities =
+                                1N
+                                |> ValueUnit.singleWithUnit volUnit
+                                |> Some
+                            Divisible = Some 10N
+                            Dose =
+                                { DoseLimit.limit with
+                                    DoseLimitTarget = "Main Component" |> ComponentLimitTarget
+                                    AdjustUnit = weightUnit |> Some
+                                    QuantityAdjust =
+                                        { MinMax.empty with
+                                            Min =
+                                                1N
+                                                |> ValueUnit.singleWithUnit (volUnit |> Units.per weightUnit)
+                                                |> Limit.inclusive
+                                                |> Some
+                                            Max =
+                                                5N
+                                                |> ValueUnit.singleWithUnit (volUnit |> Units.per weightUnit)
+                                                |> Limit.inclusive
+                                                |> Some
+                                        }
+                                }
+                                |> Some
+                            Solution =
+                                { SolutionLimit.limit with
+                                    SolutionLimitTarget = "Main Component" |> ComponentLimitTarget
+                                    Quantity =
+                                        { MinMax.empty with
+                                            Min = 10N |> ValueUnit.singleWithUnit volUnit |> Limit.inclusive |> Some
+                                            Max = 50N |> ValueUnit.singleWithUnit volUnit |> Limit.inclusive |> Some
+                                        }
+                                }
+                                |> Some
+                            Substances =
+                                [
+                                    {
+                                        Medication.substanceItem with
+                                            Name = "Active Substance"
+                                            Concentrations =
+                                                10N
+                                                |> ValueUnit.singleWithUnit concUnit
+                                                |> Some
+                                            Dose =
+                                                { DoseLimit.limit with
+                                                    DoseLimitTarget = "Active Substance" |> SubstanceLimitTarget
+                                                    AdjustUnit = massUnit |> Some
+                                                    PerTimeAdjust =
+                                                        { MinMax.empty with
+                                                            Min =
+                                                                1N
+                                                                |> ValueUnit.singleWithUnit (massUnit |> Units.per weightUnit |> Units.per timeUnit)
+                                                                |> Limit.inclusive
+                                                                |> Some
+                                                            Max =
+                                                                10N
+                                                                |> ValueUnit.singleWithUnit (massUnit |> Units.per weightUnit |> Units.per timeUnit)
+                                                                |> Limit.inclusive
+                                                                |> Some
+                                                        }
+                                                }
+                                                |> Some
+                                            Solution =
+                                                { SolutionLimit.limit with
+                                                    SolutionLimitTarget = "Active Substance" |> SubstanceLimitTarget
+                                                    Concentration =
+                                                        { MinMax.empty with
+                                                            Min =
+                                                                (5N / 10N)
+                                                                |> ValueUnit.singleWithUnit concUnit
+                                                                |> Limit.inclusive
+                                                                |> Some
+                                                            Max =
+                                                                2N
+                                                                |> ValueUnit.singleWithUnit concUnit
+                                                                |> Limit.inclusive
+                                                                |> Some
+                                                        }
+                                                }
+                                                |> Some
+                                    }
+                                ]
+                    }
+                    // Second component (diluent) for completeness
+                    {
+                        Medication.productComponent with
+                            Name = "Diluent Component"
+                            Form = "vloeistof"
+                            Quantities =
+                                1N
+                                |> ValueUnit.singleWithUnit volUnit
+                                |> Some
+                            Divisible = Some 1N
+                            Substances =
+                                [
+                                    {
+                                        Medication.substanceItem with
+                                            Name = "sodium"
+                                            Concentrations =
+                                                (154N / 1000N)
+                                                |> ValueUnit.singleWithUnit molarConcUnit
+                                                |> Some
+                                    }
+                                ]
+                    }
+                ]
+        }
+

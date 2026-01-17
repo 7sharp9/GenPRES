@@ -1,3 +1,4 @@
+#I __SOURCE_DIRECTORY__
 
 let stopWatch = System.Diagnostics.Stopwatch ()
 
