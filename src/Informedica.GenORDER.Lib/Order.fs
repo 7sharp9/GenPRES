@@ -312,25 +312,16 @@ module Order =
             /// by finding the nearest value in the dose's
             /// NormQuantityAdjust or NormPerTimeAdjust
             /// </summary>
-            /// <param name="nd">The norm dose adjustment</param>
             /// <param name="dos">The Dose</param>
             /// <returns>The Dose with the norm dose adjustments set</returns>
-            let setNormDose nd dos =
-                let qty_adj, ptm_adj =
-                    match nd with
-                    | Informedica.GenForm.Lib.Types.NormQuantityAdjust (_, vu) ->
-                        (dos |> inf).QuantityAdjust |> QuantityAdjust.setNearestValue vu,
-                        dos.PerTimeAdjust
-                    | Informedica.GenForm.Lib.Types.NormPerTimeAdjust (_, vu) ->
-                        dos.QuantityAdjust,
-                        dos.PerTimeAdjust |> PerTimeAdjust.setNearestValue vu
-                    | _ -> dos.QuantityAdjust, dos.PerTimeAdjust
-
-                let qty = dos.Quantity
+            let setNormDose dos =
+                let qty = (dos |> inf).Quantity
                 let ptm = dos.PerTime
                 let rte = dos.Rate
                 let tot = dos.Total
-                let rte_adj = dos.RateAdjust
+                let qty_adj = dos.QuantityAdjust |> QuantityAdjust.setNormValue
+                let ptm_adj = dos.PerTimeAdjust |> PerTimeAdjust.setNormValue
+                let rte_adj = dos.RateAdjust |> RateAdjust.setNormValue
                 let tot_adj = dos.TotalAdjust
 
                 create qty ptm rte tot qty_adj ptm_adj rte_adj tot_adj
@@ -991,14 +982,8 @@ module Order =
                     { itm with Dose = itm.Dose |> Dose.setDoseUnit du }
 
 
-            let setNormDose sn nd itm =
-                if itm
-                   |> getName
-                   |> Name.toStringList
-                   |> List.exists ((=) sn)
-                   |> not then itm
-                else
-                    { itm with Dose = itm.Dose |> Dose.setNormDose nd }
+            let setNormDose (itm: Item) =
+                { itm with Dose = itm.Dose |> Dose.setNormDose }
 
 
             let isDoseSolved = getDose >> Dose.isSolved
@@ -1479,7 +1464,7 @@ module Order =
             let setDoseUnit sn du = applyToAllItems (Item.setDoseUnit sn du)
 
 
-            let setNormDose sn nd = applyToAllItems (Item.setNormDose sn nd)
+            let setNormDose = applyToAllItems Item.setNormDose
 
 
             let isDoseSolved = getDose >> Dose.isSolved
@@ -2041,9 +2026,9 @@ module Order =
             }
 
 
-        let setNormDose sn nd (orb : Orderable) =
+        let setNormDose (orb : Orderable) =
             { orb with
-                Components = orb.Components |> List.map (Component.setNormDose sn nd)
+                Components = orb.Components |> List.map (Component.setNormDose)
             }
 
 
@@ -3413,9 +3398,9 @@ module Order =
         }
 
 
-    let setNormDose sn nd ord =
+    let setNormDose ord =
         { (ord |> inf) with
-            Orderable = ord.Orderable |> Orderable.setNormDose sn nd
+            Orderable = ord.Orderable |> Orderable.setNormDose
         }
 
 
@@ -3797,14 +3782,10 @@ module Order =
             else ord
 
 
-    let solveNormDose logger normDose ord =
-        match normDose with
-        | Informedica.GenForm.Lib.Types.NormQuantityAdjust (Informedica.GenForm.Lib.Types.SubstanceLimitTarget sn, _)
-        | Informedica.GenForm.Lib.Types.NormPerTimeAdjust (Informedica.GenForm.Lib.Types.SubstanceLimitTarget sn, _) ->
-            ord
-            |> setNormDose sn normDose
-            |> solveOrder false logger
-        | _ -> ord |> Ok
+    let solveNormDose logger ord =
+        ord
+        |> setNormDose
+        |> solveMinMax false logger
 
 
     let setDoseUnit sn du ord =
@@ -3814,21 +3795,17 @@ module Order =
     let isCleared = toOrdVars >> List.exists OrderVariable.isCleared
 
 
-    let calcMinMax logger (normDose : Option<_>) increaseIncrement =
+    let calcMinMax logger increaseIncrement =
         solveMinMax true logger
         >> Result.bind (fun ord ->
-            if not increaseIncrement || normDose.IsSome then ord |> Ok
+            if not increaseIncrement then ord |> Ok
             else
                 ord
                 |> increaseIncrements logger 10 10
         )
         >> Result.bind (fun ord ->
-            match normDose with
-            | Some nd ->
-                ord
-                |> minIncrMaxToValues false true logger
-                |> solveNormDose logger nd
-            | None -> Ok ord
+            ord
+            |> solveNormDose logger
         )
 
 

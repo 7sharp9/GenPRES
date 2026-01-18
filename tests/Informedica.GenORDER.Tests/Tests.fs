@@ -119,7 +119,7 @@ module Tests
                 test "SolveOrder first ensures values before solving" {
                     let ord = mkConstrainedOrder ()
                     let before = countValues ord
-                    let res = OrderProcessor.processPipeline noLogger None (SolveOrder ord)
+                    let res = OrderProcessor.processPipeline noLogger (SolveOrder ord)
                     match res with
                     | Ok solved ->
                         let after = countValues solved
@@ -132,7 +132,7 @@ module Tests
                 test "CalcValues path only calculates values" {
                     let ord = mkConstrainedOrder ()
                     let before = countValues ord
-                    let res = OrderProcessor.processPipeline noLogger None (CalcValues ord)
+                    let res = OrderProcessor.processPipeline noLogger (CalcValues ord)
                     match res with
                     | Ok o ->
                         let after = countValues o
@@ -144,7 +144,7 @@ module Tests
 
                 test "CalcMinMax path runs when order is empty" {
                     let ord = mkEmptyOrder ()
-                    let res = OrderProcessor.processPipeline noLogger None (CalcMinMax ord)
+                    let res = OrderProcessor.processPipeline noLogger (CalcMinMax ord)
                     match res with
                     | Ok _ -> true |> Expect.isTrue "calc minmax ok"
                     | Error (o, _) -> (box o) |> Expect.isNotNull "Order returned with error"

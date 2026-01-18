@@ -240,6 +240,21 @@ module OrderVariable =
             cs.Values.IsNone
 
 
+        /// Determine whether a constraint is actually a
+        /// "normal" value
+        let getNorm (cs: Constraints) =
+            let times0_90 = 90N/100N |> ValueUnit.singleWithUnit Units.Count.times
+            let times1_10 = 11N/10N |> ValueUnit.singleWithUnit Units.Count.times
+
+            match cs.Min |> Option.map Minimum.toValueUnit, cs.Max |> Option.map Maximum.toValueUnit with
+            | Some minVu, Some maxVu ->
+                if minVu * times1_10 = maxVu * times0_90 then
+                    minVu * times1_10
+                    |> Some
+                else None
+            | _ -> None
+
+
         /// <summary>
         /// Create a `ValueRange` from a `Constraints` record
         /// that only has an Increment and/or a Maximum
@@ -481,6 +496,12 @@ module OrderVariable =
             | _ -> false
 
 
+    let getNormValue ovar =
+        ovar
+        |> getConstraints
+        |> Constraints.getNorm
+
+
     /// <summary>
     /// Set the `Constraints` of an OrderVariable
     /// </summary>
@@ -700,9 +721,19 @@ module OrderVariable =
         {
             ovar with
                 Variable =
-                    ovar.Variable
-                    |> Variable.setNearestValue vu
+                    if ovar.Variable.Values.IsValSet then
+                        ovar.Variable
+                        |> Variable.setNearestValue vu
+                    else
+                        ovar.Variable
+                        |> Variable.setMedianValue
         }
+
+
+    let setNormValue ovar =
+        match  ovar |> getNormValue with
+        | Some vu -> ovar |> setNearestValue vu
+        | None -> ovar
 
 
     /// <summary>
@@ -2313,6 +2344,8 @@ module OrderVariable =
         let setToNonZeroPositive = toOrdVar >> setToNonZeroPositive >> QuantityAdjust
 
 
+        let setNormValue = toOrdVar >> setNormValue >> QuantityAdjust
+
 
     /// Type and functions that represent an adjusted per-time value,
     /// i.e., an amount per adjust unit per time (for example, mg/kg/day)
@@ -2426,6 +2459,9 @@ module OrderVariable =
         let setToNonZeroPositive = toOrdVar >> setToNonZeroPositive >> PerTimeAdjust
 
 
+        let setNormValue = toOrdVar >> setNormValue >> PerTimeAdjust
+
+
     /// Type and functions that represent an adjusted rate,
     /// i.e., an amount per adjust unit per time (for example, mL/kg/h)
     module RateAdjust =
@@ -2535,6 +2571,11 @@ module OrderVariable =
 
         /// Set a RateAdjust to non-zero positive values
         let setToNonZeroPositive = toOrdVar >> setToNonZeroPositive >> RateAdjust
+
+
+        let setNormValue = toOrdVar >> setNormValue >> RateAdjust
+
+
 
 
     /// Type and functions that represent an adjusted total,

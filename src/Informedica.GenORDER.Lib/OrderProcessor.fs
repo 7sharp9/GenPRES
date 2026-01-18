@@ -602,10 +602,9 @@ module OrderProcessor =
     /// depending on the command given
     /// </summary>
     /// <param name="logger">The logger</param>
-    /// <param name="normDose">An optional norm dose adjustment</param>
     /// <param name="cmd">The command to process</param>
     /// <returns>A Result with the processed Order or a list of error messages</returns>
-    let processPipeline logger normDose cmd =
+    let processPipeline logger cmd =
 
         let runStep (step: Step) (ord: Order) =
             if step.Guard (classify ord) then
@@ -633,7 +632,7 @@ module OrderProcessor =
         // Core step functions
         let calcMinMaxStep increaseIncrement ord =
             // TODO: need to simplify unnecessary match
-            match calcMinMax logger normDose increaseIncrement ord with
+            match calcMinMax logger increaseIncrement ord with
             | Ok o -> Ok o
             | Error (o, errs) ->
                 //o |> stringTable |> Events.OrderScenario |> Logging.logInfo logger

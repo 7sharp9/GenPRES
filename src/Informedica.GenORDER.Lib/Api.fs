@@ -376,7 +376,7 @@ module OrderContext =
         let evaluateOrder logger (pr: PrescriptionRule) order =
             order
             |> CalcMinMax
-            |> OrderProcessor.processPipeline logger (pr.DoseRule |> DoseRule.getNormDose)
+            |> OrderProcessor.processPipeline logger
             |> function
             | Ok ord ->
                 // Set dose units from substance limits
@@ -870,7 +870,7 @@ Scenarios: {scenarios}
                             Order =
                                 sc.Order
                                 |> cmd
-                                |> OrderProcessor.processPipeline logger None
+                                |> OrderProcessor.processPipeline logger
                                 |> Result.defaultValue sc.Order
                         }
                         |> OrderScenario.setOrderTableFormat
