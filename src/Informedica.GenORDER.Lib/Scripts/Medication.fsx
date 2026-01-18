@@ -7,21 +7,15 @@
 
 #load "load.fsx"
 
-open MathNet.Numerics
-open Informedica.Utils.Lib.BCL
-open Informedica.GenCore.Lib.Ranges
-open Informedica.GenForm.Lib
-open Informedica.GenUnits.Lib
-open Informedica.GenOrder.Lib
-
-open Expecto
-open Expecto.Flip
-
 
 /// Shadowed DoseLimit module with explicit field labels in toString output
 module DoseLimit =
 
     open System
+    open Informedica.Utils.Lib.BCL
+    open Informedica.GenCore.Lib.Ranges
+    open Informedica.GenForm.Lib
+    open Informedica.GenForm.Lib.Utils
 
 
     /// Field labels for deterministic parsing
@@ -36,7 +30,7 @@ module DoseLimit =
         let [<Literal>] NormPerTimeAdjust = "[norm-per-time-adj]"
 
 
-    let printMinMaxDose perDose (minMax : Informedica.GenCore.Lib.Ranges.MinMax) =
+    let printMinMaxDose perDose (minMax : MinMax) =
         if minMax = MinMax.empty then ""
         else
             minMax
@@ -53,7 +47,7 @@ module DoseLimit =
         match vu with
         | None    -> ""
         | Some vu ->
-            $"{vu |> Utils.ValueUnit.toString 3}{perDose}"
+            $"{vu |> ValueUnit.toString 3}{perDose}"
 
 
     /// Print a MinMax value with an explicit field label prefix
@@ -74,7 +68,7 @@ module DoseLimit =
 
 
     /// Convert a DoseLimit to a string list with explicit field labels
-    let toString (dl: DoseLimit) =
+    let toStringWithLabel (dl: DoseLimit) =
         [
             let perDose = "/dosis"
             let emptyS = ""
@@ -86,23 +80,15 @@ module DoseLimit =
                 dl.RateAdjust |> printMinMaxDoseWithLabel FieldLabels.RateAdjust emptyS
 
                 // PerTime fields
-                let normPerTimeAdj = dl.NormPerTimeAdjust |> printNormDoseWithLabel FieldLabels.NormPerTimeAdjust emptyS
                 let perTimeAdj = dl.PerTimeAdjust |> printMinMaxDoseWithLabel FieldLabels.PerTimeAdjust emptyS
-                if normPerTimeAdj <> "" && perTimeAdj <> "" then
-                    $"{normPerTimeAdj} {perTimeAdj}"
-                elif normPerTimeAdj <> "" then normPerTimeAdj
-                elif perTimeAdj <> "" then perTimeAdj
+                if perTimeAdj <> "" then perTimeAdj
                 else ""
 
                 dl.PerTime |> printMinMaxDoseWithLabel FieldLabels.PerTime emptyS
 
                 // Quantity fields
-                let normQtyAdj = dl.NormQuantityAdjust |> printNormDoseWithLabel FieldLabels.NormQuantityAdjust perDose
                 let qtyAdj = dl.QuantityAdjust |> printMinMaxDoseWithLabel FieldLabels.QuantityAdjust perDose
-                if normQtyAdj <> "" && qtyAdj <> "" then
-                    $"{normQtyAdj} {qtyAdj}"
-                elif normQtyAdj <> "" then normQtyAdj
-                elif qtyAdj <> "" then qtyAdj
+                if qtyAdj <> "" then qtyAdj
                 else ""
 
                 dl.Quantity |> printMinMaxDoseWithLabel FieldLabels.Quantity perDose
@@ -116,7 +102,12 @@ module DoseLimit =
 /// Unit validation helpers for deterministic field parsing
 module UnitValidation =
 
+    open System
+    open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
+    open Informedica.GenCore.Lib.Ranges
+    open Informedica.GenForm.Lib
+    open Informedica.GenForm.Lib.Utils
 
     /// Check if a unit is an adjust unit (Weight - kg, or BSA - m2)
     let rec private isAdjustUnitType (u: Unit) =
@@ -207,7 +198,13 @@ module UnitValidation =
 module Parser =
 
     open System
+    open MathNet.Numerics
     open UnitValidation
+    open Informedica.Utils.Lib.BCL
+    open Informedica.GenCore.Lib.Ranges
+    open Informedica.GenUnits.Lib
+    open Informedica.GenForm.Lib
+    open Informedica.GenOrder.Lib    
 
 
     /// Parse a line into (indentLevel, key, value)
@@ -909,7 +906,12 @@ module Parser =
 module Medication =
 
     open System
+    open Informedica.Utils.Lib.BCL
+    open Informedica.GenCore.Lib.Ranges
+    open Informedica.GenForm.Lib
+    open Informedica.GenOrder.Lib
     open Informedica.GenOrder.Lib.Medication
+    open Utils
 
     let fromString = Parser.fromString
 
@@ -917,7 +919,7 @@ module Medication =
     let private limitOptToString (dlOpt: DoseLimit option) =
         match dlOpt with
         | None -> ""
-        | Some dl -> dl |> DoseLimit.toString |> String.concat ""
+        | Some dl -> dl |> DoseLimit.toStringWithLabel |> String.concat ""
 
 
     /// Convert Medication to string list using labeled DoseLimit output
@@ -972,6 +974,8 @@ module Medication =
 
 module HelperFunctions =
 
+    open Informedica.GenOrder.Lib
+
 
     let print sl = sl |> List.iter (printfn "%s")
 
@@ -1006,7 +1010,7 @@ module HelperFunctions =
                 | Ok ord ->
                     ord
                     |> cmd
-                    |> OrderProcessor.processPipeline logger None
+                    |> OrderProcessor.processPipeline logger
                     |> loop rest
 
 
@@ -1021,6 +1025,17 @@ module HelperFunctions =
               |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
               |> loop cmds
 
+
+
+open MathNet.Numerics
+open Informedica.Utils.Lib.BCL
+open Informedica.GenCore.Lib.Ranges
+open Informedica.GenForm.Lib
+open Informedica.GenUnits.Lib
+open Informedica.GenOrder.Lib
+
+open Expecto
+open Expecto.Flip
 
 
 
