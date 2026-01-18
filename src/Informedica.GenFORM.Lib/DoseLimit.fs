@@ -15,10 +15,8 @@ module DoseLimit =
         aun
         dun
         qty
-        nqt
         qta
         ptm
-        npt
         pta
         rte
         rta : DoseLimit =
@@ -28,10 +26,8 @@ module DoseLimit =
             AdjustUnit = aun
             DoseUnit = dun
             Quantity = qty
-            NormQuantityAdjust = nqt
             QuantityAdjust = qta
             PerTime = ptm
-            NormPerTimeAdjust = npt
             PerTimeAdjust = pta
             Rate = rte
             RateAdjust = rta
@@ -45,10 +41,8 @@ module DoseLimit =
             AdjustUnit = None
             DoseUnit = NoUnit
             Quantity = MinMax.empty
-            NormQuantityAdjust = None
             QuantityAdjust = MinMax.empty
             PerTime = MinMax.empty
-            NormPerTimeAdjust = None
             PerTimeAdjust = MinMax.empty
             Rate = MinMax.empty
             RateAdjust = MinMax.empty
@@ -65,9 +59,7 @@ module DoseLimit =
     /// </remarks>
     let useAdjust (dl : DoseLimit) =
         [
-            dl.NormQuantityAdjust = None
             dl.QuantityAdjust = MinMax.empty
-            dl.NormPerTimeAdjust = None
             dl.PerTimeAdjust = MinMax.empty
             dl.RateAdjust = MinMax.empty
         ]
@@ -92,23 +84,40 @@ module DoseLimit =
     let isShapeLimit (dl : DoseLimit) = dl.DoseLimitTarget |> LimitTarget.isOrderableTarget
 
 
-    let printMinMaxDose perDose (minMax : MinMax) =
-        if minMax = MinMax.empty then ""
-        else
-            minMax
-            |> MinMax.toString
-                "min "
-                "min "
-                "max "
-                "max "
-            |> fun s ->
-                $"{s}{perDose}"
+    let getNormDose minMax =
+        match minMax.Min, minMax.Max with
+        | Some minLimit, Some maxLimit ->
+            if minLimit |> Limit.eq maxLimit then
+                minLimit |> Limit.getValueUnit |> Some
+            else None
+        | _ -> None
 
-    let printNormDose perDose vu =
-        match vu with
-        | None    -> ""
-        | Some vu ->
-            $"{vu |> Utils.ValueUnit.toString 3}{perDose}"
+
+    let isNormDose = getNormDose >> Option.isSome
+
+
+    let printMinMaxDose perDose (minMax : MinMax) =
+        let toStr mm =
+            if mm = MinMax.empty then ""
+            else
+                mm
+                |> MinMax.toString
+                    "min "
+                    "min "
+                    "max "
+                    "max "
+                |> fun s ->
+                    $"{s}{perDose}"
+
+        if minMax |> isNormDose then
+            minMax.Min
+            |> Option.map (fun minLim ->
+                minLim
+                |> Limit.getValueUnit
+                |> fun vu -> $"{vu |> Utils.ValueUnit.toString 3}{perDose}"
+            )
+            |> Option.defaultValue ""
+        else minMax |> toStr
 
 
     let toString (dl: DoseLimit) =
@@ -117,22 +126,17 @@ module DoseLimit =
             let emptyS = ""
             [
                 $"{dl.DoseLimitTarget |> LimitTarget.toString}"
-                
+
                 $"{dl.Rate |> printMinMaxDose emptyS}"
                 $"{dl.RateAdjust |> printMinMaxDose emptyS}"
 
-                $"{dl.NormPerTimeAdjust |> printNormDose emptyS} " +
                 $"{dl.PerTimeAdjust |> printMinMaxDose emptyS}"
-
                 $"{dl.PerTime |> printMinMaxDose emptyS}"
 
-                $"{dl.NormQuantityAdjust |> printNormDose perDose} " +
                 $"{dl.QuantityAdjust |> printMinMaxDose perDose}"
-
                 $"{dl.Quantity |> printMinMaxDose perDose}"
             ]
             |> List.map String.trim
             |> List.filter (String.IsNullOrEmpty >> not)
             |> String.concat ", "
         ]
-

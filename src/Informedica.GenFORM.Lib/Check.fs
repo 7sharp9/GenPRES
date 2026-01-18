@@ -561,7 +561,8 @@ module Check =
                         |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
 
                     let mm =
-                        dl.genForm.NormQuantityAdjust
+                        dl.genForm.QuantityAdjust
+                        |> DoseLimit.getNormDose
                         |> toMinMax
 
                     match mm |> checkAdjustUnit gstand.quantityAdjustNorm with
@@ -599,7 +600,8 @@ module Check =
                         |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>"  gstand.perTimeAdjustAbs
 
                     let mm =
-                        dl.genForm.NormPerTimeAdjust
+                        dl.genForm.PerTimeAdjust
+                        |> DoseLimit.getNormDose
                         |> toMinMax
 
                     match mm |> checkAdjustUnit gstand.perTimeAdjustNorm with

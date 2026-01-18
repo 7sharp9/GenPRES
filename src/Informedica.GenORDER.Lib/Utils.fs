@@ -1,7 +1,6 @@
 ﻿namespace Informedica.GenOrder.Lib
 
 
-[<AutoOpen>]
 module Utils =
 
 

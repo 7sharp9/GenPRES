@@ -385,7 +385,7 @@ module RenalRule =
 
 
     let adjustDoseLimit (renalRule : RenalRule) (doseRule : DoseRule) (dl : DoseLimit) =
-        let adjustVU dr vuNew vuOrig =
+        let adjustVU dr (vuNew: ValueUnit option) vuOrig =
             match dr with
             | Relative ->
                 vuOrig
@@ -453,25 +453,12 @@ module RenalRule =
             | None -> dl
             | Some rl when rl.DoseReduction = NoReduction -> dl
             | Some rl ->
-                let normQtyAdj =
-                    if dl.NormQuantityAdjust |> Option.isSome then dl.NormQuantityAdjust
-                    else
-                        dl.NormPerTimeAdjust
-                        |> Option.bind (fun vu ->
-                            doseRule.Frequencies
-                            |> Option.map (fun f -> vu / f)
-                        )
                 { dl with
                     Quantity =
                         dl.Quantity
                         |> adjustMinMax
                             rl.DoseReduction
                             rl.Quantity
-                    NormQuantityAdjust =
-                        normQtyAdj
-                        |> adjustVU
-                            rl.DoseReduction
-                            rl.NormQuantityAdjust
                     QuantityAdjust =
                         dl.QuantityAdjust
                         |> adjustMinMax
@@ -482,14 +469,6 @@ module RenalRule =
                         |> adjustMinMax
                             rl.DoseReduction
                             rl.PerTime
-                    NormPerTimeAdjust =
-                        if rl.NormQuantityAdjust |> Option.isSome ||
-                           rl.QuantityAdjust <> MinMax.empty then None
-                        else
-                            dl.NormPerTimeAdjust
-                            |> adjustVU
-                                rl.DoseReduction
-                                rl.NormPerTimeAdjust
                     PerTimeAdjust =
                         dl.PerTimeAdjust
                         |> adjustMinMax

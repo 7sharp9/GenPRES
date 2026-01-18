@@ -23,14 +23,13 @@ module PrescriptionRule =
                 |> Option.get
             // recalculate the max dose per administration
             match dl.Quantity.Max |> Option.map Limit.getValueUnit,
-                  dl.NormQuantityAdjust,
+                  dl.QuantityAdjust |> DoseLimit.getNormDose,
                   dl.QuantityAdjust.Min |> Option.map Limit.getValueUnit with
             | Some max, Some norm, _ ->
                 let norm = norm * adj
                 if norm <? max then dl
                 else
                     { dl with
-                        NormQuantityAdjust = None
                         Quantity.Min = dl.Quantity.Max
                     }
             | Some max, _, Some min ->
@@ -46,13 +45,12 @@ module PrescriptionRule =
             |> fun dl ->
                 match dl.Quantity.Max |> Option.map Limit.getValueUnit,
                       freq,
-                      dl.NormPerTimeAdjust with
+                      dl.PerTimeAdjust |> DoseLimit.getNormDose with
                 | Some max, Some freq, Some norm ->
                     let norm = adj * norm / freq
                     if norm <? max then dl
                     else
                         { dl with
-                            NormPerTimeAdjust = None
                             Quantity.Min = dl.Quantity.Max
                         }
                 | _ -> dl
@@ -60,14 +58,13 @@ module PrescriptionRule =
             |> fun dl ->
 
                 match dl.PerTime.Max |> Option.map Limit.getValueUnit,
-                      dl.NormPerTimeAdjust,
+                      dl.PerTimeAdjust |> DoseLimit.getNormDose,
                       dl.PerTimeAdjust.Min |> Option.map Limit.getValueUnit with
                 | Some max, Some norm, _ ->
                     let norm = norm * adj
                     if norm <? max then dl
                     else
                         { dl with
-                            NormPerTimeAdjust = None
                             PerTime.Min = dl.PerTime.Max
                         }
                 | Some max, _, Some min ->
@@ -99,7 +96,7 @@ module PrescriptionRule =
         | None -> sr
         | Some w ->
             { sr with
-                Volume = 
+                Volume =
                     if sr.VolumeAdjust |> MinMax.isEmpty then sr.Volume
                     else
                         [
@@ -113,8 +110,8 @@ module PrescriptionRule =
                         if sl.QuantityAdj |> MinMax.isEmpty then sl
                         else
                             { sl with
-                                Quantity = 
-                                    [ 
+                                Quantity =
+                                    [
                                         sl.QuantityAdj |> MinMax.apply (( * ) w)
                                         sl.Quantity
                                     ]
@@ -143,7 +140,7 @@ module PrescriptionRule =
                 |> DoseRule.reconstitute
                        routeMapping
                        pat.Location
-                       pat.Department 
+                       pat.Department
 
             warns.AddRange(newWarns)
 
@@ -188,7 +185,7 @@ module PrescriptionRule =
                                                     sr_p.GPK = dr_p.GPK
                                                 )
                                             )
-                                    
+
                                     }
                                 )
                         }

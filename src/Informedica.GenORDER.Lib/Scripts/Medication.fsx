@@ -18,10 +18,196 @@ open Expecto
 open Expecto.Flip
 
 
+/// Shadowed DoseLimit module with explicit field labels in toString output
+module DoseLimit =
+
+    open System
+
+
+    /// Field labels for deterministic parsing
+    module FieldLabels =
+        let [<Literal>] Quantity = "[qty]"
+        let [<Literal>] QuantityAdjust = "[qty-adj]"
+        let [<Literal>] PerTime = "[per-time]"
+        let [<Literal>] PerTimeAdjust = "[per-time-adj]"
+        let [<Literal>] Rate = "[rate]"
+        let [<Literal>] RateAdjust = "[rate-adj]"
+        let [<Literal>] NormQuantityAdjust = "[norm-qty-adj]"
+        let [<Literal>] NormPerTimeAdjust = "[norm-per-time-adj]"
+
+
+    let printMinMaxDose perDose (minMax : Informedica.GenCore.Lib.Ranges.MinMax) =
+        if minMax = MinMax.empty then ""
+        else
+            minMax
+            |> MinMax.toString
+                "min "
+                "min "
+                "max "
+                "max "
+            |> fun s ->
+                $"{s}{perDose}"
+
+
+    let printNormDose perDose vu =
+        match vu with
+        | None    -> ""
+        | Some vu ->
+            $"{vu |> Utils.ValueUnit.toString 3}{perDose}"
+
+
+    /// Print a MinMax value with an explicit field label prefix
+    let printMinMaxDoseWithLabel label perDose (minMax : Informedica.GenCore.Lib.Ranges.MinMax) =
+        if minMax = MinMax.empty then ""
+        else
+            let value = printMinMaxDose perDose minMax
+            $"{label} {value}"
+
+
+    /// Print a norm dose value with an explicit field label prefix
+    let printNormDoseWithLabel label perDose vu =
+        match vu with
+        | None -> ""
+        | Some _ ->
+            let value = printNormDose perDose vu
+            $"{label} {value}"
+
+
+    /// Convert a DoseLimit to a string list with explicit field labels
+    let toString (dl: DoseLimit) =
+        [
+            let perDose = "/dosis"
+            let emptyS = ""
+            [
+                $"{dl.DoseLimitTarget |> LimitTarget.toString}"
+
+                // Rate fields
+                dl.Rate |> printMinMaxDoseWithLabel FieldLabels.Rate emptyS
+                dl.RateAdjust |> printMinMaxDoseWithLabel FieldLabels.RateAdjust emptyS
+
+                // PerTime fields
+                let normPerTimeAdj = dl.NormPerTimeAdjust |> printNormDoseWithLabel FieldLabels.NormPerTimeAdjust emptyS
+                let perTimeAdj = dl.PerTimeAdjust |> printMinMaxDoseWithLabel FieldLabels.PerTimeAdjust emptyS
+                if normPerTimeAdj <> "" && perTimeAdj <> "" then
+                    $"{normPerTimeAdj} {perTimeAdj}"
+                elif normPerTimeAdj <> "" then normPerTimeAdj
+                elif perTimeAdj <> "" then perTimeAdj
+                else ""
+
+                dl.PerTime |> printMinMaxDoseWithLabel FieldLabels.PerTime emptyS
+
+                // Quantity fields
+                let normQtyAdj = dl.NormQuantityAdjust |> printNormDoseWithLabel FieldLabels.NormQuantityAdjust perDose
+                let qtyAdj = dl.QuantityAdjust |> printMinMaxDoseWithLabel FieldLabels.QuantityAdjust perDose
+                if normQtyAdj <> "" && qtyAdj <> "" then
+                    $"{normQtyAdj} {qtyAdj}"
+                elif normQtyAdj <> "" then normQtyAdj
+                elif qtyAdj <> "" then qtyAdj
+                else ""
+
+                dl.Quantity |> printMinMaxDoseWithLabel FieldLabels.Quantity perDose
+            ]
+            |> List.map String.trim
+            |> List.filter (String.IsNullOrEmpty >> not)
+            |> String.concat ", "
+        ]
+
+
+/// Unit validation helpers for deterministic field parsing
+module UnitValidation =
+
+    open Informedica.GenUnits.Lib
+
+    /// Check if a unit is an adjust unit (Weight - kg, or BSA - m2)
+    let rec private isAdjustUnitType (u: Unit) =
+        match u with
+        | Weight _ -> true
+        | BSA _ -> true
+        | CombiUnit (ul, _, ur) ->
+            isAdjustUnitType ul || isAdjustUnitType ur
+        | _ -> false
+
+
+    /// Check if a unit is a time unit
+    let rec private isTimeUnitType (u: Unit) =
+        match u with
+        | Time _ -> true
+        | CombiUnit (ul, _, ur) ->
+            isTimeUnitType ul || isTimeUnitType ur
+        | _ -> false
+
+
+    /// Check if a unit has an adjust component in denominator (kg or m2)
+    /// by checking if the right side of a Per operation contains Weight or BSA
+    let rec hasAdjustUnit (u: Unit) =
+        match u with
+        | CombiUnit (ul, OpPer, ur) ->
+            // Check if denominator (right side) contains adjust unit
+            isAdjustUnitType ur || hasAdjustUnit ul
+        | CombiUnit (ul, _, ur) ->
+            hasAdjustUnit ul || hasAdjustUnit ur
+        | _ -> false
+
+
+    /// Check if a unit has a time component in denominator
+    /// by checking if the right side of a Per operation contains Time
+    let rec hasTimeUnit (u: Unit) =
+        match u with
+        | CombiUnit (ul, OpPer, ur) ->
+            // Check if denominator (right side) contains time unit
+            isTimeUnitType ur || hasTimeUnit ul
+        | CombiUnit (ul, _, ur) ->
+            hasTimeUnit ul || hasTimeUnit ur
+        | _ -> false
+
+
+    /// Validate that unit matches Quantity field pattern: no adjust, no time
+    let validateQuantityUnit (u: Unit) =
+        if hasAdjustUnit u then Error "Quantity cannot have adjust unit"
+        elif hasTimeUnit u then Error "Quantity cannot have time unit"
+        else Ok ()
+
+
+    /// Validate that unit matches QuantityAdjust field pattern: has adjust, no time
+    let validateQuantityAdjustUnit (u: Unit) =
+        if not (hasAdjustUnit u) then Error "QuantityAdjust must have adjust unit (kg/m2)"
+        elif hasTimeUnit u then Error "QuantityAdjust cannot have time unit"
+        else Ok ()
+
+
+    /// Validate that unit matches PerTime field pattern: no adjust, has time
+    let validatePerTimeUnit (u: Unit) =
+        if hasAdjustUnit u then Error "PerTime cannot have adjust unit"
+        elif not (hasTimeUnit u) then Error "PerTime must have time unit"
+        else Ok ()
+
+
+    /// Validate that unit matches PerTimeAdjust field pattern: has adjust and time
+    let validatePerTimeAdjustUnit (u: Unit) =
+        if not (hasAdjustUnit u) then Error "PerTimeAdjust must have adjust unit (kg/m2)"
+        elif not (hasTimeUnit u) then Error "PerTimeAdjust must have time unit"
+        else Ok ()
+
+
+    /// Validate that unit matches Rate field pattern: no adjust, has time
+    let validateRateUnit (u: Unit) =
+        if hasAdjustUnit u then Error "Rate cannot have adjust unit"
+        elif not (hasTimeUnit u) then Error "Rate must have time unit"
+        else Ok ()
+
+
+    /// Validate that unit matches RateAdjust field pattern: has adjust and time
+    let validateRateAdjustUnit (u: Unit) =
+        if not (hasAdjustUnit u) then Error "RateAdjust must have adjust unit (kg/m2)"
+        elif not (hasTimeUnit u) then Error "RateAdjust must have time unit"
+        else Ok ()
+
+
 /// Parser module to parse Medication text back to Medication record
 module Parser =
 
     open System
+    open UnitValidation
 
 
     /// Parse a line into (indentLevel, key, value)
@@ -71,7 +257,8 @@ module Parser =
 
 
     /// Parse ValueUnit from Dutch format string
-    /// Handles: "3;4 x/dag", "1 000 mg", "0,5 mL", "1 stuk"
+    /// Handles: "3;4 x/dag", "1, 10 mg/mL", "1 000 mg", "0,5 mL", "1 stuk"
+    /// Note: comma-space ", " is value separator, comma without space is Dutch decimal
     let private parseValueUnit (s: string) : Result<ValueUnit, string> =
         if s |> String.IsNullOrWhiteSpace then Error "Empty ValueUnit string"
         else
@@ -80,32 +267,35 @@ module Parser =
             | FParsec.CharParsers.Success (vu, _, _) -> Ok vu
             | FParsec.CharParsers.Failure _ ->
                 // Fall back to manual parsing for Dutch format
-                // Split into values and unit parts
-                // Format: "value1;value2 unit" or "value unit"
-                let parts = s.Trim().Split(' ') |> Array.toList
+                // The format is: "value1, value2 unit" or "value1;value2 unit" or "value unit"
+                // Important: ", " (comma-space) separates values, ",digit" is Dutch decimal
+                let s = s.Trim()
 
-                // Find where values end and unit begins
-                // Values are numeric (may contain semicolons, commas, spaces)
-                let rec splitValuesUnit (acc: string list) (remaining: string list) =
-                    match remaining with
-                    | [] -> (acc |> List.rev |> String.concat " ", "")
-                    | [last] ->
-                        // Check if last part is numeric
-                        let test = last.Replace(";", "").Replace(",", ".").Replace(" ", "")
-                        if test |> Double.tryParse |> Option.isSome then
-                            ((last :: acc) |> List.rev |> String.concat " ", "")
+                // Find the last space followed by non-numeric content (the unit)
+                // Strategy: find all space positions, try to parse from each as potential unit boundary
+                let rec findUnitBoundary (idx: int) =
+                    let lastSpaceIdx = s.LastIndexOf(' ', idx - 1)
+                    if lastSpaceIdx < 0 then
+                        (s, "")  // No unit found - everything is values
+                    else
+                        let potentialUnit = s.Substring(lastSpaceIdx + 1)
+                        let valPart = s.Substring(0, lastSpaceIdx)
+                        // Check if what's left is purely numeric-ish (values)
+                        let valueTest = valPart.Replace(",", "").Replace(";", "").Replace(" ", "")
+                        if valueTest |> Seq.forall (fun c -> Char.IsDigit c || c = '.' || c = '-') then
+                            (valPart, potentialUnit)
                         else
-                            (acc |> List.rev |> String.concat " ", last)
-                    | head :: tail ->
-                        // Check if this part looks like a value (contains digits)
-                        if head |> Seq.exists Char.IsDigit then
-                            splitValuesUnit (head :: acc) tail
-                        else
-                            // This and remaining parts are the unit
-                            let unitStr = (head :: tail) |> String.concat " "
-                            (acc |> List.rev |> String.concat " ", unitStr)
+                            // The potential unit might be part of a multi-word unit
+                            findUnitBoundary lastSpaceIdx
 
-                let valuesPart, unitPart = splitValuesUnit [] parts
+                let valuesPart, unitPart =
+                    let lastSpaceIdx = s.LastIndexOf(' ')
+                    if lastSpaceIdx < 0 then
+                        (s, "")
+                    else
+                        let potentialUnit = s.Substring(lastSpaceIdx + 1)
+                        let valPart = s.Substring(0, lastSpaceIdx)
+                        (valPart.Trim(), potentialUnit.Trim())
 
                 if unitPart |> String.IsNullOrWhiteSpace then
                     Error $"Cannot parse unit from '{s}'"
@@ -122,10 +312,20 @@ module Parser =
                     match normalizedUnit |> Units.fromString with
                     | None -> Error $"Unknown unit '{unitPart}' in '{s}'"
                     | Some unit ->
-                        // Parse values (semicolon-separated)
+                        // Parse values - try comma-space first (output format), then semicolon
+                        // Important: ", " is value separator, ",digit" is decimal
                         let valueStrs =
-                            valuesPart.Split(';')
-                            |> Array.map (fun v -> v.Trim())
+                            if valuesPart.Contains(", ") then
+                                // Comma-space separated (output format from Utils.ValueUnit.toString)
+                                valuesPart.Split([| ", " |], StringSplitOptions.RemoveEmptyEntries)
+                                |> Array.map (fun v -> v.Trim())
+                            elif valuesPart.Contains(";") then
+                                // Semicolon separated (alternative format)
+                                valuesPart.Split(';')
+                                |> Array.map (fun v -> v.Trim())
+                            else
+                                // Single value
+                                [| valuesPart.Trim() |]
                             |> Array.filter (String.IsNullOrWhiteSpace >> not)
 
                         let values =
@@ -210,125 +410,197 @@ module Parser =
         parseMinMax s
 
 
-    /// Parse DoseLimit from comma-separated constraint string
-    /// Format: "targetName, constraint1, constraint2, ..."
-    /// e.g., "paracetamol, 10 - 20 mg/kg/dosis"
+    /// Get the unit from a MinMax if available
+    let private getMinMaxUnit (mm: MinMax) : Unit option =
+        match mm.Min, mm.Max with
+        | Some lim, _ ->
+            lim |> Limit.getValueUnit |> ValueUnit.getUnit |> Some
+        | _, Some lim ->
+            lim |> Limit.getValueUnit |> ValueUnit.getUnit |> Some
+        | None, None -> None
+
+
+    /// Parse and validate a MinMax value for a specific field type
+    let private parseMinMaxForField
+        (validator: Unit -> Result<unit, string>)
+        (s: string)
+        (perDose: bool)
+        : Result<MinMax, string> =
+        let s = if perDose then s.Replace("/dosis", "").Trim() else s
+        match parseMinMax s with
+        | Error e -> Error e
+        | Ok mm when mm = MinMax.empty -> Ok mm
+        | Ok mm ->
+            match getMinMaxUnit mm with
+            | None -> Ok mm
+            | Some unit ->
+                match validator unit with
+                | Error e -> Error e
+                | Ok () -> Ok mm
+
+
+    /// Parse a MinMax value without validation (for labeled fields where we trust the label)
+    let private parseMinMaxNoValidation
+        (s: string)
+        (perDose: bool)
+        : Result<MinMax, string> =
+        let s = if perDose then s.Replace("/dosis", "").Trim() else s
+        parseMinMax s
+
+
+    /// Parse DoseLimit from comma-separated constraint string with explicit field labels
+    /// Format: "targetName, [field-label] constraint1, [field-label] constraint2, ..."
+    /// e.g., "paracetamol, [qty-adj] 10 - 20 mg/kg/dosis"
+    /// Note: Cannot split naively by comma because Dutch decimals use comma (e.g., "5,4")
     let private parseDoseLimitOpt (s: string) : Result<DoseLimit option, string> =
         if s |> String.IsNullOrWhiteSpace then Ok None
         else
-            // Split by comma, first element may be target name
-            let parts =
-                s.Split(',')
-                |> Array.map (fun p -> p.Trim())
-                |> Array.filter (String.IsNullOrWhiteSpace >> not)
-                |> Array.toList
+            // All known field labels
+            let allLabels = [
+                DoseLimit.FieldLabels.Quantity
+                DoseLimit.FieldLabels.QuantityAdjust
+                DoseLimit.FieldLabels.PerTime
+                DoseLimit.FieldLabels.PerTimeAdjust
+                DoseLimit.FieldLabels.Rate
+                DoseLimit.FieldLabels.RateAdjust
+                DoseLimit.FieldLabels.NormQuantityAdjust
+                DoseLimit.FieldLabels.NormPerTimeAdjust
+            ]
 
-            // Helper to check if a string looks like a value/constraint (contains digits)
-            let looksLikeConstraint (p: string) =
-                p |> Seq.exists Char.IsDigit
+            // Find the position of the first field label to separate target from constraints
+            let firstLabelPos =
+                allLabels
+                |> List.choose (fun label ->
+                    let idx = s.IndexOf(label)
+                    if idx >= 0 then Some idx else None)
+                |> List.sort
+                |> List.tryHead
 
-            match parts with
-            | [] -> Ok None
-            | parts ->
-                // Determine target: first part is target if it doesn't look like a constraint
-                // (doesn't contain digits, or all remaining parts contain digits)
-                let target, constraints =
-                    match parts with
-                    | first :: rest when
-                        not (looksLikeConstraint first) &&
-                        (rest.IsEmpty || rest |> List.forall looksLikeConstraint) ->
-                        SubstanceLimitTarget first, rest
-                    | _ ->
-                        NoLimitTarget, parts
-
-                // Parse constraints into appropriate MinMax fields
-                let mutable dl = { DoseLimit.limit with DoseLimitTarget = target }
-                let mutable errors = []
-
-                for constr in constraints do
-                    let c = constr.Trim()
-                    // Determine which field based on unit patterns
-                    if c.Contains("/dosis") then
-                        // Could be Quantity or QuantityAdjust
-                        // If it contains /kg or /m2, it's QuantityAdjust
-                        if c.Contains("/kg") || c.Contains("/m2") then
-                            match parseMinMaxWithSuffix c "/dosis" with
-                            | Ok mm -> dl <- { dl with QuantityAdjust = mm }
-                            | Error e -> errors <- e :: errors
-                        else
-                            match parseMinMaxWithSuffix c "/dosis" with
-                            | Ok mm -> dl <- { dl with Quantity = mm }
-                            | Error e -> errors <- e :: errors
-                    elif c.Contains("/uur") || c.Contains("/hour") || c.Contains("/hr") then
-                        // Rate constraints
-                        if c.Contains("/kg") || c.Contains("/m2") then
-                            match parseMinMax c with
-                            | Ok mm -> dl <- { dl with RateAdjust = mm }
-                            | Error e -> errors <- e :: errors
-                        else
-                            match parseMinMax c with
-                            | Ok mm -> dl <- { dl with Rate = mm }
-                            | Error e -> errors <- e :: errors
-                    elif c.Contains("/dag") || c.Contains("/day") then
-                        // PerTime or PerTimeAdjust
-                        if c.Contains("/kg") || c.Contains("/m2") then
-                            match parseMinMax c with
-                            | Ok mm -> dl <- { dl with PerTimeAdjust = mm }
-                            | Error e -> errors <- e :: errors
-                        else
-                            match parseMinMax c with
-                            | Ok mm -> dl <- { dl with PerTime = mm }
-                            | Error e -> errors <- e :: errors
+            // Extract target name (everything before first label, trimmed of ", ")
+            let target, constraintsStr =
+                match firstLabelPos with
+                | Some pos when pos > 0 ->
+                    let targetStr = s.Substring(0, pos).Trim().TrimEnd(',').Trim()
+                    let constraintsStr = s.Substring(pos)
+                    if targetStr |> String.IsNullOrWhiteSpace then
+                        NoLimitTarget, constraintsStr
                     else
-                        // Default: try as Quantity or QuantityAdjust
-                        if c.Contains("/kg") || c.Contains("/m2") then
-                            match parseMinMax c with
-                            | Ok mm -> dl <- { dl with QuantityAdjust = mm }
-                            | Error e -> errors <- e :: errors
-                        else
-                            match parseMinMax c with
-                            | Ok mm -> dl <- { dl with Quantity = mm }
-                            | Error e -> errors <- e :: errors
+                        SubstanceLimitTarget targetStr, constraintsStr
+                | Some 0 ->
+                    NoLimitTarget, s
+                | None ->
+                    // No labels found - try legacy parsing
+                    // Split by ", " followed by a digit or min/max
+                    let splitRegex = Text.RegularExpressions.Regex(", (?=\d|min |max |\[)")
+                    let parts = splitRegex.Split(s) |> Array.map (fun p -> p.Trim()) |> Array.toList
+                    match parts with
+                    | [] -> NoLimitTarget, ""
+                    | first :: rest when not (first |> Seq.exists Char.IsDigit) ->
+                        SubstanceLimitTarget first, rest |> String.concat ", "
+                    | _ ->
+                        NoLimitTarget, s
+                | _ -> $"{firstLabelPos} not valid" |> failwith
 
-                if errors.IsEmpty then Ok (Some dl)
-                else Error (errors |> String.concat "; ")
+            // Split constraints by field labels using regex
+            // Pattern matches: [label] value until next [label] or end
+            let constraintRegex = Text.RegularExpressions.Regex(@"\[([^\]]+)\]\s*([^[]*)")
+            let matches = constraintRegex.Matches(constraintsStr)
+
+            // Parse constraints into appropriate MinMax fields
+            let mutable dl = { DoseLimit.limit with DoseLimitTarget = target }
+            let mutable errors = []
+
+            // Field label parsers - when we have explicit labels, we trust them
+            // and don't apply validation (validation is only for heuristic fallback)
+            let fieldParsers : (string * (string -> Result<Informedica.GenCore.Lib.Ranges.MinMax, string>) * (DoseLimit -> Informedica.GenCore.Lib.Ranges.MinMax -> DoseLimit)) list = [
+                DoseLimit.FieldLabels.Quantity,
+                    (fun s -> parseMinMaxNoValidation s true),
+                    (fun (dl: DoseLimit) mm -> { dl with Quantity = mm })
+
+                DoseLimit.FieldLabels.QuantityAdjust,
+                    (fun s -> parseMinMaxNoValidation s true),
+                    (fun (dl: DoseLimit) mm -> { dl with QuantityAdjust = mm })
+
+                DoseLimit.FieldLabels.PerTime,
+                    (fun s -> parseMinMaxNoValidation s false),
+                    (fun (dl: DoseLimit) mm -> { dl with PerTime = mm })
+
+                DoseLimit.FieldLabels.PerTimeAdjust,
+                    (fun s -> parseMinMaxNoValidation s false),
+                    (fun (dl: DoseLimit) mm -> { dl with PerTimeAdjust = mm })
+
+                DoseLimit.FieldLabels.Rate,
+                    (fun s -> parseMinMaxNoValidation s false),
+                    (fun (dl: DoseLimit) mm -> { dl with Rate = mm })
+
+                DoseLimit.FieldLabels.RateAdjust,
+                    (fun s -> parseMinMaxNoValidation s false),
+                    (fun (dl: DoseLimit) mm -> { dl with RateAdjust = mm })
+            ]
+
+            // Process regex matches for labeled fields
+            for m in matches do
+                let labelContent = m.Groups.[1].Value  // e.g., "qty-adj"
+                let valueStr = m.Groups.[2].Value.Trim().TrimEnd(',').Trim()
+                let fullLabel = $"[{labelContent}]"
+
+                let labelMatch =
+                    fieldParsers
+                    |> List.tryFind (fun (label, _, _) -> label = fullLabel)
+
+                match labelMatch with
+                | Some (label, parser, setter) ->
+                    match parser valueStr with
+                    | Ok mm -> dl <- setter dl mm
+                    | Error e -> errors <- $"{label}: {e}" :: errors
+                | None ->
+                    errors <- $"Unknown field label: {fullLabel}" :: errors
+
+            // If no labeled matches and we have constraintsStr, return error requiring labels
+            if matches.Count = 0 && not (constraintsStr |> String.IsNullOrWhiteSpace) then
+                errors <- "DoseLimit fields must use labels like [qty], [qty-adj], [per-time], etc. Unlabeled input is not supported." :: errors
+
+            // Return result
+            if errors.IsEmpty then Ok (Some dl)
+            else Error (errors |> String.concat "; ")
 
 
-    /// Parse SolutionLimit from formatted string
-    /// Note: Dutch decimal format uses comma as separator, so we need careful splitting
+    /// Parse SolutionLimit from formatted string using labeled fields
+    /// Labels: [qty] for Quantity, [qty-adj] for QuantityAdj, [conc] for Concentration
     let private parseSolutionLimitOpt (s: string) : Result<SolutionLimit option, string> =
         if s |> String.IsNullOrWhiteSpace then Ok None
         else
-            // SolutionLimit.toString outputs: Quantity, QuantityAdj, Concentration
-            // as comma-separated MinMax strings (with ", " as separator)
-            // BUT Dutch decimals also use comma (e.g., "0,5 mg/mL")
-            // Strategy: split on ", " (comma-space) but only when followed by a letter or digit
-            // that looks like a new value (min/max pattern or number)
-            let splitPattern = System.Text.RegularExpressions.Regex(", (?=\d|min |max )")
-            let parts =
-                splitPattern.Split(s)
-                |> Array.map (fun p -> p.Trim())
-                |> Array.filter (String.IsNullOrWhiteSpace >> not)
-                |> Array.toList
+            // Match labeled fields: [label] value
+            let labeledFieldRegex = System.Text.RegularExpressions.Regex(@"\[([^\]]+)\]\s*([^[]*)")
+            let matches = labeledFieldRegex.Matches(s)
 
             let mutable sl = SolutionLimit.limit
             let mutable errors = []
 
-            for part in parts do
-                let p = part.Trim()
-                // Determine which field based on unit patterns
-                if p.Contains("/kg") || p.Contains("/m2") then
-                    match parseMinMax p with
-                    | Ok mm -> sl <- { sl with QuantityAdj = mm }
-                    | Error e -> errors <- e :: errors
-                elif p.Contains("/mL") || p.Contains("/ml") then
-                    match parseMinMax p with
-                    | Ok mm -> sl <- { sl with Concentration = mm }
-                    | Error e -> errors <- e :: errors
-                else
-                    match parseMinMax p with
-                    | Ok mm -> sl <- { sl with Quantity = mm }
-                    | Error e -> errors <- e :: errors
+            for m in matches do
+                let label = m.Groups.[1].Value.Trim().ToLowerInvariant()
+                let valueStr = m.Groups.[2].Value.Trim()
+
+                if not (valueStr |> String.IsNullOrWhiteSpace) then
+                    match label with
+                    | "qty" ->
+                        match parseMinMax valueStr with
+                        | Ok mm -> sl <- { sl with Quantity = mm }
+                        | Error e -> errors <- $"[qty]: {e}" :: errors
+                    | "qty-adj" ->
+                        match parseMinMax valueStr with
+                        | Ok mm -> sl <- { sl with QuantityAdj = mm }
+                        | Error e -> errors <- $"[qty-adj]: {e}" :: errors
+                    | "conc" ->
+                        match parseMinMax valueStr with
+                        | Ok mm -> sl <- { sl with Concentration = mm }
+                        | Error e -> errors <- $"[conc]: {e}" :: errors
+                    | _ ->
+                        errors <- $"Unknown SolutionLimit label: [{label}]" :: errors
+
+            // If no labeled matches and we have input, return error requiring labels
+            if matches.Count = 0 then
+                errors <- "SolutionLimit fields must use labels like [qty], [qty-adj], [conc]. Unlabeled input is not supported." :: errors
 
             if errors.IsEmpty then
                 if sl = SolutionLimit.limit then Ok None
@@ -483,7 +755,7 @@ module Parser =
                 currentComponentFields <- Map.empty
                 currentSubstances <- []
 
-        for (indent, key, value) in lines do
+        for indent, key, value in lines do
             match indent with
             | 0 ->
                 if key = "Components" then
@@ -633,16 +905,69 @@ module Parser =
         else Error allErrors
 
 
-/// Shadow the Medication module to add fromString while re-exporting existing functions
+/// Shadow the Medication module to add fromString and labeled toString
 module Medication =
 
+    open System
     open Informedica.GenOrder.Lib.Medication
 
     let fromString = Parser.fromString
 
-    // now you can use the original medication module functions
-    // for example
-    let testTostring med = toString med
+    /// Helper to convert a DoseLimit option to string using new labeled format
+    let private limitOptToString (dlOpt: DoseLimit option) =
+        match dlOpt with
+        | None -> ""
+        | Some dl -> dl |> DoseLimit.toString |> String.concat ""
+
+
+    /// Convert Medication to string list using labeled DoseLimit output
+    let toString (med: Medication) : string list =
+        let emptyStr = ""
+        let optToStr f opt = opt |> Option.map f |> Option.defaultValue emptyStr
+        /// Convert SolutionLimit to labeled string format
+        /// Labels: [qty] for Quantity, [qty-adj] for QuantityAdj, [conc] for Concentration
+        let slToStr (sl: SolutionLimit) =
+            let minMaxStr mm =
+                if mm = MinMax.empty then ""
+                else mm |> MinMax.toString "min " "min " "max " "max "
+            [
+                let qty = sl.Quantity |> minMaxStr
+                if not (String.IsNullOrWhiteSpace qty) then $"[qty] {qty}"
+                let qtyAdj = sl.QuantityAdj |> minMaxStr
+                if not (String.IsNullOrWhiteSpace qtyAdj) then $"[qty-adj] {qtyAdj}"
+                let conc = sl.Concentration |> minMaxStr
+                if not (String.IsNullOrWhiteSpace conc) then $"[conc] {conc}"
+            ] |> String.concat " "
+        [
+            $"Id: {med.Id}"
+            $"Name: {med.Name}"
+            $"Quantity: {med.Quantity |> DoseLimit.printMinMaxDose emptyStr}"
+            $"Quantities: {med.Quantities |> optToStr (Utils.ValueUnit.toString 3)}"
+            $"Route: {med.Route}"
+            $"OrderType: {med.OrderType}"
+            $"Adjust: {med.Adjust |> optToStr (Utils.ValueUnit.toString 3)}"
+            $"Frequencies: {med.Frequencies |> optToStr (Utils.ValueUnit.toString 3)}"
+            $"Time: {med.Time |> DoseLimit.printMinMaxDose emptyStr}"
+            $"Dose: {med.Dose |> limitOptToString}"
+            $"Div: {med.Div |> optToStr BigRational.toStringNl}"
+            $"DoseCount: {med.DoseCount |> DoseLimit.printMinMaxDose emptyStr}"
+            "Components:"
+            for cmp in med.Components do
+                emptyStr
+                $"\tName: {cmp.Name}"
+                $"\tForm: {cmp.Form}"
+                $"\tQuantities: {cmp.Quantities |> optToStr (Utils.ValueUnit.toString 3)}"
+                $"\tDivisible: {cmp.Divisible |> optToStr BigRational.toStringNl}"
+                $"\tDose: {cmp.Dose |> limitOptToString}"
+                $"\tSolution: {cmp.Solution |> optToStr slToStr}"
+                $"\tSubstances:"
+                for sub in cmp.Substances do
+                    emptyStr
+                    $"\t\tName: {sub.Name}"
+                    $"\t\tConcentrations: {sub.Concentrations |> optToStr (Utils.ValueUnit.toString 3)}"
+                    $"\t\tDose: {sub.Dose |> limitOptToString}"
+                    $"\t\tSolution: {sub.Solution |> optToStr slToStr}"
+        ]
 
 
 module HelperFunctions =
@@ -686,7 +1011,7 @@ module HelperFunctions =
 
 
         med
-        |> Medication.toOrderDto
+        |> Informedica.GenOrder.Lib.Medication.toOrderDto
         |> Order.Dto.fromDto
         |> function
           | Error msg -> failwith $"{msg}"
@@ -712,25 +1037,88 @@ let tests =
         |> String.concat " "
 
     testList "medication" [
-        test "pcm supp to string" {
-            let actual =
-                Scenarios.pcmSupp
-                |> Informedica.GenOrder.Lib.Medication.toString
-                |> String.concat "\n"
-                |> normalizeWords
 
-            let expected =
-                Scenarios.pcmSuppText
-                |> normalizeWords
+        // Test labeled DoseLimit.toString
+        testList "DoseLimit with field labels" [
+            test "Quantity field gets [qty] label" {
+                let dl = { DoseLimit.limit with
+                            Quantity = 10N |> ValueUnit.singleWithUnit Units.Volume.milliLiter |> MinMax.createExact
+                         }
+                let str = dl |> DoseLimit.toString |> String.concat ""
+                str |> Expect.stringContains "should contain [qty]" "[qty]"
+            }
 
-            actual
-            |> Expect.equal "should be" expected
-        }
+            test "QuantityAdjust field gets [qty-adj] label" {
+                let dl = { DoseLimit.limit with
+                            QuantityAdjust =
+                                MinMax.createInclIncl
+                                    (10N |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per Units.Weight.kiloGram))
+                                    (20N |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per Units.Weight.kiloGram))
+                         }
+                let str = dl |> DoseLimit.toString |> String.concat ""
+                str |> Expect.stringContains "should contain [qty-adj]" "[qty-adj]"
+            }
+
+            test "PerTimeAdjust field gets [per-time-adj] label" {
+                let dl = { DoseLimit.limit with
+                            PerTimeAdjust =
+                                MinMax.createInclIncl
+                                    (10N |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per Units.Weight.kiloGram |> Units.per Units.Time.day))
+                                    (20N |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per Units.Weight.kiloGram |> Units.per Units.Time.day))
+                         }
+                let str = dl |> DoseLimit.toString |> String.concat ""
+                str |> Expect.stringContains "should contain [per-time-adj]" "[per-time-adj]"
+            }
+
+            test "RateAdjust field gets [rate-adj] label" {
+                let dl = { DoseLimit.limit with
+                            RateAdjust =
+                                MinMax.createInclIncl
+                                    (10N |> ValueUnit.singleWithUnit (Units.Mass.microGram |> Units.per Units.Weight.kiloGram |> Units.per Units.Time.hour))
+                                    (40N |> ValueUnit.singleWithUnit (Units.Mass.microGram |> Units.per Units.Weight.kiloGram |> Units.per Units.Time.hour))
+                         }
+                let str = dl |> DoseLimit.toString |> String.concat ""
+                str |> Expect.stringContains "should contain [rate-adj]" "[rate-adj]"
+            }
+        ]
+
+        // Unit validation tests
+        testList "Unit validation" [
+            test "hasAdjustUnit detects kg" {
+                let unit = Units.Mass.milliGram |> Units.per Units.Weight.kiloGram
+                UnitValidation.hasAdjustUnit unit
+                |> Expect.isTrue "should detect kg as adjust unit"
+            }
+
+            test "hasAdjustUnit detects m2" {
+                let unit = Units.Mass.milliGram |> Units.per Units.BSA.m2
+                UnitValidation.hasAdjustUnit unit
+                |> Expect.isTrue "should detect m2 as adjust unit"
+            }
+
+            test "hasTimeUnit detects day" {
+                let unit = Units.Mass.milliGram |> Units.per Units.Time.day
+                UnitValidation.hasTimeUnit unit
+                |> Expect.isTrue "should detect day as time unit"
+            }
+
+            test "hasTimeUnit detects hour" {
+                let unit = Units.Volume.milliLiter |> Units.per Units.Time.hour
+                UnitValidation.hasTimeUnit unit
+                |> Expect.isTrue "should detect hour as time unit"
+            }
+
+            test "complex unit mg/kg/dag has both adjust and time" {
+                let unit = Units.Mass.milliGram |> Units.per Units.Weight.kiloGram |> Units.per Units.Time.day
+                UnitValidation.hasAdjustUnit unit |> Expect.isTrue "should have adjust unit"
+                UnitValidation.hasTimeUnit unit |> Expect.isTrue "should have time unit"
+            }
+        ]
 
         // Roundtrip tests
         test "pcmSupp roundtrip - basic fields" {
             let original = Scenarios.pcmSupp
-            let text = original |> Informedica.GenOrder.Lib.Medication.toString |> String.concat "\n"
+            let text = original |> Medication.toString |> String.concat "\n"
             match text |> Medication.fromString with
             | Error errs ->
                     let errMsg = errs |> String.concat "; "
@@ -745,7 +1133,7 @@ let tests =
 
         test "pcmSupp roundtrip - component details" {
             let original = Scenarios.pcmSupp
-            let text = original |> Informedica.GenOrder.Lib.Medication.toString |> String.concat "\n"
+            let text = original |> Medication.toString |> String.concat "\n"
             match text |> Medication.fromString with
             | Error errs ->
                     let errMsg = errs |> String.concat "; "
@@ -758,9 +1146,118 @@ let tests =
                 parsedCmp.Substances.Length |> Expect.equal "Substances count" origCmp.Substances.Length
         }
 
+        test "pcmSupp roundtrip - full roundtrip" {
+            let original = Scenarios.pcmSupp
+            let text = original |> Medication.toString |> String.concat "\n"
+            match text |> Medication.fromString with
+            | Error errs ->
+                    let errMsg = errs |> String.concat "; "
+                    failwith $"Parse failed: {errMsg}"
+            | Ok med ->
+                med
+                |> Medication.toString
+                |> String.concat "\n"
+                |> Expect.equal "should resemble the original text" text
+        }
+
+        test "amfo roundtrip - PerTimeAdjust field" {
+            let original = Scenarios.amfo
+            let text = original |> Medication.toString |> String.concat "\n"
+            match text |> Medication.fromString with
+            | Error errs ->
+                let errMsg = errs |> String.concat "; "
+                failwith $"Parse failed: {errMsg}"
+            | Ok med ->
+                med.Id |> Expect.equal "Id" original.Id
+                med.Name |> Expect.equal "Name" original.Name
+                med.OrderType |> Expect.equal "OrderType" original.OrderType
+
+                // Check the substance has PerTimeAdjust
+                let origSubstance =
+                    original.Components
+                    |> List.head
+                    |> fun c -> c.Substances
+                    |> List.find (fun s -> s.Name = "amfotericine b liposomaal")
+
+                let parsedSubstance =
+                    med.Components
+                    |> List.head
+                    |> fun c -> c.Substances
+                    |> List.find (fun s -> s.Name = "amfotericine b liposomaal")
+
+                parsedSubstance.Dose.IsSome |> Expect.isTrue "Dose should be Some"
+                parsedSubstance.Dose.Value.PerTimeAdjust
+                |> Expect.notEqual "PerTimeAdjust should not be empty" MinMax.empty
+        }
+
+        test "morfCont roundtrip - RateAdjust field" {
+            let original = Scenarios.morfCont
+            let text = original |> Medication.toString |> String.concat "\n"
+            match text |> Medication.fromString with
+            | Error errs ->
+                let errMsg = errs |> String.concat "; "
+                failwith $"Parse failed: {errMsg}"
+            | Ok med ->
+                med.Id |> Expect.equal "Id" original.Id
+                med.OrderType |> Expect.equal "OrderType" original.OrderType
+
+                // Check the substance has RateAdjust
+                let parsedSubstance =
+                    med.Components
+                    |> List.head
+                    |> fun c -> c.Substances
+                    |> List.find (fun s -> s.Name = "morfin")
+
+                parsedSubstance.Dose.IsSome |> Expect.isTrue "Dose should be Some"
+                parsedSubstance.Dose.Value.RateAdjust
+                |> Expect.notEqual "RateAdjust should not be empty" MinMax.empty
+        }
+
+        test "cotrim roundtrip - QuantityAdjust field" {
+            let original = Scenarios.cotrim
+            let text = original |> Medication.toString |> String.concat "\n"
+            match text |> Medication.fromString with
+            | Error errs ->
+                let errMsg = errs |> String.concat "; "
+                failwith $"Parse failed: {errMsg}"
+            | Ok med ->
+                med.Id |> Expect.equal "Id" original.Id
+                med.OrderType |> Expect.equal "OrderType" original.OrderType
+
+                // Check the substances have QuantityAdjust
+                let parsedSubstances =
+                    med.Components
+                    |> List.head
+                    |> fun c -> c.Substances
+
+                for sub in parsedSubstances do
+                    sub.Dose.IsSome |> Expect.isTrue $"Dose for {sub.Name} should be Some"
+                    sub.Dose.Value.QuantityAdjust
+                    |> Expect.notEqual $"QuantityAdjust for {sub.Name} should not be empty" MinMax.empty
+        }
+
+        test "tpn roundtrip - complex multi-component" {
+            let original = Scenarios.tpn
+            let text = original |> Medication.toString |> String.concat "\n"
+            match text |> Medication.fromString with
+            | Error errs ->
+                let errMsg = errs |> String.concat "; "
+                failwith $"Parse failed: {errMsg}"
+            | Ok med ->
+                med.Id |> Expect.equal "Id" original.Id
+                med.Components.Length |> Expect.equal "Components count" original.Components.Length
+
+                // Check component doses with QuantityAdjust
+                for i, origCmp in original.Components |> List.indexed do
+                    let parsedCmp = med.Components.[i]
+                    parsedCmp.Name |> Expect.equal $"Component {i} name" origCmp.Name
+                    if origCmp.Dose.IsSome then
+                        parsedCmp.Dose.IsSome |> Expect.isTrue $"Component {i} Dose should be Some"
+        }
+
         test "fullMedication roundtrip - all fields" {
             let original = Scenarios.fullMedication
-            let text = original |> Informedica.GenOrder.Lib.Medication.toString |> String.concat "\n"
+            let text = original |> Medication.toString |> String.concat "\n"
             match text |> Medication.fromString with
             | Error errs ->
                     let errMsg = errs |> String.concat "; "
@@ -790,15 +1287,43 @@ Components:
             | Ok _ ->
                 failwith "Expected error for invalid OrderType"
         }
+
+        // Test that labels enable deterministic parsing
+        test "labeled parsing is deterministic for QuantityAdjust vs PerTimeAdjust" {
+            // This tests that with labels, we can distinguish fields that have similar units
+            let dlWithQtyAdj = { DoseLimit.limit with
+                                    DoseLimitTarget = "test" |> SubstanceLimitTarget
+                                    QuantityAdjust =
+                                        MinMax.createInclIncl
+                                            (10N |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per Units.Weight.kiloGram))
+                                            (20N |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per Units.Weight.kiloGram))
+                               }
+
+            let str = dlWithQtyAdj |> DoseLimit.toString |> String.concat ""
+            str |> Expect.stringContains "should have [qty-adj] label" "[qty-adj]"
+            str |> Expect.stringContains "should NOT have [per-time-adj] label" |> ignore
+            (str.Contains("[per-time-adj]") |> not) |> Expect.isTrue "should NOT have [per-time-adj]"
+        }
     ]
+
 
 runTestsWithCLIArgs [] [||] tests
 
+
+// Demo: Show the new labeled output format
+printfn "\n=== Demo: Labeled DoseLimit output ==="
 Scenarios.amfo
 |> Medication.toString
 |> print
 
 
+printfn "\n=== Demo: morfCont (RateAdjust) ==="
+Scenarios.morfCont
+|> Medication.toString
+|> print
+
+
+// Verify orders still work correctly
 [
     CalcMinMax
     CalcValues
@@ -810,13 +1335,7 @@ Scenarios.amfo
         |> OrderCommand.ChangeProperty
 ]
 |> run None Scenarios.amfo
-//|> printOrderTable
 |> ignore
-
-
-Scenarios.morfCont
-|> Medication.toString
-|> print
 
 
 [
@@ -825,148 +1344,26 @@ Scenarios.morfCont
     fun ord ->
         (ord, SetMedianComponentQuantity Scenarios.morfCont.Components[0].Name)
         |> OrderCommand.ChangeProperty
-    (*
-    fun ord ->
-        (ord, SetMedianComponentQuantity morfCont.Components[1].Name)
-        |> OrderCommand.ChangeProperty
-    *)
 ]
 |> run None Scenarios.morfCont
-//|> printOrderTable
 |> ignore
 
 
 open Types
 
+printfn "\n=== Demo: pcmDrink ==="
 Scenarios.pcmDrink
 |> Medication.toString
 |> print
 
 
-
+printfn "\n=== Demo: cotrim ==="
 Scenarios.cotrim
 |> Medication.toString
 |> print
 
 
+printfn "\n=== Demo: tpn ==="
 Scenarios.tpn
 |> Medication.toString
 |> print
-
-
-let tpnConstraints =
-    [
-        OrderAdjust OrderVariable.Quantity.applyConstraints
-
-        ScheduleFrequency OrderVariable.Frequency.applyConstraints
-        ScheduleTime OrderVariable.Time.applyConstraints
-
-        OrderableQuantity OrderVariable.Quantity.applyConstraints
-        OrderableDoseCount OrderVariable.Count.applyConstraints
-        OrderableDose Order.Orderable.Dose.applyConstraints
-
-        ComponentOrderableQuantity ("", OrderVariable.Quantity.applyConstraints)
-
-        ItemComponentConcentration ("", "", OrderVariable.Concentration.applyConstraints)
-        ItemOrderableConcentration ("", "", OrderVariable.Concentration.applyConstraints)
-    ]
-
-
-
-let applyPropChange msg propChange ord =
-    printfn $"=== Apply PropChange {msg} ==="
-    let ord =
-        ord
-        |> Order.OrderPropertyChange.proc propChange
-    ord
-    |> Order.solveMinMax true Logging.noOp
-    |> function
-        | Ok ord -> ord
-        | _ ->
-            printfn $"=== ERROR {msg} ==="
-            ord
-    |> fun ord ->
-        ord
-        |> Order.printTable ConsoleTables.Format.Minimal
-
-        ord
-
-
-let run
-    proteinPerc
-    potassiumPerc
-    sodiumPerc
-    glucPerc
-    tpn =
-
-    tpn
-    |> Medication.toOrderDto
-    |> Order.Dto.fromDto
-    |> Result.map (fun ord ->
-        let ord =
-            ord
-            |> Order.OrderPropertyChange.proc tpnConstraints
-    //        |> Order.applyConstraints
-
-        ord
-        |> Order.printTable ConsoleTables.Format.Minimal
-
-        let ord =
-            ord
-            |> Order.solveMinMax true Logging.noOp //logger
-            //|> Result.bind (Order.solveMinMax true logger)
-
-        ord
-        |> Result.iter (Order.printTable ConsoleTables.Format.Minimal)
-
-        let ord =
-            ord
-            |> Result.map (fun ord ->
-                ord
-                |> applyPropChange
-                    "Samenstelling C"
-                    [
-                        ComponentOrderableQuantity ("Samenstelling C", OrderVariable.Quantity.setPercValue proteinPerc)
-                    ]
-            )
-
-        let ord =
-            ord
-            |> Result.map (fun ord ->
-                ord
-                |> applyPropChange
-                    "KCl 7,4%"
-                    [
-                        ComponentOrderableQuantity ("KCl 7,4%", OrderVariable.Quantity.setPercValue potassiumPerc)
-                    ]
-            )
-
-        let ord =
-            ord
-            |> Result.map (fun ord ->
-                ord
-                |> applyPropChange
-                    "NaCl 3%"
-                    [
-                        ComponentOrderableQuantity ("NaCl 3%", OrderVariable.Quantity.setPercValue sodiumPerc)
-                    ]
-            )
-
-        let ord =
-            ord
-            |> Result.map (fun ord ->
-                ord
-                |> applyPropChange
-                    "gluc 10%"
-                    [
-                        ComponentOrderableQuantity ("gluc 10%", OrderVariable.Quantity.setPercValue glucPerc)
-                    ]
-            )
-
-        ord
-    )
-
-
-Scenarios.tpn
-|> run 50 0 5 0
-|> ignore

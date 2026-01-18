@@ -5,8 +5,8 @@ module EquationMapping =
     open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
     open ConsoleWriter.NewLineNoTime
+    open Utils
     open WrappedString
-
 
     module Literals =
 
