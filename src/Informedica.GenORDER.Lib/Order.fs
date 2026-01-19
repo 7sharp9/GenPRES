@@ -3422,7 +3422,7 @@ module Order =
                             Order.Orderable.Components =
                                 { cmp with
                                     Component.Dose.Quantity =
-                                    cmp.Dose.Quantity |> Quantity.setMedianValue
+                                        cmp.Dose.Quantity |> Quantity.setMedianValue
                                 }::rest
                         }
                     | _ -> ord
