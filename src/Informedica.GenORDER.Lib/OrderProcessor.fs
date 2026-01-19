@@ -4,7 +4,6 @@ namespace Informedica.GenOrder.Lib
 module OrderProcessor =
 
     open Informedica.Utils.Lib
-    open Informedica.Utils.Lib.BCL
     open ConsoleWriter.NewLineNoTime
     open Order
 
@@ -60,7 +59,7 @@ module OrderProcessor =
 
             ]
         // re-calc min max
-        |> solveMinMax printErr logger
+        |> solveMinMax "Order Property Set Frequency" printErr logger
         // step to a min, median or max value
         |> Result.map (OrderPropertyChange.proc [ ScheduleFrequency step ])
 
@@ -102,7 +101,7 @@ module OrderProcessor =
                     ItemDose ("", "", Dose.setRateToNonZeroPositive)
             ]
         // re-calc the min max
-        |> solveMinMax printErr logger
+        |> solveMinMax "Order Property Set Dose Rate" printErr logger
         // step to a min, median or max rate
         |> Result.map (OrderPropertyChange.proc [ OrderableDose step ])
 
@@ -160,7 +159,7 @@ module OrderProcessor =
                 OrderableDoseCount OrderVariable.Count.applyConstraints
             ]
         // re-calc min max
-        |> solveMinMax printErr logger
+        |> solveMinMax "Order Property Set Dose Quantity" printErr logger
         // step to a min, median or max dose quantity
         |> Result.map (OrderPropertyChange.proc [ OrderableDose step ])
 
@@ -285,7 +284,7 @@ module OrderProcessor =
                         ItemDose (cn, "", Dose.setToNonZeroPositive)
             ]
         // recalc
-        |> solveMinMax printErr logger
+        |> solveMinMax "Order Property Set Component Quantity" printErr logger
         // step to a min, median or max dose quantity
         |> Result.map (OrderPropertyChange.proc [ ComponentOrderableQuantity (cmp, step) ])
 
@@ -397,12 +396,12 @@ module OrderProcessor =
     let processClearedOrder logger ord =
         // small helpers to clarify post-processing after property changes
         let solveAndToValues minTime =
-            solveMinMax true logger
+            solveMinMax "Process Cleared Order" true logger
             >> Result.map (minIncrMaxToValues true minTime logger)
 
         let defaultInc = 100
         let solveIncrIncrAndToValues minTime =
-            solveMinMax true logger
+            solveMinMax "Process Cleared Order" true logger
             >> Result.bind (increaseIncrements logger defaultInc defaultInc)
             >> Result.map (minIncrMaxToValues true minTime logger)
 
@@ -452,7 +451,7 @@ module OrderProcessor =
                 |> solveAndToValues true
             | _ ->
                 logUnmatched "continuous"
-                ord |> solveOrder true logger
+                ord |> solveOrder "Process Cleared Order" true logger
         | Once
         | Discontinuous _ ->
             match ord with
@@ -477,7 +476,7 @@ module OrderProcessor =
                 |> solveIncrIncrAndToValues true
             | _ ->
                 logUnmatched "discontinuous"
-                ord |> solveOrder true logger
+                ord |> solveOrder "Process Cleared Order" true logger
         | OnceTimed _
         | Timed _ ->
             match ord with
@@ -512,7 +511,7 @@ module OrderProcessor =
 
             | _ ->
                 logUnmatched "timed"
-                ord |> solveOrder true logger
+                ord |> solveOrder "Process Cleared Order" true logger
 
 
     type GenSolverExceptionMsg = Informedica.GenSolver.Lib.Types.Exceptions.Message
@@ -640,12 +639,12 @@ module OrderProcessor =
 
         let calcValuesStep useMax ord = ord |> minIncrMaxToValues useMax true logger |> Ok
 
-        let solveStep ord = solveOrder true logger ord
+        let solveStep ord = solveOrder "Solve Order Step" true logger ord
 
         let processClearedStep ord =
             match processClearedOrder logger ord with
             | Ok o -> Ok o
-            | Error _ -> solveOrder true logger ord
+            | Error _ -> solveOrder "Error in Cleared Step Solve again" true logger ord
 
         let applyConstraintsStep ord = ord |> applyConstraints |> Ok
 

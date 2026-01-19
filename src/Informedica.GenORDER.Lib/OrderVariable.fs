@@ -2344,6 +2344,9 @@ module OrderVariable =
         let setToNonZeroPositive = toOrdVar >> setToNonZeroPositive >> QuantityAdjust
 
 
+        let hasNormValue = toOrdVar >> getNormValue >> Option.isSome
+
+
         let setNormValue = toOrdVar >> setNormValue >> QuantityAdjust
 
 
@@ -2457,6 +2460,9 @@ module OrderVariable =
 
         /// Set a PerTimeAdjust to non-zero positive values
         let setToNonZeroPositive = toOrdVar >> setToNonZeroPositive >> PerTimeAdjust
+
+
+        let hasNormValue = toOrdVar >> getNormValue >> Option.isSome
 
 
         let setNormValue = toOrdVar >> setNormValue >> PerTimeAdjust
@@ -2573,9 +2579,10 @@ module OrderVariable =
         let setToNonZeroPositive = toOrdVar >> setToNonZeroPositive >> RateAdjust
 
 
+        let hasNormValue = toOrdVar >> getNormValue >> Option.isSome
+
+
         let setNormValue = toOrdVar >> setNormValue >> RateAdjust
-
-
 
 
     /// Type and functions that represent an adjusted total,
