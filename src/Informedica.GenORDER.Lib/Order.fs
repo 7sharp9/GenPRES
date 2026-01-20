@@ -2378,11 +2378,11 @@ module Order =
         /// </summary>
         let toStringWithConstraints (schedule: Schedule) =
                 match schedule with
-                | Once -> ["eenmalig"]
+                | Once -> [ "eenmalig" ]
                 | Continuous tme -> [ tme |> Time.toStringWithConstraints ]
-                | OnceTimed tme -> [tme |> Time.toStringWithConstraints]
+                | OnceTimed tme -> [ tme |> Time.toStringWithConstraints ]
                 | Discontinuous frq ->
-                    [frq |> Frequency.toStringWithConstraints]
+                    [ frq |> Frequency.toStringWithConstraints ]
                 | Timed(frq, tme) ->
                     [
                         frq |> Frequency.toStringWithConstraints
@@ -3025,7 +3025,7 @@ module Order =
         |> ConsoleTables.write format
 
 
-    let stringTable ord =
+    let toConsoleTable ord =
         ord
         |> toStringWithConstraints
         |> List.map (fun s ->
@@ -3527,7 +3527,7 @@ module Order =
 
 
     let logOrder logger minMax msg ord =
-        let s = ord |> stringTable
+        let s = ord |> toConsoleTable
         let m = if minMax then "Min/Max" else "All Values"
         $"""
 == {msg} {m} ==

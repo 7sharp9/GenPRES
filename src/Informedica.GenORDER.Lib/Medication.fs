@@ -898,7 +898,9 @@ module Medication =
                 dto.Schedule.Frequency.Constraints.IncrOpt <- incr
 
             dto.Schedule.Time.Constraints.MinIncl <- med.Time.Min.IsSome
-            dto.Schedule.Time.Constraints.MinOpt <- med.Time.Min |> limToDto
+            // fix: do not overwrite non zero min
+            if med.Time.Min.IsSome then
+                dto.Schedule.Time.Constraints.MinOpt <- med.Time.Min |> limToDto
             dto.Schedule.Time.Constraints.MaxIncl <- med.Time.Max.IsSome
             dto.Schedule.Time.Constraints.MaxOpt <- med.Time.Max |> limToDto
 

@@ -204,7 +204,7 @@ module Parser =
     open Informedica.GenCore.Lib.Ranges
     open Informedica.GenUnits.Lib
     open Informedica.GenForm.Lib
-    open Informedica.GenOrder.Lib    
+    open Informedica.GenOrder.Lib
 
 
     /// Parse a line into (indentLevel, key, value)
@@ -214,8 +214,8 @@ module Parser =
         match content.IndexOf(':') with
         | -1 -> None
         | i ->
-            let key = content.[..i-1].Trim()
-            let value = content.[i+1..].Trim()
+            let key = content[..i-1].Trim()
+            let value = content[i+1..].Trim()
             Some (indent, key, value)
 
 
@@ -354,7 +354,7 @@ module Parser =
 
             // Check for "min X" pattern (min only)
             if s.StartsWith("min ") then
-                let rest = s.[4..].Trim()
+                let rest = s[4..].Trim()
                 parseValueUnit rest
                 |> Result.map (fun vu ->
                     { MinMax.empty with Min = vu |> Limit.inclusive |> Some }
@@ -362,7 +362,7 @@ module Parser =
 
             // Check for "max X" pattern (max only)
             elif s.StartsWith("max ") then
-                let rest = s.[4..].Trim()
+                let rest = s[4..].Trim()
                 parseValueUnit rest
                 |> Result.map (fun vu ->
                     { MinMax.empty with Max = vu |> Limit.inclusive |> Some }
@@ -374,8 +374,8 @@ module Parser =
                 if parts.Length <> 2 then Error $"Invalid MinMax range format: {s}"
                 else
                     // The min part has no unit, max part has the unit
-                    let minPart = parts.[0].Trim()
-                    let maxPart = parts.[1].Trim()
+                    let minPart = parts[0].Trim()
+                    let maxPart = parts[1].Trim()
 
                     // Parse the max part first to get the unit
                     parseValueUnit maxPart
@@ -460,8 +460,6 @@ module Parser =
                 DoseLimit.FieldLabels.PerTimeAdjust
                 DoseLimit.FieldLabels.Rate
                 DoseLimit.FieldLabels.RateAdjust
-                DoseLimit.FieldLabels.NormQuantityAdjust
-                DoseLimit.FieldLabels.NormPerTimeAdjust
             ]
 
             // Find the position of the first field label to separate target from constraints
@@ -537,8 +535,8 @@ module Parser =
 
             // Process regex matches for labeled fields
             for m in matches do
-                let labelContent = m.Groups.[1].Value  // e.g., "qty-adj"
-                let valueStr = m.Groups.[2].Value.Trim().TrimEnd(',').Trim()
+                let labelContent = m.Groups[1].Value  // e.g., "qty-adj"
+                let valueStr = m.Groups[2].Value.Trim().TrimEnd(',').Trim()
                 let fullLabel = $"[{labelContent}]"
 
                 let labelMatch =
@@ -575,8 +573,8 @@ module Parser =
             let mutable errors = []
 
             for m in matches do
-                let label = m.Groups.[1].Value.Trim().ToLowerInvariant()
-                let valueStr = m.Groups.[2].Value.Trim()
+                let label = m.Groups[1].Value.Trim().ToLowerInvariant()
+                let valueStr = m.Groups[2].Value.Trim()
 
                 if not (valueStr |> String.IsNullOrWhiteSpace) then
                     match label with
@@ -720,14 +718,12 @@ module Parser =
     let fromString (s: string) : Result<Medication, string list> =
         let lines =
             s.Split([| '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries)
-            |> Array.map (fun line -> parseLine line)
-            |> Array.choose id
+            |> Array.choose parseLine
             |> Array.toList
 
         // Separate top-level (indent 0), component (indent 1), substance (indent 2) fields
         let mutable topFields = Map.empty
         let mutable components = []
-        let mutable currentComponent = None
         let mutable currentComponentFields = Map.empty
         let mutable currentSubstances = []
         let mutable currentSubstanceFields = Map.empty
@@ -885,20 +881,20 @@ module Parser =
 
         if allErrors.IsEmpty then
             Ok {
-                Id = id
-                Name = name
-                Components = components |> List.rev
-                Quantity = quantity
-                Quantities = quantities
-                Route = route
-                OrderType = orderType
-                Frequencies = frequencies
-                Time = time
-                Dose = dose
-                Div = div
-                DoseCount = doseCount
-                Adjust = adjust
-            }
+                    Id = id
+                    Name = name
+                    Components = components |> List.rev
+                    Quantity = quantity
+                    Quantities = quantities
+                    Route = route
+                    OrderType = orderType
+                    Frequencies = frequencies
+                    Time = time
+                    Dose = dose
+                    Div = div
+                    DoseCount = doseCount
+                    Adjust = adjust
+                }
         else Error allErrors
 
 
@@ -992,7 +988,7 @@ module HelperFunctions =
         | Error e -> $"Error solving order: {e}" |> failwith
         | Ok o ->
             o
-            |> Order.solveMinMax true OrderLogging.noOp
+            |> Order.solveMinMax "Solve Order" true OrderLogging.noOp
 
 
     let run logger med cmds =
@@ -1012,7 +1008,6 @@ module HelperFunctions =
                     |> cmd
                     |> OrderProcessor.processPipeline logger
                     |> loop rest
-
 
         med
         |> Informedica.GenOrder.Lib.Medication.toOrderDto
@@ -1264,7 +1259,7 @@ let tests =
 
                 // Check component doses with QuantityAdjust
                 for i, origCmp in original.Components |> List.indexed do
-                    let parsedCmp = med.Components.[i]
+                    let parsedCmp = med.Components[i]
                     parsedCmp.Name |> Expect.equal $"Component {i} name" origCmp.Name
                     if origCmp.Dose.IsSome then
                         parsedCmp.Dose.IsSome |> Expect.isTrue $"Component {i} Dose should be Some"
@@ -1363,8 +1358,6 @@ Scenarios.morfCont
 |> run None Scenarios.morfCont
 |> ignore
 
-
-open Types
 
 printfn "\n=== Demo: pcmDrink ==="
 Scenarios.pcmDrink

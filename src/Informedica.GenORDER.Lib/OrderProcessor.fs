@@ -407,7 +407,7 @@ module OrderProcessor =
 
         let logUnmatched (kind: string) =
             $"===> no match for {kind} cleared " |> writeWarningMessage
-            ord |> stringTable |> Events.OrderScenario |> Logging.logWarning logger
+            ord |> toConsoleTable |> Events.OrderScenario |> Logging.logWarning logger
 
         match (ord |> inf).Schedule with
         | Continuous _ ->
