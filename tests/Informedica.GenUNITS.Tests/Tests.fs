@@ -345,6 +345,56 @@ module Tests =
                 |> Expect.throws "should throw an exception"
             }
 
+            test "parse single value and toString roundtrip" {
+                "1.5 mg"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "3/2 mg[Mass]"
+            }
+
+            test "parse multiple values with brackets and toString roundtrip" {
+                "[1;3;5] x[Count]"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "1;3;5 x[Count]"
+            }
+
+            test "parse multiple values without brackets and toString roundtrip" {
+                "1;3;5 x[Count]"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "1;3;5 x[Count]"
+            }
+
+            test "parse multiple values with different units" {
+                "[10;20;30] mg[Mass]"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "10;20;30 mg[Mass]"
+            }
+
+            test "parse fractional values without brackets" {
+                "0.5;1;1.5 mg"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "1/2;1;3/2 mg[Mass]"
+            }
+
         ]
 
 
