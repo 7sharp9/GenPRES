@@ -265,9 +265,12 @@ module Parser =
     /// Parse a string to a ValueUnit
     /// </summary>
     /// <example>
-    /// "1.2 mg/kg[Weight]" |> parse -> <br/>
-    /// Success: ValueUnit
-    /// ([|6/5N|], CombiUnit (Mass (MilliGram 1N), OpPer, Weight (WeightKiloGram 1N)))
+    /// Single value: "1.2 mg/kg[Weight]" |> parse -> <br/>
+    /// Success: ValueUnit ([|6/5N|], CombiUnit (Mass (MilliGram 1N), OpPer, Weight (WeightKiloGram 1N))) <br/>
+    /// Multiple values with brackets: "[1;3;5] x[Count]" |> parse -> <br/>
+    /// Success: ValueUnit ([|1N; 3N; 5N|], Count (Times 1N)) <br/>
+    /// Multiple values without brackets:"1;3;5 x[Count]"  |> parse -> <br/>
+    /// Success: ValueUnit ([|1N; 3N; 5N|], Count (Times 1N))
     /// </example>
     let parse s =
         // need to change nan to xxx to avoid getting a float 'nan'
