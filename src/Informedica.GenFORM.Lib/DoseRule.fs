@@ -81,22 +81,22 @@ module DoseRule =
             |> Array.map (fun dl ->
                 let perDose = "/dosis"
                 let emptyS = ""
-                let printMinMaxDose = DoseLimit.printMinMaxDose
+                let printMinMaxDose = DoseLimit.printMinMaxDose ""
                 [
-                    $"{dl.Rate |> printMinMaxDose emptyS}"
-                    $"{dl.RateAdjust |> printMinMaxDose emptyS}"
-                    $"{dl.PerTimeAdjust |> printMinMaxDose emptyS}"
+                    $"%s{dl.Rate |> printMinMaxDose emptyS}"
+                    $"%s{dl.RateAdjust |> printMinMaxDose emptyS}"
+                    $"%s{dl.PerTimeAdjust |> printMinMaxDose emptyS}"
 
-                    $"{dl.PerTime |> printMinMaxDose emptyS}"
-                    $"{dl.QuantityAdjust |> printMinMaxDose perDose}"
+                    $"%s{dl.PerTime |> printMinMaxDose emptyS}"
+                    $"%s{dl.QuantityAdjust |> printMinMaxDose perDose}"
 
-                    $"{dl.Quantity |> printMinMaxDose perDose}"
+                    $"%s{dl.Quantity |> printMinMaxDose perDose}"
                 ]
                 |> List.map String.trim
                 |> List.filter (String.IsNullOrEmpty >> not)
                 |> String.concat ", "
                 |> fun s ->
-                    $"%s{dl.DoseLimitTarget |> LimitTarget.toString} {wrap}{s}{wrap}"
+                    $"%s{dl.DoseLimitTarget |> LimitTarget.toString} %s{wrap}%s{s}{wrap}"
             )
 
 
@@ -155,21 +155,21 @@ module DoseRule =
         /// fold: https://github.com/dotnet/fsharp/issues/6699
         let toMarkdown (rules : DoseRule array) =
             let generic_md generic =
-                $"\n\n# {generic}\n\n---\n"
+                $"\n\n# %s{generic}\n\n---\n"
 
             let route_md route products synonyms =
                 if synonyms |> String.isNullOrWhiteSpace then
-                    $"\n\n### Route: {route}\n\n#### Producten\n%s{products}\n"
+                    $"\n\n### Route: %s{route}\n\n#### Producten\n%s{products}\n"
                 else
-                    $"\n\n### Route: {route}\n\n#### Producten\n%s{products}\n\n#### Synoniemen\n%s{synonyms}\n"
+                    $"\n\n### Route: %s{route}\n\n#### Producten\n%s{products}\n\n#### Synoniemen\n%s{synonyms}\n"
 
-            let product_md product =  $"* {product}"
+            let product_md product =  $"* %s{product}"
 
             let synonyms_md names =
                 if names |> Seq.isEmpty then ""
                 else
                     let names = names |> String.concat ", "
-                    $"* {names}"
+                    $"* %s{names}"
 
             let indication_md indication = $"\n\n## Indicatie: %s{indication}\n\n---\n"
 
@@ -180,24 +180,24 @@ module DoseRule =
                 let freqs =
                     if freqs |> String.isNullOrWhiteSpace then ""
                     else
-                        $" in {freqs}"
+                        $" in %s{freqs}"
 
                 let s =
                     [
                         if intv |> String.isNullOrWhiteSpace |> not then
-                            $" {intv}"
+                            $" %s{intv}"
                         if time |> String.isNullOrWhiteSpace |> not then
-                            $" inloop tijd {time}"
+                            $" inloop tijd %s{time}"
                         if dur |> String.isNullOrWhiteSpace |> not then
-                            $" {dur}"
+                            $" %s{dur}"
                     ]
                     |> String.concat ", "
                     |> fun s ->
                         if s |> String.isNullOrWhiteSpace then ""
                         else
-                            $" ({s |> String.trim})"
+                            $" (%s{s |> String.trim})"
 
-                $"* *{dt}*: {dose}{freqs}{s}"
+                $"* *%s{dt}*: %s{dose}%s{freqs}%s{s}"
 
             let patient_md patient =
                 let patient =
@@ -221,7 +221,7 @@ module DoseRule =
                         |> Array.map _.ScheduleText
                         |> Array.distinct
                         |> function
-                        | [| s |] -> $"\n\n{link}: {s}"
+                        | [| s |] -> $"\n\n%s{link}: %s{s}"
                         | _ -> ""
 
                     ds
@@ -240,7 +240,7 @@ module DoseRule =
                         let md = dose_md dt dose freqs intv time dur
                         if acc |> String.containsCapsInsens md then acc // prevent duplicate doserule per form print
                         else
-                            $"{acc}\n{md}{pedForm}"
+                            $"%s{acc}\n%s{md}%s{pedForm}"
 
                     ) acc
                 )

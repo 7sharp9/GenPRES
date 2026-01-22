@@ -8,8 +8,6 @@ module DoseLimit =
     open Informedica.GenCore.Lib.Ranges
     open Informedica.GenUnits.Lib
 
-    open Utils
-
 
     /// Field labels for deterministic parsing
     module FieldLabels =
@@ -107,16 +105,38 @@ module DoseLimit =
     let isNormDose = getNormDose >> Option.isSome
 
 
+    /// <summary>
+    /// Formats a MinMax as a string with label and per-dose suffix.
+    /// </summary>
+    /// <param name="label">Field label to prepend (e.g., "[qty]"). When empty, uses verbose format with decimal precision.</param>
+    /// <param name="perDose">Suffix to append (e.g., "/dosis"). Applied to each value in the MinMax.</param>
+    /// <param name="minMax">The MinMax to format.</param>
+    /// <returns>
+    /// A formatted string. Returns empty string if MinMax is empty.
+    /// - When label is null/whitespace: uses decimal string format with 3 decimals
+    /// - When label is provided: uses engineering short notation
+    /// - When min equals max (norm dose): returns single value instead of min/max pair
+    /// - Final format: "{label} {formatted-value}{perDose}"
+    /// </returns>
     let printMinMaxDose label perDose (minMax : MinMax) =
+        let vuToStr, mmToStr = 
+            if label |> String.isNullOrWhiteSpace then 
+                Utils.ValueUnit.toString 3
+                ,
+                Utils.MinMax.toString "min " "min " "max " "max " 
+            else 
+                ValueUnit.toStringEngShort
+                ,
+                MinMax.toString  
+                    ValueUnit.toStringEngShort
+                    ValueUnit.toStringEngShort
+                    "min " "min " "max " "max " 
+
         let toStr mm =
             if mm = MinMax.empty then ""
             else
                 mm
-                |> MinMax.toString
-                    "min "
-                    "min "
-                    "max "
-                    "max "
+                |> mmToStr
                 |> fun s ->
                     $"{s}{perDose}"
 
@@ -125,9 +145,10 @@ module DoseLimit =
             |> Option.map (fun minLim ->
                 minLim
                 |> Limit.getValueUnit
-                |> fun vu -> $"{vu |> Utils.ValueUnit.toString 3}{perDose}"
+                |> fun vu -> $"{vu |> vuToStr}{perDose}"
             )
             |> Option.defaultValue ""
+
         else minMax |> toStr
         |> fun s ->
             if s |> String.isNullOrWhiteSpace then ""
@@ -140,16 +161,16 @@ module DoseLimit =
             let perDose = "/dosis"
             let emptyS = ""
             [
-                $"{dl.DoseLimitTarget |> LimitTarget.toString}"
+                $"%s{dl.DoseLimitTarget |> LimitTarget.toString}"
 
-                $"{dl.Rate |> printMinMaxDose FieldLabels.Rate emptyS}"
-                $"{dl.RateAdjust |> printMinMaxDose FieldLabels.RateAdjust emptyS}"
+                $"%s{dl.Rate |> printMinMaxDose FieldLabels.Rate emptyS}"
+                $"%s{dl.RateAdjust |> printMinMaxDose FieldLabels.RateAdjust emptyS}"
 
-                $"{dl.PerTimeAdjust |> printMinMaxDose FieldLabels.PerTimeAdjust emptyS}"
-                $"{dl.PerTime |> printMinMaxDose FieldLabels.PerTime emptyS}"
+                $"%s{dl.PerTimeAdjust |> printMinMaxDose FieldLabels.PerTimeAdjust emptyS}"
+                $"%s{dl.PerTime |> printMinMaxDose FieldLabels.PerTime emptyS}"
 
-                $"{dl.QuantityAdjust |> printMinMaxDose FieldLabels.QuantityAdjust perDose}"
-                $"{dl.Quantity |> printMinMaxDose FieldLabels.Quantity perDose}"
+                $"%s{dl.QuantityAdjust |> printMinMaxDose FieldLabels.QuantityAdjust perDose}"
+                $"%s{dl.Quantity |> printMinMaxDose FieldLabels.Quantity perDose}"
             ]
             |> List.map String.trim
             |> List.filter (String.IsNullOrEmpty >> not)

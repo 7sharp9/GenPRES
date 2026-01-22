@@ -82,9 +82,6 @@ let logger = OrderLogging.createConsoleLogger ()
 
 
 let tests =
-    let normalizeWords (s: string) =
-        s.Split([| ' '; '\t'; '\n'; '\r' |], System.StringSplitOptions.RemoveEmptyEntries)
-        |> String.concat " "
 
     testList "medication" [
 
@@ -359,8 +356,6 @@ Components:
 
 runTestsWithCLIArgs [] [||] tests
 
-"3.0;4.0 x[Count]/day[Time]"
-|> ValueUnit.fromString
 
 // Demo: Show the new labeled output format
 printfn "\n=== Demo: Labeled DoseLimit output ==="
