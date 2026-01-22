@@ -701,7 +701,7 @@ module Medication =
             >> List.map String.trim
             >> List.filter (String.isNullOrWhiteSpace >> not)
             >> String.concat ", "
-            
+
         Option.map toStr
         >> Option.defaultValue ""
 
@@ -904,7 +904,9 @@ module Medication =
         let emptyStr = ""
         let optToStr f opt = opt |> Option.map f |> Option.defaultValue emptyStr
         let mmToStr =
-            Utils.MinMax.toString
+            MinMax.toString
+                    ValueUnit.toStringDecimalEngShortWithoutGroup
+                    ValueUnit.toStringDecimalEngShortWithoutGroup
                     "min "
                     "min "
                     "max "
@@ -912,7 +914,7 @@ module Medication =
         // Convert SolutionLimit to labeled string format
         let slToStr = SolutionLimit.toString >> String.concat " "
         let vuToStr =
-            optToStr ValueUnit.toStringDecimalEngShort
+            optToStr ValueUnit.toStringDecimalEngShortWithoutGroup
 
         [
             $"Id: %s{med.Id}"

@@ -119,18 +119,18 @@ module DoseLimit =
     /// - Final format: "{label} {formatted-value}{perDose}"
     /// </returns>
     let printMinMaxDose label perDose (minMax : MinMax) =
-        let vuToStr, mmToStr = 
-            if label |> String.isNullOrWhiteSpace then 
+        let vuToStr, mmToStr =
+            if label |> String.isNullOrWhiteSpace then
                 Utils.ValueUnit.toString 3
                 ,
-                Utils.MinMax.toString "min " "min " "max " "max " 
-            else 
-                ValueUnit.toStringEngShort
+                Utils.MinMax.toString "min " "min " "max " "max "
+            else
+                ValueUnit.toStringDecimalEngShortWithoutGroup
                 ,
-                MinMax.toString  
-                    ValueUnit.toStringEngShort
-                    ValueUnit.toStringEngShort
-                    "min " "min " "max " "max " 
+                MinMax.toString
+                    ValueUnit.toStringDecimalEngShortWithoutGroup
+                    ValueUnit.toStringDecimalEngShortWithoutGroup
+                    "min " "min " "max " "max "
 
         let toStr mm =
             if mm = MinMax.empty then ""

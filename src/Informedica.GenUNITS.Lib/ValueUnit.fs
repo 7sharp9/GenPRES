@@ -185,8 +185,8 @@ module Parser =
     /// Example: "stuk" will not match "s" (seconds) due to word boundary check
     /// </example>
     let pUnitGroup (u : string) g =
-        let pu = 
-            pstringCI u 
+        let pu =
+            pstringCI u
             >>. (notFollowedBy (satisfy (fun c -> System.Char.IsLetterOrDigit c)))
             >>% u
         let pg = $"[%s{g}]" |> pstringCI
@@ -1679,7 +1679,7 @@ module Units =
     /// </example>
     let toString hasGroup loc verb u =
         let gtost u g =
-            u + 
+            u +
             if hasGroup then "[" + (g |> ValueUnit.Group.toString) + "]" else ""
 
         let rec str u =
@@ -3866,6 +3866,12 @@ module ValueUnit =
     /// </summary>
     let toStringDecimalEngShort =
         toString true (BigRational.toDecimal >> string) Units.English Units.Short
+    /// <summary>
+    /// Get the user readable string version in English with verbosity short,
+    /// value as decimal, without group annotation
+    /// </summary>
+    let toStringDecimalEngShortWithoutGroup =
+        toString false (BigRational.toDecimal >> string) Units.English Units.Short
 
     /// <summary>
     /// Get the user readable string version in English with verbosity long,
