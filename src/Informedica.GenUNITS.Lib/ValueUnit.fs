@@ -274,19 +274,18 @@ module Parser =
         let s = s |> String.replace "nan" "nnn"
 
         let pBigRatList =
-            sepBy pBigRat (ws >>. (pstring ";") .>> ws)
+            sepBy pBigRat (ws >>. pstring ";" .>> ws)
 
         let pValue =
-            (between (pstring "[") (pstring "]") pBigRatList)
-            <|> (many pBigRat)
+            between (pstring "[") (pstring "]") pBigRatList
+            <|> pBigRatList
 
         let p =
             pValue .>>. parseUnit
-            |>> (fun (brs, u) ->
-                brs
-                |> List.toArray
-                |> ValueUnit.create u
-            )
+            |>> fun (brs, u) ->
+               brs
+               |> List.toArray
+               |> ValueUnit.create u
         s |> run p
 
 
@@ -2011,7 +2010,6 @@ module Units =
 module ValueUnit =
 
 
-
     //----------------------------------------------------------------------------
     // Operator String functions
     //----------------------------------------------------------------------------
@@ -3140,7 +3138,7 @@ module ValueUnit =
             let vs2 = vu2 |> toBaseValue
             BigRational.calcCartesian op vs1 vs2
             |> Array.distinct
-            
+
             (*
             Array.allPairs vs1 vs2
             |> Array.map (fun (v1, v2) -> v1 |> op <| v2)
@@ -3846,8 +3844,10 @@ module ValueUnit =
     /// fromString "3 mL/min" = ValueUnit ([|1N; 2N; 3N|], Mass (KiloGram 1N))
     /// </code>
     /// </example>
-    let fromString = Parser.parse
-
+    let fromString s =
+        match s |> Parser.parse with
+        | FParsec.CharParsers.Success (s, _, _) -> s |> Result.Ok
+        | FParsec.CharParsers.Failure (s, err, _) -> $"{s} with error: {err}" |> Result.Error
 
 
     module Operators =

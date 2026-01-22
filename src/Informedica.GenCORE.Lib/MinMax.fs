@@ -418,10 +418,12 @@ module Limit =
 /// This in turns enables ranges to be be complementary.
 module MinMax =
 
+    open System
     open MathNet.Numerics
     open Aether
 
     open Informedica.Utils.Lib
+    open Informedica.Utils.Lib.BCL
 
 
     module Calculator =
@@ -489,14 +491,14 @@ module MinMax =
     let create min max = { Min = min; Max = max }
 
 
-    let apply f (mm: MinMax) = 
+    let apply f (mm: MinMax) =
         { mm with
-            Min = 
+            Min =
                 mm.Min
-                |> Option.map (Limit.apply f f) 
-            Max = 
+                |> Option.map (Limit.apply f f)
+            Max =
                 mm.Max
-                |> Option.map (Limit.apply f f) 
+                |> Option.map (Limit.apply f f)
         }
 
 
@@ -1040,6 +1042,65 @@ module MinMax =
             $"%s{min_ |> Limit.getValueUnit |> valToStr} - %s{max_ |> Limit.getValueUnit |> vuToStr}"
         | Some min_, None -> min_ |> minToString
         | None, Some max_ -> max_ |> maxToString
+
+
+
+    /// Parse MinMax from formatted string
+    /// Handles: "" (empty), "10 mg" (exact), "10 - 20 mg" (range),
+    ///          "min 10 mg" (min only), "max 10 mg" (max only)
+    let parseMinMax (s: string) : Result<MinMax, string> =
+
+        if s |> String.IsNullOrWhiteSpace then Ok empty
+        else
+            let s = s.Trim()
+
+            // Check for "min X" pattern (min only)
+            if s.StartsWith("min ") then
+                let rest = s[4..].Trim()
+                ValueUnit.fromString rest
+                |> Result.map (fun vu ->
+                    { empty with Min = vu |> Limit.inclusive |> Some }
+                )
+
+            // Check for "max X" pattern (max only)
+            elif s.StartsWith("max ") then
+                let rest = s[4..].Trim()
+                ValueUnit.fromString rest
+                |> Result.map (fun vu ->
+                    { empty with Max = vu |> Limit.inclusive |> Some }
+                )
+
+            // Check for "X - Y" pattern (range)
+            elif s.Contains(" - ") then
+                let parts = s.Split([| " - " |], StringSplitOptions.None)
+                if parts.Length <> 2 then Error $"Invalid MinMax range format: {s}"
+                else
+                    // The min part has no unit, max part has the unit
+                    let minPart = parts[0].Trim()
+                    let maxPart = parts[1].Trim()
+
+                    // Parse the max part first to get the unit
+                    ValueUnit.fromString maxPart
+                    |> Result.bind (fun maxVu ->
+                        let unit = maxVu |> ValueUnit.getUnit
+                        // Try to parse the min value and apply the same unit
+                        let minValue =
+                            minPart.Replace(",", ".").Replace(" ", "")
+                            |> Double.tryParse
+                            |> Option.bind BigRational.fromFloat
+
+                        match minValue with
+                        | Some minV ->
+                            let minVu = minV |> ValueUnit.singleWithUnit unit
+                            Ok (createInclIncl minVu maxVu)
+                        | None ->
+                            Error $"Cannot parse min value: {minPart}"
+                    )
+
+            // Otherwise it's an exact value
+            else
+                ValueUnit.fromString s
+                |> Result.map createExact
 
 
 

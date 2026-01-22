@@ -186,7 +186,6 @@ module Tests =
     open Expecto
     open Expecto.Flip
 
-    open FParsec
     open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
@@ -203,7 +202,7 @@ module Tests =
 
     let (>>?) res exp =
         match exp |> fromString with
-        | Success (exp, _, _) ->
+        | Ok exp ->
             res = exp
             |> Expect.isTrue  ""
         | _ ->
@@ -325,8 +324,8 @@ module Tests =
                 "1 x[Count]/4 weken[Time]"
                 |> fromString
                 |> function
-                | Success (vu, _, _)  -> vu
-                | Failure (err, _, _) -> $"can't run this test: {err}" |> failwith
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
                 |> toStringDutchShort
                 |> Expect.equal "should equal" "1 x[Count]/4 weken[Time]"
             }
@@ -631,5 +630,3 @@ module Tests =
             }
 
         ]
-
-

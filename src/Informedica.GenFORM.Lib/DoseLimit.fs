@@ -10,6 +10,17 @@ module DoseLimit =
 
     open Utils
 
+
+    /// Field labels for deterministic parsing
+    module FieldLabels =
+        let [<Literal>] Quantity = "[qty]"
+        let [<Literal>] QuantityAdjust = "[qty-adj]"
+        let [<Literal>] PerTime = "[per-time]"
+        let [<Literal>] PerTimeAdjust = "[per-time-adj]"
+        let [<Literal>] Rate = "[rate]"
+        let [<Literal>] RateAdjust = "[rate-adj]"
+
+
     let create
         tar
         aun
@@ -96,7 +107,7 @@ module DoseLimit =
     let isNormDose = getNormDose >> Option.isSome
 
 
-    let printMinMaxDose perDose (minMax : MinMax) =
+    let printMinMaxDose label perDose (minMax : MinMax) =
         let toStr mm =
             if mm = MinMax.empty then ""
             else
@@ -118,6 +129,10 @@ module DoseLimit =
             )
             |> Option.defaultValue ""
         else minMax |> toStr
+        |> fun s ->
+            if s |> String.isNullOrWhiteSpace then ""
+            else
+                $"{label} {s}"
 
 
     let toString (dl: DoseLimit) =
@@ -127,14 +142,14 @@ module DoseLimit =
             [
                 $"{dl.DoseLimitTarget |> LimitTarget.toString}"
 
-                $"{dl.Rate |> printMinMaxDose emptyS}"
-                $"{dl.RateAdjust |> printMinMaxDose emptyS}"
+                $"{dl.Rate |> printMinMaxDose FieldLabels.Rate emptyS}"
+                $"{dl.RateAdjust |> printMinMaxDose FieldLabels.RateAdjust emptyS}"
 
-                $"{dl.PerTimeAdjust |> printMinMaxDose emptyS}"
-                $"{dl.PerTime |> printMinMaxDose emptyS}"
+                $"{dl.PerTimeAdjust |> printMinMaxDose FieldLabels.PerTimeAdjust emptyS}"
+                $"{dl.PerTime |> printMinMaxDose FieldLabels.PerTime emptyS}"
 
-                $"{dl.QuantityAdjust |> printMinMaxDose perDose}"
-                $"{dl.Quantity |> printMinMaxDose perDose}"
+                $"{dl.QuantityAdjust |> printMinMaxDose FieldLabels.QuantityAdjust perDose}"
+                $"{dl.Quantity |> printMinMaxDose FieldLabels.Quantity perDose}"
             ]
             |> List.map String.trim
             |> List.filter (String.IsNullOrEmpty >> not)

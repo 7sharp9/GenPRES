@@ -3,7 +3,6 @@ namespace Informedica.GenUnits.Lib
 
 module Api =
 
-    open FParsec
     open Informedica.Utils.Lib.BCL
 
 
@@ -32,8 +31,8 @@ module Api =
 
         let fromStr s =
             match s |> ValueUnit.fromString with
-            | Success (vu, _, _) -> Some vu
-            | Failure _  -> None
+            | Ok vu -> Some vu
+            | Error _  -> None
 
         let opts s =
             let s = s |> String.trim
@@ -83,8 +82,8 @@ module Api =
             s1
             |> ValueUnit.fromString
             |> function
-            | Failure _ -> None
-            | Success (vu, _, _)  -> vu |> Some
+            | Error _ -> None
+            | Ok vu  -> vu |> Some
 
         match vu, s2 |> Units.fromString with
         | Some vu, Some u ->
