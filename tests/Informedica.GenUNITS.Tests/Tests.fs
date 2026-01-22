@@ -395,6 +395,121 @@ module Tests =
                 |> Expect.equal "should equal" "1/2;1;3/2 mg[Mass]"
             }
 
+            test "parse general unit without [General] annotation" {
+                "120 stuk"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "120 stuk[General]"
+            }
+
+            test "parse general unit with [General] annotation for backward compatibility" {
+                "120 stuk[General]"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "120 stuk[General]"
+            }
+
+            test "parse single value general unit without annotation" {
+                "1 stuk"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "1 stuk[General]"
+            }
+
+            test "parse complex unit with general unit (mg/stuk)" {
+                "120;240;500 mg/stuk"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "120;240;500 mg[Mass]/stuk[General]"
+            }
+
+            test "parse general unit with multiple values without annotation" {
+                "10;20;30 tablet"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "10;20;30 tablet[General]"
+            }
+
+            test "known units still take precedence over general units" {
+                "10 mg"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> get
+                |> snd
+                |> Group.unitToGroup
+                |> Expect.equal "should be mass group" Group.MassGroup
+            }
+
+            test "complex known unit still works (mg/ml)" {
+                "10 mg/ml"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "10 mg[Mass]/ml[Volume]"
+            }
+
+            test "general unit in complex unit with known units" {
+                "5 ml/ampul"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "5 ml[Volume]/ampul[General]"
+            }
+
+            test "general unit round-trip without annotation" {
+                let original = 
+                    100N 
+                    |> createSingle (Units.General.general "capsule")
+                original
+                |> toStringEngShort
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> Expect.equal "should equal original" original
+            }
+
+            test "times unit still parses correctly (not confused with general)" {
+                "1;3;5 x"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "1;3;5 x[Count]"
+            }
+
+            test "fractional general units" {
+                "0.5;1;1.5 sachet"
+                |> fromString
+                |> function
+                | Ok vu -> vu
+                | Error err -> $"can't run this test: {err}" |> failwith
+                |> toStringEngShort
+                |> Expect.equal "should equal" "1/2;1;3/2 sachet[General]"
+            }
+
         ]
 
 

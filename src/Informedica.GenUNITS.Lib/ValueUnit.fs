@@ -175,14 +175,20 @@ module Parser =
 
 
     /// <summary>
-    /// Parse a unit with an optional group
+    /// Parse a unit with an optional group annotation.
+    /// Uses word boundaries to ensure complete unit matches and prevent partial matches.
+    /// For example, "stuk" won't match "s" (seconds) because 'tuk' follows.
     /// </summary>
     /// <example>
     /// Example: "kg" |> run (pUnitGroup "kg" "mass") -> Success: "kg" <br/>
     /// Example: "kg[Mass]" |> run (pUnitGroup "kg" "mass") -> Success: "kg" <br/>
+    /// Example: "stuk" will not match "s" (seconds) due to word boundary check
     /// </example>
     let pUnitGroup (u : string) g =
-        let pu = u |> pstringCI
+        let pu = 
+            pstringCI u 
+            >>. (notFollowedBy (satisfy (fun c -> System.Char.IsLetterOrDigit c)))
+            >>% u
         let pg = $"[%s{g}]" |> pstringCI
         (pu .>> ws .>> (opt pg))
 
@@ -238,17 +244,22 @@ module Parser =
 
 
     /// <summary>
-    /// Parse a General unit with the format: name[General]
+    /// Parse a General unit with the format: name[General] or just name
+    /// When parsing without the [General] annotation, it will match any text
+    /// that is not a known unit. Known units are checked first with proper
+    /// word boundaries to avoid partial matches.
     /// </summary>
     /// <example>
-    /// "stuk[General]" |> run pGeneralUnit -> Success: General ("stuk", 1N)
+    /// "stuk[General]" |> run pGeneralUnit -> Success: General ("stuk", 1N) <br/>
+    /// "stuk" |> run pGeneralUnit -> Success: General ("stuk", 1N) <br/>
+    /// "120 stuk" |> run pGeneralUnit -> Success: General ("stuk", 1N)
     /// </example>
     let pGeneralUnit =
-        let pName = many1Chars (noneOf "[ \t\r\n")
+        let pName = many1Chars (noneOf "[ \t\r\n*/")
         attempt (
             opt pfloat
             .>> ws
-            .>>. (pName .>> ws .>> pstringCI "[General]")
+            .>>. (pName .>> ws .>> opt (pstringCI "[General]"))
             |>> (fun (mult, name) ->
                 mult
                 |> Option.bind BigRational.fromFloat
@@ -259,11 +270,14 @@ module Parser =
 
 
     /// <summary>
-    /// Parse a complex unit using FParsec's OperatorPrecedenceParser
+    /// Parse a complex unit using FParsec's OperatorPrecedenceParser.
+    /// Tries to match known units first (pUnit), then falls back to general units (pGeneralUnit).
+    /// This ensures known units take precedence while allowing arbitrary general unit names.
     /// </summary>
     /// <returns>Parser of Unit, unit</returns>
     /// <example>
-    /// "mg/kg[Weight]" |> run parseUnit -> Success: CombiUnit (Mass (MilliGram 1N), OpPer, Weight (WeightKiloGram 1N))
+    /// "mg/kg[Weight]" |> run parseUnit -> Success: CombiUnit (Mass (MilliGram 1N), OpPer, Weight (WeightKiloGram 1N)) <br/>
+    /// "stuk" |> run parseUnit -> Success: General ("stuk", 1N)
     /// </example>
     let parseUnit =
 
@@ -271,7 +285,7 @@ module Parser =
         let expr = opp.ExpressionParser
 
         opp.TermParser <-
-            pGeneralUnit <|> pUnit <|> between (str_ws "(") (str_ws ")") expr
+            pUnit <|> pGeneralUnit <|> between (str_ws "(") (str_ws ")") expr
 
         let ( *! ) u1 u2 = (u1, OpTimes, u2) |> CombiUnit
         let ( /! ) u1 u2 = (u1, OpPer, u2) |> CombiUnit

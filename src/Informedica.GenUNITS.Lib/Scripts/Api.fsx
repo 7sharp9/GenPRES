@@ -14,10 +14,10 @@ open Informedica.Utils.Lib.BCL
 |> ValueUnit.toStringEngShort
 |> ValueUnit.fromString
 
-"1;3;5 x[Count]"
+"1;3;5 x"
 |> ValueUnit.fromString
 
-"[10;20;30] mg[Mass]"
+"10;20;30 mg/ml"
 |> ValueUnit.fromString
 |> Result.map ValueUnit.toStringEngShort
 
@@ -30,3 +30,10 @@ open Informedica.Utils.Lib.BCL
 
 "stuk"
 |> Units.groupIsGeneralOrNone
+
+"120 stuk"
+|> ValueUnit.fromString
+
+
+"120;240;500;1000;125;250;60;30;360;90;750;180 mg/stuk"
+|> ValueUnit.fromString
