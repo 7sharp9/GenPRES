@@ -2,7 +2,7 @@
 
 **NOTE: this is a demo doc**
 
-These wireframes describe the main user interface flows for GenPRES, a clinical decision support system for medication prescribing. The application is structured as a modern web app, with a focus on medication lookup, patient data entry, drug order calculation, and result display.
+These wireframes describe the main user interface flows for GenPRES, a clinical decision support system for medication prescribing. The application is structured as a modern web app, with a focus on medication lookup, patient data entry, medication order calculation, and result display.
 
 ---
 
@@ -146,4 +146,4 @@ These wireframes describe the main user interface flows for GenPRES, a clinical 
 
 ---
 
-> These wireframes are based on repository structure, README details, and standard clinical workflow for drug order support. Adapt as needed for final visual or interactive prototypes.
+> These wireframes are based on repository structure, README details, and standard clinical workflow for medication order support. Adapt as needed for final visual or interactive prototypes.

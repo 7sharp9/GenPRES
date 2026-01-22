@@ -69,4 +69,4 @@ module Solver =
 
 
     /// Shorthand for Api.solveAll false
-    let solve useParallel = Api.solveAll false
+    let solve = Api.solveAll false

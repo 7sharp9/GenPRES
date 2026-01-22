@@ -105,7 +105,7 @@ Cutanuous medication with only a frequency constraint
 #!fsharp
 
 // Paracetamol supp example
-// First define the drug order
+// First define the medication order
 {
     Medication.order with
         Id = "1"

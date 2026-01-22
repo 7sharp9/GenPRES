@@ -81,19 +81,19 @@ module SolutionRule =
                     }
                 )
             |> GenFormResult.createOkNoMsgs
-        with 
+        with
         | exn -> GenFormResult.createError "Error in SolutionRule.getResult: " exn
 
 
-    let map 
+    let map
         routeMapping
         (parenteral : Product[])
-        products        
+        products
         data : GenFormResult<_> =
         data
         |> Array.groupBy (fun r ->
             let du = r.Unit |> Units.fromString
-            
+
             {
                 Generic = r.Generic
                 Form =
@@ -168,7 +168,7 @@ module SolutionRule =
                         let au = u |> Option.map (Units.per Units.Weight.kiloGram)
 
                         {
-                            SolutionLimitTarget =   
+                            SolutionLimitTarget =
                                 match l.Substance, l.Component with
                                 | s, _ when s |> String.isNullOrWhiteSpace |> not -> s |> SubstanceLimitTarget
                                 | _, c when c |> String.isNullOrWhiteSpace |> not -> c |> ComponentLimitTarget
@@ -219,7 +219,7 @@ module SolutionRule =
 
             }
         )
-        |> GenFormResult.createOkNoMsgs    
+        |> GenFormResult.createOkNoMsgs
 
 
     let get
@@ -261,7 +261,7 @@ module SolutionRule =
                 sr.DoseType = NoDoseType ||
                 filter.DoseType
                 |> Option.map (
-                    if sr.DoseType |> DoseType.getText |> String.isNullOrWhiteSpace then DoseType.eqsType sr.DoseType 
+                    if sr.DoseType |> DoseType.getText |> String.isNullOrWhiteSpace then DoseType.eqsType sr.DoseType
                     else DoseType.eqs sr.DoseType
                 )
                 |> Option.defaultValue true
@@ -419,7 +419,7 @@ module SolutionRule =
                     | _ when dep = "AICU" -> "ICC"
                     | _ -> dep
 
-                $"\n### Afdeling: {dep}\n"
+                $"\n### Afdeling: %s{dep}\n"
 
             let pat_md pat =
                 $"\n##### %s{pat}\n"
@@ -452,7 +452,7 @@ module SolutionRule =
                         else
                             p.Reconstitution
                             |> Array.map (fun r ->
-                                $"{p.Label} oplossen in {r.DiluentVolume |> Utils.ValueUnit.toString -1} voor {r.Route}"
+                                $"{p.Label} oplossen in %s{r.DiluentVolume |> Utils.ValueUnit.toString -1} voor {r.Route}"
                                 |> product_md
                             )
                     )

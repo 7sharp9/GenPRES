@@ -79,17 +79,17 @@ docker run -it -p 8080:8085 halcwb/genpres
 
 ---
 
-## 5. Local Medication Drug Repository
+## 5. Local Medication Repository
 
 - **Data Cache**: Proprietary cache files (not distributed publicly) containing medication product information.
   - Used for fast lookup/calculation and offline use.
   - Demo cache files are included for development.
   - Path: `src/Informedica.GenPRES.Server/data/cache/README.md` explains the folder usage.
 
-- **Drug Data Types and Logic**:
-  - Main types are defined in `src/Informedica.KinderFormularium.Lib/Drug.fs` and `src/Informedica.GenORDER.Lib/Types.fs`
-  - Includes types for Drug, Dose, Route, Schedule, and DrugOrder.
-  - Drug data can be loaded from local cache or generated from Google Sheets.
+- **Medication Data Types and Logic**:
+  - Main types are defined in `src/Informedica.NKF.Lib/Drug.fs` and `src/Informedica.GenORDER.Lib/Types.fs`
+  - Includes types for Medication, Dose, Route, Schedule, and Medication order.
+  - Medication data can be loaded from local cache or generated from Google Sheets.
 
 ---
 
@@ -111,13 +111,16 @@ Free Text → [GenFORM] → OKRs → [GenORDER] → Order Scenarios → [GenSOLV
 ```
 
 **Operational Knowledge Rules (OKRs)** define:
+
 - Selection Constraints (Generic, Indication, Route, Patient Category, Dose Type, etc.)
 - Calculation Constraints (Dose Limits, Schedule, Duration, Volumes, Concentrations)
 
 **Order Model** (hierarchical structure):
+
 - Order → Prescription → Orderable → Component → Item → Dose
 
 For details on:
+
 - Rule types (Dose Rule, Dilution Rule, Reconstitution Rule, Renal Rule), see [GenFORM Section 3](../../domain/genform-free-text-to-operational-rules.md#3-sources-and-types-of-dose-rules)
 - Order model structure, see [GenORDER Section 6](../../domain/genorder-operational-rules-to-orders.md#6.-order-model-(executable-structure))
 - Dose semantics (Quantity, Per Time, Rate, Total, Adjusted), see [GenORDER Section 7](../../domain/genorder-operational-rules-to-orders.md#7.-quantitative-dose-semantics)
@@ -163,6 +166,7 @@ For details on:
 ## 8. References
 
 ### Technical Stack
+
 - [SAFE Stack Documentation](https://safe-stack.github.io/docs/)
 - [Saturn](https://saturnframework.org/)
 - [Fable](https://fable.io/docs/)
@@ -170,6 +174,7 @@ For details on:
 - [.NET 10.0](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-10/overview)
 
 ### Domain Architecture
+
 - [Core Domain Model](../../domain/core-domain.md)
 - [GenFORM: Free Text to Operational Rules](../../domain/genform-free-text-to-operational-rules.md)
 - [GenORDER: Operational Rules to Orders](../../domain/genorder-operational-rules-to-orders.md)
@@ -188,12 +193,14 @@ For details on:
 ## 10. Key Files and Libraries
 
 ### Core Server Files
+
 - `src/Informedica.GenPRES.Server/Server.fs`: Application entry point
 - `src/Informedica.GenPRES.Server/ServerApi.fs`: API implementation
 - `src/Informedica.GenPRES.Client/App.fs`: Client application entry
 - `Dockerfile`: Container configuration for deployment
 
 ### Domain Libraries
+
 - **Informedica.GenFORM.Lib**: Operational Knowledge Rules implementation
 - **Informedica.GenORDER.Lib**: Order scenario generation and management
 - **Informedica.GenSOLVER.Lib**: Constraint solving engine

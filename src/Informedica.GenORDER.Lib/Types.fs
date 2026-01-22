@@ -321,13 +321,13 @@ module Types =
         | TimedOrder
 
 
-    /// The representation of a drug order that
+    /// The representation of a medication order that
     /// can be derived by a drug product inventory
     /// and the related dose rule. A medication order maps
     /// to an Orderable and a Prescription.
     type Medication =
         {
-            // Identifies the specific drug order
+            // Identifies the specific medication order
             Id:  string
             // The name of the order
             Name : string
@@ -335,7 +335,7 @@ module Types =
             Components : ProductComponent list
             // The min max quantity
             Quantity : MinMax
-            // The quantities of the drug order
+            // The quantities of the medication order
             Quantities :  ValueUnit option
             // The route by which the order is applied
             Route : string
@@ -356,10 +356,10 @@ module Types =
             // The adjust quantity for the adjusted dose calculations
             Adjust : ValueUnit option
         }
-    /// The product components that are used by the drug order.
+    /// The product components that are used by the medication order.
     /// A product component maps to a Component in an Orderable.
     /// The first component in the list is the main component.
-    /// The drug order quantities unit is the same as the unit used
+    /// The medication order quantities unit is the same as the unit used
     /// for the main component.
     and ProductComponent =
         {

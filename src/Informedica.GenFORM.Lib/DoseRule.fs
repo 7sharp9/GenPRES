@@ -65,25 +65,6 @@ module DoseRule =
                     "max. duur "
 
 
-        let printMinMaxDose perDose (minMax : MinMax) =
-            if minMax = MinMax.empty then ""
-            else
-                minMax
-                |> MinMax.toString
-                    "min "
-                    "min "
-                    "max "
-                    "max "
-                |> fun s ->
-                    $"{s}{perDose}"
-
-        let printNormDose perDose vu =
-            match vu with
-            | None    -> ""
-            | Some vu ->
-                $"{vu |> Utils.ValueUnit.toString 3}{perDose}"
-
-
         let printDose wrap (dr : DoseRule) =
             let substDls =
                     dr.ComponentLimits
@@ -100,25 +81,22 @@ module DoseRule =
             |> Array.map (fun dl ->
                 let perDose = "/dosis"
                 let emptyS = ""
+                let printMinMaxDose = DoseLimit.printMinMaxDose ""
                 [
-                    $"{dl.Rate |> printMinMaxDose emptyS}"
-                    $"{dl.RateAdjust |> printMinMaxDose emptyS}"
+                    $"%s{dl.Rate |> printMinMaxDose emptyS}"
+                    $"%s{dl.RateAdjust |> printMinMaxDose emptyS}"
+                    $"%s{dl.PerTimeAdjust |> printMinMaxDose emptyS}"
 
-                    $"{dl.NormPerTimeAdjust |> printNormDose emptyS} " +
-                    $"{dl.PerTimeAdjust |> printMinMaxDose emptyS}"
+                    $"%s{dl.PerTime |> printMinMaxDose emptyS}"
+                    $"%s{dl.QuantityAdjust |> printMinMaxDose perDose}"
 
-                    $"{dl.PerTime |> printMinMaxDose emptyS}"
-
-                    $"{dl.NormQuantityAdjust |> printNormDose perDose} " +
-                    $"{dl.QuantityAdjust |> printMinMaxDose perDose}"
-
-                    $"{dl.Quantity |> printMinMaxDose perDose}"
+                    $"%s{dl.Quantity |> printMinMaxDose perDose}"
                 ]
                 |> List.map String.trim
                 |> List.filter (String.IsNullOrEmpty >> not)
                 |> String.concat ", "
                 |> fun s ->
-                    $"%s{dl.DoseLimitTarget |> LimitTarget.toString} {wrap}{s}{wrap}"
+                    $"%s{dl.DoseLimitTarget |> LimitTarget.toString} %s{wrap}%s{s}{wrap}"
             )
 
 
@@ -177,21 +155,21 @@ module DoseRule =
         /// fold: https://github.com/dotnet/fsharp/issues/6699
         let toMarkdown (rules : DoseRule array) =
             let generic_md generic =
-                $"\n\n# {generic}\n\n---\n"
+                $"\n\n# %s{generic}\n\n---\n"
 
             let route_md route products synonyms =
                 if synonyms |> String.isNullOrWhiteSpace then
-                    $"\n\n### Route: {route}\n\n#### Producten\n%s{products}\n"
+                    $"\n\n### Route: %s{route}\n\n#### Producten\n%s{products}\n"
                 else
-                    $"\n\n### Route: {route}\n\n#### Producten\n%s{products}\n\n#### Synoniemen\n%s{synonyms}\n"
+                    $"\n\n### Route: %s{route}\n\n#### Producten\n%s{products}\n\n#### Synoniemen\n%s{synonyms}\n"
 
-            let product_md product =  $"* {product}"
+            let product_md product =  $"* %s{product}"
 
             let synonyms_md names =
                 if names |> Seq.isEmpty then ""
                 else
                     let names = names |> String.concat ", "
-                    $"* {names}"
+                    $"* %s{names}"
 
             let indication_md indication = $"\n\n## Indicatie: %s{indication}\n\n---\n"
 
@@ -202,24 +180,24 @@ module DoseRule =
                 let freqs =
                     if freqs |> String.isNullOrWhiteSpace then ""
                     else
-                        $" in {freqs}"
+                        $" in %s{freqs}"
 
                 let s =
                     [
                         if intv |> String.isNullOrWhiteSpace |> not then
-                            $" {intv}"
+                            $" %s{intv}"
                         if time |> String.isNullOrWhiteSpace |> not then
-                            $" inloop tijd {time}"
+                            $" inloop tijd %s{time}"
                         if dur |> String.isNullOrWhiteSpace |> not then
-                            $" {dur}"
+                            $" %s{dur}"
                     ]
                     |> String.concat ", "
                     |> fun s ->
                         if s |> String.isNullOrWhiteSpace then ""
                         else
-                            $" ({s |> String.trim})"
+                            $" (%s{s |> String.trim})"
 
-                $"* *{dt}*: {dose}{freqs}{s}"
+                $"* *%s{dt}*: %s{dose}%s{freqs}%s{s}"
 
             let patient_md patient =
                 let patient =
@@ -243,7 +221,7 @@ module DoseRule =
                         |> Array.map _.ScheduleText
                         |> Array.distinct
                         |> function
-                        | [| s |] -> $"\n\n{link}: {s}"
+                        | [| s |] -> $"\n\n%s{link}: %s{s}"
                         | _ -> ""
 
                     ds
@@ -262,7 +240,7 @@ module DoseRule =
                         let md = dose_md dt dose freqs intv time dur
                         if acc |> String.containsCapsInsens md then acc // prevent duplicate doserule per form print
                         else
-                            $"{acc}\n{md}{pedForm}"
+                            $"%s{acc}\n%s{md}%s{pedForm}"
 
                     ) acc
                 )
@@ -537,12 +515,10 @@ module DoseRule =
                         Substance = get "Substance"
                         MinQty = get "MinQty" |> toBrOpt
                         MaxQty = get "MaxQty" |> toBrOpt
-                        NormQtyAdj = get "NormQtyAdj" |> toBrOpt
                         MinQtyAdj = get "MinQtyAdj" |> toBrOpt
                         MaxQtyAdj = get "MaxQtyAdj" |> toBrOpt
                         MinPerTime = get "MinPerTime" |> toBrOpt
                         MaxPerTime = get "MaxPerTime" |> toBrOpt
-                        NormPerTimeAdj = get "NormPerTimeAdj" |> toBrOpt
                         MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt
                         MaxPerTimeAdj = get "MaxPerTimeAdj" |> toBrOpt
                         MinRate = get "MinRate" |> toBrOpt
@@ -564,10 +540,8 @@ module DoseRule =
         dd.DoseType |> String.notEmpty &&
         (dd.Frequencies |> Array.length > 0 && dd.FreqUnit |> String.notEmpty ||
          dd.MaxQty |> Option.isSome ||
-         dd.NormQtyAdj |> Option.isSome ||
          dd.MaxQtyAdj |> Option.isSome ||
          dd.MaxPerTime |> Option.isSome ||
-         dd.NormPerTimeAdj |> Option.isSome ||
          dd.MaxPerTime |> Option.isSome ||
          dd.MaxRate |> Option.isSome ||
          dd.MaxRateAdj |> Option.isSome)
@@ -660,9 +634,7 @@ module DoseRule =
                                             |> Array.map (fun product ->
                                                 let u =
                                                     product.FormUnit
-                                                    |> Units.toString Units.Dutch Units.Short
-                                                    |> String.removeTextBetweenBrackets
-                                                    |> String.removeBrackets
+                                                    |> Units.toString false Units.Dutch Units.Short
 
                                                 { r with
                                                     Generic = gen
@@ -855,18 +827,12 @@ module DoseRule =
                 Quantity =
                     (r.MinQty, r.MaxQty)
                     |> fromTupleInclIncl du
-                NormQuantityAdjust =
-                    r.NormQtyAdj
-                    |> ValueUnit.withOptSingleAndOptUnit duAdj
                 QuantityAdjust =
                     (r.MinQtyAdj, r.MaxQtyAdj)
                     |> fromTupleInclIncl duAdj
                 PerTime =
                     (r.MinPerTime, r.MaxPerTime)
                     |> fromTupleInclIncl duTime
-                NormPerTimeAdjust =
-                    r.NormPerTimeAdj
-                    |> ValueUnit.withOptSingleAndOptUnit duAdjTime
                 PerTimeAdjust =
                     (r.MinPerTimeAdj, r.MaxPerTimeAdj)
                     |> fromTupleInclIncl duAdjTime
@@ -1100,19 +1066,24 @@ module DoseRule =
         |> Array.exists DoseLimit.useAdjust
 
 
-    let getNormDose (dr : DoseRule) =
+    let rec getNormDose (dr : DoseRule) =
         dr.ComponentLimits
         |> Array.collect _.SubstanceLimits
         |> Array.collect (fun dl ->
             [|
-                if dl.NormPerTimeAdjust |> Option.isSome then
-                    (dl.DoseLimitTarget, dl.NormPerTimeAdjust.Value)
+                match dl.PerTimeAdjust |> DoseLimit.getNormDose with
+                | Some norm ->
+                    (dl.DoseLimitTarget, norm)
                     |> NormPerTimeAdjust
                     |> Some
-                if dl.NormQuantityAdjust |> Option.isSome then
-                    (dl.DoseLimitTarget, dl.NormQuantityAdjust.Value)
+                | _ -> None
+
+                match dl.QuantityAdjust |> DoseLimit.getNormDose with
+                | Some norm ->
+                    (dl.DoseLimitTarget, norm)
                     |> NormQuantityAdjust
                     |> Some
+                | _ -> None
             |]
         )
         |> Array.choose id
@@ -1191,10 +1162,8 @@ module DoseRule =
                 d.MaxQty.IsSome,
                 d.MinQtyAdj.IsSome,
                 d.MaxQtyAdj.IsSome,
-                d.NormQtyAdj.IsSome,
                 d.MinPerTime.IsSome,
                 d.MaxPerTime.IsSome,
-                d.NormPerTimeAdj.IsSome,
                 d.MinPerTimeAdj.IsSome,
                 d.MaxPerTimeAdj.IsSome,
                 d.MinRate.IsSome,
@@ -1279,12 +1248,10 @@ module DoseRule =
                     d.DurUnit
                     d.MinQty |> bigRatOptToString
                     d.MaxQty |> bigRatOptToString
-                    d.NormQtyAdj |> bigRatOptToString
                     d.MinQtyAdj |> bigRatOptToString
                     d.MaxQtyAdj |> bigRatOptToString
                     d.MinPerTime |> bigRatOptToString
                     d.MaxPerTime |> bigRatOptToString
-                    d.NormPerTimeAdj |> bigRatOptToString
                     d.MinPerTimeAdj |> bigRatOptToString
                     d.MaxPerTimeAdj |> bigRatOptToString
                     d.MinRate |> bigRatOptToString

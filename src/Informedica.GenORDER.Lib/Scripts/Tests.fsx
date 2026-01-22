@@ -1,3 +1,5 @@
+#I __SOURCE_DIRECTORY__
+
 #r "nuget: MathNet.Numerics.FSharp"
 #r "nuget: FParsec"
 
@@ -89,7 +91,39 @@ module Expecto =
 
     let run = runTestsWithCLIArgs [] [| "--summary" |]
 
-(*
-Tests.tests
+
+open Expecto
+open Expecto.Flip
+open Informedica.GenOrder.Lib
+
+
+/// Tests for Medication scenarios
+module MedicationTests =
+
+    let private normalizeWords (s: string) =
+        s.Split([| ' '; '\t'; '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries)
+        |> String.concat " "
+
+    let tests = testList "Medication Scenarios" [
+
+        test "fullMedication toString outputs all fields" {
+            let actual =
+                Scenarios.fullMedication
+                |> Medication.toString
+                |> String.concat "\n"
+                |> normalizeWords
+
+            let expected =
+                Scenarios.fullMedicationText
+                |> normalizeWords
+
+            actual
+            |> Expect.equal "should match expected output with all fields" expected
+        }
+
+    ]
+
+
+// Run the tests
+MedicationTests.tests
 |> Expecto.run
-*)

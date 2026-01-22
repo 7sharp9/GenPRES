@@ -5,8 +5,8 @@
     "private": true,
     "type": "module",
     "engines": {
-        "node": "~18 || ~22 || ~23",
-        "npm": "~9 || ~10 || ~11 || ~18 || ~22"
+        "node": "~18 || ~22 || ~23 || ~25",
+        "npm": "~9 || ~10 || ~11"
     },
     "devDependencies": {
         "@types/node": "^24.5.2",
@@ -15,7 +15,7 @@
         "mocha": "^11.7.2",
         "postcss": "^8.5.6",
         "sass": "^1.93.2",
-        "vite": "^7.1.7",
+        "vite": "^7.3.1",
         "vite-plugin-inspect": "^11.3.3"
     },
     "dependencies": {

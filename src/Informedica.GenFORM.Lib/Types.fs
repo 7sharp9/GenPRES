@@ -216,18 +216,10 @@ module Types =
             DoseUnit: Unit
             // A MinMax Dose Quantity for the DoseLimit
             Quantity : MinMax
-            // An optional Dose Quantity Adjust for the DoseLimit.
-            // Note: if this is specified a min and max QuantityAdjust
-            // will be assumed to be 10% minus and plus the normal value
-            NormQuantityAdjust : ValueUnit option
             // A MinMax Quantity Adjust for the DoseLimit
             QuantityAdjust : MinMax
             // An optional Dose Per Time for the DoseLimit
             PerTime : MinMax
-            // An optional Per Time Adjust for the DoseLimit
-            // Note: if this is specified a min and max NormPerTimeAdjust
-            // will be assumed to be 10% minus and plus the normal value
-            NormPerTimeAdjust : ValueUnit option
             // A MinMax Per Time Adjust for the DoseLimit
             PerTimeAdjust : MinMax
             // A MinMax Rate for the DoseLimit
@@ -309,7 +301,7 @@ module Types =
             (fun (p : Patient) -> p.Location), (fun l (p : Patient) -> { p with Location = l})
 
 
-    type DoseRuleData = 
+    type DoseRuleData =
         {
             AdjustUnit: string
             Brand: string
@@ -354,8 +346,6 @@ module Types =
             MinRateAdj: BigRational option
             MinTime: BigRational option
             MinWeight: BigRational option
-            NormPerTimeAdj: BigRational option
-            NormQtyAdj: BigRational option
             RateUnit: string
             Route: string
             ScheduleText: string

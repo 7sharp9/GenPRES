@@ -91,6 +91,219 @@ module Tests =
     open Informedica.GenForm.Lib
 
 
+
+    module DoseLimitTests =
+
+        open Informedica.Utils.Lib.BCL
+
+        let tests = testList "Dose Limit to string tests" [
+
+            test "printMinMaxDose with empty MinMax returns empty string" {
+                let result = DoseLimit.printMinMaxDose "[qty]" "/dosis" MinMax.empty
+                
+                result
+                |> Expect.equal "should be empty" ""
+            }
+
+            test "printMinMaxDose with label and empty perDose" {
+                let minMax = {
+                    Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 10N))
+                    Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 20N))
+                }
+                
+                let result = DoseLimit.printMinMaxDose "[rate]" "" minMax
+                
+                result
+                |> Expect.isNonEmpty "should contain value"
+                
+                result
+                |> fun s -> s.Contains("[rate]")
+                |> Expect.isTrue "should contain label"
+            }
+
+            test "printMinMaxDose with label and perDose suffix" {
+                let minMax = {
+                    Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 10N))
+                    Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 20N))
+                }
+                
+                let result = DoseLimit.printMinMaxDose "[qty]" "/dosis" minMax
+                
+                result
+                |> fun s -> s.Contains("/dosis")
+                |> Expect.isTrue "should contain perDose suffix"
+                
+                result
+                |> fun s -> s.Contains("[qty]")
+                |> Expect.isTrue "should contain label"
+            }
+
+            test "printMinMaxDose with empty label uses decimal format" {
+                let minMax = {
+                    Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 10N))
+                    Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 20N))
+                }
+                
+                let result = DoseLimit.printMinMaxDose "" "/dosis" minMax
+                
+                result
+                |> Expect.isNonEmpty "should contain value"
+                
+                // When label is empty, uses range format "10 - 20 mg/dosis" (not "min"/"max" prefixes)
+                result
+                |> fun s -> s.Contains("10") && s.Contains("20") && s.Contains("-") && s.Contains("mg") && s.Contains("/dosis")
+                |> Expect.isTrue "should contain range with values, unit and perDose suffix"
+            }
+
+            test "printMinMaxDose with norm dose (min equals max) returns single value" {
+                let minMax = {
+                    Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 15N))
+                    Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 15N))
+                }
+                
+                let result = DoseLimit.printMinMaxDose "[qty]" "/dosis" minMax
+                
+                result
+                |> Expect.isNonEmpty "should contain value"
+                
+                // Should not contain "min" or "max" when it's a norm dose
+                result
+                |> String.toLower
+                |> fun s -> s.Contains("min") || s.Contains("max")
+                |> Expect.isFalse "should not contain min/max for norm dose"
+            }
+
+            test "toString with empty DoseLimit returns only target" {
+                let dl = DoseLimit.limit
+                
+                let result = dl |> DoseLimit.toString
+                
+                result
+                |> Expect.isNonEmpty "should contain at least target"
+            }
+
+            test "toString with quantity includes [qty] label and /dosis suffix" {
+                let dl = {
+                    DoseLimit.limit with
+                        Quantity = {
+                            Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 10N))
+                            Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 20N))
+                        }
+                }
+                
+                let result = dl |> DoseLimit.toString |> List.head
+                
+                result
+                |> fun s -> s.Contains("[qty]")
+                |> Expect.isTrue "should contain [qty] label"
+                
+                result
+                |> fun s -> s.Contains("/dosis")
+                |> Expect.isTrue "should contain /dosis suffix"
+            }
+
+            test "toString with PerTime includes [per-time] label" {
+                let dl = {
+                    DoseLimit.limit with
+                        PerTime = {
+                            Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Time.day 1N))
+                            Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Time.day 2N))
+                        }
+                }
+                
+                let result = dl |> DoseLimit.toString |> List.head
+                
+                result
+                |> fun s -> s.Contains("[per-time]")
+                |> Expect.isTrue "should contain [per-time] label"
+            }
+
+            test "toString with multiple fields includes all labels" {
+                let dl = {
+                    DoseLimit.limit with
+                        Quantity = {
+                            Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 10N))
+                            Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 20N))
+                        }
+                        PerTime = {
+                            Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Time.day 1N))
+                            Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Time.day 2N))
+                        }
+                }
+                
+                let result = dl |> DoseLimit.toString |> List.head
+                
+                result
+                |> fun s -> s.Contains("[qty]")
+                |> Expect.isTrue "should contain [qty] label"
+                
+                result
+                |> fun s -> s.Contains("[per-time]")
+                |> Expect.isTrue "should contain [per-time] label"
+            }
+
+            test "toString with PerTimeAdjust includes adjust labels" {
+                let dl = {
+                    DoseLimit.limit with
+                        PerTimeAdjust = {
+                            Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Time.day 1N))
+                            Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Time.day 3N))
+                        }
+                }
+                
+                let result = dl |> DoseLimit.toString |> List.head
+                
+                result
+                |> fun s -> s.Contains("[per-time-adj]")
+                |> Expect.isTrue "should contain [per-time-adj] label"
+            }
+
+            test "isNormDose returns true when min equals max" {
+                let minMax = {
+                    Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 15N))
+                    Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 15N))
+                }
+                
+                minMax
+                |> DoseLimit.isNormDose
+                |> Expect.isTrue "should be norm dose"
+            }
+
+            test "isNormDose returns false when min differs from max" {
+                let minMax = {
+                    Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 10N))
+                    Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 20N))
+                }
+                
+                minMax
+                |> DoseLimit.isNormDose
+                |> Expect.isFalse "should not be norm dose"
+            }
+
+            test "getNormDose returns Some when min equals max" {
+                let minMax = {
+                    Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 15N))
+                    Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 15N))
+                }
+                
+                minMax
+                |> DoseLimit.getNormDose
+                |> Expect.isSome "should return Some"
+            }
+
+            test "getNormDose returns None when min differs from max" {
+                let minMax = {
+                    Min = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 10N))
+                    Max = Some (Limit.Inclusive (ValueUnit.singleWithUnit Units.Mass.milliGram 20N))
+                }
+                
+                minMax
+                |> DoseLimit.getNormDose
+                |> Expect.isNone "should return None"
+            }
+        ]
+
+
     module PatientCategoryTests =
 
 
@@ -906,5 +1119,6 @@ module Tests =
 
     [<Tests>]
     let tests = testList "GenForm Tests" [
+        DoseLimitTests.tests
         PatientCategoryTests.tests
     ]

@@ -8,17 +8,24 @@ module DoseLimit =
     open Informedica.GenCore.Lib.Ranges
     open Informedica.GenUnits.Lib
 
-    open Utils
+
+    /// Field labels for deterministic parsing
+    module FieldLabels =
+        let [<Literal>] Quantity = "[qty]"
+        let [<Literal>] QuantityAdjust = "[qty-adj]"
+        let [<Literal>] PerTime = "[per-time]"
+        let [<Literal>] PerTimeAdjust = "[per-time-adj]"
+        let [<Literal>] Rate = "[rate]"
+        let [<Literal>] RateAdjust = "[rate-adj]"
+
 
     let create
         tar
         aun
         dun
         qty
-        nqt
         qta
         ptm
-        npt
         pta
         rte
         rta : DoseLimit =
@@ -28,10 +35,8 @@ module DoseLimit =
             AdjustUnit = aun
             DoseUnit = dun
             Quantity = qty
-            NormQuantityAdjust = nqt
             QuantityAdjust = qta
             PerTime = ptm
-            NormPerTimeAdjust = npt
             PerTimeAdjust = pta
             Rate = rte
             RateAdjust = rta
@@ -45,10 +50,8 @@ module DoseLimit =
             AdjustUnit = None
             DoseUnit = NoUnit
             Quantity = MinMax.empty
-            NormQuantityAdjust = None
             QuantityAdjust = MinMax.empty
             PerTime = MinMax.empty
-            NormPerTimeAdjust = None
             PerTimeAdjust = MinMax.empty
             Rate = MinMax.empty
             RateAdjust = MinMax.empty
@@ -65,9 +68,7 @@ module DoseLimit =
     /// </remarks>
     let useAdjust (dl : DoseLimit) =
         [
-            dl.NormQuantityAdjust = None
             dl.QuantityAdjust = MinMax.empty
-            dl.NormPerTimeAdjust = None
             dl.PerTimeAdjust = MinMax.empty
             dl.RateAdjust = MinMax.empty
         ]
@@ -92,23 +93,68 @@ module DoseLimit =
     let isShapeLimit (dl : DoseLimit) = dl.DoseLimitTarget |> LimitTarget.isOrderableTarget
 
 
-    let printMinMaxDose perDose (minMax : MinMax) =
-        if minMax = MinMax.empty then ""
-        else
-            minMax
-            |> MinMax.toString
-                "min "
-                "min "
-                "max "
-                "max "
-            |> fun s ->
-                $"{s}{perDose}"
+    let getNormDose minMax =
+        match minMax.Min, minMax.Max with
+        | Some minLimit, Some maxLimit ->
+            if minLimit |> Limit.eq maxLimit then
+                minLimit |> Limit.getValueUnit |> Some
+            else None
+        | _ -> None
 
-    let printNormDose perDose vu =
-        match vu with
-        | None    -> ""
-        | Some vu ->
-            $"{vu |> Utils.ValueUnit.toString 3}{perDose}"
+
+    let isNormDose = getNormDose >> Option.isSome
+
+
+    /// <summary>
+    /// Formats a MinMax as a string with label and per-dose suffix.
+    /// </summary>
+    /// <param name="label">Field label to prepend (e.g., "[qty]"). When empty, uses verbose format with decimal precision.</param>
+    /// <param name="perDose">Suffix to append (e.g., "/dosis"). Applied to each value in the MinMax.</param>
+    /// <param name="minMax">The MinMax to format.</param>
+    /// <returns>
+    /// A formatted string. Returns empty string if MinMax is empty.
+    /// - When label is null/whitespace: uses decimal string format with 3 decimals
+    /// - When label is provided: uses engineering short notation
+    /// - When min equals max (norm dose): returns single value instead of min/max pair
+    /// - Final format: "{label} {formatted-value}{perDose}"
+    /// </returns>
+    let printMinMaxDose label perDose (minMax : MinMax) =
+        let vuToStr, mmToStr =
+            if label |> String.isNullOrWhiteSpace then
+                Utils.ValueUnit.toString 3
+                ,
+                Utils.MinMax.toString "min " "min " "max " "max "
+            else
+                ValueUnit.toStringDecimalEngShortWithoutGroup
+                ,
+                MinMax.toString
+                    ValueUnit.toStringDecimalEngShortWithoutGroup
+                    ValueUnit.toStringDecimalEngShortWithoutGroup
+                    "min " "min " "max " "max "
+
+        let toStr mm =
+            if mm = MinMax.empty then ""
+            else
+                mm
+                |> mmToStr
+                |> fun s ->
+                    $"{s}{perDose}"
+
+        if minMax |> isNormDose then
+            minMax.Min
+            |> Option.map (fun minLim ->
+                minLim
+                |> Limit.getValueUnit
+                |> fun vu -> $"{vu |> vuToStr}{perDose}"
+            )
+            |> Option.defaultValue ""
+
+        else minMax |> toStr
+        |> fun s ->
+            if s |> String.isNullOrWhiteSpace then ""
+            else
+                $"{label} {s}"
+                |> String.trim
 
 
     let toString (dl: DoseLimit) =
@@ -116,23 +162,18 @@ module DoseLimit =
             let perDose = "/dosis"
             let emptyS = ""
             [
-                $"{dl.DoseLimitTarget |> LimitTarget.toString}"
-                
-                $"{dl.Rate |> printMinMaxDose emptyS}"
-                $"{dl.RateAdjust |> printMinMaxDose emptyS}"
+                $"%s{dl.DoseLimitTarget |> LimitTarget.toString}"
 
-                $"{dl.NormPerTimeAdjust |> printNormDose emptyS} " +
-                $"{dl.PerTimeAdjust |> printMinMaxDose emptyS}"
+                $"%s{dl.Rate |> printMinMaxDose FieldLabels.Rate emptyS}"
+                $"%s{dl.RateAdjust |> printMinMaxDose FieldLabels.RateAdjust emptyS}"
 
-                $"{dl.PerTime |> printMinMaxDose emptyS}"
+                $"%s{dl.PerTimeAdjust |> printMinMaxDose FieldLabels.PerTimeAdjust emptyS}"
+                $"%s{dl.PerTime |> printMinMaxDose FieldLabels.PerTime emptyS}"
 
-                $"{dl.NormQuantityAdjust |> printNormDose perDose} " +
-                $"{dl.QuantityAdjust |> printMinMaxDose perDose}"
-
-                $"{dl.Quantity |> printMinMaxDose perDose}"
+                $"%s{dl.QuantityAdjust |> printMinMaxDose FieldLabels.QuantityAdjust perDose}"
+                $"%s{dl.Quantity |> printMinMaxDose FieldLabels.Quantity perDose}"
             ]
             |> List.map String.trim
             |> List.filter (String.IsNullOrEmpty >> not)
             |> String.concat ", "
         ]
-

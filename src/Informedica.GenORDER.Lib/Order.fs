@@ -307,34 +307,6 @@ module Order =
                     Rate =  dos.Rate |> Rate.increaseIncrement maxCount incrs
                 }
 
-            /// <summary>
-            /// Set the norm dose adjustments to a Dose
-            /// by finding the nearest value in the dose's
-            /// NormQuantityAdjust or NormPerTimeAdjust
-            /// </summary>
-            /// <param name="nd">The norm dose adjustment</param>
-            /// <param name="dos">The Dose</param>
-            /// <returns>The Dose with the norm dose adjustments set</returns>
-            let setNormDose nd dos =
-                let qty_adj, ptm_adj =
-                    match nd with
-                    | Informedica.GenForm.Lib.Types.NormQuantityAdjust (_, vu) ->
-                        (dos |> inf).QuantityAdjust |> QuantityAdjust.setNearestValue vu,
-                        dos.PerTimeAdjust
-                    | Informedica.GenForm.Lib.Types.NormPerTimeAdjust (_, vu) ->
-                        dos.QuantityAdjust,
-                        dos.PerTimeAdjust |> PerTimeAdjust.setNearestValue vu
-                    | _ -> dos.QuantityAdjust, dos.PerTimeAdjust
-
-                let qty = dos.Quantity
-                let ptm = dos.PerTime
-                let rte = dos.Rate
-                let tot = dos.Total
-                let rte_adj = dos.RateAdjust
-                let tot_adj = dos.TotalAdjust
-
-                create qty ptm rte tot qty_adj ptm_adj rte_adj tot_adj
-
 
             /// <summary>
             /// Set min, max or median dose value
@@ -991,16 +963,6 @@ module Order =
                     { itm with Dose = itm.Dose |> Dose.setDoseUnit du }
 
 
-            let setNormDose sn nd itm =
-                if itm
-                   |> getName
-                   |> Name.toStringList
-                   |> List.exists ((=) sn)
-                   |> not then itm
-                else
-                    { itm with Dose = itm.Dose |> Dose.setNormDose nd }
-
-
             let isDoseSolved = getDose >> Dose.isSolved
 
 
@@ -1477,9 +1439,6 @@ module Order =
 
 
             let setDoseUnit sn du = applyToAllItems (Item.setDoseUnit sn du)
-
-
-            let setNormDose sn nd = applyToAllItems (Item.setNormDose sn nd)
 
 
             let isDoseSolved = getDose >> Dose.isSolved
@@ -2041,12 +2000,6 @@ module Order =
             }
 
 
-        let setNormDose sn nd (orb : Orderable) =
-            { orb with
-                Components = orb.Components |> List.map (Component.setNormDose sn nd)
-            }
-
-
         let isDoseSolved = getDose >> Dose.isSolved
 
 
@@ -2425,11 +2378,11 @@ module Order =
         /// </summary>
         let toStringWithConstraints (schedule: Schedule) =
                 match schedule with
-                | Once -> ["eenmalig"]
+                | Once -> [ "eenmalig" ]
                 | Continuous tme -> [ tme |> Time.toStringWithConstraints ]
-                | OnceTimed tme -> [tme |> Time.toStringWithConstraints]
+                | OnceTimed tme -> [ tme |> Time.toStringWithConstraints ]
                 | Discontinuous frq ->
-                    [frq |> Frequency.toStringWithConstraints]
+                    [ frq |> Frequency.toStringWithConstraints ]
                 | Timed(frq, tme) ->
                     [
                         frq |> Frequency.toStringWithConstraints
@@ -3072,7 +3025,7 @@ module Order =
         |> ConsoleTables.write format
 
 
-    let stringTable ord =
+    let toConsoleTable ord =
         ord
         |> toStringWithConstraints
         |> List.map (fun s ->
@@ -3413,10 +3366,87 @@ module Order =
         }
 
 
-    let setNormDose sn nd ord =
-        { (ord |> inf) with
-            Orderable = ord.Orderable |> Orderable.setNormDose sn nd
-        }
+    let setNormDose ord =
+        match ord.Schedule with
+        | Once | OnceTimed _ ->
+            let hasNormDose =
+                (ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
+                ,ord.Orderable.Components)
+                ||> List.fold (fun acc cmp ->
+                    if acc then true
+                    else
+                        (cmp.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
+                        ,cmp.Items)
+                        ||> List.fold (fun acc itm ->
+                            if acc then true
+                            else
+                            itm.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
+                        )
+                )
+            if not hasNormDose then ord
+            else
+                { ord with
+                    Order.Orderable.Dose.Quantity =
+                        ord.Orderable.Dose.Quantity |> Quantity.setMedianValue
+                }
+        | Discontinuous frq | Timed (frq, _) ->
+            if frq |> Frequency.isSolved |> not then ord
+            else
+                let hasNormDose =
+                    (ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
+                     ord.Orderable.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
+                    ,ord.Orderable.Components)
+                    ||> List.fold (fun acc cmp ->
+                        if acc then true
+                        else
+                            (cmp.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
+                             cmp.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
+                            ,cmp.Items)
+                            ||> List.fold (fun acc itm ->
+                                if acc then true
+                                else
+                                    itm.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
+                                    itm.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
+                            )
+                    )
+                if not hasNormDose then ord
+                else
+                    match ord.Orderable.Components with
+                    | [_] ->
+                        { ord with
+                            Order.Orderable.Dose.Quantity =
+                                ord.Orderable.Dose.Quantity |> Quantity.setMedianValue
+                        }
+                    | cmp::rest ->
+                        { ord with
+                            Order.Orderable.Components =
+                                { cmp with
+                                    Component.Dose.Quantity =
+                                        cmp.Dose.Quantity |> Quantity.setMedianValue
+                                }::rest
+                        }
+                    | _ -> ord
+        | Continuous _ ->
+            let hasNormDose =
+                (ord.Orderable.Dose.RateAdjust |> RateAdjust.hasNormValue
+                ,ord.Orderable.Components)
+                ||> List.fold (fun acc cmp ->
+                    if acc then true
+                    else
+                        (cmp.Dose.RateAdjust |> RateAdjust.hasNormValue
+                        ,cmp.Items)
+                        ||> List.fold (fun acc itm ->
+                            if acc then true
+                            else
+                            itm.Dose.RateAdjust |> RateAdjust.hasNormValue
+                        )
+                )
+            if not hasNormDose then ord
+            else
+                { ord with
+                    Order.Orderable.Dose.Rate =
+                        ord.Orderable.Dose.Rate |> Rate.setMedianValue
+                }
 
 
     /// <summary>
@@ -3496,22 +3526,30 @@ module Order =
         |> fromOrdVars ovars
 
 
+    let logOrder logger minMax msg ord =
+        let s = ord |> toConsoleTable
+        let m = if minMax then "Min/Max" else "All Values"
+        $"""
+== {msg} {m} ==
+{s}
+== End of Table ==
+"""
+        |> Events.OrderScenario |>Logging.logInfo logger
+
+
     /// <summary>
     /// Solve an Order
     /// </summary>
+    /// <param name="msg">A message for logging</param>
     /// <param name="minMax">Whether to solve only for the minimum or maximum</param>
     /// <param name="printErr">Whether to print the error</param>
     /// <param name="logger">The logger</param>
     /// <param name="ord">The Order</param>
     /// <returns>A Result with the Order or a list error messages</returns>
     /// <raises>Any exception raised by the solver</raises>
-    let rec solve minMax printErr logger (ord: Order) =
-        ord |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
-
-        // TODO figure out when parallel solving is
-        // feasible and more efficient
-        // for now restrict to continuous calculations
-        let useParallel = ord.Schedule |> Schedule.isContinuous
+    let rec solve msg minMax printErr logger (ord: Order) =
+        let logOrder = logOrder logger minMax
+        ord |> logOrder msg
 
         let harmonize ord =
             ord.Orderable
@@ -3520,7 +3558,7 @@ module Order =
                 | false, _ -> ord |> Ok
                 | true, orb ->
                     { ord with Order.Orderable = orb }
-                    |> solve minMax printErr logger
+                    |> solve "Harmonize" minMax printErr logger
 
         let mapping =
             match ord.Schedule with
@@ -3541,7 +3579,7 @@ module Order =
             |> Solver.mapToSolverEqs
             |> fun eqs ->
                 if minMax then eqs |> Solver.solveMinMax logger
-                else eqs |> Solver.solve useParallel logger
+                else eqs |> Solver.solve logger
             |> function
             | Ok eqs ->
                 eqs
@@ -3576,10 +3614,11 @@ module Order =
         // TODO: use result function
         |> function
             | Ok ord ->
-                ord |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
+                ord |> logOrder "Finished Solving"
                 ord |> Ok
             | Error (ord, msgs) ->
-                ord |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
+                let msg = $"Finished with{msgs |> List.length} Errors"
+                ord |> logOrder msg
                 (ord, msgs) |> Error
 
 
@@ -3587,17 +3626,19 @@ module Order =
     /// <summary>
     /// Solve an Order for only the minimum and maximum values
     /// </summary>
+    /// <param name="msg">A message for logging</param>
     /// <param name="printErr">Whether to print the error</param>
     /// <param name="logger">The logger</param>
-    let solveMinMax printErr logger = solve true printErr logger
+    let solveMinMax msg printErr logger = solve msg true printErr logger
 
 
     /// <summary>
     /// Solve an Order for all values
     /// </summary>
+    /// <param name="msg">A message for logging</param>
     /// <param name="printErr">Whether to print the error</param>
     /// <param name="logger">The logger</param>
-    let solveOrder printErr logger = solve false printErr logger
+    let solveOrder msg printErr logger = solve msg false printErr logger
 
 
     /// <summary>
@@ -3637,7 +3678,7 @@ module Order =
                     incrOrd |> Events.OrderIncreaseQuantityIncrement |> Logging.logInfo logger
 
                     incrOrd
-                    |> solveMinMax false logger
+                    |> solveMinMax "Increase Quantity Increment" false logger
                 |> function
                 | Error (_, errs) ->
                     writeDebugMessage "Could not increase orderable quantity increment:"
@@ -3657,7 +3698,7 @@ module Order =
                         incrOrd |> Events.OrderIncreaseRateIncrement |> Logging.logInfo logger
 
                         incrOrd
-                        |> solveMinMax false logger
+                        |> solveMinMax "Increase Rate Increment" false logger
 
                     |> function
                     | Error (_, errs) ->
@@ -3694,7 +3735,7 @@ module Order =
 
                 ord
                 |> fromOrdVars ovars
-                |> solveOrder false logger
+                |> solveOrder "Maximize Rate" false logger
                 |> Result.map (fun ord ->
                     writeDebugMessage $"max rate set to: {maxRte |> OrderVariable.toString true}"
                     ord
@@ -3709,7 +3750,7 @@ module Order =
             { (ord |> inf) with
                 Schedule = ord.Schedule |> Schedule.setMinTime
             }
-            |> solveOrder false logger
+            |> solveOrder "Minimize Time" false logger
             |> Result.defaultValue ord
 
 
@@ -3771,7 +3812,7 @@ module Order =
             else
                 ord
                 |> fromOrdVars ovars
-                |> solveOrder true logger // could possibly restrict to solve variable
+                |> solveOrder "Min Incr Max to Values" true logger // could possibly restrict to solve variable
                 |> function
                     | Ok ord  ->
                         isSolved <- true
@@ -3792,19 +3833,18 @@ module Order =
             // make sure that an order is solved at least once
             if not isSolved then
                 ord
-                |> solveOrder true logger
+                |> solveOrder "Min Incr Max to Values final Loop" true logger
                 |> Result.defaultValue ord
             else ord
 
 
-    let solveNormDose logger normDose ord =
-        match normDose with
-        | Informedica.GenForm.Lib.Types.NormQuantityAdjust (Informedica.GenForm.Lib.Types.SubstanceLimitTarget sn, _)
-        | Informedica.GenForm.Lib.Types.NormPerTimeAdjust (Informedica.GenForm.Lib.Types.SubstanceLimitTarget sn, _) ->
-            ord
-            |> setNormDose sn normDose
-            |> solveOrder false logger
-        | _ -> ord |> Ok
+    let solveNormDose logger ord =
+        let normDoseOrd = ord |> setNormDose
+
+        if normDoseOrd = ord then ord |> Ok
+        else
+            normDoseOrd
+            |> solveMinMax "Solve Normal Dose" false logger
 
 
     let setDoseUnit sn du ord =
@@ -3814,21 +3854,17 @@ module Order =
     let isCleared = toOrdVars >> List.exists OrderVariable.isCleared
 
 
-    let calcMinMax logger (normDose : Option<_>) increaseIncrement =
-        solveMinMax true logger
+    let calcMinMax logger increaseIncrement =
+        solveMinMax "Calc Min Max" true logger
         >> Result.bind (fun ord ->
-            if not increaseIncrement || normDose.IsSome then ord |> Ok
+            if not increaseIncrement then ord |> Ok
             else
                 ord
                 |> increaseIncrements logger 10 10
         )
         >> Result.bind (fun ord ->
-            match normDose with
-            | Some nd ->
-                ord
-                |> minIncrMaxToValues false true logger
-                |> solveNormDose logger nd
-            | None -> Ok ord
+            ord
+            |> solveNormDose logger
         )
 
 

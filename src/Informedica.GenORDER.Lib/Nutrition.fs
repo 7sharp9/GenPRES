@@ -3,12 +3,7 @@ namespace Informedica.GenOrder.Lib
 
 module Nutrition =
 
-    open MathNet.Numerics
-    open Informedica.Utils.Lib.BCL
-    open Informedica.GenCore.Lib.Ranges
     open Informedica.GenForm.Lib
-    open Informedica.GenUnits.Lib
-
 
     let tpnConstraints =
         [
@@ -33,7 +28,7 @@ module Nutrition =
             ord
             |> Order.OrderPropertyChange.proc propChanges
         ord
-        |> Order.solveMinMax true Logging.noOp
+        |> Order.solveMinMax "Apply Prop Change" true Logging.noOp
         |> function
             | Ok ord -> ord
             | _ ->
@@ -48,9 +43,9 @@ module Nutrition =
         |> Result.map (fun ord ->
             ord
             |> Order.OrderPropertyChange.proc tpnConstraints
-            |> Order.solveMinMax true Logging.noOp //logger
-            |> function 
-            | Ok ord -> 
+            |> Order.solveMinMax "Process Nutrition" true logger
+            |> function
+            | Ok ord ->
                 let changes = changes |> List.map (fun (cmp, perc) -> ComponentOrderableQuantity (cmp, OrderVariable.Quantity.setPercValue perc))
                 ord |> applyPropChange changes
             | Error (ord, _) -> ord
