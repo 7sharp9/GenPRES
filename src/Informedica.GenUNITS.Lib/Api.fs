@@ -89,5 +89,5 @@ module Api =
         | Some vu, Some u ->
             vu
             |> ValueUnit.convertTo u
-            |> ValueUnit.toString BigRational.toString loc verb
+            |> ValueUnit.toString true BigRational.toString loc verb
         | _ -> s1

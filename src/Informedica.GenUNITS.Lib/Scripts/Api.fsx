@@ -37,3 +37,10 @@ open Informedica.Utils.Lib.BCL
 
 "120;240;500;1000;125;250;60;30;360;90;750;180 mg/stuk"
 |> ValueUnit.fromString
+
+"1; 10 mg/stuk"
+|> ValueUnit.fromString
+
+"0,8 mL/uur"
+//|> String.replace "," "."
+|> ValueUnit.fromString

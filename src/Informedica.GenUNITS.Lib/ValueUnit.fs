@@ -1666,12 +1666,21 @@ module Units =
                 None
 
 
-    /// Turn a unit u to a string with
-    /// localization loc and verbality verb.
-    /// Example: toString Dutch Short (Mass (KiloGram 1N)) = "kg[Mass]"
-    let toString loc verb u =
+    /// <summary>
+    /// Turn a unit u to a string with localization, verbality, and optional group annotation.
+    /// </summary>
+    /// <param name="hasGroup">When true, includes the unit group in brackets (e.g., "[Mass]"); when false, omits it</param>
+    /// <param name="loc">Localization (English or Dutch)</param>
+    /// <param name="verb">Verbality (Short or Long)</param>
+    /// <param name="u">The unit to convert to string</param>
+    /// <example>
+    /// toString true Dutch Short (Mass (KiloGram 1N)) = "kg[Mass]" <br/>
+    /// toString false Dutch Short (Mass (KiloGram 1N)) = "kg"
+    /// </example>
+    let toString hasGroup loc verb u =
         let gtost u g =
-            u + "[" + (g |> ValueUnit.Group.toString) + "]"
+            u + 
+            if hasGroup then "[" + (g |> ValueUnit.Group.toString) + "]" else ""
 
         let rec str u =
             match u with
@@ -1723,23 +1732,39 @@ module Units =
         str u
 
 
-    /// Turn a unit to a dutch short string with
-    /// Example: toStringDutchShort (Time (Minute 1N)) = "min[Time]"
+    /// <summary>
+    /// Turn a unit to a dutch short string with group annotation
+    /// </summary>
+    /// <example>
+    /// toStringDutchShort (Time (Minute 1N)) = "min[Time]"
+    /// </example>
     let toStringDutchShort =
-        toString Dutch Short
+        toString true Dutch Short
 
-    /// Turn a unit to a dutch long string
-    /// Example: toStringDutchLong (Time (Minute 1N)) = "minuut[Time]"
-    let toStringDutchLong = toString Dutch Long
+    /// <summary>
+    /// Turn a unit to a dutch long string with group annotation
+    /// </summary>
+    /// <example>
+    /// toStringDutchLong (Time (Minute 1N)) = "minuut[Time]"
+    /// </example>
+    let toStringDutchLong = toString true Dutch Long
 
-    /// Turn a unit to a english short string
-    /// Example: toStringEngShort (Time (Day 1N)) = "day[Time]"
+    /// <summary>
+    /// Turn a unit to an english short string with group annotation
+    /// </summary>
+    /// <example>
+    /// toStringEngShort (Time (Day 1N)) = "day[Time]"
+    /// </example>
     let toStringEngShort =
-        toString English Short
+        toString true English Short
 
-    /// Turn a unit to a english long string
-    /// Example: toStringEngLong (Time (Day 1N)) = "day[Time]"
-    let toStringEngLong = toString English Long
+    /// <summary>
+    /// Turn a unit to an english long string with group annotation
+    /// </summary>
+    /// <example>
+    /// toStringEngLong (Time (Day 1N)) = "day[Time]"
+    /// </example>
+    let toStringEngLong = toString true English Long
 
 
 
@@ -3753,10 +3778,10 @@ module ValueUnit =
 
 
     /// <summary>
-    /// Get the user readable string version
-    /// of a unit, i.e. without unit group between
-    /// brackets
+    /// Get the user readable string version of a unit in Dutch short format
+    /// without unit group annotation (i.e., without brackets)
     /// </summary>
+    /// <param name="u">The unit to convert to string</param>
     /// <example>
     /// <code>
     /// unitToReadableDutchString (Mass (KiloGram 1N)) = "kg"
@@ -3764,13 +3789,13 @@ module ValueUnit =
     /// </example>
     let unitToReadableDutchString u =
         u
-        |> Units.toString Units.Dutch Units.Short
-        |> String.removeBrackets
+        |> Units.toString false Units.Dutch Units.Short
 
 
     /// <summary>
-    /// Get the user readable string version
+    /// Get the user readable string version of a ValueUnit
     /// </summary>
+    /// <param name="hasGroup">When true, includes the unit group in brackets (e.g., "[Mass]"); when false, omits it</param>
     /// <param name="brf">The function to turn a BigRational into a string</param>
     /// <param name="loc">The localization to use</param>
     /// <param name="verb">The verbosity to use</param>
@@ -3778,74 +3803,81 @@ module ValueUnit =
     /// <example>
     /// <code>
     /// toString
+    ///     true
     ///     BigRational.toString
     ///     Units.Dutch
     ///     Units.Short
-    ///     (ValueUnit ([|1N; 2N; 3N|], Mass (KiloGram 1N))) = "1;2;3 kg[Mass]"
+    ///     (ValueUnit ([|1N; 2N; 3N|], Mass (KiloGram 1N))) = "1;2;3 kg[Mass]" <br/>
+    /// toString
+    ///     false
+    ///     BigRational.toString
+    ///     Units.Dutch
+    ///     Units.Short
+    ///     (ValueUnit ([|1N; 2N; 3N|], Mass (KiloGram 1N))) = "1;2;3 kg"
     /// </code>
     /// </example>
-    let toString brf loc verb vu =
+    let toString hasGroup brf loc verb vu =
         let v, u = vu |> get
 
-        $"{v |> Array.map brf |> Array.distinct |> Array.toReadableString} {Units.toString loc verb u}"
+        $"{v |> Array.map brf |> Array.distinct |> Array.toReadableString} {Units.toString hasGroup loc verb u}"
 
 
     /// <summary>
-    /// Get the user readable string version in Dutch with verbosity short
+    /// Get the user readable string version in Dutch with verbosity short and group annotation
     /// </summary>
     let toStringDutchShort =
-        toString BigRational.toString Units.Dutch Units.Short
+        toString true BigRational.toString Units.Dutch Units.Short
 
     /// <summary>
-    /// Get the user readable string version in Dutch with verbosity long
+    /// Get the user readable string version in Dutch with verbosity long and group annotation
     /// </summary>
     let toStringDutchLong =
-        toString BigRational.toString Units.Dutch Units.Long
+        toString true BigRational.toString Units.Dutch Units.Long
 
     /// <summary>
-    /// Get the user readable string version in English with verbosity short
+    /// Get the user readable string version in English with verbosity short and group annotation
     /// </summary>
     let toStringEngShort =
-        toString BigRational.toString Units.English Units.Short
+        toString true BigRational.toString Units.English Units.Short
 
     /// <summary>
-    /// Get the user readable string version in English with verbosity long
+    /// Get the user readable string version in English with verbosity long and group annotation
     /// </summary>
     let toStringEngLong =
-        toString BigRational.toString Units.English Units.Long
+        toString true BigRational.toString Units.English Units.Long
 
     /// <summary>
-    /// Get the user readable string version in Dutch with verbosity short and
-    /// value as decimal
+    /// Get the user readable string version in Dutch with verbosity short,
+    /// value as decimal, and group annotation
     /// </summary>
     let toStringDecimalDutchShort =
-        toString (BigRational.toDecimal >> string) Units.Dutch Units.Short
+        toString true (BigRational.toDecimal >> string) Units.Dutch Units.Short
 
     /// <summary>
-    /// Get the user readable string version in Dutch with verbosity long and
-    /// value as decimal
+    /// Get the user readable string version in Dutch with verbosity long,
+    /// value as decimal, and group annotation
     /// </summary>
     let toStringDecimalDutchLong =
-        toString (BigRational.toDecimal >> string) Units.Dutch Units.Long
+        toString true (BigRational.toDecimal >> string) Units.Dutch Units.Long
 
     /// <summary>
-    /// Get the user readable string version in English with verbosity short and
-    /// value as decimal
+    /// Get the user readable string version in English with verbosity short,
+    /// value as decimal, and group annotation
     /// </summary>
     let toStringDecimalEngShort =
-        toString (BigRational.toDecimal >> string) Units.English Units.Short
+        toString true (BigRational.toDecimal >> string) Units.English Units.Short
 
     /// <summary>
-    /// Get the user readable string version in English with verbosity long and
-    /// value as decimal
+    /// Get the user readable string version in English with verbosity long,
+    /// value as decimal, and group annotation
     /// </summary>
     let toStringDecimalEngLong =
-        toString (BigRational.toDecimal >> string) Units.English Units.Long
+        toString true (BigRational.toDecimal >> string) Units.English Units.Long
 
 
     /// <summary>
-    /// Get the user readable string version in Dutch with verbosity short and
-    /// value as decimal with a fixed precision
+    /// Get the user readable string version in Dutch with verbosity short,
+    /// value as decimal with a fixed precision, and without group annotation
     /// </summary>
     /// <param name="prec">The precision</param>
     /// <param name="vu">The ValueUnit</param>
@@ -3960,7 +3992,7 @@ module ValueUnit =
                     u |> Group.unitToGroup |> Group.toString
 
                 let u =
-                    u |> Units.toString l s |> String.removeBrackets
+                    u |> Units.toString false l s //|> String.removeBrackets
 
                 let dto = dto ()
                 dto.Value <- v
@@ -3968,7 +4000,7 @@ module ValueUnit =
                 dto.Group <- g
                 dto.Language <- lang
                 dto.Short <- short
-                dto.Json <- vu |> ValueUnit.getUnit |> Json.serialize
+                dto.Json <- vu |> getUnit |> Json.serialize
 
                 dto |> Some
 

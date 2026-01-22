@@ -14,7 +14,7 @@ module ValueUnit =
     /// Return a Unit as a short Dutch string
     /// </summary>
     let unitToString =
-        Units.toString Units.Dutch Units.Short
+        Units.toString false Units.Dutch Units.Short
 
 
     /// <summary>

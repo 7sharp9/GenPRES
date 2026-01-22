@@ -634,9 +634,7 @@ module DoseRule =
                                             |> Array.map (fun product ->
                                                 let u =
                                                     product.FormUnit
-                                                    |> Units.toString Units.Dutch Units.Short
-                                                    |> String.removeTextBetweenBrackets
-                                                    |> String.removeBrackets
+                                                    |> Units.toString false Units.Dutch Units.Short
 
                                                 { r with
                                                     Generic = gen
