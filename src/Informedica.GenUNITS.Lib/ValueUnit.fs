@@ -238,6 +238,27 @@ module Parser =
 
 
     /// <summary>
+    /// Parse a General unit with the format: name[General]
+    /// </summary>
+    /// <example>
+    /// "stuk[General]" |> run pGeneralUnit -> Success: General ("stuk", 1N)
+    /// </example>
+    let pGeneralUnit =
+        let pName = many1Chars (noneOf "[ \t\r\n")
+        attempt (
+            opt pfloat
+            .>> ws
+            .>>. (pName .>> ws .>> pstringCI "[General]")
+            |>> (fun (mult, name) ->
+                mult
+                |> Option.bind BigRational.fromFloat
+                |> Option.defaultValue 1N
+                |> fun v -> General (name, v)
+            )
+        )
+
+
+    /// <summary>
     /// Parse a complex unit using FParsec's OperatorPrecedenceParser
     /// </summary>
     /// <returns>Parser of Unit, unit</returns>
@@ -250,7 +271,7 @@ module Parser =
         let expr = opp.ExpressionParser
 
         opp.TermParser <-
-            pUnit <|> between (str_ws "(") (str_ws ")") expr
+            pGeneralUnit <|> pUnit <|> between (str_ws "(") (str_ws ")") expr
 
         let ( *! ) u1 u2 = (u1, OpTimes, u2) |> CombiUnit
         let ( /! ) u1 u2 = (u1, OpPer, u2) |> CombiUnit
@@ -1650,7 +1671,7 @@ module Units =
                 uls + (op |> ValueUnit.opToStr) + urs
 
             | General (n, v) ->
-                let ustr = n // + "[General]"
+                let ustr = n + "[General]"
 
                 if v > 1N then
                     (1N |> BigRational.toString) + ustr

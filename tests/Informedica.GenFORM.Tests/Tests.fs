@@ -149,11 +149,10 @@ module Tests =
                 result
                 |> Expect.isNonEmpty "should contain value"
                 
-                // When label is empty, it should not start with a label
+                // When label is empty, uses range format "10 - 20 mg/dosis" (not "min"/"max" prefixes)
                 result
-                |> String.trim
-                |> fun s -> s.StartsWith("min")
-                |> Expect.isTrue "should start with min when no label"
+                |> fun s -> s.Contains("10") && s.Contains("20") && s.Contains("-") && s.Contains("mg") && s.Contains("/dosis")
+                |> Expect.isTrue "should contain range with values, unit and perDose suffix"
             }
 
             test "printMinMaxDose with norm dose (min equals max) returns single value" {

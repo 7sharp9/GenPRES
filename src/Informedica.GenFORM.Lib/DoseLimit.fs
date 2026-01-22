@@ -154,6 +154,7 @@ module DoseLimit =
             if s |> String.isNullOrWhiteSpace then ""
             else
                 $"{label} {s}"
+                |> String.trim
 
 
     let toString (dl: DoseLimit) =

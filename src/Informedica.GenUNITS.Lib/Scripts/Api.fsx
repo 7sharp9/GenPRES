@@ -20,3 +20,13 @@ open Informedica.Utils.Lib.BCL
 "[10;20;30] mg[Mass]"
 |> ValueUnit.fromString
 |> Result.map ValueUnit.toStringEngShort
+
+
+1N
+|> ValueUnit.singleWithUnit (Units.General.general "stuk")
+|> ValueUnit.toStringEngShort
+|> ValueUnit.fromString
+
+
+"stuk"
+|> Units.groupIsGeneralOrNone
