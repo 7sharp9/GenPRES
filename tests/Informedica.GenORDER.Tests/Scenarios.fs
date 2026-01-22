@@ -1,4 +1,4 @@
-/// Medication order temmplate scenarios for 
+/// Medication order temmplate scenarios for
 /// testing purposes
 module Scenarios
 
@@ -75,8 +75,8 @@ Components:
                                                     AdjustUnit = su |> Some
                                                     QuantityAdjust =
                                                         MinMax.createInclIncl
-                                                            (10N |> ValueUnit.singleWithUnit (su |> Units.per au |> Units.per tu))
-                                                            (20N |> ValueUnit.singleWithUnit (su |> Units.per au |> Units.per tu))
+                                                            (10N |> ValueUnit.singleWithUnit (su |> Units.per au))
+                                                            (20N |> ValueUnit.singleWithUnit (su |> Units.per au))
                                                 }
                                                 |> Some
                                     }
@@ -1275,4 +1275,3 @@ Components:
                     }
                 ]
         }
-

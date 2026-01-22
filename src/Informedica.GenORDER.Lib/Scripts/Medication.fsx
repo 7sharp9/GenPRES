@@ -361,6 +361,8 @@ Components:
 runTestsWithCLIArgs [] [||] tests
 
 
+"10 mg/kg - 20 mg/kg"
+|> MinMax.parseMinMax
 
 // Demo: Show the new labeled output format
 printfn "\n=== Demo: Labeled DoseLimit output ==="

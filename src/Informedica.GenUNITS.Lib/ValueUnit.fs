@@ -1694,7 +1694,9 @@ module Units =
                 uls + (op |> ValueUnit.opToStr) + urs
 
             | General (n, v) ->
-                let ustr = n + "[General]"
+                let ustr =
+                    if hasGroup then n + "[General]"
+                    else n
 
                 if v > 1N then
                     (1N |> BigRational.toString) + ustr
@@ -3866,6 +3868,7 @@ module ValueUnit =
     /// </summary>
     let toStringDecimalEngShort =
         toString true (BigRational.toDecimal >> string) Units.English Units.Short
+
     /// <summary>
     /// Get the user readable string version in English with verbosity short,
     /// value as decimal, without group annotation
