@@ -229,6 +229,7 @@ module Medication =
             else
                 // All known field labels
                 let allLabels = [
+                    DoseLimit.FieldLabels.DoseUnit
                     DoseLimit.FieldLabels.Quantity
                     DoseLimit.FieldLabels.QuantityAdjust
                     DoseLimit.FieldLabels.PerTime
@@ -314,17 +315,26 @@ module Medication =
                     let valueStr = m.Groups[2].Value.Trim().TrimEnd(',').Trim()
                     let fullLabel = $"[{labelContent}]"
 
-                    let labelMatch =
-                        fieldParsers
-                        |> List.tryFind (fun (label, _, _) -> label = fullLabel)
+                    // Skip empty values - they represent default/unset fields
+                    if valueStr |> String.IsNullOrWhiteSpace then
+                        ()  // Skip this field
+                    elif fullLabel = DoseLimit.FieldLabels.DoseUnit then
+                        let dun = valueStr |> Units.fromString
+                        match dun with
+                        | Some un -> dl <- { dl with DoseUnit = un }
+                        | None -> errors <- $"Unknown dose unit: {valueStr}"::errors
+                    else
+                        let labelMatch =
+                            fieldParsers
+                            |> List.tryFind (fun (label, _, _) -> label = fullLabel)
 
-                    match labelMatch with
-                    | Some (label, parser, setter) ->
-                        match parser valueStr with
-                        | Ok mm -> dl <- setter dl mm
-                        | Error e -> errors <- $"{label}: {e}" :: errors
-                    | None ->
-                        errors <- $"Unknown field label: {fullLabel}" :: errors
+                        match labelMatch with
+                        | Some (label, parser, setter) ->
+                            match parser valueStr with
+                            | Ok mm -> dl <- setter dl mm
+                            | Error e -> errors <- $"{label}: {e}" :: errors
+                        | None ->
+                            errors <- $"Unknown field label: {fullLabel}" :: errors
 
                 // If no labeled matches and we have constraintsStr, return error requiring labels
                 if matches.Count = 0 && not (constraintsStr |> String.IsNullOrWhiteSpace) then
@@ -353,6 +363,10 @@ module Medication =
 
                     if not (valueStr |> String.IsNullOrWhiteSpace) then
                         match label with
+                        | "qts" ->
+                            match parseValueUnitOpt valueStr with
+                            | Ok vuOpt -> sl <- { sl with Quantities = vuOpt }
+                            | Error e -> errors <- $"[qts]: {e}"::errors
                         | "qty" ->
                             match parseMinMax valueStr with
                             | Ok mm -> sl <- { sl with Quantity = mm }

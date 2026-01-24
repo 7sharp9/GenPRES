@@ -11,6 +11,7 @@ module DoseLimit =
 
     /// Field labels for deterministic parsing
     module FieldLabels =
+        let [<Literal>] DoseUnit = "[dun]"
         let [<Literal>] Quantity = "[qty]"
         let [<Literal>] QuantityAdjust = "[qty-adj]"
         let [<Literal>] PerTime = "[per-time]"
@@ -163,6 +164,7 @@ module DoseLimit =
             let emptyS = ""
             [
                 $"%s{dl.DoseLimitTarget |> LimitTarget.toString}"
+                $"{FieldLabels.DoseUnit} %s{dl.DoseUnit |> Units.toStringEngShortWithoutGroup}"
 
                 $"%s{dl.Rate |> printMinMaxDose FieldLabels.Rate emptyS}"
                 $"%s{dl.RateAdjust |> printMinMaxDose FieldLabels.RateAdjust emptyS}"

@@ -419,3 +419,58 @@ printfn "\n=== Demo: tpn ==="
 Scenarios.tpn
 |> Medication.toString
 |> print
+
+
+"""
+Informative
+Medication created: Id: f1415ef2-eeb1-4020-89f4-e30eac94486a
+Name: amoxicilline/clavulaanzuur
+Quantity:
+Quantities:
+Route: INTRAVENEUS
+OrderType: DiscontinuousOrder
+Adjust: 17 kg
+Frequencies: 3 x/day
+Time:
+Dose: [dun] ml
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: amoxicilline/clavulaanzuur
+	Form: poeder voor injectievloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: amoxicilline
+		Concentrations: 50 mg/ml
+		Dose: amoxicilline, [dun] mg, [per-time-adj] 100 mg/kg/day, [per-time] max 6000 mg/day
+		Solution:  [conc] 20 mg/ml
+
+		Name: clavulaanzuur
+		Concentrations: 5;10 mg/ml
+		Dose: clavulaanzuur, [dun] mg, [per-time-adj] 10 mg/kg/day, [per-time] max 600 mg/day
+		Solution:
+
+	Name: NaCl 0,9%
+	Form: vloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: natrium
+		Concentrations: 0.155 mmol/ml
+		Dose:
+		Solution:
+
+		Name: chloor
+		Concentrations: 0.155 mmol/ml
+		Dose:
+		Solution:
+"""
+|> Medication.fromString

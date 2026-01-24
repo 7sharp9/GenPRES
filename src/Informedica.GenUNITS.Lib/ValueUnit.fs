@@ -1761,6 +1761,15 @@ module Units =
         toString true English Short
 
     /// <summary>
+    /// Turn a unit to an english short string without group annotation
+    /// </summary>
+    /// <example>
+    /// toStringEngShort (Time (Day 1N)) = "day"
+    /// </example>
+    let toStringEngShortWithoutGroup =
+        toString false English Short
+
+    /// <summary>
     /// Turn a unit to an english long string with group annotation
     /// </summary>
     /// <example>
