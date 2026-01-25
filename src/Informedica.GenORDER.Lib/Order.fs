@@ -4118,9 +4118,14 @@ module Order =
                             [|
                                 [|
                                     // the orderable dose quantity
-                                    ord.Orderable
-                                    |> Orderable.Print.doseQuantityTo printMd -1
-                                    |> wrap Alert [ ord.Orderable.Dose.Quantity |> Quantity.toOrdVar ]
+                                    let doseQty =
+                                        ord.Orderable
+                                        |> Orderable.Print.doseQuantityTo printMd -1
+                                    // special case when no dose quantity
+                                    if doseQty |> String.isNullOrWhiteSpace then "eenmalig" |> Valid
+                                    else
+                                        doseQty
+                                        |> wrap Alert [ ord.Orderable.Dose.Quantity |> Quantity.toOrdVar ]
 
                                     // the orderable dose adjust quantity
                                     if useAdj then
@@ -4129,7 +4134,6 @@ module Order =
                                         ord.Orderable
                                         |> Orderable.Print.doseQuantityAdjustTo printMd -1
                                         |> wrap Alert [ ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar ]
-
                                 |]
                             |]
                         else

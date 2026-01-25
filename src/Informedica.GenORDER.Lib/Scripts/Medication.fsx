@@ -361,9 +361,6 @@ Components:
 runTestsWithCLIArgs [] [||] tests
 
 
-"10 mg/kg - 20 mg/kg"
-|> MinMax.parseMinMax
-
 // Demo: Show the new labeled output format
 printfn "\n=== Demo: Labeled DoseLimit output ==="
 Scenarios.amfo
@@ -419,3 +416,231 @@ printfn "\n=== Demo: tpn ==="
 Scenarios.tpn
 |> Medication.toString
 |> print
+
+
+module MedicationTexts =
+
+
+    let onceSingleComponentSingleItemNoDose = """
+Id: 4b73efb9-97b3-44b1-af51-bfad909a9371
+Name: chloorhexidine
+Quantity:
+Quantities:
+Route: CUTAAN
+OrderType: OnceOrder
+Adjust: 11 kg
+Frequencies:
+Time:
+Dose:
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: chloorhexidine
+	Form: creme
+	Quantities: 1 g
+	Divisible:
+	Dose: chloorhexidine, [dun] x
+	Solution:
+	Substances:
+
+		Name: was
+		Concentrations: 150 mg/g
+		Dose:
+		Solution:
+
+		Name: decyloleaat
+		Concentrations: 200 mg/g
+		Dose:
+		Solution:
+
+		Name: sorbitol
+		Concentrations: 28 mg/g
+		Dose:
+		Solution:
+
+		Name: chloorhexidine
+		Concentrations: 10 mg/g
+		Dose:
+		Solution:
+"""
+
+
+    // Once single component single item scenario
+    let onceSingleComponentSingleItem = """
+Id: 93e8c175-99a1-48d8-b2f4-90005fdb8ada
+Name: paracetamol
+Quantity:
+Quantities:
+Route: RECTAAL
+OrderType: OnceOrder
+Adjust: 10 kg
+Frequencies:
+Time:
+Dose: [dun], [qty] 1 stuk/dosis
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: paracetamol
+	Form: zetpil
+	Quantities: 1 stuk
+	Divisible: 1
+	Dose:
+	Solution:
+	Substances:
+
+		Name: paracetamol
+		Concentrations: 120;240;500;1000;125;250;60;30;360;90;750;180 mg/stuk
+		Dose: paracetamol, [dun] mg, [qty-adj] 40 mg/kg/dosis, [qty] max 1000 mg/dosis
+		Solution:
+"""
+
+    // OnceTimed single component single item scenario
+    let onceTimedSingleComponentSingleItem = """
+Id: 95c44266-84c5-4969-a815-9fbf2c9ed693
+Name: paracetamol
+Quantity:
+Quantities:
+Route: INTRAVENEUS
+OrderType: OnceTimedOrder
+Adjust: 10 kg
+Frequencies:
+Time: 15 min - 20 min
+Dose: [dun], [qty-adj] max 20 ml/kg/dosis, [qty] max 1000 ml/dosis
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: paracetamol
+	Form: infusievloeistof
+	Quantities: 100;50 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: paracetamol
+		Concentrations: 10 mg/ml
+		Dose: paracetamol, [dun] mg, [qty-adj] 20 mg/kg/dosis, [qty] max 1000 mg/dosis
+		Solution:
+"""
+
+    // Discontinuous single component single item scenario
+    let discontinuousSingleComponentSingleItem = """
+d: e043a880-70ec-4600-8e5a-109e5ef39108
+Name: paracetamol
+Quantity:
+Quantities:
+Route: RECTAAL
+OrderType: DiscontinuousOrder
+Adjust: 10 kg
+Frequencies: 3;4 x/day
+Time:
+Dose: [dun], [qty] 1 stuk/dosis
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: paracetamol
+	Form: zetpil
+	Quantities: 1 stuk
+	Divisible: 1
+	Dose:
+	Solution:
+	Substances:
+
+		Name: paracetamol
+		Concentrations: 120;240;500;1000;125;250;60;30;360;90;750;180 mg/stuk
+		Dose: paracetamol, [dun] mg, [qty-adj] 10 mg/kg - 20 mg/kg/dosis
+		Solution:
+"""
+
+    // Timed single component single item scenario
+    let timedSingleComponentSingleItem = """
+Id: a9e18942-f879-4df1-bc21-6375c3291ed7
+Name: paracetamol
+Quantity:
+Quantities:
+Route: INTRAVENEUS
+OrderType: TimedOrder
+Adjust: 10 kg
+Frequencies: 4 x/day
+Time: 15 min - 20 min
+Dose: [dun], [qty-adj] max 20 ml/kg/dosis, [qty] max 1000 ml/dosis
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: paracetamol
+	Form: infusievloeistof
+	Quantities: 100;50 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: paracetamol
+		Concentrations: 10 mg/ml
+		Dose: paracetamol, [dun] mg, [per-time-adj] 60 mg/kg/day, [per-time] max 4000 mg/day, [qty] max 1000 mg/dosis
+		Solution:
+"""
+
+
+MedicationTexts.onceSingleComponentSingleItem
+|> Medication.fromString
+|> Result.map (fun med ->
+    [
+        OrderCommand.CalcMinMax
+    ]
+    |> run (Some logger) med
+)
+|> ignore
+
+
+MedicationTexts.discontinuousSingleComponentSingleItem
+|> Medication.fromString
+|> Result.map (fun med ->
+    [
+        OrderCommand.CalcMinMax
+    ]
+    |> run (Some logger) med
+)
+|> ignore
+
+
+MedicationTexts.onceTimedSingleComponentSingleItem
+|> Medication.fromString
+|> Result.map (fun med ->
+    [
+        OrderCommand.CalcMinMax
+    ]
+    |> run (Some logger) med
+)
+|> ignore
+
+
+MedicationTexts.timedSingleComponentSingleItem
+|> Medication.fromString
+|> Result.map (fun med ->
+    [
+        OrderCommand.CalcMinMax
+    ]
+    |> run (Some logger) med
+)
+|> ignore
+
+
+MedicationTexts.onceSingleComponentSingleItemNoDose
+|> Medication.fromString
+|> Result.bind (fun med ->
+    [
+        OrderCommand.CalcMinMax
+    ]
+    |> run (Some logger) med
+    |> Result.mapError (fun _ -> [])
+)
+|> function
+    | Ok ord -> ord |> Order.Print.printOrderToTableFormat false true [||]
+    | Error _ -> "cannot run order" |> failwith
+|> ignore
