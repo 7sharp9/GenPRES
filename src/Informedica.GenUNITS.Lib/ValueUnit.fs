@@ -216,7 +216,7 @@ module Parser =
                     )
             ]
         )
-        // need to change nan to xxx to avoid getting a float 'nan'
+        // need to change nan to nnn to avoid getting a float 'nan'
         |> List.map (fun r -> {| r with unit = r.unit |> String.replace "nan" "nnn" |})
         |> List.distinctBy (fun r -> r.unit, r.grp)
         |> List.filter (fun r ->
@@ -1630,9 +1630,11 @@ module Units =
 
             // TODO: ugly hack need to fix this
             s
+            (*
             |> String.replace "x[Count]" "#"
             |> String.replace "x" "/"
             |> String.replace "#" "x[Count]"
+            *)
             |> String.split "/"
             |> function
             | us when us |> List.length >= 1 && (us |> List.length <= 3) ->

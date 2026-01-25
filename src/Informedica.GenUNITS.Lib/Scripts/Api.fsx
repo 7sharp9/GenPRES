@@ -44,3 +44,10 @@ open Informedica.Utils.Lib.BCL
 "0,8 mL/uur"
 //|> String.replace "," "."
 |> ValueUnit.fromString
+
+
+"x"
+|> FParsec.CharParsers.run Parser.parseUnit
+
+"x"
+|> Units.fromString

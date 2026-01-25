@@ -535,16 +535,25 @@ module DoseRule =
              createError "getDataResult" exn
 
 
-
     let doseRuleDataIsValid (dd: DoseRuleData) =
-        dd.DoseType |> String.notEmpty &&
-        (dd.Frequencies |> Array.length > 0 && dd.FreqUnit |> String.notEmpty ||
-         dd.MaxQty |> Option.isSome ||
-         dd.MaxQtyAdj |> Option.isSome ||
-         dd.MaxPerTime |> Option.isSome ||
-         dd.MaxPerTime |> Option.isSome ||
-         dd.MaxRate |> Option.isSome ||
-         dd.MaxRateAdj |> Option.isSome)
+        match dd.DoseText |> DoseType.fromString dd.DoseType with
+        | NoDoseType ->
+            // assume an empty dose type is deliberate
+            if dd.DoseType |> String.notEmpty then
+                $"Not valid dose rule data:\n{dd}\n"
+                |> ConsoleWriter.NewLineNoTime.writeWarningMessage
+            false
+        | Once _ -> true
+        | OnceTimed _ ->
+            dd.MaxTime.IsSome && dd.TimeUnit |> String.notEmpty
+        | Discontinuous _ ->
+            dd.Frequencies |> Array.length > 0 && dd.FreqUnit |> String.notEmpty
+        | Timed _ ->
+            dd.Frequencies |> Array.length > 0 && dd.FreqUnit |> String.notEmpty &&
+            dd.MaxTime.IsSome && dd.TimeUnit |> String.notEmpty
+        | Continuous _ ->
+            dd.RateUnit |> String.notEmpty &&
+            (dd.MaxRate.IsSome || dd.MaxRateAdj.IsSome)
 
 
     let processDoseRuleData prods routeMapping (data, msgs) : GenFormResult<_> =

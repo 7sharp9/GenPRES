@@ -93,7 +93,7 @@ module OrderLogging =
             $"Scenario {oid}: {n |> Name.toString} = {v}"
 
         | Events.MedicationCreated m ->
-            $"Medication created: {m}"
+            $"Medication created:\n\n{m}\n"
 
         | Events.ComponentItemsHarmonized s -> s
 
