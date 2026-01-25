@@ -162,9 +162,11 @@ module DoseLimit =
         [
             let perDose = "/dosis"
             let emptyS = ""
+            let dun = dl.DoseUnit |> Units.toStringEngShortWithoutGroup
             [
                 $"%s{dl.DoseLimitTarget |> LimitTarget.toString}"
-                $"{FieldLabels.DoseUnit} %s{dl.DoseUnit |> Units.toStringEngShortWithoutGroup}"
+                if dun |> String.notEmpty then
+                    $"{FieldLabels.DoseUnit} %s{dun}"
 
                 $"%s{dl.Rate |> printMinMaxDose FieldLabels.Rate emptyS}"
                 $"%s{dl.RateAdjust |> printMinMaxDose FieldLabels.RateAdjust emptyS}"

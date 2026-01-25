@@ -431,7 +431,7 @@ OrderType: OnceOrder
 Adjust: 11 kg
 Frequencies:
 Time:
-Dose: [dun]
+Dose:
 Div:
 DoseCount: 1 x
 Components:
@@ -585,6 +585,7 @@ Components:
 		Dose: paracetamol, [dun] mg, [per-time-adj] 60 mg/kg/day, [per-time] max 4000 mg/day, [qty] max 1000 mg/dosis
 		Solution:
 """
+
 
 MedicationTexts.onceSingleComponentSingleItem
 |> Medication.fromString
