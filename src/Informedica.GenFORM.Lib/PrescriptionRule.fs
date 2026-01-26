@@ -275,10 +275,10 @@ module PrescriptionRule =
 
 
     /// Get all matching PrescriptionRules for a given Patient.
-    let getForPatient dataUrlId doseRules solutionRules routeMapping (pat : Patient) =
+    let getForPatient doseRules solutionRules renalRules routeMapping (pat : Patient) =
         Filter.doseFilter
         |> Filter.setPatient pat
-        |> filter dataUrlId doseRules solutionRules routeMapping
+        |> filter doseRules solutionRules renalRules routeMapping
 
 
     /// Filter the Products in a PrescriptionRule to match

@@ -2,10 +2,19 @@
 #time
 
 #r "nuget: expecto"
+#r "nuget: FSharp.Data"
+
+#load "load.fsx"
 
 // load demo or product cache
 
-#load "load.fsx"
+open System
+
+Environment.SetEnvironmentVariable("GENPRES_DEBUG", "0")
+Environment.SetEnvironmentVariable("GENPRES_PROD", "1")
+Environment.SetEnvironmentVariable("GENPRES_URL_ID", "1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM")
+
+Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
 
 module HelperFunctions =
@@ -355,67 +364,60 @@ Components:
             str |> Expect.stringContains "should NOT have [per-time-adj] label" |> ignore
             (str.Contains("[per-time-adj]") |> not) |> Expect.isTrue "should NOT have [per-time-adj]"
         }
+
+        // Indentation handling tests - verify both tabs and spaces work
+        testList "parseLine handles different indentation" [
+            test "parseLine handles tab indentation" {
+                let line = "\t\tName: test"
+                match Medication.Parser.parseLine line with
+                | Some (indent, key, value) ->
+                    indent |> Expect.equal "should be indent 2" 2
+                    key |> Expect.equal "key" "Name"
+                    value |> Expect.equal "value" "test"
+                | None -> failwith "Expected successful parse"
+            }
+
+            test "parseLine handles space indentation (4 spaces = 1 indent)" {
+                let line = "        Name: test"  // 8 spaces = indent 2
+                match Medication.Parser.parseLine line with
+                | Some (indent, key, value) ->
+                    indent |> Expect.equal "should be indent 2" 2
+                    key |> Expect.equal "key" "Name"
+                    value |> Expect.equal "value" "test"
+                | None -> failwith "Expected successful parse"
+            }
+
+            test "fromString works with space-indented input" {
+                // This simulates what VS Code FSI might send
+                let spaceIndented = """
+Id: test-id
+Name: test-med
+Route: ORAAL
+OrderType: OnceOrder
+Components:
+
+    Name: comp1
+    Form: tablet
+    Substances:
+
+        Name: subst1
+        Concentrations: 10 mg/stuk
+"""
+                match spaceIndented |> Medication.fromString with
+                | Error errs ->
+                    let errMsg = errs |> String.concat "; "
+                    failwith $"Parse with spaces failed: {errMsg}"
+                | Ok med ->
+                    med.Components.Length |> Expect.equal "should have 1 component" 1
+                    let comp = med.Components |> List.head
+                    comp.Name |> Expect.equal "component name" "comp1"
+                    comp.Substances.Length |> Expect.equal "should have 1 substance" 1
+            }
+        ]
     ]
 
 
 runTestsWithCLIArgs [] [||] tests
-
-
-// Demo: Show the new labeled output format
-printfn "\n=== Demo: Labeled DoseLimit output ==="
-Scenarios.amfo
-|> Medication.toString
-|> print
-
-
-printfn "\n=== Demo: morfCont (RateAdjust) ==="
-Scenarios.morfCont
-|> Medication.toString
-|> print
-
-
-// Verify orders still work correctly
-[
-    CalcMinMax
-    CalcValues
-    fun ord ->
-        (ord, SetMedianComponentQuantity Scenarios.amfo.Components[0].Name)
-        |> OrderCommand.ChangeProperty
-    fun ord ->
-        (ord, SetMedianComponentQuantity Scenarios.amfo.Components[1].Name)
-        |> OrderCommand.ChangeProperty
-]
-|> run None Scenarios.amfo
-|> ignore
-
-
-[
-    CalcMinMax
-    CalcValues
-    fun ord ->
-        (ord, SetMedianComponentQuantity Scenarios.morfCont.Components[0].Name)
-        |> OrderCommand.ChangeProperty
-]
-|> run None Scenarios.morfCont
-|> ignore
-
-
-printfn "\n=== Demo: pcmDrink ==="
-Scenarios.pcmDrink
-|> Medication.toString
-|> print
-
-
-printfn "\n=== Demo: cotrim ==="
-Scenarios.cotrim
-|> Medication.toString
-|> print
-
-
-printfn "\n=== Demo: tpn ==="
-Scenarios.tpn
-|> Medication.toString
-|> print
 
 
 module MedicationTexts =
@@ -587,52 +589,106 @@ Components:
 """
 
 
-MedicationTexts.onceSingleComponentSingleItem
+module MedicationScenarios =
+
+
+    let run () =
+
+        MedicationTexts.onceSingleComponentSingleItem
+        |> Medication.fromString
+        |> Result.map (fun med ->
+            [
+                OrderCommand.CalcMinMax
+            ]
+            |> run (Some logger) med
+        )
+        |> ignore
+
+
+        MedicationTexts.discontinuousSingleComponentSingleItem
+        |> Medication.fromString
+        |> Result.map (fun med ->
+            [
+                OrderCommand.CalcMinMax
+            ]
+            |> run (Some logger) med
+        )
+        |> ignore
+
+
+        MedicationTexts.onceTimedSingleComponentSingleItem
+        |> Medication.fromString
+        |> Result.map (fun med ->
+            [
+                OrderCommand.CalcMinMax
+            ]
+            |> run (Some logger) med
+        )
+        |> ignore
+
+
+        MedicationTexts.timedSingleComponentSingleItem
+        |> Medication.fromString
+        |> Result.map (fun med ->
+            [
+                OrderCommand.CalcMinMax
+            ]
+            |> run (Some logger) med
+        )
+        |> ignore
+
+
+        MedicationTexts.onceSingleComponentSingleItemNoDose
+        |> Medication.fromString
+        |> Result.bind (fun med ->
+            [
+                OrderCommand.CalcMinMax
+            ]
+            |> run (Some logger) med
+            |> Result.mapError (fun _ -> [])
+        )
+        |> function
+            | Ok ord -> ord |> Order.Print.printOrderToTableFormat false true [||]
+            | Error _ -> "cannot run order" |> failwith
+        |> ignore
+
+
+
+"""
+Id: f5cfab2b-9395-4a24-a10b-9601b6127c1c
+Name: chloorhexidine
+Quantity:
+Quantities:
+Route: CUTAAN
+OrderType: OnceOrder
+Adjust: 11 kg
+Frequencies:
+Time:
+Dose:
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: chloorhexidine
+	Form: oplossing voor cutaan gebruik
+	Quantities: 1;100;50 ml
+	Divisible: 1
+	Dose: chloorhexidine, [dun] dosis, [qty] 1 dosis/dosis
+	Solution:
+	Substances:
+
+		Name: ethanol, gedenatureerd
+		Concentrations: 539 mg/ml
+		Dose:
+		Solution:
+
+		Name: chloorhexidine
+		Concentrations: 5;10;40 mg/ml
+		Dose:
+		Solution:
+"""
 |> Medication.fromString
-|> Result.map (fun med ->
-    [
-        OrderCommand.CalcMinMax
-    ]
-    |> run (Some logger) med
-)
-|> ignore
-
-
-MedicationTexts.discontinuousSingleComponentSingleItem
-|> Medication.fromString
-|> Result.map (fun med ->
-    [
-        OrderCommand.CalcMinMax
-    ]
-    |> run (Some logger) med
-)
-|> ignore
-
-
-MedicationTexts.onceTimedSingleComponentSingleItem
-|> Medication.fromString
-|> Result.map (fun med ->
-    [
-        OrderCommand.CalcMinMax
-    ]
-    |> run (Some logger) med
-)
-|> ignore
-
-
-MedicationTexts.timedSingleComponentSingleItem
-|> Medication.fromString
-|> Result.map (fun med ->
-    [
-        OrderCommand.CalcMinMax
-    ]
-    |> run (Some logger) med
-)
-|> ignore
-
-
-MedicationTexts.onceSingleComponentSingleItemNoDose
-|> Medication.fromString
+(*
 |> Result.bind (fun med ->
     [
         OrderCommand.CalcMinMax
@@ -644,3 +700,4 @@ MedicationTexts.onceSingleComponentSingleItemNoDose
     | Ok ord -> ord |> Order.Print.printOrderToTableFormat false true [||]
     | Error _ -> "cannot run order" |> failwith
 |> ignore
+*)

@@ -108,9 +108,17 @@ module Medication =
 
 
         /// Parse a line into (indentLevel, key, value)
+        /// Handles both tab and space indentation for compatibility with different FSI environments
         let parseLine (line: string) =
-            let indent = line |> Seq.takeWhile ((=) '\t') |> Seq.length
-            let content = line.TrimStart('\t')
+            // Try tabs first (preferred), then fall back to spaces (groups of 4)
+            let tabIndent = line |> Seq.takeWhile ((=) '\t') |> Seq.length
+            let indent =
+                if tabIndent > 0 then tabIndent
+                else
+                    // Count leading spaces and convert to indent level (4 spaces = 1 indent)
+                    let spaceCount = line |> Seq.takeWhile ((=) ' ') |> Seq.length
+                    spaceCount / 4
+            let content = line.TrimStart([| '\t'; ' ' |])
             match content.IndexOf(':') with
             | -1 -> None
             | i ->

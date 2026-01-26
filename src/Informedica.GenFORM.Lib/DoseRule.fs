@@ -873,12 +873,16 @@ module DoseRule =
                         GPKs = rs |> Array.collect _.GPKs
                         Limit = lim
                         Products =
+                            let dosis = "dosis" |> Units.General.general
                             rs
                             |> Array.collect _.Products
                             |> Array.filter (fun p ->
                                 match lim with
                                 | None -> true
                                 | Some l ->
+                                    // special case where dosis is the dose unit
+                                    l.DoseUnit |> Units.eqsUnit dosis ||
+                                    // special case where dosis is count unit
                                     l.DoseUnit
                                     |> ValueUnit.Group.eqsGroup Units.Count.times ||
                                     l.DoseUnit
