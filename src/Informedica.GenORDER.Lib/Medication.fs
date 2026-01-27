@@ -232,7 +232,7 @@ module Medication =
         /// Format: "targetName, [field-label] constraint1, [field-label] constraint2, ..."
         /// e.g., "paracetamol, [qty-adj] 10 - 20 mg/kg/dosis"
         /// Note: Cannot split naively by comma because Dutch decimals use comma (e.g., "5,4")
-        let parseDoseLimitOpt (s: string) : Result<DoseLimit option, string> =
+        let parseDoseLimitOpt target (s: string) : Result<DoseLimit option, string> =
             if s |> String.IsNullOrWhiteSpace then Ok None
             else
                 // All known field labels
@@ -261,10 +261,10 @@ module Medication =
                     | Some pos when pos > 0 ->
                         let targetStr = s.Substring(0, pos).Trim().TrimEnd(',').Trim()
                         let constraintsStr = s.Substring(pos)
-                        if targetStr |> String.IsNullOrWhiteSpace then
+                        if targetStr |> String.IsNullOrWhiteSpace && constraintsStr |> String.isNullOrWhiteSpace then
                             NoLimitTarget, constraintsStr
                         else
-                            SubstanceLimitTarget targetStr, constraintsStr
+                            target targetStr, constraintsStr
                     | Some 0 ->
                         NoLimitTarget, s
                     | None ->
@@ -423,7 +423,7 @@ module Medication =
                 match fields |> Map.tryFind "Dose" with
                 | None | Some "" -> None
                 | Some s ->
-                    match parseDoseLimitOpt s with
+                    match parseDoseLimitOpt SubstanceLimitTarget s with
                     | Ok dl -> dl
                     | Error e ->
                         errors <- e :: errors
@@ -482,7 +482,7 @@ module Medication =
                 match fields |> Map.tryFind "Dose" with
                 | None | Some "" -> None
                 | Some s ->
-                    match parseDoseLimitOpt s with
+                    match parseDoseLimitOpt ComponentLimitTarget s with
                     | Ok dl -> dl
                     | Error e ->
                         errors <- e :: errors
@@ -652,7 +652,7 @@ module Medication =
                 match topFields |> Map.tryFind "Dose" with
                 | None | Some "" -> None
                 | Some s ->
-                    match parseDoseLimitOpt s with
+                    match parseDoseLimitOpt (fun _ -> OrderableLimitTarget) s with
                     | Ok dl -> dl
                     | Error e ->
                         errors <- e :: errors

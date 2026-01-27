@@ -770,7 +770,8 @@ module DoseRule =
             |> function
                 | None -> dr
                 | Some formLimit ->
-                    { dr with FormLimit = Some formLimit }
+                    if formLimit |> DoseLimit.hasNoLimits then dr
+                    else { dr with FormLimit = Some formLimit }
 
 
     let getDoseLimits (rs : DoseRuleData []) =
@@ -866,6 +867,7 @@ module DoseRule =
                             // if no substance the dose limit is a component limit
                             |> Array.filter (_.Substance >> String.isNullOrWhiteSpace)
                             |> getDoseLimits
+                            |> Array.filter (DoseLimit.hasNoLimits >> not)
                             |> Array.tryExactlyOne
 
                     {
