@@ -1267,23 +1267,28 @@ module Medication =
 
 
         /// Calculate divisibility increment for a component
-        let calculateDivisibility (med: Medication) =
+        let calculateDivisibility (pc: ProductComponent option)  (med: Medication) =
             let ou = med |> getOrderableUnit
+            let pu = pc |> Option.bind (_.Quantities >> Option.map ValueUnit.getUnit)
+
             match ou, med.Div with
-            | None, _ -> None
-            | Some ou, Some br -> 1N / br |> createSingleValueUnitDto ou
+            | Some ou, Some br when Some ou = pu -> 1N / br |> createSingleValueUnitDto ou
             | Some ou, None ->
                 let incrs =
                     med.Components
                     |> List.choose (fun pc ->
-                        pc.Divisible |> Option.map (fun d -> 1N / d)
+                        if pc.Quantities |> Option.map ValueUnit.getUnit = pu then
+                            pc.Divisible |> Option.map (fun d -> 1N / d)
+                        else None
                     )
 
                 if incrs |> List.isEmpty then None
                 else
+                    let u = pu |> Option.defaultValue ou
                     incrs
                     |> List.max
-                    |> createSingleValueUnitDto ou
+                    |> createSingleValueUnitDto u
+            | _ -> None
 
         /// Apply solution constraints to an item
         let setItemSolutionConstraints (itmDto : Order.Orderable.Item.Dto.Dto) (sl : SolutionLimit) =
@@ -1294,10 +1299,10 @@ module Medication =
         let setTimedOrderConstraints (med: Medication) (orbDto : Order.Orderable.Dto.Dto) =
             // Assume timed order always solution
             if orbDto.Dose.Quantity.Constraints.ValsOpt.IsNone then
-                orbDto.Dose.Quantity.Constraints.IncrOpt <- med |> calculateDivisibility
+                orbDto.Dose.Quantity.Constraints.IncrOpt <- med |> calculateDivisibility None
 
             if orbDto.OrderableQuantity.Constraints.ValsOpt.IsNone then
-                orbDto.OrderableQuantity.Constraints.IncrOpt <- med |> calculateDivisibility
+                orbDto.OrderableQuantity.Constraints.IncrOpt <- med |> calculateDivisibility None
 
         /// Set basic item-level constraints
         let setItemQtyConcConstraints (itmDto : Order.Orderable.Item.Dto.Dto) (med : Medication) (si : SubstanceItem) =
@@ -1355,7 +1360,7 @@ module Medication =
 
         /// Set basic component-level constraints
         let setComponentQtyConcConstraints (med : Medication) (pc : ProductComponent) (cmpDto : Order.Orderable.Component.Dto.Dto) =
-            let incr = med |> calculateDivisibility
+            let incr = med |> calculateDivisibility (Some pc)
 
             cmpDto.ComponentQuantity.Constraints.ValsOpt <- pc.Quantities |> vuToDto
             cmpDto.OrderableQuantity.Constraints.IncrOpt <- incr
@@ -1375,14 +1380,10 @@ module Medication =
         /// Set component dose constraints based on order type
         let setComponentDoseConstraints (cmpDto : Order.Orderable.Component.Dto.Dto) (med : Medication) (pc : ProductComponent) =
             let zero =
-                med.Components
-                |> List.tryHead
-                |> Option.bind (fun p ->
-                    p.Quantities
-                    |> Option.map ValueUnit.getUnit
-                    |> Option.bind (fun u ->
-                        0N |> createSingleValueUnitDto u
-                    )
+                pc.Quantities
+                |> Option.map ValueUnit.getUnit
+                |> Option.bind (fun u ->
+                    0N |> createSingleValueUnitDto u
                 )
 
             let setDoseRate (dl : DoseLimit) =
@@ -1478,7 +1479,7 @@ module Medication =
                 | Some [ _; tu ] -> Some tu
                 | _ -> None
 
-            let incr = med |> calculateDivisibility
+            let incr = med |> calculateDivisibility None
 
             // orderable quantity increment defaults to smallest product component increment (based on component divisibility)
             orbDto.OrderableQuantity.Constraints.IncrOpt <- incr

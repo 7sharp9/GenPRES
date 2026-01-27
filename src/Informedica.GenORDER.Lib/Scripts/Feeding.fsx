@@ -178,7 +178,7 @@ module FeedingScenarios =
 let logger = OrderLogging.createConsoleLogger ()
 
 
-testList "Medication" [
+testList "Feeding" [
     //MedicationTests.tests
     FeedingScenarios.scenarioTests (Some logger)
 ]
@@ -188,7 +188,9 @@ testList "Medication" [
 FeedingTexts.feedingWithPowder
 |> Medication.fromString
 |> function
-    | Error _ -> "cannot create medication" |> failwith
+    | Error _ -> "cannot create feeding" |> failwith
     | Ok med ->
+        let dto = med |> Medication.OrderDtoHelpers.calculateDivisibility (Some med.Components[1])
+        dto |> Option.map _.Unit |> printfn "%A"
         [ OrderCommand.CalcMinMax ]
         |> HelperFunctions.run (Some logger) med
