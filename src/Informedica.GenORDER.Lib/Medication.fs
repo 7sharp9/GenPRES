@@ -1011,14 +1011,16 @@ module Medication =
                 Form = shape
                 Quantities =
                     // Hack to prevent too many quantities
+                    (*
                     if solutionRule |> Option.isSome then
                         1N
                         |> ValueUnit.singleWithUnit Units.Volume.milliLiter
                         |> Some
                     else
-                        lim.Products
-                        |> Array.map _.FormQuantities
-                        |> ValueUnit.collect
+                    *)
+                    lim.Products
+                    |> Array.map _.FormQuantities
+                    |> ValueUnit.collect
                 Divisible =
                     lim.Products
                     |> Array.choose _.Divisible

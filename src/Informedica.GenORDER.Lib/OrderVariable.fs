@@ -14,7 +14,7 @@ module ValueUnit =
     /// Return a Unit as a short Dutch string
     /// </summary>
     let unitToString =
-        Units.toString false Units.Dutch Units.Short
+        Units.toString None None false Units.Dutch Units.Short
 
 
     /// <summary>
@@ -66,6 +66,10 @@ module ValueUnit =
         | None    -> None
         | Some vu ->
             let u = vu |> getUnit
+
+            if vus |> Array.forall (getUnit >> Units.eqsUnit u) |> not then
+                failwith "Cannot collect the ValueUnit array to a single ValueUnit" |> failwith
+
             vus
             |> Array.collect (toBase >> getValue)
             |> withUnit u

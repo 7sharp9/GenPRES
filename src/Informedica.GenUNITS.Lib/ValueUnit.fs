@@ -1627,21 +1627,17 @@ module Units =
     let fromString s =
         if s |> String.isNullOrWhiteSpace then None
         else
-
-            // TODO: ugly hack need to fix this
             s
-            (*
-            |> String.replace "x[Count]" "#"
-            |> String.replace "x" "/"
-            |> String.replace "#" "x[Count]"
-            *)
             |> String.split "/"
             |> function
             | us when us |> List.length >= 1 && (us |> List.length <= 3) ->
                 us
                 |> List.map (fun s ->
                     // need to replace nan as this otherwise will be a float
-                    let s = s |> String.replace "nan" "nnn"
+                    let s =
+                        s
+                        |> String.replace "nan" "nnn"
+
                     match s |> run Parser.parseUnit with
                     | Success (u, _, _) -> Some u
                     | Failure _ ->
@@ -1671,6 +1667,8 @@ module Units =
     /// <summary>
     /// Turn a unit u to a string with localization, verbality, and optional group annotation.
     /// </summary>
+    /// <param name="vw">Optional unit value wrapper</param>
+    /// <param name="uw">Optional unit wrapper</param>
     /// <param name="hasGroup">When true, includes the unit group in brackets (e.g., "[Mass]"); when false, omits it</param>
     /// <param name="loc">Localization (English or Dutch)</param>
     /// <param name="verb">Verbality (Short or Long)</param>
@@ -1679,10 +1677,31 @@ module Units =
     /// toString true Dutch Short (Mass (KiloGram 1N)) = "kg[Mass]" <br/>
     /// toString false Dutch Short (Mass (KiloGram 1N)) = "kg"
     /// </example>
-    let toString hasGroup loc verb u =
+    let toString vw uw hasGroup loc verb u =
+        let wrapUnit u =
+            match uw with
+            | Some w -> $"%s{w}{u}{w}"
+            | None -> u
+        let wrapValue n =
+            let n =
+                match loc with
+                | Dutch ->
+                    n
+                    |> BigRational.toDecimal
+                    |> Decimal.toStringNumberNLWithoutTrailingZeros
+                | English ->
+                    n
+                    |> BigRational.toDecimal
+                    |> string
+
+            match vw with
+            | Some w -> $"%s{w}{n}{w}"
+            | None -> n
+
         let gtost u g =
             u +
             if hasGroup then "[" + (g |> ValueUnit.Group.toString) + "]" else ""
+            |> wrapUnit
 
         let rec str u =
             match u with
@@ -1701,9 +1720,9 @@ module Units =
                     else n
 
                 if v > 1N then
-                    (1N |> BigRational.toString) + ustr
+                    $"{v  |> wrapValue} {ustr |> wrapUnit}"
                 else
-                    ustr
+                    ustr |> wrapUnit
 
             | _ ->
                 let n, u = u |> nUnit
@@ -1731,7 +1750,7 @@ module Units =
                 |> function
                 | s when s |> String.isNullOrWhiteSpace -> ""
                 | s when n = 1N -> s
-                | s -> (n |> BigRational.toString) + " " + s
+                | s -> $"{n |> wrapValue} {s}"
 
         str u
 
@@ -1743,7 +1762,18 @@ module Units =
     /// toStringDutchShort (Time (Minute 1N)) = "min[Time]"
     /// </example>
     let toStringDutchShort =
-        toString true Dutch Short
+        toString None None true Dutch Short
+
+
+    /// <summary>
+    /// Turn a unit to a dutch short string with group annotation
+    ///
+    /// </summary>
+    /// <example>
+    /// toStringDutchShort (Time (Minute 1N)) = "min[Time]"
+    /// </example>
+    let toStringDutchShortWithWrapper vw uw =
+        toString (Some vw) (Some uw) true Dutch Short
 
     /// <summary>
     /// Turn a unit to a dutch long string with group annotation
@@ -1751,7 +1781,7 @@ module Units =
     /// <example>
     /// toStringDutchLong (Time (Minute 1N)) = "minuut[Time]"
     /// </example>
-    let toStringDutchLong = toString true Dutch Long
+    let toStringDutchLong = toString None None true Dutch Long
 
     /// <summary>
     /// Turn a unit to an english short string with group annotation
@@ -1760,7 +1790,7 @@ module Units =
     /// toStringEngShort (Time (Day 1N)) = "day[Time]"
     /// </example>
     let toStringEngShort =
-        toString true English Short
+        toString None None true English Short
 
     /// <summary>
     /// Turn a unit to an english short string without group annotation
@@ -1769,7 +1799,7 @@ module Units =
     /// toStringEngShort (Time (Day 1N)) = "day"
     /// </example>
     let toStringEngShortWithoutGroup =
-        toString false English Short
+        toString None None false English Short
 
     /// <summary>
     /// Turn a unit to an english long string with group annotation
@@ -1777,7 +1807,7 @@ module Units =
     /// <example>
     /// toStringEngLong (Time (Day 1N)) = "day[Time]"
     /// </example>
-    let toStringEngLong = toString true English Long
+    let toStringEngLong = toString None None true English Long
 
 
 
@@ -3802,7 +3832,25 @@ module ValueUnit =
     /// </example>
     let unitToReadableDutchString u =
         u
-        |> Units.toString false Units.Dutch Units.Short
+        |> Units.toString None None false Units.Dutch Units.Short
+
+    /// <summary>
+    /// Get the user readable string version of a unit in Dutch short format
+    /// without unit group annotation (i.e., without brackets) and a wrapper w
+    /// </summary>
+    /// <param name="vw">A wrapper around a unit value > 1</param>
+    /// <param name="uw">A wrapper around a unit</param>
+    /// <param name="u">The unit to convert to string</param>
+    /// <example>
+    /// <code>
+    /// unitToReadableDutchString (Mass (KiloGram 1N)) = "kg"
+    /// </code>
+    /// </example>
+    let unitToReadableDutchStringWithWrappers vw uw u =
+        u
+        |> Units.toString (Some vw) (Some uw) false Units.Dutch Units.Short
+
+
 
 
     /// <summary>
@@ -3832,7 +3880,7 @@ module ValueUnit =
     let toString hasGroup brf loc verb vu =
         let v, u = vu |> get
 
-        $"{v |> Array.map brf |> Array.distinct |> Array.toReadableString} {Units.toString hasGroup loc verb u}"
+        $"{v |> Array.map brf |> Array.distinct |> Array.toReadableString} {Units.toString None None hasGroup loc verb u}"
 
 
     /// <summary>
@@ -4012,7 +4060,7 @@ module ValueUnit =
                     u |> Group.unitToGroup |> Group.toString
 
                 let u =
-                    u |> Units.toString false l s //|> String.removeBrackets
+                    u |> Units.toString None None false l s //|> String.removeBrackets
 
                 let dto = dto ()
                 dto.Value <- v

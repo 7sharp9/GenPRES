@@ -4172,6 +4172,21 @@ module Order =
                             )
 
                 let prep =
+                    let useReconst =
+                        ord.Orderable.Components
+                        |> List.tryHead
+                        |> Option.bind (fun cmp ->
+                            cmp.ComponentQuantity
+                            |> Quantity.toOrdVar
+                            |> OrderVariable.getValSetValueUnit
+                            |> Option.map (fun vu ->
+                                vu
+                                |> ValueUnit.getValue
+                                |> Array.forall (fun br -> br > 1N)
+                            )
+                        )
+                        |> Option.defaultValue false
+
                     ord.Orderable.Components
                     |> List.toArray
                     |> Array.mapi (fun i1 c ->

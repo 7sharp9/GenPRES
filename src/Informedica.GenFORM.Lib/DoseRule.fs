@@ -643,7 +643,7 @@ module DoseRule =
                                             |> Array.map (fun product ->
                                                 let u =
                                                     product.FormUnit
-                                                    |> Units.toString false Units.Dutch Units.Short
+                                                    |> Units.toString None None false Units.Dutch Units.Short
 
                                                 { r with
                                                     Generic = gen
