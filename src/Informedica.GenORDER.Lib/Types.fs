@@ -385,6 +385,9 @@ module Types =
         {
             // The name of the substance
             Name : string
+            // Quantities only needed for reconstitution scenarios
+            // to tie a specific reconstitution to a quantity
+            Quantities : ValueUnit option
             // The possible concentrations of the substance
             // in the products
             Concentrations : ValueUnit option

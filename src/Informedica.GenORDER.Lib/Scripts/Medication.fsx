@@ -866,3 +866,179 @@ Components:
         |> Medication.toOrderDto
         |> Order.Dto.fromDto
         |> Result.map Order.toConsoleTable
+
+
+module Order =
+
+    module Print  =
+
+        open Order
+
+        open Order.Print
+
+        module Quantity = OrderVariable.Quantity
+        module Concentration = OrderVariable.Concentration
+
+
+        let printPrep printMd sns (ord: Order) =
+            let hasCompQty =
+                ord.Orderable.Components
+                |> List.tryHead
+                |> Option.bind (fun cmp ->
+                    cmp.ComponentQuantity
+                    |> Quantity.toOrdVar
+                    |> OrderVariable.getValSetValueUnit
+                    |> Option.map (fun vu ->
+                        vu
+                        |> ValueUnit.getValue
+                        |> Array.forall (fun br -> br > 1N)
+                    )
+                )
+                |> Option.defaultValue false
+
+            ord.Orderable.Components
+            |> List.toArray
+            |> Array.mapi (fun i1 c ->
+                let cmpQty =
+                    c
+                    |> Orderable.Component.Print.componentOrderableQuantityTo printMd -1
+                    |> wrap Caution
+                        [
+                            yield! c.Items |> List.map (_.OrderableConcentration >> Concentration.toOrdVar)
+                            c.OrderableConcentration |> Concentration.toOrdVar
+                            c.OrderableQuantity |> Quantity.toOrdVar
+                        ]
+
+                let cItms =
+                   c.Items
+                   |> List.filter (fun i -> sns |> Array.exists (String.equalsCapInsens (i.Name |> Name.toString)))
+                   |> List.toArray
+
+                [|
+                    if i1 > 0 || cItms |> Array.isEmpty then
+                        [|
+                            [|
+                                if cmpQty |> textBlockIsEmpty |> not then
+                                    if i1 = 0 && cItms |> Array.isEmpty |> not then
+                                        c.Form |> Valid
+                                    else
+                                        $"{c.Form} ({c.Name |> Name.toString})"
+                                        |> Valid
+
+                                    cmpQty
+                                    "" |> Valid
+                                    "" |> Valid
+                            |]
+                        |]
+                    else
+                        cItms
+                        |> Array.mapi (fun i2 itm ->
+                            [|
+                                if cmpQty |> textBlockIsEmpty |> not then
+                                    if i1 = 0 && i2 = 0 then
+                                        c.Form |> Valid
+
+                                        c |> Orderable.Component.Print.componentOrderableQuantityTo printMd -1
+                                        |> wrap Warning
+                                            [
+                                                itm.OrderableConcentration |> Concentration.toOrdVar
+                                                c.OrderableQuantity |> Quantity.toOrdVar
+                                            ]
+                                    else
+                                        "" |> Valid
+                                        "" |> Valid
+
+                                    let itmConc =
+                                        itm |> Orderable.Item.Print.itemComponentConcentrationTo printMd -1
+                                        |> wrap Warning [ itm.ComponentConcentration |> Concentration.toOrdVar ]
+
+                                    if itmConc |> textBlockIsEmpty |> not then
+                                        itm.Name |> Name.toString |> Valid
+                                        itmConc
+
+                                    if hasCompQty then
+                                        let itmQty =
+                                            itm.ComponentQuantity
+                                            |> Quantity.toValueUnitMarkdown -1
+                                        let cmpQty =
+                                            c
+                                            |> Orderable.Component.Print.componentQuantityToMd -1
+                                        $"({itmQty}/{cmpQty})" |> Valid
+
+                            |]
+                        )
+                |]
+            )
+            |> Array.collect id
+            |> Array.collect id
+
+
+
+
+"""
+Id: 13e4f4e5-059d-47d6-8882-46cc2ed0f072
+Name: vancomycine
+Quantity:
+Quantities: 50;100;250 ml
+Route: INTRAVENEUS
+OrderType: TimedOrder
+Adjust: 14.5 kg
+Frequencies: 3;4 x/day
+Time: 60 min - 180 min
+Dose: [dun] ml
+Div:
+DoseCount: min 1 x
+Components:
+
+	Name: vancomycine
+	Form: poeder voor oplossing voor infusie
+	Quantities: 20 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: vancomycine
+		Concentrations: 50 mg/ml
+		Dose: vancomycine, [dun] mg, [rate] max 1.7 mg/min, [per-time-adj] 60 mg/kg/day, [per-time] max 4000 mg/day
+		Solution:  [conc] 2.5 mg/ml - 10 mg/ml
+
+	Name: gluc 5%
+	Form: vloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: energie
+		Concentrations: 0.2 kCal/ml
+		Dose:
+		Solution:
+
+		Name: koolhydraat
+		Concentrations: 0.05 g/ml
+		Dose:
+		Solution:
+"""
+|> Medication.fromString
+|> function
+    | Error _ -> "fail" |> failwith
+    | Ok med ->
+        med
+        |> Medication.OrderDtoHelpers.calculateDivisibility None
+        |> Option.bind ValueUnit.Dto.fromDto
+        |> printfn "%A"
+
+        [
+            CalcMinMax
+        ]
+        |> HelperFunctions.run None med
+        |> function
+            | Error _ -> "fail to solve" |> failwith
+            | Ok ord ->
+                ord |> Order.Print.printOrderToTableFormat true true [| "vancomycine" |]
+                |> printfn "%A"
+
+                ord |> Order.Print.printPrep true [| "vancomycine" |]
+                |> printfn "%A"
