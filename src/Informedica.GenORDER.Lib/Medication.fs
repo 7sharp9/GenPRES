@@ -262,7 +262,8 @@ module Medication =
                     | Some pos when pos > 0 ->
                         let targetStr = s.Substring(0, pos).Trim().TrimEnd(',').Trim()
                         let constraintsStr = s.Substring(pos)
-                        if targetStr |> String.IsNullOrWhiteSpace && constraintsStr |> String.isNullOrWhiteSpace then
+                        if targetStr |> String.isNullOrWhiteSpace &&
+                           constraintsStr |> String.isNullOrWhiteSpace then
                             NoLimitTarget, constraintsStr
                         else
                             target targetStr, constraintsStr
