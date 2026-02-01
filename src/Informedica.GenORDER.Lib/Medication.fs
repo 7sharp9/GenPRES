@@ -1522,17 +1522,6 @@ module Medication =
                 match rateUnit with
                 | None -> ()
                 | Some ru ->
-                    (*
-                    let rates =
-                        [ 100N .. 10N .. 1000N ]
-                        |> List.append [ 50N .. 5N .. 95N ]
-                        |> List.append [ 10N .. 1N .. 49N ]
-                        |> List.append [ 1N / 10N .. 1N / 10N .. 99N / 10N ]
-                        |> List.toArray
-                        |> createValueUnitDto ru
-
-                    orbDto.Dose.Rate.Constraints.ValsOpt <- rates
-                    *)
                     // increment defaults to 0.1
                     orbDto.Dose.Rate.Constraints.IncrOpt <- [| 1N / 10N |] |> createValueUnitDto ru
 
