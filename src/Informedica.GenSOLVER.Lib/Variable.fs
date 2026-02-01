@@ -653,26 +653,13 @@ module Variable =
             /// <summary>
             /// Get the markdown representation of a `Minimum`.
             /// </summary>
-            /// <param name="withUnit">whether to print the unit</param>
+            /// <param name="isWithUnit">whether to print the unit</param>
             /// <param name="prec">The precision</param>
             /// <param name="min">The minimum</param>
-            let toMarkdown withUnit prec min =
+            let toMarkdown isWithUnit prec min =
                 let _, vu = min |> toBoolValueUnit
 
-                let s =
-                    $"""{vu |> ValueUnit.toDelimitedString prec}"""
-
-                if withUnit then s
-                else
-                    let u =
-                        vu
-                        |> ValueUnit.getUnit
-                        |> Units.toStringDutchShort
-                        |> String.removeBrackets
-
-                    s
-                    |> String.replace $"|{u}|" ""
-                    |> String.trim
+                $"""{vu |> ValueUnit.toDelimitedString isWithUnit prec}"""
 
 
         module Maximum =
@@ -990,7 +977,7 @@ module Variable =
             let toMarkdown prec max =
                 let _, vu = max |> toBoolValueUnit
 
-                $"""{vu |> ValueUnit.toDelimitedString prec}"""
+                $"""{vu |> ValueUnit.toDelimitedString true prec}"""
 
 
         module ValueSet =
@@ -1268,25 +1255,17 @@ module Variable =
                     ValueUnit.getValue >> Array.length
 
                 if vu |> count <= 3 then
-                    $"""{vu |> ValueUnit.toDelimitedString prec}"""
+                    $"""{vu |> ValueUnit.toDelimitedString true prec}"""
                 else
 
                     let first1 = vu |> ValueUnit.takeFirst 1
                     let last1 = vu |> ValueUnit.takeLast 1
 
-                    let u =
-                        first1
-                        |> ValueUnit.getUnit
-                        |> Units.toStringDutchShort
-                        |> String.removeBrackets
-
                     let first1 =
                         first1
-                        |> ValueUnit.toDelimitedString prec
-                        |> String.replace $"|{u}|" ""
-                        |> String.trim
+                        |> ValueUnit.toDelimitedString false prec
 
-                    $"{first1} - {last1 |> ValueUnit.toDelimitedString prec}"
+                    $"{first1} - {last1 |> ValueUnit.toDelimitedString true prec}"
 
 
         module Property =

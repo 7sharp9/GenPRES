@@ -12,6 +12,7 @@ module Medication =
     open Informedica.GenUnits.Lib
     open Informedica.GenForm.Lib
     open Informedica.GenCore.Lib.Ranges
+    open Validus.ValidationMessages
 
 
     /// Unit validation helpers for deterministic field parsing
@@ -108,9 +109,17 @@ module Medication =
 
 
         /// Parse a line into (indentLevel, key, value)
+        /// Handles both tab and space indentation for compatibility with different FSI environments
         let parseLine (line: string) =
-            let indent = line |> Seq.takeWhile ((=) '\t') |> Seq.length
-            let content = line.TrimStart('\t')
+            // Try tabs first (preferred), then fall back to spaces (groups of 4)
+            let tabIndent = line |> Seq.takeWhile ((=) '\t') |> Seq.length
+            let indent =
+                if tabIndent > 0 then tabIndent
+                else
+                    // Count leading spaces and convert to indent level (4 spaces = 1 indent)
+                    let spaceCount = line |> Seq.takeWhile ((=) ' ') |> Seq.length
+                    spaceCount / 4
+            let content = line.TrimStart([| '\t'; ' ' |])
             match content.IndexOf(':') with
             | -1 -> None
             | i ->
@@ -224,7 +233,7 @@ module Medication =
         /// Format: "targetName, [field-label] constraint1, [field-label] constraint2, ..."
         /// e.g., "paracetamol, [qty-adj] 10 - 20 mg/kg/dosis"
         /// Note: Cannot split naively by comma because Dutch decimals use comma (e.g., "5,4")
-        let parseDoseLimitOpt (s: string) : Result<DoseLimit option, string> =
+        let parseDoseLimitOpt target (s: string) : Result<DoseLimit option, string> =
             if s |> String.IsNullOrWhiteSpace then Ok None
             else
                 // All known field labels
@@ -253,10 +262,11 @@ module Medication =
                     | Some pos when pos > 0 ->
                         let targetStr = s.Substring(0, pos).Trim().TrimEnd(',').Trim()
                         let constraintsStr = s.Substring(pos)
-                        if targetStr |> String.IsNullOrWhiteSpace then
+                        if targetStr |> String.isNullOrWhiteSpace &&
+                           constraintsStr |> String.isNullOrWhiteSpace then
                             NoLimitTarget, constraintsStr
                         else
-                            SubstanceLimitTarget targetStr, constraintsStr
+                            target targetStr, constraintsStr
                     | Some 0 ->
                         NoLimitTarget, s
                     | None ->
@@ -401,6 +411,16 @@ module Medication =
                 |> Map.tryFind "Name"
                 |> Option.defaultValue ""
 
+            let quantities =
+                match fields |> Map.tryFind "Quantities" with
+                | None | Some "" -> None
+                | Some s ->
+                    match parseValueUnitOpt s with
+                    | Ok vu -> vu
+                    | Error e ->
+                        errors <- e :: errors
+                        None
+
             let concentrations =
                 match fields |> Map.tryFind "Concentrations" with
                 | None | Some "" -> None
@@ -415,7 +435,7 @@ module Medication =
                 match fields |> Map.tryFind "Dose" with
                 | None | Some "" -> None
                 | Some s ->
-                    match parseDoseLimitOpt s with
+                    match parseDoseLimitOpt SubstanceLimitTarget s with
                     | Ok dl -> dl
                     | Error e ->
                         errors <- e :: errors
@@ -434,6 +454,7 @@ module Medication =
             if errors.IsEmpty then
                 Ok {
                     Name = name
+                    Quantities = quantities
                     Concentrations = concentrations
                     Dose = dose
                     Solution = solution
@@ -474,7 +495,7 @@ module Medication =
                 match fields |> Map.tryFind "Dose" with
                 | None | Some "" -> None
                 | Some s ->
-                    match parseDoseLimitOpt s with
+                    match parseDoseLimitOpt ComponentLimitTarget s with
                     | Ok dl -> dl
                     | Error e ->
                         errors <- e :: errors
@@ -644,7 +665,7 @@ module Medication =
                 match topFields |> Map.tryFind "Dose" with
                 | None | Some "" -> None
                 | Some s ->
-                    match parseDoseLimitOpt s with
+                    match parseDoseLimitOpt (fun _ -> OrderableLimitTarget) s with
                     | Ok dl -> dl
                     | Error e ->
                         errors <- e :: errors
@@ -821,15 +842,17 @@ module Medication =
         let item =
             {
                 Name = ""
+                Quantities = None
                 Concentrations = None
                 Dose = None
                 Solution = None
             }
 
 
-        let create nme conc dos sol =
+        let create nme qts conc dos sol =
             {
                 Name = nme
+                Quantities = qts
                 Concentrations = conc
                 Dose = dos
                 Solution = sol
@@ -956,6 +979,7 @@ module Medication =
                 for sub in cmp.Substances do
                     emptyStr
                     $"\t\tName: %s{sub.Name}"
+                    $"\t\tQuantities: %s{sub.Quantities |> vuToStr}"
                     $"\t\tConcentrations: %s{sub.Concentrations |> vuToStr}"
                     $"\t\tDose: %s{sub.Dose |> limitOptToString}"
                     $"\t\tSolution: %s{sub.Solution |> optToStr slToStr}"
@@ -1002,8 +1026,10 @@ module Medication =
                     else lim.Name
                 Form = shape
                 Quantities =
-                    // Hack to prevent too many quantities
-                    if solutionRule |> Option.isSome then
+                    let hasReconst =
+                        lim.Products
+                        |> Array.forall _.RequiresReconstitution
+                    if solutionRule.IsSome && hasReconst |> not then
                         1N
                         |> ValueUnit.singleWithUnit Units.Volume.milliLiter
                         |> Some
@@ -1019,8 +1045,8 @@ module Medication =
                 Dose = lim.Limit
                 Substances =
                     lim.Products
-                    |> Array.collect _.Substances
-                    |> Array.groupBy _.Name
+                    |> Array.collect (fun p -> p.Substances |> Array.map (fun s -> (s, p)))
+                    |> Array.groupBy (fst >> _.Name)
                     |> Array.map (fun (n, xs) ->
                         let dl =
                             lim.SubstanceLimits
@@ -1033,16 +1059,30 @@ module Medication =
 
                         {
                             Name = n
+                            Quantities =
+                                let prods =
+                                    lim.Products
+                                    |> Array.filter _.RequiresReconstitution
+
+                                if prods |> Array.isEmpty then None
+                                else
+                                    xs
+                                    |> Array.choose (fun (s, p) ->
+                                        match s.Concentration, p.FormQuantities with
+                                        | Some c, q -> c * q |> Some
+                                        | _ -> None
+                                    )
+                                    |> ValueUnit.collect
                             Concentrations =
                                 match dl with
                                 | Some dl when dl.DoseUnit |> ValueUnit.Group.eqsGroup Units.Molar.mole ->
                                     xs
-                                    |> Array.choose _.MolarConcentration
+                                    |> Array.choose (fst >> _.MolarConcentration)
                                     |> Array.distinct
                                     |> ValueUnit.collect
                                 | _ ->
                                     xs
-                                    |> Array.choose _.Concentration
+                                    |> Array.choose (fst >> _.Concentration)
                                     |> Array.distinct
                                     |> ValueUnit.collect
                             Dose = dl
@@ -1259,23 +1299,29 @@ module Medication =
 
 
         /// Calculate divisibility increment for a component
-        let calculateDivisibility (med: Medication) =
+        let calculateDivisibility (pc: ProductComponent option)  (med: Medication) =
             let ou = med |> getOrderableUnit
+            let pu = pc |> Option.bind (_.Quantities >> Option.map ValueUnit.getUnit)
+
             match ou, med.Div with
-            | None, _ -> None
-            | Some ou, Some br -> 1N / br |> createSingleValueUnitDto ou
+            | Some ou, Some br when Some ou = pu -> 1N / br |> createSingleValueUnitDto ou
             | Some ou, None ->
                 let incrs =
                     med.Components
                     |> List.choose (fun pc ->
-                        pc.Divisible |> Option.map (fun d -> 1N / d)
+                        if pc.Quantities |> Option.map ValueUnit.getUnit = pu ||
+                           pu.IsNone then
+                            pc.Divisible |> Option.map (fun d -> 1N / d)
+                        else None
                     )
 
                 if incrs |> List.isEmpty then None
                 else
+                    let u = pu |> Option.defaultValue ou
                     incrs
                     |> List.max
-                    |> createSingleValueUnitDto ou
+                    |> createSingleValueUnitDto u
+            | _ -> None
 
         /// Apply solution constraints to an item
         let setItemSolutionConstraints (itmDto : Order.Orderable.Item.Dto.Dto) (sl : SolutionLimit) =
@@ -1286,14 +1332,15 @@ module Medication =
         let setTimedOrderConstraints (med: Medication) (orbDto : Order.Orderable.Dto.Dto) =
             // Assume timed order always solution
             if orbDto.Dose.Quantity.Constraints.ValsOpt.IsNone then
-                orbDto.Dose.Quantity.Constraints.IncrOpt <- med |> calculateDivisibility
+                orbDto.Dose.Quantity.Constraints.IncrOpt <- med |> calculateDivisibility None
 
             if orbDto.OrderableQuantity.Constraints.ValsOpt.IsNone then
-                orbDto.OrderableQuantity.Constraints.IncrOpt <- med |> calculateDivisibility
+                orbDto.OrderableQuantity.Constraints.IncrOpt <- med |> calculateDivisibility None
 
         /// Set basic item-level constraints
         let setItemQtyConcConstraints (itmDto : Order.Orderable.Item.Dto.Dto) (med : Medication) (si : SubstanceItem) =
             itmDto.ComponentConcentration.Constraints.ValsOpt <- si.Concentrations |> vuToDto
+            itmDto.ComponentQuantity.Constraints.ValsOpt <- si.Quantities |> vuToDto
 
             // Handle single component case
             if med.Components |> List.length = 1 then
@@ -1347,7 +1394,7 @@ module Medication =
 
         /// Set basic component-level constraints
         let setComponentQtyConcConstraints (med : Medication) (pc : ProductComponent) (cmpDto : Order.Orderable.Component.Dto.Dto) =
-            let incr = med |> calculateDivisibility
+            let incr = med |> calculateDivisibility (Some pc)
 
             cmpDto.ComponentQuantity.Constraints.ValsOpt <- pc.Quantities |> vuToDto
             cmpDto.OrderableQuantity.Constraints.IncrOpt <- incr
@@ -1367,14 +1414,10 @@ module Medication =
         /// Set component dose constraints based on order type
         let setComponentDoseConstraints (cmpDto : Order.Orderable.Component.Dto.Dto) (med : Medication) (pc : ProductComponent) =
             let zero =
-                med.Components
-                |> List.tryHead
-                |> Option.bind (fun p ->
-                    p.Quantities
-                    |> Option.map ValueUnit.getUnit
-                    |> Option.bind (fun u ->
-                        0N |> createSingleValueUnitDto u
-                    )
+                pc.Quantities
+                |> Option.map ValueUnit.getUnit
+                |> Option.bind (fun u ->
+                    0N |> createSingleValueUnitDto u
                 )
 
             let setDoseRate (dl : DoseLimit) =
@@ -1470,7 +1513,7 @@ module Medication =
                 | Some [ _; tu ] -> Some tu
                 | _ -> None
 
-            let incr = med |> calculateDivisibility
+            let incr = med |> calculateDivisibility None
 
             // orderable quantity increment defaults to smallest product component increment (based on component divisibility)
             orbDto.OrderableQuantity.Constraints.IncrOpt <- incr
@@ -1480,15 +1523,6 @@ module Medication =
                 match rateUnit with
                 | None -> ()
                 | Some ru ->
-                    let rates =
-                        [ 100N .. 10N .. 1000N ]
-                        |> List.append [ 50N .. 5N .. 95N ]
-                        |> List.append [ 10N .. 1N .. 49N ]
-                        |> List.append [ 1N / 10N .. 1N / 10N .. 99N / 10N ]
-                        |> List.toArray
-                        |> createValueUnitDto ru
-
-                    orbDto.Dose.Rate.Constraints.ValsOpt <- rates
                     // increment defaults to 0.1
                     orbDto.Dose.Rate.Constraints.IncrOpt <- [| 1N / 10N |] |> createValueUnitDto ru
 

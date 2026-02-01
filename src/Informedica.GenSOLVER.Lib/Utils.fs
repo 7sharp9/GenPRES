@@ -74,6 +74,7 @@ module Utils =
         /// <summary>
         /// Print a ValueUnit to a string with a given precision delimited by "#" for Value and "|" for Unit
         /// </summary>
+        /// <param name="isWithUnit">Whether to print the unit</param>
         /// <param name="prec">The precision with which value should be printed</param>
         /// <param name="vu">The ValueUnit to print</param>
         /// <example>
@@ -84,11 +85,13 @@ module Utils =
         /// // returns "#0,33#, #0,2# |mg|"
         /// </code>
         /// </example>
-        let toDelimitedString prec vu =
+        let toDelimitedString isWithUnit prec vu =
             let u =
                 vu
                 |> getUnit
-                |> Units.toStringDutchShort
+                // need the English version to be able to
+                // correctly parse the unit from string
+                |> Units.toStringEngShort
                 |> String.replace "*" "/"
                 |> String.split "/"
                 |> function
@@ -119,9 +122,14 @@ module Utils =
                 |> String.concat "; "
                 |> sprintf "#%s#"
 
-            let us = u |> unitToReadableDutchString
+            let us =
+                if not isWithUnit then ""
+                else
+                    let vw = "#"
+                    let uw = "|"
+                    $" %s{u |> unitToReadableDutchStringWithWrappers vw uw}"
 
-            $"{vs} |{us}|"
+            $"{vs}{us}"
 
 
         module Operators =

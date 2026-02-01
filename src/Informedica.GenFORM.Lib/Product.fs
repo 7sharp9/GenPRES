@@ -675,15 +675,14 @@ module Product =
                             warnings.Add $"no reconstitution rules found for {prod.Generic} ({prod.Form}) with route {rte} and department {dep}"
                         xs
                     |> Array.map (fun r ->
-                        let v =
+                        let vol =
                             r.ExpansionVolume
                             |> Option.map (fun v -> v + r.DiluentVolume)
                             |> Option.defaultValue r.DiluentVolume
 
                         { prod with
-                            FormUnit =
-                                Units.Volume.milliLiter
-                            FormQuantities = v
+                            FormUnit = Units.Volume.milliLiter
+                            FormQuantities = vol
                             Substances =
                                 prod.Substances
                                 |> Array.map (fun s ->
@@ -691,11 +690,10 @@ module Product =
                                         Concentration =
                                             s.Concentration
                                             |> Option.map (fun q ->
-                                                // replace the old formunit with the new one
                                                 let one =
                                                     Units.Volume.milliLiter
                                                     |> ValueUnit.singleWithValue 1N
-                                                one * q / v
+                                                one * q / vol
                                             )
                                     }
                                 )

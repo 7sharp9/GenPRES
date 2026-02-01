@@ -643,7 +643,7 @@ module DoseRule =
                                             |> Array.map (fun product ->
                                                 let u =
                                                     product.FormUnit
-                                                    |> Units.toString false Units.Dutch Units.Short
+                                                    |> Units.toString None None false Units.Dutch Units.Short
 
                                                 { r with
                                                     Generic = gen
@@ -770,7 +770,8 @@ module DoseRule =
             |> function
                 | None -> dr
                 | Some formLimit ->
-                    { dr with FormLimit = Some formLimit }
+                    if formLimit |> DoseLimit.hasNoLimits then dr
+                    else { dr with FormLimit = Some formLimit }
 
 
     let getDoseLimits (rs : DoseRuleData []) =
@@ -866,6 +867,7 @@ module DoseRule =
                             // if no substance the dose limit is a component limit
                             |> Array.filter (_.Substance >> String.isNullOrWhiteSpace)
                             |> getDoseLimits
+                            |> Array.filter (DoseLimit.hasNoLimits >> not)
                             |> Array.tryExactlyOne
 
                     {
@@ -873,12 +875,16 @@ module DoseRule =
                         GPKs = rs |> Array.collect _.GPKs
                         Limit = lim
                         Products =
+                            let dosis = "dosis" |> Units.General.general
                             rs
                             |> Array.collect _.Products
                             |> Array.filter (fun p ->
                                 match lim with
                                 | None -> true
                                 | Some l ->
+                                    // special case where dosis is the dose unit
+                                    l.DoseUnit |> Units.eqsUnit dosis ||
+                                    // special case where dosis is count unit
                                     l.DoseUnit
                                     |> ValueUnit.Group.eqsGroup Units.Count.times ||
                                     l.DoseUnit

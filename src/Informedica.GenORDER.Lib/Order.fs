@@ -2484,7 +2484,7 @@ module Order =
             let timeTo md prec (schedule : Schedule) =
                 let toStr =
                     if md then Time.toValueUnitMarkdown prec
-                    else Time.toValueUnitMarkdown prec
+                    else Time.toValueUnitString prec
                 match schedule with
                 | Continuous tme -> tme |> toStr
                 | OnceTimed tme -> tme |> toStr
@@ -3910,6 +3910,99 @@ module Order =
                     | Alert _ -> s |> Alert
 
 
+        let printPrep printMd sns (ord: Order) =
+            let hasCompQty =
+                ord.Orderable.Components
+                |> List.tryHead
+                |> Option.bind (fun cmp ->
+                    cmp.ComponentQuantity
+                    |> Quantity.toOrdVar
+                    |> OrderVariable.getValSetValueUnit
+                    |> Option.map (fun vu ->
+                        vu
+                        |> ValueUnit.getValue
+                        |> Array.forall (fun br -> br > 1N)
+                    )
+                )
+                |> Option.defaultValue false
+
+            ord.Orderable.Components
+            |> List.toArray
+            |> Array.mapi (fun i1 c ->
+                let cmpQty =
+                    c
+                    |> Orderable.Component.Print.componentOrderableQuantityTo printMd -1
+                    |> wrap Caution
+                        [
+                            yield! c.Items |> List.map (_.OrderableConcentration >> Concentration.toOrdVar)
+                            c.OrderableConcentration |> Concentration.toOrdVar
+                            c.OrderableQuantity |> Quantity.toOrdVar
+                        ]
+
+                let cItms =
+                   c.Items
+                   |> List.filter (fun i -> sns |> Array.exists (String.equalsCapInsens (i.Name |> Name.toString)))
+                   |> List.toArray
+
+                [|
+                    if i1 > 0 || cItms |> Array.isEmpty then
+                        [|
+                            [|
+                                if cmpQty |> textBlockIsEmpty |> not then
+                                    if i1 = 0 && cItms |> Array.isEmpty |> not then
+                                        c.Form |> Valid
+                                    else
+                                        $"{c.Form} ({c.Name |> Name.toString})"
+                                        |> Valid
+
+                                    cmpQty
+                                    "" |> Valid
+                                    "" |> Valid
+                            |]
+                        |]
+                    else
+                        cItms
+                        |> Array.mapi (fun i2 itm ->
+                            [|
+                                if cmpQty |> textBlockIsEmpty |> not then
+                                    if i1 = 0 && i2 = 0 then
+                                        c.Form |> Valid
+
+                                        c |> Orderable.Component.Print.componentOrderableQuantityTo printMd -1
+                                        |> wrap Warning
+                                            [
+                                                itm.OrderableConcentration |> Concentration.toOrdVar
+                                                c.OrderableQuantity |> Quantity.toOrdVar
+                                            ]
+                                    else
+                                        "" |> Valid
+                                        "" |> Valid
+
+                                    let itmConc =
+                                        itm |> Orderable.Item.Print.itemComponentConcentrationTo printMd -1
+                                        |> wrap Warning [ itm.ComponentConcentration |> Concentration.toOrdVar ]
+
+                                    if itmConc |> textBlockIsEmpty |> not then
+                                        itm.Name |> Name.toString |> Valid
+                                        itmConc
+
+                                    if hasCompQty then
+                                        let itmQty =
+                                            itm.ComponentQuantity
+                                            |> Quantity.toValueUnitString -1
+                                        let cmpQty =
+                                            c.ComponentQuantity
+                                            |> Quantity.toValueUnitString -1
+                                        $"({itmQty}/{cmpQty})" |> Valid
+
+                            |]
+                        )
+                |]
+            )
+            |> Array.collect id
+            |> Array.collect id
+
+
         let printOrderToTableFormat
             useAdj
             printMd
@@ -4171,72 +4264,7 @@ module Order =
                                 |]
                             )
 
-                let prep =
-                    ord.Orderable.Components
-                    |> List.toArray
-                    |> Array.mapi (fun i1 c ->
-                        let cmpQty =
-                            c
-                            |> Orderable.Component.Print.componentOrderableQuantityTo printMd -1
-                            |> wrap Caution
-                                [
-                                    yield! c.Items |> List.map (_.OrderableConcentration >> Concentration.toOrdVar)
-                                    c.OrderableConcentration |> Concentration.toOrdVar
-                                    c.OrderableQuantity |> Quantity.toOrdVar
-                                ]
-
-                        let cItms =
-                           c.Items
-                           |> List.filter (fun i -> sns |> Array.exists (String.equalsCapInsens (i.Name |> Name.toString)))
-                           |> List.toArray
-
-                        [|
-                            if i1 > 0 || cItms |> Array.isEmpty then
-                                [|
-                                    [|
-                                        if cmpQty |> textBlockIsEmpty |> not then
-                                            if i1 = 0 && cItms |> Array.isEmpty |> not then
-                                                c.Form |> Valid
-                                            else
-                                                $"{c.Form} ({c.Name |> Name.toString})"
-                                                |> Valid
-
-                                            cmpQty
-                                            "" |> Valid
-                                            "" |> Valid
-                                    |]
-                                |]
-                            else
-                                cItms
-                                |> Array.mapi (fun i2 itm ->
-                                    [|
-                                        if cmpQty |> textBlockIsEmpty |> not then
-                                            if i1 = 0 && i2 = 0 then
-                                                c.Form |> Valid
-
-                                                c |> Orderable.Component.Print.componentOrderableQuantityTo printMd -1
-                                                |> wrap Warning
-                                                    [
-                                                        itm.OrderableConcentration |> Concentration.toOrdVar
-                                                        c.OrderableQuantity |> Quantity.toOrdVar
-                                                    ]
-                                            else
-                                                "" |> Valid
-                                                "" |> Valid
-
-                                            let itmQty =
-                                                itm |> Orderable.Item.Print.itemComponentConcentrationTo printMd -1
-                                                |> wrap Warning [ itm.ComponentConcentration |> Concentration.toOrdVar ]
-
-                                            if itmQty |> textBlockIsEmpty |> not then
-                                                itm.Name |> Name.toString |> Valid
-                                                itmQty
-                                    |]
-                                )
-                        |]
-                    )
-                    |> Array.collect id
-                    |> Array.collect id
+                let prep = ord |> printPrep true sns
 
                 let adm =
                     match ord.Schedule with

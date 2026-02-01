@@ -371,10 +371,10 @@ ord |> Order.printTable ConsoleTables.Format.Minimal
 
 Patient.teenager
 |> Patient.setWeight (33m |> Kilogram |> Some)
-    |> Api.getPrescriptionRules provider
-    |> GenFormResult.get
+|> Api.getPrescriptionRules provider
+|> GenFormResult.get
 |> Array.filter (fun pr ->
-    pr.DoseRule.Generic |> String.equalsCapInsens "Samenstelling E"
+    pr.DoseRule.Generic |> String.equalsCapInsens "piperacilline/tazobactam"
 )
 |> Array.head
 |> Medication.fromRule Logging.noOp
