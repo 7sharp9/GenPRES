@@ -155,6 +155,7 @@ module Types =
         {
             Name: string
             Constraints: Variable
+            Calculated: Variable
             Variable: Variable
         }
 

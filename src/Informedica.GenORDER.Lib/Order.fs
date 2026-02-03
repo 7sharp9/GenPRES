@@ -171,6 +171,23 @@ module Order =
                 create qty ptm rte tot qty_adj ptm_adj rte_adj tot_adj
 
 
+            /// <summary>
+            /// Apply constraints to a Dose
+            /// </summary>
+            /// <param name="dos">The Dose</param>
+            let applyOnlyMaxConstraints dos =
+                let qty = (dos |> inf).Quantity |> Quantity.applyOnlyMaxConstraints
+                let ptm = dos.PerTime |> PerTime.applyOnlyMaxConstraints
+                let rte = dos.Rate |> Rate.applyOnlyMaxConstraints
+                let tot = dos.Total |> Total.applyOnlyMaxConstraints
+                let qty_adj = dos.QuantityAdjust |> QuantityAdjust.applyOnlyMaxConstraints
+                let ptm_adj = dos.PerTimeAdjust |> PerTimeAdjust.applyOnlyMaxConstraints
+                let rte_adj = dos.RateAdjust |> RateAdjust.applyOnlyMaxConstraints
+                let tot_adj = dos.TotalAdjust |> TotalAdjust.applyOnlyMaxConstraints
+
+                create qty ptm rte tot qty_adj ptm_adj rte_adj tot_adj
+
+
             let isWithinConstraints dos =
                 dos
                 |> toOrdVars
@@ -392,6 +409,9 @@ module Order =
 
 
             let setNthValue nth = setDose (OrderVariable.setNthValue nth)
+
+
+            let setPercValue perc = setDose (OrderVariable.setPercValue perc)
 
 
             /// <summary>
@@ -3001,30 +3021,6 @@ module Order =
         ord
 
 
-    let printTable format ord =
-        ord
-        |> toStringWithConstraints
-        |> List.map (fun s ->
-            s
-            |> String.replace "[" ""
-            |> String.replace "]_" "|"
-            |> String.split "|"
-        )
-        |> List.filter (List.length >> (=) 3)
-        |> List.map (fun xs ->
-            let v =
-                xs[1] |> String.split " "
-            {|
-                ``1 - NAME`` = xs[0] |> String.trim
-                ``2 - VARIABLE`` = v[0] |> String.trim
-                ``3 - VALUE`` = v[1..] |> String.concat " " |> String.trim |> String.replace "]" ""
-                ``4 - CONSTRAINTS`` = xs[2] |> String.trim |> String.replace "]" ""
-            |}
-        )
-        |> ConsoleTables.from
-        |> ConsoleTables.write format
-
-
     let toConsoleTable ord =
         ord
         |> toStringWithConstraints
@@ -3034,7 +3030,7 @@ module Order =
             |> String.replace "]_" "|"
             |> String.split "|"
         )
-        |> List.filter (List.length >> (=) 3)
+        |> List.filter (List.length >> (=) 4)
         |> List.map (fun xs ->
             let v =
                 xs[1] |> String.split " "
@@ -3043,11 +3039,16 @@ module Order =
                 ``2 - VARIABLE`` = v[0] |> String.trim
                 ``3 - VALUE`` = v[1..] |> String.concat " " |> String.trim |> String.replace "]" ""
                 ``4 - CONSTRAINTS`` = xs[2] |> String.trim |> String.replace "]" ""
+                ``5 - CALCULATED`` = xs[3] |> String.trim |> String.replace "]" ""
             |}
         )
         |> ConsoleTables.from
-        |> ConsoleTables.toMarkDownString
 
+
+    let printTable format = toConsoleTable >> ConsoleTables.write format
+
+
+    let toConsoleTableString = toConsoleTable >> ConsoleTables.toMarkDownString
 
 
     /// <summary>
@@ -3099,6 +3100,13 @@ module Order =
         }
 
 
+    let applyCalculatedConstraints ord =
+        ord
+        |> toOrdVars
+        |> List.map OrderVariable.applyCalculatedConstraints
+        |> fun ovars -> ord |> fromOrdVars ovars
+
+
     /// Check whether all OrderVariables in an Order are empty
     let areAllConstraintsNotApplied = toOrdVars >> List.forall OrderVariable.isConstraintsNotApplied
 
@@ -3114,6 +3122,13 @@ module Order =
     /// Check whether there are OrderVariables in an Order that are not within their constraints
     /// and return those OrderVariables
     let checkConstraints = toOrdVars >> List.filter (OrderVariable.isWithinConstraints >> not)
+
+
+    let setCalculatedConstraints ord =
+        ord
+        |> toOrdVars
+        |> List.map OrderVariable.setCalculatedConstraints
+        |> fun ovars -> ord |> fromOrdVars ovars
 
 
     /// Check whether all OrderVariables in an Order are solved
@@ -3366,6 +3381,55 @@ module Order =
         }
 
 
+    let hasNormDose ord =
+        match ord.Schedule with
+        | Once | OnceTimed _ ->
+            (ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
+            ,ord.Orderable.Components)
+            ||> List.fold (fun acc cmp ->
+                if acc then true
+                else
+                    (cmp.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
+                    ,cmp.Items)
+                    ||> List.fold (fun acc itm ->
+                        if acc then true
+                        else
+                        itm.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
+                    )
+            )
+        | Discontinuous _ | Timed _ ->
+            (ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
+             ord.Orderable.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
+            ,ord.Orderable.Components)
+            ||> List.fold (fun acc cmp ->
+                if acc then true
+                else
+                    (cmp.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
+                     cmp.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
+                    ,cmp.Items)
+                    ||> List.fold (fun acc itm ->
+                        if acc then true
+                        else
+                            itm.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
+                            itm.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
+                    )
+            )
+        | Continuous _ ->
+            (ord.Orderable.Dose.RateAdjust |> RateAdjust.hasNormValue
+            ,ord.Orderable.Components)
+            ||> List.fold (fun acc cmp ->
+                if acc then true
+                else
+                    (cmp.Dose.RateAdjust |> RateAdjust.hasNormValue
+                    ,cmp.Items)
+                    ||> List.fold (fun acc itm ->
+                        if acc then true
+                        else
+                        itm.Dose.RateAdjust |> RateAdjust.hasNormValue
+                    )
+            )
+
+
     let setNormDose ord =
         match ord.Schedule with
         | Once | OnceTimed _ ->
@@ -3527,7 +3591,7 @@ module Order =
 
 
     let logOrder logger minMax msg ord =
-        let s = ord |> toConsoleTable
+        let s = ord |> toConsoleTableString
         let m = if minMax then "Min/Max" else "All Values"
         $"""
 == {msg} {m} ==
@@ -3611,13 +3675,12 @@ module Order =
 
             let msg = [ exn |> Informedica.GenSolver.Lib.Types.Exceptions.UnexpectedException ]
             Error (ord, msg)
-        // TODO: use result function
         |> function
             | Ok ord ->
                 ord |> logOrder "Finished Solving"
                 ord |> Ok
             | Error (ord, msgs) ->
-                let msg = $"Finished with{msgs |> List.length} Errors"
+                let msg = $"Finished with {msgs |> List.length} Errors"
                 ord |> logOrder msg
                 (ord, msgs) |> Error
 
@@ -3854,18 +3917,8 @@ module Order =
     let isCleared = toOrdVars >> List.exists OrderVariable.isCleared
 
 
-    let calcMinMax logger increaseIncrement =
+    let calcMinMax logger =
         solveMinMax "Calc Min Max" true logger
-        >> Result.bind (fun ord ->
-            if not increaseIncrement then ord |> Ok
-            else
-                ord
-                |> increaseIncrements logger 10 10
-        )
-        >> Result.bind (fun ord ->
-            ord
-            |> solveNormDose logger
-        )
 
 
     module Print =

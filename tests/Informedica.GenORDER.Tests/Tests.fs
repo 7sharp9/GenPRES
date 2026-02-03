@@ -968,6 +968,7 @@ module Tests
                 let variable = Variable.create id (Name "test") ValueRange.Unrestricted // Assuming this exists
                 let orderVariable = {
                     Constraints = constraints
+                    Calculated = OrderVariable.Constraints.create None None None None
                     Variable = variable
                 }
                 orderVariable.Constraints |> Expect.equal "should be equal" constraints

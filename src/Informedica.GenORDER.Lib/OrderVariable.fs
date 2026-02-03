@@ -295,6 +295,25 @@ module OrderVariable =
                 |> ValueRange.setOptIncr cs.Incr
 
 
+        let fromValueRange = function
+            | Unrestricted -> create None None None None
+            | NonZeroPositive ->
+                let zero =
+                    ZeroUnit
+                    |> ValueUnit.zero
+                    |> ValueRange.Minimum.create false
+                    |> Some
+                create zero None None None
+            | vr ->
+                let min, incr, max, vs = vr |> ValueRange.getMinIncrMaxOrValueSet
+                {
+                    Min = min
+                    Incr = incr
+                    Max = max
+                    Values = vs
+                }
+
+
         /// Get the string representation of a `ValueRange` from a `Constraints` record
         let toValueRangeString = toValueRange >> ValueRange.toString false
 
@@ -389,13 +408,15 @@ module OrderVariable =
     /// <param name="incr">An optional Increment of the Variable</param>
     /// <param name="max">An optional Maximum of the Variable</param>
     /// <param name="vs">An optional ValueSet of the Variable</param>
-    /// <param name="cs">The Constraints for the OrderVariable</param>
-    let create n min incr max vs cs =
+    /// <param name="cst">The Constraints for the OrderVariable</param>
+    /// <param name="cal">The calculated constraints</param>
+    let create n min incr max vs cst cal =
         ValueRange.create min incr max vs
         |> fun vlr ->
             let var = Variable.create id n vlr
             {
-                Constraints = cs
+                Constraints = cst
+                Calculated = cal
                 Variable = var
             }
 
@@ -410,8 +431,8 @@ module OrderVariable =
         let vu = 0N |> ValueUnit.createSingle un
         let min = Minimum.create false vu |> Some
 
-        Constraints.create min None None None
-        |> create n min None None None
+        let cs = Constraints.create min None None None
+        create n min None None None cs cs
 
 
     /// <summary>
@@ -517,6 +538,12 @@ module OrderVariable =
         }
 
 
+    let setCalculatedConstraints (ovar: OrderVariable) =
+        { ovar with
+            Calculated = ovar.Variable.Values |> Constraints.fromValueRange
+        }
+
+
     /// Apply only the maximum constraints of an OrderVariable
     /// If there are no constraints, then the Variable is set to
     /// non-zero positive
@@ -592,6 +619,12 @@ module OrderVariable =
                     { ovar.Variable with
                         Values = ovar.Constraints |> Constraints.toValueRange
                     }
+        }
+
+
+    let applyCalculatedConstraints (ovar: OrderVariable) =
+        { ovar with
+            OrderVariable.Variable.Values = ovar.Calculated |> Constraints.toValueRange
         }
 
 
@@ -776,9 +809,14 @@ module OrderVariable =
             if ovar.Constraints |> Constraints.isEmpty then ""
             else ovar.Constraints |> Constraints.toValueRangeString
 
+        let cal =
+            if ovar.Calculated |> Constraints.isEmpty then ""
+            else ovar.Calculated |> Constraints.toValueRangeString
+
         if cs |> String.isNullOrWhiteSpace ||
            withConstraints |> not then $"{ns} {vs}"
-        else $"{ns} {vs} | {cs}"
+
+        else $"{ns} {vs} | {cs} | {cal}"
 
 
     /// <summary>
@@ -1109,6 +1147,7 @@ module OrderVariable =
         type Dto () =
             member val Name = "" with get, set
             member val Constraints = Variable.Dto.dto () with get, set
+            member val Calculated = Variable.Dto.dto () with get, set
             member val Variable = Variable.Dto.dto () with get, set
 
 
@@ -1156,6 +1195,34 @@ module OrderVariable =
 
                     Constraints.create min incr max vs
 
+                let cal =
+                    let vs =
+                        dto.Calculated.ValsOpt
+                        |> Option.bind ValueUnit.Dto.fromDto
+                        |> Option.bind (fun vu ->
+                            if vu |> ValueUnit.isEmpty then None
+                            else
+                                vu
+                                |> ValueSet.create
+                                |> Some
+                        )
+
+                    let incr =
+                        dto.Calculated.IncrOpt
+                        |> Option.bind ValueUnit.Dto.fromDto
+                        |> Option.bind (fun vu ->
+                            if vu |> ValueUnit.isEmpty then None
+                            else
+                                vu
+                                |> Increment.create
+                                |> Some
+                        )
+
+                    let min  = dto.Calculated.MinOpt  |> Option.bind (ValueUnit.Dto.fromDto >> Option.map (Minimum.create  dto.Calculated.MinIncl))
+                    let max  = dto.Calculated.MaxOpt  |> Option.bind (ValueUnit.Dto.fromDto >> Option.map (Maximum.create  dto.Calculated.MaxIncl))
+
+                    Constraints.create min incr max vs
+
                 let n = dto.Name |> Name.fromString
                 let vals =
                     dto.Variable.ValsOpt
@@ -1182,7 +1249,7 @@ module OrderVariable =
                 let min  = dto.Variable.MinOpt  |> Option.bind (ValueUnit.Dto.fromDto >> Option.map (Minimum.create  dto.Variable.MinIncl))
                 let max  = dto.Variable.MaxOpt  |> Option.bind (ValueUnit.Dto.fromDto >> Option.map (Maximum.create  dto.Variable.MaxIncl))
 
-                create n min incr max vals cs
+                create n min incr max vals cs cal
             with
             | e ->
                 writeErrorMessage $"cannot create OrderVariable fromDto: {dto |> JsonConvert.SerializeObject}"
@@ -1264,6 +1331,36 @@ module OrderVariable =
 
             dto.Constraints.MaxIncl <-
                 ovar.Constraints.Max
+                |> Option.map Maximum.isIncl
+                |> Option.defaultValue false
+
+            dto.Calculated.ValsOpt <-
+                ovar.Calculated.Values
+                |> Option.map ValueSet.toValueUnit
+                |> Option.bind vuToDto
+
+            dto.Calculated.IncrOpt <-
+                ovar.Calculated.Incr
+                |> Option.map Increment.toValueUnit
+                |> Option.bind vuToDto
+
+            dto.Calculated.MinOpt <-
+                ovar.Calculated.Min
+                |> Option.map Minimum.toValueUnit
+                |> Option.bind vuToDto
+
+            dto.Calculated.MinIncl <-
+                ovar.Calculated.Min
+                |> Option.map Minimum.isIncl
+                |> Option.defaultValue false
+
+            dto.Calculated.MaxOpt <-
+                ovar.Calculated.Max
+                |> Option.map Maximum.toValueUnit
+                |> Option.bind vuToDto
+
+            dto.Calculated.MaxIncl <-
+                ovar.Calculated.Max
                 |> Option.map Maximum.isIncl
                 |> Option.defaultValue false
 
@@ -1997,6 +2094,9 @@ module OrderVariable =
         let applyConstraints = toOrdVar >> applyConstraints >> PerTime
 
 
+        let applyOnlyMaxConstraints = toOrdVar >> applyOnlyMaxConstraints >> PerTime
+
+
         /// Check whether a PerTime is non-zero positive
         let isNonZeroPositive = toOrdVar >> isNonZeroPositive
 
@@ -2098,6 +2198,9 @@ module OrderVariable =
 
         /// Apply the constraints of a Rate to the OrderVariable Variable
         let applyConstraints = toOrdVar >> applyConstraints >> Rate
+
+
+        let applyOnlyMaxConstraints = toOrdVar >> applyOnlyMaxConstraints >> Rate
 
 
         /// Set constraints for a Rate
@@ -2233,6 +2336,9 @@ module OrderVariable =
 
         /// Apply the constraints of a Total to the OrderVariable Variable
         let applyConstraints = toOrdVar >> applyConstraints >> Total
+
+
+        let applyOnlyMaxConstraints = toOrdVar >> applyOnlyMaxConstraints >> Total
 
         /// Check whether a Total is non-zero positive
         let isNonZeroPositive = toOrdVar >> isNonZeroPositive
@@ -2446,6 +2552,9 @@ module OrderVariable =
         let applyConstraints = toOrdVar >> applyConstraints >> PerTimeAdjust
 
 
+        let applyOnlyMaxConstraints = toOrdVar >> applyOnlyMaxConstraints >> PerTimeAdjust
+
+
         /// Check whether a PerTimeAdjust is non-zero positive
         let isNonZeroPositive = toOrdVar >> isNonZeroPositive
 
@@ -2563,6 +2672,9 @@ module OrderVariable =
         let applyConstraints = toOrdVar >> applyConstraints >> RateAdjust
 
 
+        let applyOnlyMaxConstraints = toOrdVar >> applyOnlyMaxConstraints >> RateAdjust
+
+
         /// Check whether a RateAdjust is non-zero positive
         let isNonZeroPositive = toOrdVar >> isNonZeroPositive
 
@@ -2660,6 +2772,10 @@ module OrderVariable =
 
         /// Apply the constraints of a TotalAdjust to the OrderVariable Variable
         let applyConstraints = toOrdVar >> applyConstraints >> TotalAdjust
+
+
+        let applyOnlyMaxConstraints = toOrdVar >> applyOnlyMaxConstraints >> TotalAdjust
+
 
         /// Check whether a TotalAdjust is non-zero positive
         let isNonZeroPositive = toOrdVar >> isNonZeroPositive

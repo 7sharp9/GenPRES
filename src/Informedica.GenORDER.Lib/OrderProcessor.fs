@@ -53,10 +53,17 @@ module OrderProcessor =
         |> OrderPropertyChange.proc
             [
                 ScheduleFrequency Frequency.applyConstraints
-                OrderableDose Dose.setPerTimeToNonZeroPositive
-                ComponentDose ("", Dose.setPerTimeToNonZeroPositive)
-                ItemDose ("", "", Dose.setPerTimeToNonZeroPositive)
-
+                // Dose quantity is solved and could be outside constraints
+                if ord.Orderable.Dose.Quantity |> Quantity.isSolved then
+                    OrderableDose Dose.setPerTimeToNonZeroPositive
+                    ComponentDose ("", Dose.setPerTimeToNonZeroPositive)
+                    ItemDose ("", "", Dose.setPerTimeToNonZeroPositive)
+                // Dose quantity is not solved yet, so per time should be
+                // within constraints
+                else
+                    OrderableDose Dose.applyPerTimeConstraints
+                    ComponentDose ("", Dose.applyPerTimeConstraints)
+                    ItemDose ("", "", Dose.applyPerTimeConstraints)
             ]
         // re-calc min max
         |> solveMinMax "Order Property Set Frequency" printErr logger
@@ -146,6 +153,32 @@ module OrderProcessor =
                 if ord.Schedule |> Schedule.hasTime then
                     ScheduleTime Time.setToNonZeroPositive
                     OrderableDose Dose.applyConstraints
+
+                OrderableQuantity Quantity.applyConstraints
+                ComponentOrderableQuantity ("", Quantity.applyConstraints)
+                ComponentOrderableCount ("", OrderVariable.Count.setToNonZeroPositive)
+                ItemOrderableQuantity ("", "", Quantity.applyConstraints)
+
+                OrderableDose Dose.applyConstraints
+                ComponentDose ("", Dose.applyConstraints)
+                ItemDose ("", "", Dose.applyConstraints)
+
+                OrderableDoseCount OrderVariable.Count.applyConstraints
+            ]
+        // re-calc min max
+        |> solveMinMax "Order Property Set Dose Quantity" printErr logger
+        // step to a min, median or max dose quantity
+        |> Result.map (OrderPropertyChange.proc [ OrderableDose step ])
+
+
+    let orderPropertySetDoseQuantityPerc printErr logger step ord =
+        ord
+        // clear dose quantity and dependent properties
+        |> OrderPropertyChange.proc
+            [
+                if ord.Schedule |> Schedule.hasTime then
+                    ScheduleTime Time.setToNonZeroPositive
+                    OrderableDose Dose.applyOnlyMaxConstraints
 
                 OrderableQuantity Quantity.applyConstraints
                 ComponentOrderableQuantity ("", Quantity.applyConstraints)
@@ -298,6 +331,7 @@ module OrderProcessor =
         | SetMedianFrequency -> ord |> orderPropertySetFrequency printErr logger Frequency.setMedianValue
         | SetMaxFrequency -> ord |> orderPropertySetFrequency printErr logger Frequency.setMaxValue
         // Dose Quantity
+        | SetDoseQuantityPerc n -> ord |> orderPropertySetDoseQuantityPerc printErr logger (Dose.setPercValue n ord.Schedule false)
         | DecreaseDoseQuantity n -> ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.decreaseQuantity n) |> Ok
         | IncreaseDoseQuantity n -> ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.increaseQuantity n) |> Ok
         | SetMinDoseQuantity -> ord |> orderPropertySetDoseQuantity printErr logger (Dose.setMinDose ord.Schedule false)
@@ -407,7 +441,7 @@ module OrderProcessor =
 
         let logUnmatched (kind: string) =
             $"===> no match for {kind} cleared " |> writeWarningMessage
-            ord |> toConsoleTable |> Events.OrderScenario |> Logging.logWarning logger
+            ord |> toConsoleTableString |> Events.OrderScenario |> Logging.logWarning logger
 
         match (ord |> inf).Schedule with
         | Continuous _ ->
@@ -629,17 +663,26 @@ module OrderProcessor =
             ||> List.fold (fun acc step -> acc |> Result.bind (runStep step))
 
         // Core step functions
-        let calcMinMaxStep increaseIncrement ord =
+        let calcMinMaxStep ord =
             // TODO: need to simplify unnecessary match
-            match calcMinMax logger increaseIncrement ord with
+            match calcMinMax logger ord with
             | Ok o -> Ok o
             | Error (o, errs) ->
                 //o |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
                 Error (o, errs)
 
+        let setCalculatedConstraintsStep = setCalculatedConstraints >> Ok
+
+        let applyCalculatedConstraintsStep = applyCalculatedConstraints >> Ok
+
+        let increaseIncrementStep ord =
+            ord |> increaseIncrements logger 10 10
+
         let calcValuesStep useMax ord = ord |> minIncrMaxToValues useMax true logger |> Ok
 
         let solveStep ord = solveOrder "Solve Order Step" true logger ord
+
+        let calcNormDoseStep = solveNormDose logger
 
         let processClearedStep ord =
             match processClearedOrder logger ord with
@@ -651,8 +694,17 @@ module OrderProcessor =
         match cmd with
         | CalcMinMax ord ->
             [
-                { Name = "calc-minmax: apply-constraints"; Guard = (fun _ -> true); Run = applyConstraintsStep };
-                { Name = "calc-minmax: calc-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep true }
+                { Name = "calc-minmax: apply-constraints"; Guard = (fun _ -> true); Run = applyConstraintsStep }
+                { Name = "calc-minmax: calc-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep }
+                { Name = "calc-minmax: set-calculated-constraints"; Guard = (fun _ -> true); Run = setCalculatedConstraintsStep }
+                { Name = "calc-minmax: increase-increment"; Guard = (fun _ -> true); Run = increaseIncrementStep }
+                { Name = "calc-minmax: set-normdose"; Guard = (fun _ -> ord |> hasNormDose ); Run = calcNormDoseStep }
+            ]
+            |> runPipeline ord
+
+        | IncreaseIncrements ord ->
+            [
+                { Name = "increase-increment: increase-increment"; Guard = (fun _ -> true); Run = increaseIncrementStep }
             ]
             |> runPipeline ord
 
@@ -660,10 +712,11 @@ module OrderProcessor =
             let guard (os : OrderState) =
                 ord.Orderable.Components |> List.length <= 2 &&
                 os.DoseIsSolved |> not &&
-                os.OrderIsSolved |> not &&
-                os.HasValues |> not
+                os.OrderIsSolved |> not //&&
+                //os.HasValues |> not
             [
-                { Name = "calc-values: calc-values"; Guard = guard; Run = calcValuesStep false}
+                { Name = "calc-values: increase-increments"; Guard = guard; Run = increaseIncrementStep }
+                { Name = "calc-values: calc-values"; Guard = guard; Run = calcValuesStep false }
             ]
             |> runPipeline ord
 
@@ -678,8 +731,7 @@ module OrderProcessor =
         | ReCalcValues ord ->
             let useMax = ord.Orderable.Components |> List.length <= 2
             [
-                { Name = "recalc-values: apply-constraints"; Guard = (fun _ -> true); Run = applyConstraintsStep };
-                { Name = "recalc-values: calc-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep true };
+                { Name = "recalc-values: apply-calculated-constraints"; Guard = (fun _ -> true); Run = applyCalculatedConstraintsStep }
                 { Name = "recalc-values: calc-values"; Guard = (fun _ -> true); Run = calcValuesStep useMax }
             ]
             |> runPipeline ord
@@ -687,6 +739,6 @@ module OrderProcessor =
         | ChangeProperty (ord, cmd) -> //ord |> processChangeProperty cmd |> Ok
             [
                 { Name = $"change-property: {cmd}"; Guard = (fun _ -> true); Run = processChangeProperty false logger cmd }
-                { Name = "change-property: solve-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep false }
+                { Name = "change-property: solve-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep }
             ]
             |> runPipeline ord

@@ -77,6 +77,7 @@ module Mappers =
             Models.Order.OrderVariable.create
                 dto.Name
                 (dto.Constraints |> mapToVariable)
+                (dto.Calculated |> mapToVariable)
                 (dto.Variable |> mapToVariable)
 
 
@@ -85,7 +86,8 @@ module Mappers =
             dto.Name <- ov.Name
             dto.Variable <- ov.Variable |> mapFromVariable
             dto.Constraints <- ov.Constraints |> mapFromVariable
-
+            dto.Calculated <- ov.Calculated |> mapFromVariable
+            
             dto
 
 
