@@ -787,6 +787,96 @@ Components:
 		Solution:
 """
 
+    let pcmDrink = """
+Id: 34b81d68-86e5-4ec6-a223-cba9d2837530
+Name: paracetamol
+Quantity:
+Quantities:
+Route: ORAAL
+OrderType: DiscontinuousOrder
+Adjust: 17 kg
+Frequencies: 1;2;3;4 x/day
+Time:
+Dose: [qty-adj] max 10 ml/kg/dosis, [qty] max 500 ml/dosis
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: paracetamol
+	Form: drank
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: benzylalcohol
+		Quantities:
+		Concentrations: 0.48 mg/ml
+		Dose:
+		Solution:
+
+		Name: propyleenglycol
+		Quantities:
+		Concentrations: 5.44 mg/ml
+		Dose:
+		Solution:
+
+		Name: paracetamol
+		Quantities:
+		Concentrations: 24 mg/ml
+		Dose: paracetamol, [dun] mg, [per-time] max 4000 mg/day, [qty-adj] 10 mg/kg - 15 mg/kg/dosis
+		Solution:
+"""
+
+
+    let vancoReconst = """
+Id: 13e4f4e5-059d-47d6-8882-46cc2ed0f072
+Name: vancomycine
+Quantity:
+Quantities: 50;100;250 ml
+Route: INTRAVENEUS
+OrderType: TimedOrder
+Adjust: 14.5 kg
+Frequencies: 3;4 x/day
+Time: 60 min - 180 min
+Dose: [dun] ml
+Div:
+DoseCount: min 1 x
+Components:
+
+	Name: vancomycine
+	Form: poeder voor oplossing voor infusie
+	Quantities: 20 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: vancomycine
+		Concentrations: 50 mg/ml
+		Dose: vancomycine, [dun] mg, [rate] max 1.7 mg/min, [per-time-adj] 60 mg/kg/day, [per-time] max 4000 mg/day
+		Solution:  [conc] 2.5 mg/ml - 10 mg/ml
+
+	Name: gluc 5%
+	Form: vloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: energie
+		Concentrations: 0.2 kCal/ml
+		Dose:
+		Solution:
+
+		Name: koolhydraat
+		Concentrations: 0.05 g/ml
+		Dose:
+		Solution:
+"""
+
 
 module MedicationScenarios =
 
@@ -822,8 +912,11 @@ module MedicationScenarios =
                 MedicationTexts.continuousSingleComponentSingleItem
                 MedicationTexts.continuousMultipleComponent
                 MedicationTexts.timedMultipleComponentsDoseComponent
+                MedicationTexts.pcmDrink
+                MedicationTexts.vancoReconst
+                MedicationTexts.discontinousMultipleComponentMultipleItems
             ]
-            |> List.last |> List.singleton
+            // |> List.last |> List.singleton
             |> List.map (createTest logger)
         ]
 
