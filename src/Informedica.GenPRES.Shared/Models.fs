@@ -935,7 +935,9 @@ module Models =
                     let getString n =
                         Csv.getStringColumn cms sl n |> String.trim
 
-                    let getFloat = Csv.getFloatColumn cms sl
+                    let getFloat = 
+                        Csv.getFloatOptionColumn cms sl
+                        >> Option.defaultValue 0.
 
                     createBolus
                         (getString "hospital")
