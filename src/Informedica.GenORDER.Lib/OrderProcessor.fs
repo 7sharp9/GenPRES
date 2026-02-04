@@ -66,9 +66,11 @@ module OrderProcessor =
                     ItemDose ("", "", Dose.applyPerTimeConstraints)
             ]
         // re-calc min max
-        |> solveMinMax "Order Property Set Frequency" printErr logger
+        // |> solveMinMax "Order Property Set Frequency" printErr logger
         // step to a min, median or max value
-        |> Result.map (OrderPropertyChange.proc [ ScheduleFrequency step ])
+        // |> Result.map (OrderPropertyChange.proc [ ScheduleFrequency step ])
+        |> OrderPropertyChange.proc [ ScheduleFrequency step ]
+        |> Ok
 
 
     // == Property Change Dose Rate
@@ -108,10 +110,11 @@ module OrderProcessor =
                     ItemDose ("", "", Dose.setRateToNonZeroPositive)
             ]
         // re-calc the min max
-        |> solveMinMax "Order Property Set Dose Rate" printErr logger
+        // |> solveMinMax "Order Property Set Dose Rate" printErr logger
         // step to a min, median or max rate
-        |> Result.map (OrderPropertyChange.proc [ OrderableDose step ])
-
+        // |> Result.map (OrderPropertyChange.proc [ OrderableDose step ])
+        |> OrderPropertyChange.proc [ OrderableDose step ]
+        |> Ok
 
     // == Property Change Dose Quantity
 
@@ -166,9 +169,11 @@ module OrderProcessor =
                 OrderableDoseCount OrderVariable.Count.applyConstraints
             ]
         // re-calc min max
-        |> solveMinMax "Order Property Set Dose Quantity" printErr logger
+        // |> solveMinMax "Order Property Set Dose Quantity" printErr logger
         // step to a min, median or max dose quantity
-        |> Result.map (OrderPropertyChange.proc [ OrderableDose step ])
+        // |> Result.map (OrderPropertyChange.proc [ OrderableDose step ])
+        |> OrderPropertyChange.proc [ OrderableDose step ]
+        |> Ok
 
 
     let orderPropertySetDoseQuantityPerc printErr logger step ord =
@@ -192,9 +197,11 @@ module OrderProcessor =
                 OrderableDoseCount OrderVariable.Count.applyConstraints
             ]
         // re-calc min max
-        |> solveMinMax "Order Property Set Dose Quantity" printErr logger
+        // |> solveMinMax "Order Property Set Dose Quantity" printErr logger
         // step to a min, median or max dose quantity
-        |> Result.map (OrderPropertyChange.proc [ OrderableDose step ])
+        // |> Result.map (OrderPropertyChange.proc [ OrderableDose step ])
+        |> OrderPropertyChange.proc [ OrderableDose step ]
+        |> Ok
 
 
     // == Property Change Component Quantity
@@ -320,6 +327,8 @@ module OrderProcessor =
         |> solveMinMax "Order Property Set Component Quantity" printErr logger
         // step to a min, median or max dose quantity
         |> Result.map (OrderPropertyChange.proc [ ComponentOrderableQuantity (cmp, step) ])
+        // |> OrderPropertyChange.proc [ ComponentOrderableQuantity (cmp, step) ]
+        // |> Ok
 
 
     let processChangeProperty printErr logger cmd ord =

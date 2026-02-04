@@ -29,6 +29,14 @@ open Expecto
 open Expecto.Flip
 
 
+
+let consoleLogger = OrderLogging.createConsoleLogger ()
+
+
+let fileLogger = OrderLogging.createFileLogger "log.txt"
+
+
+
 module HelperFunctions =
 
     open Informedica.GenOrder.Lib
@@ -818,12 +826,6 @@ module MedicationScenarios =
             |> List.last |> List.singleton
             |> List.map (createTest logger)
         ]
-
-
-let consoleLogger = OrderLogging.createConsoleLogger ()
-
-
-let fileLogger = OrderLogging.createFileLogger "log.txt"
 
 
 testList "Medication" [

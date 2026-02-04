@@ -2640,20 +2640,28 @@ module Variable =
         /// </example>
         let increaseIncrement maxCount incrs vr =
             match vr with
-            | MinIncrMax (min, _, max) ->
-                incrs
-                |> List.fold (fun (b, acc) i ->
-                    if b then (b, acc)
-                    else
-                        let b = minIncrMaxCount min i max <= maxCount
-                        try
-                            let acc = acc |> setIncr i
-                            (b, acc)
-                        with
-                        | _ -> (false, acc)
-                ) (false, vr)
-            | _ -> (false, vr)
-            |> snd
+            | MinIncrMax (min, incr, max) ->
+                // only use increments larger than the original
+                let incrs =
+                    incrs
+                    |> List.filter (fun i ->
+                        (i |> Increment.toValueUnit) > (incr |> Increment.toValueUnit)
+                    )
+                if incrs |> List.isEmpty then vr
+                else
+                    incrs
+                    |> List.fold (fun (b, acc) i ->
+                        if b then (b, acc)
+                        else
+                            let b = minIncrMaxCount min i max <= maxCount
+                            try
+                                let acc = acc |> setIncr i
+                                (b, acc)
+                            with
+                            | _ -> (false, acc)
+                    ) (false, vr)
+                    |> snd
+            | _ -> vr
 
 
         /// Set the minimum value of a ValueRange to a ValueSet

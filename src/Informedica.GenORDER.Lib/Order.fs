@@ -1984,8 +1984,8 @@ module Order =
                         else
                             let incr =
                                 incrs
-                                |> List.minBy (fun i ->
-                                    i
+                                |> List.minBy (fun incr ->
+                                    incr
                                     |> Variable.ValueRange.Increment.toValueUnit
                                     |> ValueUnit.getBaseValue
                                 )
@@ -2504,7 +2504,10 @@ module Order =
             let timeTo md prec (schedule : Schedule) =
                 let toStr =
                     if md then Time.toValueUnitMarkdown prec
-                    else Time.toValueUnitString prec
+                    else
+                        Time.toValueUnitMarkdown prec
+                        >> String.replace "#" ""
+                        >> String.replace "|" ""
                 match schedule with
                 | Continuous tme -> tme |> toStr
                 | OnceTimed tme -> tme |> toStr
@@ -3475,21 +3478,10 @@ module Order =
                     )
                 if not hasNormDose then ord
                 else
-                    match ord.Orderable.Components with
-                    | [_] ->
-                        { ord with
-                            Order.Orderable.Dose.Quantity =
-                                ord.Orderable.Dose.Quantity |> Quantity.setMedianValue
-                        }
-                    | cmp::rest ->
-                        { ord with
-                            Order.Orderable.Components =
-                                { cmp with
-                                    Component.Dose.Quantity =
-                                        cmp.Dose.Quantity |> Quantity.setMedianValue
-                                }::rest
-                        }
-                    | _ -> ord
+                    { ord with
+                        Order.Orderable.Dose.Quantity =
+                            ord.Orderable.Dose.Quantity |> Quantity.setMedianValue
+                    }
         | Continuous _ ->
             let hasNormDose =
                 (ord.Orderable.Dose.RateAdjust |> RateAdjust.hasNormValue
@@ -3723,7 +3715,7 @@ module Order =
             // the increments used to increase
             // TODO: use increment from constraint
             let incrs u =
-                [ 1N/20N; 1N/10N; 1N/2N; 1N; 5N; 10N; 20N ]
+                [ 1N/10N; 1N/2N; 1N; 5N; 10N; 20N ]
                 |> List.map (ValueUnit.singleWithUnit u)
                 |> List.map ValueRange.Increment.create
             // only increase incr for volume units

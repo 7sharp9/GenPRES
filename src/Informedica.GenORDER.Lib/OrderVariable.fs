@@ -544,6 +544,12 @@ module OrderVariable =
         }
 
 
+    let applyCalculatedConstraints (ovar: OrderVariable) =
+        { ovar with
+            OrderVariable.Variable.Values = ovar.Calculated |> Constraints.toValueRange
+        }
+
+
     /// Apply only the maximum constraints of an OrderVariable
     /// If there are no constraints, then the Variable is set to
     /// non-zero positive
@@ -602,30 +608,28 @@ module OrderVariable =
     /// only the Increment is applied to the Variable.
     /// </remarks>
     let applyConstraints (ovar : OrderVariable) =
-        { ovar with
-            Variable =
-                if ovar |> hasConstraints |> not then
-                    { ovar.Variable with
-                        Values =
-                            match ovar.Variable.Values |> ValueRange.getUnit with
-                            | None -> ValueRange.nonZeroPositive
-                            | Some u ->
-                                u
-                                |> ValueUnit.zero
-                                |> Minimum.create false
-                                |> Min
-                    }
-                else
-                    { ovar.Variable with
-                        Values = ovar.Constraints |> Constraints.toValueRange
-                    }
-        }
-
-
-    let applyCalculatedConstraints (ovar: OrderVariable) =
-        { ovar with
-            OrderVariable.Variable.Values = ovar.Calculated |> Constraints.toValueRange
-        }
+        if (ovar.Calculated |> Constraints.isEmpty ||
+            ovar.Calculated |> Constraints.isNonZeroPositive) |> not then
+            ovar |> applyCalculatedConstraints
+        else
+            { ovar with
+                Variable =
+                    if ovar |> hasConstraints |> not then
+                        { ovar.Variable with
+                            Values =
+                                match ovar.Variable.Values |> ValueRange.getUnit with
+                                | None -> ValueRange.nonZeroPositive
+                                | Some u ->
+                                    u
+                                    |> ValueUnit.zero
+                                    |> Minimum.create false
+                                    |> Min
+                        }
+                    else
+                        { ovar.Variable with
+                            Values = ovar.Constraints |> Constraints.toValueRange
+                        }
+            }
 
 
     /// Check whether the Values of the Variable of an OrderVariable
