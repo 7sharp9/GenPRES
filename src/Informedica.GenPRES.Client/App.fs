@@ -743,7 +743,6 @@ module private Elmish =
             Cmd.fromAsync (GoogleDocs.loadBolusMedication LoadBolusMedication)
 
         | LoadBolusMedication (Finished (Ok meds)) ->
-
             { state with
                 BolusMedication = meds |> Resolved
                 Hospitals =
