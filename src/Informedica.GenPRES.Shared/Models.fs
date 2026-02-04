@@ -1353,11 +1353,12 @@ module Models =
 
         module OrderVariable =
 
-            let create n c v =
+            let create nme cst cal var =
                 {
-                    Name = n
-                    Constraints = c
-                    Variable = v
+                    Name = nme
+                    Constraints = cst
+                    Calculated = cal
+                    Variable = var
                 }
 
 

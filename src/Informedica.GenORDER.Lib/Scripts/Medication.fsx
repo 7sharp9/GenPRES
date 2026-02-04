@@ -29,6 +29,14 @@ open Expecto
 open Expecto.Flip
 
 
+
+let consoleLogger = OrderLogging.createConsoleLogger ()
+
+
+let fileLogger = OrderLogging.createFileLogger "log.txt"
+
+
+
 module HelperFunctions =
 
     open Informedica.GenOrder.Lib
@@ -54,17 +62,22 @@ module HelperFunctions =
 
     let run logger med cmds =
         let logger, usePrintTable = logger |> Option.defaultValue OrderLogging.noOp, logger.IsNone
+
         let rec loop cmds ord =
+            ord
+            |> Result.iter (OrderProcessor.classify >> printfn "%A")
+
             match cmds with
             | [] ->
                 ord
                 |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
-
             | cmd::rest ->
                 match ord with
                 | Error (_, msgs) ->
                     failwith $"Errors occured: {msgs}"
                 | Ok ord ->
+                    if usePrintTable then ord |> Ok |> printOrderTable |> ignore
+
                     ord
                     |> cmd
                     |> OrderProcessor.processPipeline logger
@@ -815,9 +828,6 @@ module MedicationScenarios =
         ]
 
 
-let logger = OrderLogging.createConsoleLogger ()
-
-
 testList "Medication" [
     //MedicationTests.tests
     MedicationScenarios.scenarioTests None
@@ -865,114 +875,7 @@ Components:
         med
         |> Medication.toOrderDto
         |> Order.Dto.fromDto
-        |> Result.map Order.toConsoleTable
-
-
-module Order =
-
-    module Print  =
-
-        open Order
-
-        open Order.Print
-
-        module Quantity = OrderVariable.Quantity
-        module Concentration = OrderVariable.Concentration
-
-
-        let printPrep printMd sns (ord: Order) =
-            let hasCompQty =
-                ord.Orderable.Components
-                |> List.tryHead
-                |> Option.bind (fun cmp ->
-                    cmp.ComponentQuantity
-                    |> Quantity.toOrdVar
-                    |> OrderVariable.getValSetValueUnit
-                    |> Option.map (fun vu ->
-                        vu
-                        |> ValueUnit.getValue
-                        |> Array.forall (fun br -> br > 1N)
-                    )
-                )
-                |> Option.defaultValue false
-
-            ord.Orderable.Components
-            |> List.toArray
-            |> Array.mapi (fun i1 c ->
-                let cmpQty =
-                    c
-                    |> Orderable.Component.Print.componentOrderableQuantityTo printMd -1
-                    |> wrap Caution
-                        [
-                            yield! c.Items |> List.map (_.OrderableConcentration >> Concentration.toOrdVar)
-                            c.OrderableConcentration |> Concentration.toOrdVar
-                            c.OrderableQuantity |> Quantity.toOrdVar
-                        ]
-
-                let cItms =
-                   c.Items
-                   |> List.filter (fun i -> sns |> Array.exists (String.equalsCapInsens (i.Name |> Name.toString)))
-                   |> List.toArray
-
-                [|
-                    if i1 > 0 || cItms |> Array.isEmpty then
-                        [|
-                            [|
-                                if cmpQty |> textBlockIsEmpty |> not then
-                                    if i1 = 0 && cItms |> Array.isEmpty |> not then
-                                        c.Form |> Valid
-                                    else
-                                        $"{c.Form} ({c.Name |> Name.toString})"
-                                        |> Valid
-
-                                    cmpQty
-                                    "" |> Valid
-                                    "" |> Valid
-                            |]
-                        |]
-                    else
-                        cItms
-                        |> Array.mapi (fun i2 itm ->
-                            [|
-                                if cmpQty |> textBlockIsEmpty |> not then
-                                    if i1 = 0 && i2 = 0 then
-                                        c.Form |> Valid
-
-                                        c |> Orderable.Component.Print.componentOrderableQuantityTo printMd -1
-                                        |> wrap Warning
-                                            [
-                                                itm.OrderableConcentration |> Concentration.toOrdVar
-                                                c.OrderableQuantity |> Quantity.toOrdVar
-                                            ]
-                                    else
-                                        "" |> Valid
-                                        "" |> Valid
-
-                                    let itmConc =
-                                        itm |> Orderable.Item.Print.itemComponentConcentrationTo printMd -1
-                                        |> wrap Warning [ itm.ComponentConcentration |> Concentration.toOrdVar ]
-
-                                    if itmConc |> textBlockIsEmpty |> not then
-                                        itm.Name |> Name.toString |> Valid
-                                        itmConc
-
-                                    if hasCompQty then
-                                        let itmQty =
-                                            itm.ComponentQuantity
-                                            |> Quantity.toValueUnitMarkdown -1
-                                        let cmpQty =
-                                            c
-                                            |> Orderable.Component.Print.componentQuantityToMd -1
-                                        $"({itmQty}/{cmpQty})" |> Valid
-
-                            |]
-                        )
-                |]
-            )
-            |> Array.collect id
-            |> Array.collect id
-
-
+        |> Result.map Order.toConsoleTableString
 
 
 """
@@ -1025,20 +928,14 @@ Components:
 |> function
     | Error _ -> "fail" |> failwith
     | Ok med ->
-        med
-        |> Medication.OrderDtoHelpers.calculateDivisibility None
-        |> Option.bind ValueUnit.Dto.fromDto
-        |> printfn "%A"
-
         [
             CalcMinMax
+            IncreaseIncrements
+            OrderCommand.CalcValues
+            //(fun ord -> (ord, DecreaseFrequency) |> ChangeProperty)
+            //(fun ord -> (ord, SetMaxFrequency) |> ChangeProperty)
+            //(fun ord -> (ord, "vancomycine" |> SetMaxComponentQuantity) |> ChangeProperty)
+            //(fun ord -> (ord, SetMinDoseQuantity) |> ChangeProperty)
         ]
         |> HelperFunctions.run None med
-        |> function
-            | Error _ -> "fail to solve" |> failwith
-            | Ok ord ->
-                ord |> Order.Print.printOrderToTableFormat true true [| "vancomycine" |]
-                |> printfn "%A"
-
-                ord |> Order.Print.printPrep true [| "vancomycine" |]
-                |> printfn "%A"
+|> ignore

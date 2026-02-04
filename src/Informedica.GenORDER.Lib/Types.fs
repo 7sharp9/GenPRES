@@ -28,7 +28,9 @@ module Types =
     type OrderVariable =
         {
             // The Constraints to apply to the Variable
-            Constraints : Constraints
+            Constraints: Constraints
+            // The Calculated constraints
+            Calculated: Constraints
             // Stores the values/range
             Variable:  Variable
 
@@ -276,6 +278,7 @@ module Types =
     /// Commands that can be executed on an order for calculations
     type OrderCommand =
         | CalcMinMax of Order
+        | IncreaseIncrements of Order
         | CalcValues of Order
         | ReCalcValues of Order
         | SolveOrder of Order
@@ -294,6 +297,7 @@ module Types =
         | SetMedianFrequency
         | DecreaseDoseQuantity of ntimes: int
         | IncreaseDoseQuantity of ntimes: int
+        | SetDoseQuantityPerc of perc: int
         | SetMinDoseQuantity
         | SetMaxDoseQuantity
         | SetMedianDoseQuantity
