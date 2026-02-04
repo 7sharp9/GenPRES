@@ -338,7 +338,7 @@ module OrderProcessor =
             ord |> Ok
 
 
-    let orderPropertyChangeFrequency ord =
+    let processClearedFrequency ord =
         ord
         |> OrderPropertyChange.proc [
             ScheduleFrequency Frequency.setToNonZeroPositive
@@ -350,7 +350,7 @@ module OrderProcessor =
         |> OrderPropertyChange.proc [ ScheduleFrequency Frequency.setStandardValues ]
 
 
-    let orderPropertyChangeDoseQuantity ord =
+    let processClearedDoseQuantity ord =
         ord
         |> OrderPropertyChange.proc
             [
@@ -396,7 +396,7 @@ module OrderProcessor =
             ]
 
 
-    let orderPropertyChangeRate ord =
+    let processClearedRate ord =
         ord
         |> OrderPropertyChange.proc
             [
@@ -437,7 +437,7 @@ module OrderProcessor =
                 |> Logging.logInfo logger
 
                 ord
-                |> orderPropertyChangeRate
+                |> processClearedRate
                 |> solveAndToValues true
             | ConcentrationCleared ->
                 "Concentration cleared"
@@ -479,7 +479,7 @@ module OrderProcessor =
                 |> Logging.logInfo logger
 
                 ord
-                |> orderPropertyChangeFrequency
+                |> processClearedFrequency
                 // solve min/max and min/incr/max to values
                 |> solveAndToValues true
             | DosePerTimeCleared
@@ -489,7 +489,7 @@ module OrderProcessor =
                 |> Logging.logInfo logger
 
                 ord
-                |> orderPropertyChangeDoseQuantity
+                |> processClearedDoseQuantity
                 // solve min/max, increase increments, and min/incr/max to values
                 |> solveIncrIncrAndToValues true
             | _ ->
@@ -504,7 +504,7 @@ module OrderProcessor =
                 |> Logging.logInfo logger
 
                 ord
-                |> orderPropertyChangeFrequency
+                |> processClearedFrequency
                 // solve min/max and min/incr/max to values
                 |> solveAndToValues false
             | RateCleared
@@ -514,7 +514,7 @@ module OrderProcessor =
                 |> Logging.logInfo logger
 
                 ord
-                |> orderPropertyChangeRate
+                |> processClearedRate
                 |> solveAndToValues false
             | DosePerTimeCleared
             | DoseQuantityCleared ->
@@ -523,7 +523,7 @@ module OrderProcessor =
                 |> Logging.logInfo logger
 
                 ord
-                |> orderPropertyChangeDoseQuantity
+                |> processClearedDoseQuantity
                 // solve min/max, increase increments, and min/incr/max to values
                 |> solveIncrIncrAndToValues false
 
