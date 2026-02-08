@@ -452,7 +452,7 @@ module Models =
             | Some w, _, Some h, _
             | Some w, _, None, Some h
             | None, Some w, Some h, _
-            | None, Some w, None, Some h -> sqrt (float w * (h |> float) / 3600.) |> Math.fixPrecision 2 |> Some
+            | None, Some w, None, Some h -> sqrt (float (w / 1000) * (h |> float) / 3600.) |> Math.fixPrecision 2 |> Some
 
 
         let applyNormalValues
