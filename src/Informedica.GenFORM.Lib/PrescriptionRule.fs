@@ -23,16 +23,8 @@ module PrescriptionRule =
                 |> Option.get
             // recalculate the max dose per administration
             match dl.Quantity.Max |> Option.map Limit.getValueUnit,
-                  dl.QuantityAdjust |> DoseLimit.getNormDose,
                   dl.QuantityAdjust.Min |> Option.map Limit.getValueUnit with
-            | Some max, Some norm, _ ->
-                let norm = norm * adj
-                if norm <? max then dl
-                else
-                    { dl with
-                        Quantity.Min = dl.Quantity.Max
-                    }
-            | Some max, _, Some min ->
+            | Some max, Some min ->
                 let min = min * adj
                 if min <? max then dl
                 else
@@ -45,9 +37,9 @@ module PrescriptionRule =
             |> fun dl ->
                 match dl.Quantity.Max |> Option.map Limit.getValueUnit,
                       freq,
-                      dl.PerTimeAdjust |> DoseLimit.getNormDose with
-                | Some max, Some freq, Some norm ->
-                    let norm = adj * norm / freq
+                      dl.PerTimeAdjust.Min |> Option.map Limit.getValueUnit with
+                | Some max, Some freq, Some min ->
+                    let norm = adj * min / freq
                     if norm <? max then dl
                     else
                         { dl with
@@ -56,18 +48,9 @@ module PrescriptionRule =
                 | _ -> dl
             // recalculate the max dose per time
             |> fun dl ->
-
                 match dl.PerTime.Max |> Option.map Limit.getValueUnit,
-                      dl.PerTimeAdjust |> DoseLimit.getNormDose,
                       dl.PerTimeAdjust.Min |> Option.map Limit.getValueUnit with
-                | Some max, Some norm, _ ->
-                    let norm = norm * adj
-                    if norm <? max then dl
-                    else
-                        { dl with
-                            PerTime.Min = dl.PerTime.Max
-                        }
-                | Some max, _, Some min ->
+                | Some max, Some min ->
                     let min = min * adj
                     if min <? max then dl
                     else
