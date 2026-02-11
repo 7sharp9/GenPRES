@@ -145,7 +145,6 @@ module OrderProcessor =
             [
                 if ord.Schedule |> Schedule.hasTime then
                     ScheduleTime Time.setToNonZeroPositive
-                    OrderableDose Dose.applyConstraints
 
                 OrderableQuantity Quantity.applyConstraints
                 ComponentOrderableQuantity ("", Quantity.applyConstraints)

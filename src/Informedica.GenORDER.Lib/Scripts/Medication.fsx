@@ -1032,3 +1032,23 @@ Components:
         ]
         |> HelperFunctions.run None med
 |> ignore
+
+
+
+MedicationTexts.timedMultipleComponentsDoseComponent
+|> Medication.fromString
+|> function
+    | Error _ -> "fail" |> failwith
+    | Ok med ->
+        [
+            CalcMinMax
+            IncreaseIncrements
+            (fun ord -> (ord, "Samenstelling C" |> SetMedianComponentQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "NaCl 3%" |> SetMedianComponentQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "KCl 7,4%" |> SetMedianComponentQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "gluc 10%" |> SetMedianComponentQuantity) |> ChangeProperty)
+            (fun ord -> (ord, DecreaseDoseQuantity 5000) |> ChangeProperty)
+            (fun ord -> (ord, "Samenstelling C" |> SetMinComponentQuantity) |> ChangeProperty)
+        ]
+        |> HelperFunctions.run (Some fileLogger) med
+|> ignore
