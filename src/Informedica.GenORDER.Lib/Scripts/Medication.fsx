@@ -1052,3 +1052,22 @@ MedicationTexts.timedMultipleComponentsDoseComponent
         ]
         |> HelperFunctions.run (Some fileLogger) med
 |> ignore
+
+
+open MathNet.Numerics
+
+let res =
+    [1N..1N..4N]
+    |> List.allPairs [(46N/10N)..(1N/10N)..(68N/10N)]
+    |> List.map (fun (br1, br2) -> br1 * br2)
+    |> List.distinct
+    |> List.sort
+
+res |> List.length
+[(46N/10N)..(1N/10N)..(272N/10N)] |> List.length
+
+[4..2..12]
+|> List.allPairs [6..2..28]
+|> List.map (fun (x1, x2) -> x1 + x2)
+|> List.distinct
+|> List.sort

@@ -85,8 +85,8 @@ module Mappers =
             let dto = OrderVariable.Dto.dto ()
             dto.Name <- ov.Name
             dto.Variable <- ov.Variable |> mapFromVariable
-            dto.Constraints <- ov.Constraints |> mapFromVariable
-            dto.Calculated <- ov.Calculated |> mapFromVariable
+            dto.Constraints <- ov.DefinedConstraints |> mapFromVariable
+            dto.Calculated <- ov.CalculatedConstraints |> mapFromVariable
             
             dto
 

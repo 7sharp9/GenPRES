@@ -1358,10 +1358,25 @@ module Models =
             let create nme cst cal var =
                 {
                     Name = nme
-                    Constraints = cst
-                    Calculated = cal
+                    DefinedConstraints = cst
+                    CalculatedConstraints = cal
                     Variable = var
                 }
+
+
+            let (|NonNavigable|Navigable|Selectable|Stepable|) (ovar: OrderVariable) =
+                let var = ovar.Variable
+                let def = ovar.DefinedConstraints
+                let valsCount =
+                    var.Vals
+                    |> Option.map (fun vu -> vu.Value |> Array.length)
+                    |> Option.defaultValue 0
+
+                if valsCount > 1 then Selectable
+                elif valsCount = 1 && def.Incr.IsSome then Stepable
+                elif def.Incr.IsSome && var.Min.IsSome && var.Max.IsSome then Navigable
+                else NonNavigable
+
 
 
         module Prescription =

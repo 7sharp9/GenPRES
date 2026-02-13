@@ -415,8 +415,8 @@ module OrderVariable =
         |> fun vlr ->
             let var = Variable.create id n vlr
             {
-                Constraints = cst
-                Calculated = cal
+                DefinedConstraints = cst
+                CalculatedConstraints = cal
                 Variable = var
             }
 
@@ -498,7 +498,7 @@ module OrderVariable =
 
 
     /// Get the `Constraints` from an OrderVariable
-    let getConstraints { Constraints = cons } = cons
+    let getConstraints { DefinedConstraints = cons } = cons
 
 
     /// Check whether an OrderVariable has Constraints that
@@ -534,19 +534,19 @@ module OrderVariable =
     /// <param name="ovar">The OrderVariable</param>
     let setConstraints cs (ovar :OrderVariable) =
         { ovar with
-            Constraints = cs
+            DefinedConstraints = cs
         }
 
 
     let setCalculatedConstraints (ovar: OrderVariable) =
         { ovar with
-            Calculated = ovar.Variable.Values |> Constraints.fromValueRange
+            CalculatedConstraints = ovar.Variable.Values |> Constraints.fromValueRange
         }
 
 
     let applyCalculatedConstraints (ovar: OrderVariable) =
         { ovar with
-            OrderVariable.Variable.Values = ovar.Calculated |> Constraints.toValueRange
+            OrderVariable.Variable.Values = ovar.CalculatedConstraints |> Constraints.toValueRange
         }
 
 
@@ -569,7 +569,7 @@ module OrderVariable =
                     }
                 else
                     { ovar.Variable with
-                        Values = ovar.Constraints |> Constraints.toIncrMaxRange
+                        Values = ovar.DefinedConstraints |> Constraints.toIncrMaxRange
                     }
         }
 
@@ -593,7 +593,7 @@ module OrderVariable =
                     }
                 else
                     { ovar.Variable with
-                        Values = ovar.Constraints |> Constraints.toMinIncrRange
+                        Values = ovar.DefinedConstraints |> Constraints.toMinIncrRange
                     }
         }
 
@@ -608,8 +608,8 @@ module OrderVariable =
     /// only the Increment is applied to the Variable.
     /// </remarks>
     let applyConstraints (ovar : OrderVariable) =
-        if (ovar.Calculated |> Constraints.isEmpty ||
-            ovar.Calculated |> Constraints.isNonZeroPositive) |> not then
+        if (ovar.CalculatedConstraints |> Constraints.isEmpty ||
+            ovar.CalculatedConstraints |> Constraints.isNonZeroPositive) |> not then
             ovar |> applyCalculatedConstraints
         else
             { ovar with
@@ -627,7 +627,7 @@ module OrderVariable =
                         }
                     else
                         { ovar.Variable with
-                            Values = ovar.Constraints |> Constraints.toValueRange
+                            Values = ovar.DefinedConstraints |> Constraints.toValueRange
                         }
             }
 
@@ -637,7 +637,7 @@ module OrderVariable =
     let isWithinConstraints ovar =
         if ovar |> hasConstraints |> not then true
         else
-            let cs = ovar.Constraints |> Constraints.toValueRange
+            let cs = ovar.DefinedConstraints |> Constraints.toValueRange
             ovar.Variable.Values
             |> ValueRange.isSubSetOf cs
 
@@ -810,12 +810,12 @@ module OrderVariable =
             |> ValueRange.toString exact
 
         let cs =
-            if ovar.Constraints |> Constraints.isEmpty then ""
-            else ovar.Constraints |> Constraints.toValueRangeString
+            if ovar.DefinedConstraints |> Constraints.isEmpty then ""
+            else ovar.DefinedConstraints |> Constraints.toValueRangeString
 
         let cal =
-            if ovar.Calculated |> Constraints.isEmpty then ""
-            else ovar.Calculated |> Constraints.toValueRangeString
+            if ovar.CalculatedConstraints |> Constraints.isEmpty then ""
+            else ovar.CalculatedConstraints |> Constraints.toValueRangeString
 
         if cs |> String.isNullOrWhiteSpace ||
            withConstraints |> not then $"{ns} {vs}"
@@ -943,7 +943,7 @@ module OrderVariable =
     let getIndices (ovar: OrderVariable) =
         ovar.Variable
         |> Variable.getValueRange
-        |> ValueRange.getIndices (ovar.Constraints |> Constraints.toValueRange)
+        |> ValueRange.getIndices (ovar.DefinedConstraints |> Constraints.toValueRange)
 
 
     /// <summary>
@@ -954,7 +954,7 @@ module OrderVariable =
     let applyIndices (indices: int[]) (ovar: OrderVariable) =
         { ovar with
             OrderVariable.Variable.Values =
-                ovar.Constraints
+                ovar.DefinedConstraints
                 |> Constraints.toValueRange
                 |> ValueRange.pickIndices indices
         }
@@ -1008,10 +1008,10 @@ module OrderVariable =
     /// </remarks>
     let setUnit (ovar: OrderVariable) =
         [
-            ovar.Constraints.Min |> Option.map (Minimum.toValueUnit >> ValueUnit.getUnit)
-            ovar.Constraints.Max |> Option.map (Maximum.toValueUnit >> ValueUnit.getUnit)
-            ovar.Constraints.Values |> Option.map (ValueSet.toValueUnit >> ValueUnit.getUnit)
-            ovar.Constraints.Incr |> Option.map (Increment.toValueUnit >> ValueUnit.getUnit)
+            ovar.DefinedConstraints.Min |> Option.map (Minimum.toValueUnit >> ValueUnit.getUnit)
+            ovar.DefinedConstraints.Max |> Option.map (Maximum.toValueUnit >> ValueUnit.getUnit)
+            ovar.DefinedConstraints.Values |> Option.map (ValueSet.toValueUnit >> ValueUnit.getUnit)
+            ovar.DefinedConstraints.Incr |> Option.map (Increment.toValueUnit >> ValueUnit.getUnit)
         ]
         |> List.choose id
         |> List.filter ((<>) ZeroUnit)
@@ -1074,13 +1074,13 @@ module OrderVariable =
     /// <param name="ovar">The OrderVariable to step</param>
     /// <returns>The OrderVariable with stepped value, unchanged if no increment constraint</returns>
     let step isStepUp n (ovar : OrderVariable) =
-        if ovar.Constraints.Incr.IsNone then ovar
+        if ovar.DefinedConstraints.Incr.IsNone then ovar
         else
             let minVal, maxVal =
                 ovar.Variable.Values |> ValueRange.getMin |> Option.map Minimum.toValueUnit,
                 ovar.Variable.Values |> ValueRange.getMax |> Option.map Maximum.toValueUnit
 
-            let incr = ovar.Constraints.Incr.Value |> Increment.toValueUnit
+            let incr = ovar.DefinedConstraints.Incr.Value |> Increment.toValueUnit
 
             let calcIncr n incr =
                 if n <= 0 then
@@ -1309,62 +1309,62 @@ module OrderVariable =
                 |> Option.defaultValue false
 
             dto.Constraints.ValsOpt <-
-                ovar.Constraints.Values
+                ovar.DefinedConstraints.Values
                 |> Option.map ValueSet.toValueUnit
                 |> Option.bind vuToDto
 
             dto.Constraints.IncrOpt <-
-                ovar.Constraints.Incr
+                ovar.DefinedConstraints.Incr
                 |> Option.map Increment.toValueUnit
                 |> Option.bind vuToDto
 
             dto.Constraints.MinOpt <-
-                ovar.Constraints.Min
+                ovar.DefinedConstraints.Min
                 |> Option.map Minimum.toValueUnit
                 |> Option.bind vuToDto
 
             dto.Constraints.MinIncl <-
-                ovar.Constraints.Min
+                ovar.DefinedConstraints.Min
                 |> Option.map Minimum.isIncl
                 |> Option.defaultValue false
 
             dto.Constraints.MaxOpt <-
-                ovar.Constraints.Max
+                ovar.DefinedConstraints.Max
                 |> Option.map Maximum.toValueUnit
                 |> Option.bind vuToDto
 
             dto.Constraints.MaxIncl <-
-                ovar.Constraints.Max
+                ovar.DefinedConstraints.Max
                 |> Option.map Maximum.isIncl
                 |> Option.defaultValue false
 
             dto.Calculated.ValsOpt <-
-                ovar.Calculated.Values
+                ovar.CalculatedConstraints.Values
                 |> Option.map ValueSet.toValueUnit
                 |> Option.bind vuToDto
 
             dto.Calculated.IncrOpt <-
-                ovar.Calculated.Incr
+                ovar.CalculatedConstraints.Incr
                 |> Option.map Increment.toValueUnit
                 |> Option.bind vuToDto
 
             dto.Calculated.MinOpt <-
-                ovar.Calculated.Min
+                ovar.CalculatedConstraints.Min
                 |> Option.map Minimum.toValueUnit
                 |> Option.bind vuToDto
 
             dto.Calculated.MinIncl <-
-                ovar.Calculated.Min
+                ovar.CalculatedConstraints.Min
                 |> Option.map Minimum.isIncl
                 |> Option.defaultValue false
 
             dto.Calculated.MaxOpt <-
-                ovar.Calculated.Max
+                ovar.CalculatedConstraints.Max
                 |> Option.map Maximum.toValueUnit
                 |> Option.bind vuToDto
 
             dto.Calculated.MaxIncl <-
-                ovar.Calculated.Max
+                ovar.CalculatedConstraints.Max
                 |> Option.map Maximum.isIncl
                 |> Option.defaultValue false
 
@@ -1628,7 +1628,7 @@ module OrderVariable =
                     |> createNew (n |> Name.add name)
                 // frequency increment defaults to 1
                 { ovar with
-                    OrderVariable.Constraints.Incr =
+                    OrderVariable.DefinedConstraints.Incr =
                         1N |> ValueUnit.singleWithUnit frqU
                         |> Increment.create
                         |> Some

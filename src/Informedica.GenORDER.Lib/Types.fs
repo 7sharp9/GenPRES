@@ -28,9 +28,9 @@ module Types =
     type OrderVariable =
         {
             // The Constraints to apply to the Variable
-            Constraints: Constraints
+            DefinedConstraints: Constraints
             // The Calculated constraints
-            Calculated: Constraints
+            CalculatedConstraints: Constraints
             // Stores the values/range
             Variable:  Variable
 

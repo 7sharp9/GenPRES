@@ -732,7 +732,7 @@ module Order =
                 let doseConstraints toOvar prec =
                     inf
                     >> toOvar
-                    >> _.Constraints
+                    >> _.DefinedConstraints
                     >> OrderVariable.Constraints.toMinMaxString prec
 
 
@@ -3831,7 +3831,7 @@ module Order =
                 |> toOrdVars
                 |> List.map (fun ovar ->
                     if flag ||
-                       ovar.Constraints.Incr |> Option.isNone ||
+                       ovar.DefinedConstraints.Incr |> Option.isNone ||
                        ovar.Variable.Values |> ValueRange.isMinIncrMax |> not then ovar
                     else
                         flag <- true
