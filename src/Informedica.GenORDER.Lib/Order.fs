@@ -3385,58 +3385,10 @@ module Order =
 
 
     let hasNormDose ord =
-        match ord.Schedule with
-        | Once | OnceTimed _ ->
-            (ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
-            ,ord.Orderable.Components)
-            ||> List.fold (fun acc cmp ->
-                if acc then true
-                else
-                    (cmp.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
-                    ,cmp.Items)
-                    ||> List.fold (fun acc itm ->
-                        if acc then true
-                        else
-                        itm.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
-                    )
-            )
-        | Discontinuous _ | Timed _ ->
-            (ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
-             ord.Orderable.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
-            ,ord.Orderable.Components)
-            ||> List.fold (fun acc cmp ->
-                if acc then true
-                else
-                    (cmp.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
-                     cmp.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
-                    ,cmp.Items)
-                    ||> List.fold (fun acc itm ->
-                        if acc then true
-                        else
-                            itm.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
-                            itm.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
-                    )
-            )
-        | Continuous _ ->
-            (ord.Orderable.Dose.RateAdjust |> RateAdjust.hasNormValue
-            ,ord.Orderable.Components)
-            ||> List.fold (fun acc cmp ->
-                if acc then true
-                else
-                    (cmp.Dose.RateAdjust |> RateAdjust.hasNormValue
-                    ,cmp.Items)
-                    ||> List.fold (fun acc itm ->
-                        if acc then true
-                        else
-                        itm.Dose.RateAdjust |> RateAdjust.hasNormValue
-                    )
-            )
-
-
-    let setNormDose ord =
-        match ord.Schedule with
-        | Once | OnceTimed _ ->
-            let hasNormDose =
+        if ord.Orderable.Components |> List.length > 2 then false
+        else
+            match ord.Schedule with
+            | Once | OnceTimed _ ->
                 (ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
                 ,ord.Orderable.Components)
                 ||> List.fold (fun acc cmp ->
@@ -3450,40 +3402,24 @@ module Order =
                             itm.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue
                         )
                 )
-            if not hasNormDose then ord
-            else
-                { ord with
-                    Order.Orderable.Dose.Quantity =
-                        ord.Orderable.Dose.Quantity |> Quantity.setMedianValue
-                }
-        | Discontinuous frq | Timed (frq, _) ->
-            if frq |> Frequency.isSolved |> not then ord
-            else
-                let hasNormDose =
-                    (ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
-                     ord.Orderable.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
-                    ,ord.Orderable.Components)
-                    ||> List.fold (fun acc cmp ->
-                        if acc then true
-                        else
-                            (cmp.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
-                             cmp.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
-                            ,cmp.Items)
-                            ||> List.fold (fun acc itm ->
-                                if acc then true
-                                else
-                                    itm.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
-                                    itm.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
-                            )
-                    )
-                if not hasNormDose then ord
-                else
-                    { ord with
-                        Order.Orderable.Dose.Quantity =
-                            ord.Orderable.Dose.Quantity |> Quantity.setMedianValue
-                    }
-        | Continuous _ ->
-            let hasNormDose =
+            | Discontinuous _ | Timed _ ->
+                (ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
+                 ord.Orderable.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
+                ,ord.Orderable.Components)
+                ||> List.fold (fun acc cmp ->
+                    if acc then true
+                    else
+                        (cmp.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
+                         cmp.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
+                        ,cmp.Items)
+                        ||> List.fold (fun acc itm ->
+                            if acc then true
+                            else
+                                itm.Dose.QuantityAdjust |> QuantityAdjust.hasNormValue ||
+                                itm.Dose.PerTimeAdjust |> PerTimeAdjust.hasNormValue
+                        )
+                )
+            | Continuous _ ->
                 (ord.Orderable.Dose.RateAdjust |> RateAdjust.hasNormValue
                 ,ord.Orderable.Components)
                 ||> List.fold (fun acc cmp ->
@@ -3497,12 +3433,27 @@ module Order =
                             itm.Dose.RateAdjust |> RateAdjust.hasNormValue
                         )
                 )
-            if not hasNormDose then ord
+
+
+    let setMedianDoseValue ord =
+        match ord.Schedule with
+        | Once | OnceTimed _ ->
+            { ord with
+                Order.Orderable.Dose.Quantity =
+                    ord.Orderable.Dose.Quantity |> Quantity.setMedianValue
+            }
+        | Discontinuous frq | Timed (frq, _) ->
+            if frq |> Frequency.isSolved |> not then ord
             else
                 { ord with
-                    Order.Orderable.Dose.Rate =
-                        ord.Orderable.Dose.Rate |> Rate.setMedianValue
+                    Order.Orderable.Dose.Quantity =
+                        ord.Orderable.Dose.Quantity |> Quantity.setMedianValue
                 }
+        | Continuous _ ->
+            { ord with
+                Order.Orderable.Dose.Rate =
+                    ord.Orderable.Dose.Rate |> Rate.setMedianValue
+            }
 
 
     /// <summary>
@@ -3894,7 +3845,7 @@ module Order =
 
 
     let solveNormDose logger ord =
-        let normDoseOrd = ord |> setNormDose
+        let normDoseOrd = ord |> setMedianDoseValue
 
         if normDoseOrd = ord then ord |> Ok
         else

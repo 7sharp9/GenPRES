@@ -256,8 +256,9 @@ module OrderProcessor =
     /// <param name="cmp">The name of the component to modify</param>
     /// <param name="ord">The order to process</param>
     let orderPropertySetComponentQuantity printErr logger step cmp ord =
-        ord
+        ord |> Ok
         // apply constraints and prepare for min/max calculation
+        (*
         |> OrderPropertyChange.proc
             [
                 // keep rate constant and only change time
@@ -301,6 +302,7 @@ module OrderProcessor =
             ]
         // recalc
         |> solveMinMax "Order Property Set Component Quantity" printErr logger
+        *)
         // step to a min, median or max dose quantity
         |> Result.map (OrderPropertyChange.proc [ ComponentOrderableQuantity (cmp, step) ])
 
@@ -716,6 +718,7 @@ module OrderProcessor =
             [
                 { Name = "recalc-values: apply-calculated-constraints"; Guard = (fun _ -> true); Run = applyCalculatedConstraintsStep }
                 { Name = "recalc-values: calc-values"; Guard = (fun _ -> true); Run = calcValuesStep useMax }
+                { Name = "recalc-values: final-solve"; Guard = (_.OrderIsSolved >> not); Run = solveStep }
             ]
             |> runPipeline ord
 

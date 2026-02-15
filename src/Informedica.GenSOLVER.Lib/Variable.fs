@@ -67,6 +67,7 @@ module Variable =
     /// Functions and types to create and handle `ValueRange`.
     module ValueRange =
 
+        open Informedica.GenSolver.Lib
         open Informedica.Utils.Lib
 
 

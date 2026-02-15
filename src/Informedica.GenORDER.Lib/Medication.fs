@@ -1396,6 +1396,13 @@ module Medication =
         let setComponentQtyConcConstraints (med : Medication) (pc : ProductComponent) (cmpDto : Order.Orderable.Component.Dto.Dto) =
             let incr = med |> calculateDivisibility (Some pc)
 
+            cmpDto.OrderableConcentration.Constraints.MaxOpt <-
+                Units.Count.times
+                |> ValueUnit.singleWithValue 1N
+                |> Some
+                |> vuToDto
+            cmpDto.OrderableConcentration.Constraints.MaxIncl <- med.Components |> List.length = 1
+
             cmpDto.ComponentQuantity.Constraints.ValsOpt <- pc.Quantities |> vuToDto
             cmpDto.OrderableQuantity.Constraints.IncrOpt <- incr
 
@@ -1486,6 +1493,7 @@ module Medication =
 
             orbDto.DoseCount.Constraints |> setMinMaxConstraints false med.DoseCount
 
+            orbDto.OrderableQuantity.Constraints |> setMinMaxConstraints false med.Quantity
             match med.Quantities with
             | None ->
                 orbDto.OrderableQuantity.Constraints.MinOpt <- zero
