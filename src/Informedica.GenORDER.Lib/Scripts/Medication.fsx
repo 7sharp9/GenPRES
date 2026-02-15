@@ -877,6 +877,10 @@ Components:
 		Solution:
 """
 
+    /// This scenario has a variable glucose content which can result in
+    /// an inappropriate low volume for the max protein concentration. This
+    /// happens when recalculating all possible values. The solution is to
+    /// treat the glucose component as a rest volume, i.e., only calculated.
     let tpnWithMaxQuantity = """
 Id: 81607677-b226-4854-afd9-90faba665cc3
 Name: samenstelling c
