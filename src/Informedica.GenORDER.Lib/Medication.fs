@@ -1026,17 +1026,31 @@ module Medication =
                     else lim.Name
                 Form = shape
                 Quantities =
-                    let hasReconst =
-                        lim.Products
-                        |> Array.forall _.RequiresReconstitution
-                    if solutionRule.IsSome && hasReconst |> not then
+                    let oneMl =
                         1N
                         |> ValueUnit.singleWithUnit Units.Volume.milliLiter
-                        |> Some
-                    else
+
+                    let qts =
                         lim.Products
                         |> Array.map _.FormQuantities
                         |> ValueUnit.collect
+
+                    let isVol =
+                        qts
+                        |> Option.map (fun vu ->
+                            vu
+                            |> ValueUnit.eqsGroup oneMl
+                        )
+                        |> Option.defaultValue false
+
+                    let hasReconst =
+                        lim.Products
+                        |> Array.forall _.RequiresReconstitution
+
+                    if isVol && hasReconst |> not then
+                        Some oneMl
+                    else
+                        qts
                 Divisible =
                     lim.Products
                     |> Array.choose _.Divisible

@@ -700,7 +700,7 @@ module OrderProcessor =
                 os.OrderIsSolved |> not //&&
                 //os.HasValues |> not
             [
-                { Name = "calc-values: increase-increments"; Guard = guard; Run = increaseIncrementStep }
+                // { Name = "calc-values: increase-increments"; Guard = guard; Run = increaseIncrementStep }
                 { Name = "calc-values: calc-values"; Guard = guard; Run = calcValuesStep false }
             ]
             |> runPipeline ord

@@ -28,7 +28,6 @@ module Order =
         type Msg =
             | ChangeComponent of string option
             | ChangeComponentOrderableQuantity of string option
-            | ChangeComponentDoseQuantity of string option
             | ChangeItem of string option
             | ChangeFrequency of string option
             | ChangeTime of string option
@@ -249,35 +248,6 @@ module Order =
                                                 { cmp with
                                                     OrderableQuantity =
                                                         cmp.OrderableQuantity |> setOvar s
-                                                }
-                                            | _ -> cmp
-                                        )
-                                }
-                        }
-                        |> UpdateOrderScenario
-
-                    { state with Order = None }, Cmd.ofMsg msg
-                | _ -> state, Cmd.none
-
-            | ChangeComponentDoseQuantity s ->
-                match state.Order with
-                | Some ord ->
-                    let msg =
-                        { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.map (fun cmp ->
-                                            match state.SelectedComponent with
-                                            | Some c when cmp.Name = c ->
-                                                { cmp with
-                                                    Dose =
-                                                        { cmp.Dose with
-                                                            Quantity =
-                                                                cmp.Dose.Quantity
-                                                                |> setOvar s
-                                                        }
                                                 }
                                             | _ -> cmp
                                         )
@@ -1168,7 +1138,7 @@ module Order =
                             |> select true "" None ignore None false
                     }
                     {
-                        // substance dose per time
+                        // substance dose per time / dose per time adjust
                         match substIndx, state.Order with
                         | Some i, Some ord when ord.Schedule.IsContinuous |> not &&
                                                 itms |> Array.length > 0 ->
@@ -1197,7 +1167,7 @@ module Order =
                             |> select true "" None ignore None false
                     }
                     {
-                        // substance dose rate
+                        // substance dose rate / dose rate adust
                         let navigate = None
 
                         match substIndx, state.Order with
@@ -1371,7 +1341,7 @@ module Order =
                     {
                         // orderable quantity
                         match state.Order with
-                        | Some ord ->
+                        | Some ord when ord.Orderable.Components |> Array.length > 1 ->
                             ord.Orderable.OrderableQuantity.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                             |> Option.defaultValue [||]
