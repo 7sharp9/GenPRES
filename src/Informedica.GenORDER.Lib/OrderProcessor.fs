@@ -683,7 +683,10 @@ module OrderProcessor =
                 { Name = "calc-minmax: calc-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep }
                 { Name = "calc-minmax: set-calculated-constraints"; Guard = (fun _ -> true); Run = setCalculatedConstraintsStep }
                 { Name = "calc-minmax: increase-increment"; Guard = (fun _ -> true); Run = increaseIncrementStep }
-                { Name = "calc-minmax: set-normdose"; Guard = (fun _ -> ord |> hasNormDose ); Run = calcNormDoseStep }
+                // norm dose calc needs all values calculated, see adenosine 10 kg example
+                if ord |> hasNormDose && ord.Orderable.Components |> List.length <= 2 then
+                    { Name = "solve-order: ensure-values-1"; Guard = (_.HasValues >> not); Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2)};
+                    { Name = "calc-minmax: set-normdose"; Guard = (fun _ -> true ); Run = calcNormDoseStep }
             ]
             |> runPipeline ord
 
