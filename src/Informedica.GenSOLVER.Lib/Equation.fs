@@ -388,10 +388,10 @@ module Equation =
                     // or if this is the last calculation (i.e., previous calculations
                     // where unchanged)
                     (*
-                    if y |> Variable.isSolved then None
-                    *)
                     if y |> Variable.isSolved ||
                        n = c && c > 2 && y |> Variable.hasValues then None
+                    *)
+                    if y |> Variable.isSolved then None
                     else
                         let op2 = if i = 0 then op1 else op2
                         // log starting the calculation

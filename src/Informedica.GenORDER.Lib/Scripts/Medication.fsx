@@ -939,6 +939,40 @@ Components:
 		Solution:
 """
 
+    /// test case for not solved component-orderable count
+    let adenosinDayOne = """
+54. 16,599: Informative
+Medication created:
+
+Id: 09be3945-a983-4209-88d5-a80006f57cd5
+Name: adenosine
+Quantity:
+Quantities:
+Route: INTRAVENEUS
+OrderType: OnceOrder
+Adjust: 10 kg
+Frequencies:
+Time:
+Dose: [qty-adj] max 20 ml/kg/dosis, [qty] max 1000 ml/dosis
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: adenosine
+	Form: infusievloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: adenosine
+		Quantities:
+		Concentrations: 3;2;5 mg/ml
+		Dose: adenosine, [dun] microg, [qty-adj] 100 microg/kg/dosis, [qty] max 6000 microg/dosis
+		Solution:
+"""
+
 
 module MedicationScenarios =
 
@@ -1117,7 +1151,7 @@ MedicationTexts.timedMultipleComponentsDoseComponent
 |> ignore
 
 
-MedicationTexts.tpnWithMaxQuantity
+MedicationTexts.adenosinDayOne
 |> Medication.fromString
 |> function
     | Error _ -> "fail" |> failwith
