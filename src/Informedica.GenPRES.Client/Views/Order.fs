@@ -977,43 +977,11 @@ module Order =
             | None -> Some 0
             | Some i -> Some i
 
-        let showAdminDivider =
-            match state.Order with
-            | None -> false
-            | Some ord ->
-                // orderable dose quantity: shown when not continuous and has vals
-                let hasDoseQty =
-                    ord.Schedule.IsContinuous |> not
-                    && ord.Orderable.Dose.Quantity.Variable.Vals
-                       |> Option.map (fun v -> v.Value |> Array.isEmpty |> not)
-                       |> Option.defaultValue false
-
-                // orderable dose rate: shown when continuous/timed/onceTimed
-                // (navigate is always Some, so select renders even with empty vals)
-                let hasDoseRate =
-                    ord.Schedule.IsContinuous
-                    || ord.Schedule.IsTimed
-                    || ord.Schedule.IsOnceTimed
-
-                // administration time: shown when has vals
-                let hasTime =
-                    ord.Schedule.Time.Variable.Vals
-                    |> Option.map (fun v -> v.Value |> Array.isEmpty |> not)
-                    |> Option.defaultValue false
-
-                hasDoseQty || hasDoseRate || hasTime
-
         let showDosingDivider =
             match state.Order with
             | None -> false
             | Some ord ->
                 let hasSubstIndx = substIndx.IsSome && itms |> Array.length > 0
-
-                // frequency: shown when has vals or single val (nav)
-                let hasFrequency =
-                    ord.Schedule.Frequency.Variable.Vals
-                    |> Option.map (fun v -> v.Value |> Array.isEmpty |> not)
-                    |> Option.defaultValue false
 
                 // substance dose quantity: not continuous, substIndx, itms > 0, has vals
                 let hasSubstDoseQty =
@@ -1068,7 +1036,7 @@ module Order =
                        )
                        |> Option.defaultValue false
 
-                hasFrequency || hasSubstDoseQty || hasSubstDoseQtyAdj || hasSubstPerTime || hasSubstRate
+                hasSubstDoseQty || hasSubstDoseQtyAdj || hasSubstPerTime || hasSubstRate
 
         let showPrepDivider =
             match state.Order with
@@ -1129,6 +1097,35 @@ module Order =
                        |> Option.defaultValue false
 
                 hasCompOrdQty || hasSubstCompConc || hasSubstOrbConc || hasSubstOrbQty || hasOrbQty
+
+        let showAdminDivider =
+            match state.Order with
+            | None -> false
+            | Some ord ->
+                // frequency: shown when has vals or single val (nav)
+                let hasFrequency =
+                    ord.Schedule.Frequency.Variable.Vals
+                    |> Option.map (fun v -> v.Value |> Array.isEmpty |> not)
+                    |> Option.defaultValue false
+                // orderable dose quantity: shown when not continuous and has vals
+                let hasDoseQty =
+                    ord.Schedule.IsContinuous |> not
+                    && ord.Orderable.Dose.Quantity.Variable.Vals
+                       |> Option.map (fun v -> v.Value |> Array.isEmpty |> not)
+                       |> Option.defaultValue false
+                // orderable dose rate: shown when continuous/timed/onceTimed
+                // (navigate is always Some, so select renders even with empty vals)
+                let hasDoseRate =
+                    ord.Schedule.IsContinuous
+                    || ord.Schedule.IsTimed
+                    || ord.Schedule.IsOnceTimed
+                // administration time: shown when has vals
+                let hasTime =
+                    ord.Schedule.Time.Variable.Vals
+                    |> Option.map (fun v -> v.Value |> Array.isEmpty |> not)
+                    |> Option.defaultValue false
+
+                hasFrequency || hasDoseQty || hasDoseRate || hasTime
 
         let select isLoading lbl selected updateSelected navigate hasClear xs =
             if xs |> Array.isEmpty && navigate |> Option.isNone then
@@ -1237,31 +1234,6 @@ module Order =
                             |> select true "" None ignore None false
                     }
                     {dosingDivider}
-                    {
-                        // frequency
-                        match state.Order with
-                        | Some ord ->
-                            let xs =
-                                ord.Schedule.Frequency.Variable.Vals
-                                |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                                |> Option.defaultValue [||]
-
-                            let navigate =
-                                if xs |> Array.length <> 1 then None
-                                else
-                                    {|
-                                        first = fun () -> SetMinFrequencyProperty |> dispatch
-                                        decrease = fun () -> DecreaseFrequencyProperty |> dispatch
-                                        median = fun () -> SetMedianFrequencyProperty |> dispatch
-                                        increase = fun () -> IncreaseFrequencyProperty |> dispatch
-                                        last = fun () -> SetMaxFrequencyProperty |> dispatch
-                                    |}
-                                    |> Some
-                            select false (Terms.``Order Frequency`` |> getTerm "frequentie") None (ChangeFrequency >> dispatch) navigate true xs
-                        | _ ->
-                            [||]
-                            |> select true "" None ignore None false
-                    }
                     {
                         // substance dose quantity
                         match substIndx, state.Order with
@@ -1499,6 +1471,31 @@ module Order =
                             |> select true "" None ignore None false
                     }
                     {administrationDivider}
+                    {
+                        // frequency
+                        match state.Order with
+                        | Some ord ->
+                            let xs =
+                                ord.Schedule.Frequency.Variable.Vals
+                                |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
+                                |> Option.defaultValue [||]
+
+                            let navigate =
+                                if xs |> Array.length <> 1 then None
+                                else
+                                    {|
+                                        first = fun () -> SetMinFrequencyProperty |> dispatch
+                                        decrease = fun () -> DecreaseFrequencyProperty |> dispatch
+                                        median = fun () -> SetMedianFrequencyProperty |> dispatch
+                                        increase = fun () -> IncreaseFrequencyProperty |> dispatch
+                                        last = fun () -> SetMaxFrequencyProperty |> dispatch
+                                    |}
+                                    |> Some
+                            select false (Terms.``Order Frequency`` |> getTerm "frequentie") None (ChangeFrequency >> dispatch) navigate true xs
+                        | _ ->
+                            [||]
+                            |> select true "" None ignore None false
+                    }
                     {
                         // orderable dose quantity
                         match state.Order with
