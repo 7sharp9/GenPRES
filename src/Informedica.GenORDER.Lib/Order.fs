@@ -480,18 +480,17 @@ module Order =
             let clearRate = applyToRate Rate.clear
 
 
-
             /// Decrease the rate of a Dose
-            let decreaseRate n dos =
+            let decreaseRate useCalc n dos =
                 { (dos |> inf) with
-                    Rate = dos.Rate |> Rate.decrease n
+                    Rate = dos.Rate |> Rate.decrease useCalc n
                 }
 
 
             /// Increase the rate of a Dose
-            let increaseRate n dos =
+            let increaseRate useCalc n dos =
                 { (dos |> inf) with
-                    Rate = dos.Rate |> Rate.increase n
+                    Rate = dos.Rate |> Rate.increase useCalc n
                 }
 
             /// Clear both the rate and rateAdjust of a Dose
@@ -545,16 +544,16 @@ module Order =
 
 
             /// Decrease the quantity of a Dose
-            let decreaseQuantity n dos =
+            let decreaseQuantity useCalc n dos =
                 { (dos |> inf) with
-                    Quantity = dos.Quantity |> Quantity.decrease n
+                    Quantity = dos.Quantity |> Quantity.decrease useCalc n
                 }
 
 
             /// Increase the quantity of a Dose
-            let increaseQuantity n dos =
+            let increaseQuantity useCalc n dos =
                 { (dos |> inf) with
-                    Quantity = dos.Quantity |> Quantity.increase n
+                    Quantity = dos.Quantity |> Quantity.increase useCalc n
                 }
 
 

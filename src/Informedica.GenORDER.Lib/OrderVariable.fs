@@ -540,7 +540,12 @@ module OrderVariable =
 
     let setCalculatedConstraints (ovar: OrderVariable) =
         { ovar with
-            CalculatedConstraints = ovar.Variable.Values |> Constraints.fromValueRange
+            CalculatedConstraints =
+                let cs = ovar.Variable.Values |> Constraints.fromValueRange
+                // preserve the defined increment
+                match ovar.DefinedConstraints.Incr, cs.Incr with
+                | Some incr, None -> { cs with Incr = Some incr }
+                | _ -> cs
         }
 
 
@@ -1073,14 +1078,15 @@ module OrderVariable =
     /// <param name="n">The number of increases or decreases</param>
     /// <param name="ovar">The OrderVariable to step</param>
     /// <returns>The OrderVariable with stepped value, unchanged if no increment constraint</returns>
-    let step isStepUp n (ovar : OrderVariable) =
-        if ovar.DefinedConstraints.Incr.IsNone then ovar
-        else
+    let step isStepUp useCalc n (ovar : OrderVariable) =
+        match if useCalc then ovar.CalculatedConstraints.Incr else ovar.DefinedConstraints.Incr with
+        | None -> ovar
+        | Some incr ->
+            let incr = incr |> Increment.toValueUnit
+
             let minVal, maxVal =
                 ovar.Variable.Values |> ValueRange.getMin |> Option.map Minimum.toValueUnit,
                 ovar.Variable.Values |> ValueRange.getMax |> Option.map Maximum.toValueUnit
-
-            let incr = ovar.DefinedConstraints.Incr.Value |> Increment.toValueUnit
 
             let calcIncr n incr =
                 if n <= 0 then
@@ -1136,10 +1142,10 @@ module OrderVariable =
                 OrderVariable.Variable.Values = vr
             }
 
-    let decrease n = step false n
+    let decrease useCalc n = step false useCalc n
 
 
-    let increase n = step true n
+    let increase useCalc n = step true useCalc n
 
 
     module Dto =
@@ -1696,10 +1702,10 @@ module OrderVariable =
         let setPercValue nth = apply (setPercValue nth)
 
 
-        let decrease = apply (decrease 1)
+        let decrease = apply (decrease false 1)
 
 
-        let increase = apply (increase 1)
+        let increase = apply (increase false 1)
 
 
         /// Set standard frequency values based on the time unit (e.g., per day/week)
@@ -2011,10 +2017,10 @@ module OrderVariable =
         let minIncrMaxToValues = toOrdVar >> minIncrMaxToValues None >> Quantity
 
 
-        let decrease n = toOrdVar >> decrease n >> Quantity
+        let decrease useCalc n = toOrdVar >> decrease useCalc n >> Quantity
 
 
-        let increase n = toOrdVar >> increase n >> Quantity
+        let increase useCalc n = toOrdVar >> increase useCalc n >> Quantity
 
 
     /// Type and functions that represent a quantity per time
@@ -2266,10 +2272,10 @@ module OrderVariable =
         let setToNonZeroPositive = toOrdVar >> setToNonZeroPositive >> Rate
 
 
-        let decrease n = toOrdVar >> decrease n >> Rate
+        let decrease useCalc n = toOrdVar >> decrease useCalc n >> Rate
 
 
-        let increase n = toOrdVar >> increase n >> Rate
+        let increase useCalc n = toOrdVar >> increase useCalc n >> Rate
 
 
     /// Type and functions that represent a total

@@ -165,21 +165,33 @@ module OrderProcessor =
         | SetMedianScheduleFrequency -> ord |> setFreq Frequency.setMedianValue
         | SetMaxScheduleFrequency -> ord |> setFreq Frequency.setMaxValue
         // Dose Quantity
-        | DecreaseOrderableDoseQuantity n -> ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.decreaseQuantity n)
-        | IncreaseOrderableDoseQuantity n -> ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.increaseQuantity n)
+        | DecreaseOrderableDoseQuantity n ->
+            let useCalc = n > 1
+            ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.decreaseQuantity useCalc 1)
+        | IncreaseOrderableDoseQuantity n ->
+            let useCalc = n > 1
+            ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.increaseQuantity useCalc 1)
         | SetMinOrderableDoseQuantity -> ord |> setDose (Dose.setMinDose ord.Schedule false)
         | SetMaxOrderableDoseQuantity -> ord |> setDose (Dose.setMaxDose ord.Schedule false)
         | SetMedianOrderableDoseQuantity -> ord |> setDose (Dose.setMedianDose ord.Schedule false)
         | SetOrderableDoseQuantityPerc n -> ord |> setDose (Dose.setPercValue n ord.Schedule false)
         // Dose Rate
-        | DecreaseOrderableDoseRate n -> ord |> orderPropertyIncrOrDecrDoseRate (Dose.decreaseRate n)
-        | IncreaseOrderableDoseRate n -> ord |> orderPropertyIncrOrDecrDoseRate (Dose.increaseRate n)
+        | DecreaseOrderableDoseRate n ->
+            let useCalc = n > 1
+            ord |> orderPropertyIncrOrDecrDoseRate (Dose.decreaseRate useCalc 1)
+        | IncreaseOrderableDoseRate n ->
+            let useCalc = n > 1
+            ord |> orderPropertyIncrOrDecrDoseRate (Dose.increaseRate useCalc 1)
         | SetMinOrderableDoseRate -> ord |> setDose (Dose.setMinDose ord.Schedule true)
         | SetMaxOrderableDoseRate -> ord |> setDose (Dose.setMaxDose ord.Schedule true)
         | SetMedianOrderableDoseRate -> ord |> setDose (Dose.setMedianDose ord.Schedule true)
         // Component Quantity
-        | DecreaseComponentOrderableQuantity (cmp, n) -> ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.decrease n) cmp
-        | IncreaseComponentOrderableQuantity (cmp, n) -> ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.increase n) cmp
+        | DecreaseComponentOrderableQuantity (cmp, n) ->
+            let useCalc = n > 1
+            ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.decrease useCalc 1) cmp
+        | IncreaseComponentOrderableQuantity (cmp, n) ->
+            let useCalc = n > 1
+            ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.increase useCalc 1) cmp
         | SetMinComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMinValue
         | SetMaxComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMaxValue
         | SetMedianComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMedianValue
@@ -490,7 +502,7 @@ module OrderProcessor =
                     |> Logging.logInfo logger
 
                     Error (ord, msgs)
-                
+
                 |> fun res ->
                     $"\n=== PIPELINE END {step.Name} ===\n"
                     |> Events.OrderScenario

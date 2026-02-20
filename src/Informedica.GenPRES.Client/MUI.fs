@@ -326,6 +326,27 @@ module Icons =
     <AlignHorizontalCenterIcon/>
     """
 
+    let KeyboardArrowUpIcon = JSX.jsx $"""
+    import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+    <KeyboardArrowUpIcon/>
+    """
+
+    let KeyboardArrowDownIcon = JSX.jsx $"""
+    import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+    <KeyboardArrowDownIcon/>
+    """
+
+    let KeyboardDoubleArrowUpIcon = JSX.jsx $"""
+    import KeyboardDoubleArrowUpIcon from '@mui/icons-material/KeyboardDoubleArrowUp';
+    <KeyboardDoubleArrowUpIcon/>
+    """
+
+    let KeyboardDoubleArrowDownIcon = JSX.jsx $"""
+    import KeyboardDoubleArrowDownIcon from '@mui/icons-material/KeyboardDoubleArrowDown';
+    <KeyboardDoubleArrowDownIcon/>
+    """
+
+
 type Color = {|
     ``50`` : string;
     ``100`` : string;

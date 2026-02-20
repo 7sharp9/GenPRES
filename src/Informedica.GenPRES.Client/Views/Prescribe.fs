@@ -642,9 +642,9 @@ module Prescribe =
                                 setMaxFrequency = Api.SetMaxScheduleFrequencyProperty >> props.updateOrderContext
                                 // Rate
                                 setMinRate = Api.SetMinOrderableDoseRateProperty >> props.updateOrderContext
-                                decrRate = (fun ctx -> (ctx, 1) |> Api.DecreaseOrderableDoseRateProperty |> props.updateOrderContext)
+                                decrRate = Api.DecreaseOrderableDoseRateProperty >> props.updateOrderContext
                                 setMedianRate = Api.SetMedianOrderableDoseRateProperty >> props.updateOrderContext
-                                incrRate = (fun ctx -> (ctx, 1) |> Api.IncreaseOrderableDoseRateProperty |> props.updateOrderContext)
+                                incrRate = Api.IncreaseOrderableDoseRateProperty >> props.updateOrderContext
                                 setMaxRate = Api.SetMaxOrderableDoseRateProperty >> props.updateOrderContext
                                 // Dose Quantity
                                 setMinDoseQty = Api.SetMinOrderableDoseQuantityProperty >> props.updateOrderContext

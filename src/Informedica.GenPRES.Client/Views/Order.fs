@@ -137,21 +137,21 @@ module Order =
                     setFreqMax : OrderLoader -> unit
 
                     setRateMin : OrderLoader -> unit
-                    setRateDec : OrderLoader -> unit
+                    setRateDec : int -> OrderLoader -> unit
                     setRateMed : OrderLoader -> unit
-                    setRateInc : OrderLoader -> unit
+                    setRateInc : int -> OrderLoader -> unit
                     setRateMax : OrderLoader -> unit
 
                     setDoseQtyMin : OrderLoader -> unit
-                    setDoseQtyDec : OrderLoader -> unit
+                    setDoseQtyDec : int -> OrderLoader -> unit
                     setDoseQtyMed : OrderLoader -> unit
-                    setDoseQtyInc : OrderLoader -> unit
+                    setDoseQtyInc : int -> OrderLoader -> unit
                     setDoseQtyMax : OrderLoader -> unit
 
                     setComponentQtyMin : OrderLoader -> unit
-                    setComponentQtyDec : OrderLoader -> unit
+                    setComponentQtyDec : int -> OrderLoader -> unit
                     setComponentQtyMed : OrderLoader -> unit
-                    setComponentQtyInc : OrderLoader -> unit
+                    setComponentQtyInc : int -> OrderLoader  -> unit
                     setComponentQtyMax : OrderLoader -> unit
 
                 |})
@@ -690,21 +690,21 @@ module Order =
             | SetMaxFrequencyProperty -> handleNav navigate.setFreqMax
             // == Rate ==
             | SetMinDoseRateProperty -> handleNav navigate.setRateMin
-            | DecreaseDoseRateProperty _ -> handleNav navigate.setRateDec
+            | DecreaseDoseRateProperty n -> handleNav (navigate.setRateDec n)
             | SetMedianDoseRateProperty -> handleNav navigate.setRateMed
-            | IncreaseDoseRateProperty _ -> handleNav navigate.setRateInc
+            | IncreaseDoseRateProperty n -> handleNav (navigate.setRateInc n)
             | SetMaxDoseRateProperty -> handleNav navigate.setRateMax
             // == DoseQty ==
             | SetMinDoseQuantityProperty -> handleNav navigate.setDoseQtyMin
-            | DecreaseDoseQuantityProperty _ -> handleNav navigate.setDoseQtyDec
+            | DecreaseDoseQuantityProperty n -> handleNav (navigate.setDoseQtyDec n)
             | SetMedianDoseQuantityProperty -> handleNav navigate.setDoseQtyMed
-            | IncreaseDoseQuantityProperty _ -> handleNav navigate.setDoseQtyInc
+            | IncreaseDoseQuantityProperty n -> handleNav (navigate.setDoseQtyInc n)
             | SetMaxDoseQuantityProperty -> handleNav navigate.setDoseQtyMax
             // == ComponentQty ==
             | SetMinComponentQuantityProperty -> handleNav navigate.setComponentQtyMin
-            | DecreaseComponentQuantityProperty _ -> handleNav navigate.setComponentQtyDec
+            | DecreaseComponentQuantityProperty n -> handleNav (navigate.setComponentQtyDec n)
             | SetMedianComponentQuantityProperty -> handleNav navigate.setComponentQtyMed
-            | IncreaseComponentQuantityProperty _ -> handleNav navigate.setComponentQtyInc
+            | IncreaseComponentQuantityProperty n -> handleNav (navigate.setComponentQtyInc n)
             | SetMaxComponentQuantityProperty -> handleNav navigate.setComponentQtyMax
 
 
@@ -737,9 +737,9 @@ module Order =
                 setMaxFrequency: OrderContext -> unit
                 // Rate
                 setMinRate : OrderContext -> unit
-                decrRate : OrderContext -> unit
+                decrRate : OrderContext * int -> unit
                 setMedianRate: OrderContext -> unit
-                incrRate : OrderContext -> unit
+                incrRate : OrderContext * int -> unit
                 setMaxRate: OrderContext -> unit
                 // Dose Quantity
                 setMinDoseQty : OrderContext -> unit
@@ -866,7 +866,7 @@ module Order =
                     | _ -> ()
 
             let createWithN nav =
-                fun (ol : OrderLoader) ->
+                fun n (ol : OrderLoader) ->
                     match props.orderContext with
                     | Resolved ctx ->
                         match ol.Component with
@@ -887,11 +887,11 @@ module Order =
                                                 }
                                         )
                                 }
-                            nav (ctx, 1)
+                            nav (ctx, n)
                     | _ -> ()
 
             let createWithCmpN nav =
-                fun (ol : OrderLoader) ->
+                fun n (ol : OrderLoader) ->
                     match props.orderContext with
                     | Resolved ctx ->
                         match ol.Component with
@@ -912,7 +912,7 @@ module Order =
                                                 }
                                         )
                                 }
-                            nav (ctx, cmp, 1)
+                            nav (ctx, cmp, n)
                     | _ -> ()
 
             {|
@@ -924,9 +924,9 @@ module Order =
                 setFreqMax = create props.navigateOrderScenario.setMaxFrequency
                 // Dose Rate
                 setRateMin = create props.navigateOrderScenario.setMinRate
-                setRateDec = create props.navigateOrderScenario.decrRate
+                setRateDec = createWithN props.navigateOrderScenario.decrRate
                 setRateMed = create props.navigateOrderScenario.setMedianRate
-                setRateInc = create props.navigateOrderScenario.incrRate
+                setRateInc = createWithN props.navigateOrderScenario.incrRate
                 setRateMax = create props.navigateOrderScenario.setMaxRate
                 // Dose Quantity
                 setDoseQtyMin = create props.navigateOrderScenario.setMinDoseQty
@@ -1362,12 +1362,20 @@ module Order =
 
                                 if not show then None
                                 else
+                                    let solved = c = 1
                                     {|
-                                        first = fun () -> SetMinComponentQuantityProperty |> dispatch
+                                        hasIncr = solved
+                                        hasDecr = solved
+                                        hasMedian = not solved
+                                        first = 
+                                            if not solved then fun () -> SetMinComponentQuantityProperty |> dispatch
+                                            else fun () -> 2 |> DecreaseComponentQuantityProperty |> dispatch
                                         decrease = fun () -> 1 |> DecreaseComponentQuantityProperty |> dispatch
                                         median = fun () -> SetMedianComponentQuantityProperty |> dispatch
                                         increase = fun () -> 1 |> IncreaseComponentQuantityProperty |> dispatch
-                                        last = fun () -> SetMaxComponentQuantityProperty |> dispatch
+                                        last = 
+                                            if not solved then fun () -> SetMaxComponentQuantityProperty |> dispatch
+                                            else fun () -> 2 |> IncreaseComponentQuantityProperty |> dispatch
                                     |}
                                     |> Some
 
@@ -1483,7 +1491,11 @@ module Order =
                             let navigate =
                                 if xs |> Array.length <> 1 then None
                                 else
+                                    let solved = xs.Length = 1
                                     {|
+                                        hasIncr = solved
+                                        hasDecr = solved
+                                        hasMedian = not solved
                                         first = fun () -> SetMinFrequencyProperty |> dispatch
                                         decrease = fun () -> DecreaseFrequencyProperty |> dispatch
                                         median = fun () -> SetMedianFrequencyProperty |> dispatch
@@ -1515,12 +1527,23 @@ module Order =
                             let navigate =
                                 if not showNav then None
                                 else
+                                    let solved = 
+                                        ord.Orderable.Dose.Quantity.Variable.Vals
+                                        |> Option.map (fun vu -> vu.Value.Length = 1)
+                                        |> Option.defaultValue false
                                     {|
-                                        first = fun () -> SetMinDoseQuantityProperty |> dispatch
+                                        hasIncr = solved
+                                        hasDecr = solved
+                                        hasMedian = not solved
+                                        first = 
+                                            if not solved then fun () -> SetMinDoseQuantityProperty |> dispatch
+                                            else fun () -> 2 |> DecreaseDoseQuantityProperty |> dispatch
                                         decrease = fun () -> 1 |> DecreaseDoseQuantityProperty |> dispatch
                                         median = fun () -> SetMedianDoseQuantityProperty |> dispatch
                                         increase = fun () -> 1 |> IncreaseDoseQuantityProperty |> dispatch
-                                        last = fun () -> SetMaxDoseQuantityProperty |> dispatch
+                                        last = 
+                                            if not solved then fun () -> SetMaxDoseQuantityProperty |> dispatch
+                                            else fun () -> 2 |> IncreaseDoseQuantityProperty|> dispatch
                                     |}
                                     |> Some
 
@@ -1534,20 +1557,32 @@ module Order =
                     }
                     {
                         // orderable dose rate
-                        let navigate =
-                            {|
-                                first = fun () -> SetMinDoseRateProperty |> dispatch
-                                decrease = fun () -> 1 |> DecreaseDoseRateProperty |> dispatch
-                                median = fun () -> SetMedianDoseRateProperty |> dispatch
-                                increase = fun () -> 1 |> IncreaseDoseRateProperty |> dispatch
-                                last = fun () -> SetMaxDoseRateProperty |> dispatch
-                            |}
-                            |> Some
-
                         match state.Order with
                         | Some ord when ord.Schedule.IsContinuous ||
                                         ord.Schedule.IsTimed ||
                                         ord.Schedule.IsOnceTimed ->
+                            let solved = 
+                                ord.Orderable.Dose.Rate.Variable.Vals
+                                |> Option.map (fun vu -> vu.Value.Length = 1)
+                                |> Option.defaultValue false
+
+                            let navigate =
+                                {|
+                                    hasIncr = solved
+                                    hasDecr = solved
+                                    hasMedian = not solved
+                                    first = 
+                                        if not solved then fun () -> SetMinDoseRateProperty |> dispatch
+                                        else fun () -> 2 |> DecreaseDoseRateProperty |> dispatch
+                                    decrease = fun () -> 1 |> DecreaseDoseRateProperty |> dispatch
+                                    median = fun () -> SetMedianDoseRateProperty |> dispatch
+                                    increase = fun () -> 1 |> IncreaseDoseRateProperty |> dispatch
+                                    last = 
+                                        if not solved then fun () -> SetMaxDoseRateProperty |> dispatch
+                                        else fun () -> 2 |> IncreaseDoseRateProperty |> dispatch
+                                |}
+                                |> Some
+
                             ord.Orderable.Dose.Rate.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                             |> Option.defaultValue [||]
