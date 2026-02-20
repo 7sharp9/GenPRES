@@ -475,7 +475,7 @@ module OrderProcessor =
 
         let runStep (step: Step) (ord: Order) =
             if step.Guard (classify ord) then
-                $"\n=== PIPELINE STEP {step.Name} ===\n"
+                $"\n=== PIPELINE START {step.Name} ===\n"
                 |> Events.OrderScenario
                 |> Logging.logInfo logger
 
@@ -490,6 +490,14 @@ module OrderProcessor =
                     |> Logging.logInfo logger
 
                     Error (ord, msgs)
+                
+                |> fun res ->
+                    $"\n=== PIPELINE END {step.Name} ===\n"
+                    |> Events.OrderScenario
+                    |> Logging.logInfo logger
+
+                    res
+
             else Ok ord
 
         let runPipeline (ord: Order) (steps: Step list) =
@@ -505,7 +513,12 @@ module OrderProcessor =
                 //o |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
                 Error (o, errs)
 
-        let setCalculatedConstraintsStep = setCalculatedConstraints >> Ok
+        let setCalculatedConstraintsStep =
+            setCalculatedConstraints
+            >> fun ord ->
+                ord |> toConsoleTableString |> Events.OrderScenario |> Logging.logInfo logger
+                ord
+            >> Ok
 
         let applyCalculatedConstraintsStep = applyCalculatedConstraints >> Ok
 
@@ -513,6 +526,8 @@ module OrderProcessor =
             ord |> increaseIncrements logger 10 10
 
         let calcValuesStep useMax ord = ord |> minIncrMaxToValues useMax true logger |> Ok
+
+        let reCalcValuesStep useMax ord = ord |> minIncrMaxToValues useMax false logger |> Ok
 
         let solveStep ord = solveOrder "Solve Order Step" true logger ord
 
@@ -523,15 +538,21 @@ module OrderProcessor =
             | Ok o -> Ok o
             | Error _ -> solveOrder "Error in Cleared Step Solve again" true logger ord
 
-        let applyConstraintsStep ord = ord |> applyConstraints |> Ok
+        let applyConstraintsStep ord =
+            ord
+            |> applyConstraints
+            |> fun ord ->
+                ord |> toConsoleTableString |> Events.OrderScenario |> Logging.logInfo logger
+                ord
+            |> Ok
 
         match cmd with
         | CalcMinMax ord ->
             [
                 { Name = "calc-minmax: apply-constraints"; Guard = (fun _ -> true); Run = applyConstraintsStep }
                 { Name = "calc-minmax: calc-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep }
+                { Name = "calc-minmax: increase-increments"; Guard = (fun _ -> true); Run = increaseIncrementStep }
                 { Name = "calc-minmax: set-calculated-constraints"; Guard = (fun _ -> true); Run = setCalculatedConstraintsStep }
-                { Name = "calc-minmax: increase-increment"; Guard = (fun _ -> true); Run = increaseIncrementStep }
                 // norm dose calc needs all values calculated, see adenosine 10 kg example
                 if ord |> hasNormDose && ord.Orderable.Components |> List.length <= 2 then
                     { Name = "solve-order: ensure-values-1"; Guard = (_.HasValues >> not); Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2)};
@@ -569,7 +590,7 @@ module OrderProcessor =
             let useMax = ord.Orderable.Components |> List.length <= 2
             [
                 { Name = "recalc-values: apply-calculated-constraints"; Guard = (fun _ -> true); Run = applyCalculatedConstraintsStep }
-                { Name = "recalc-values: calc-values"; Guard = (fun _ -> true); Run = calcValuesStep useMax }
+                { Name = "recalc-values: calc-values"; Guard = (fun _ -> true); Run = reCalcValuesStep useMax }
                 { Name = "recalc-values: final-solve"; Guard = (_.OrderIsSolved >> not); Run = solveStep }
             ]
             |> runPipeline ord
