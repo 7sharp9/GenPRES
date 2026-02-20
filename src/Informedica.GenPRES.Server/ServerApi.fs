@@ -835,11 +835,11 @@ module OrderContext =
                 | Api.SetMaxOrderableDoseRateProperty _ -> ctx |> OrderContext.SetMaxOrderableDoseRateProperty
                 | Api.SetMedianOrderableDoseRateProperty _ -> ctx |> OrderContext.SetMedianOrderableDoseRateProperty
                 // Component Quantity property commands
-                | Api.DecreaseComponentQuantityProperty (_, cmp, ntimes) -> OrderContext.DecreaseComponentQuantityProperty (ctx, cmp, ntimes)
-                | Api.IncreaseComponentQuantityProperty (_, cmp, ntimes) -> OrderContext.IncreaseComponentQuantityProperty (ctx, cmp, ntimes)
-                | Api.SetMinComponentQuantityProperty (_, cmp) -> OrderContext.SetMinComponentQuantityProperty (ctx, cmp)
-                | Api.SetMaxComponentQuantityProperty (_, cmp) -> OrderContext.SetMaxComponentQuantityProperty (ctx, cmp)
-                | Api.SetMedianComponentQuantityProperty (_, cmp) -> OrderContext.SetMedianComponentQuantityProperty (ctx, cmp)
+                | Api.DecreaseComponentOrderableQuantityProperty (_, cmp, ntimes) -> OrderContext.DecreaseComponentQuantityProperty (ctx, cmp, ntimes)
+                | Api.IncreaseComponentOrderableQuantityProperty (_, cmp, ntimes) -> OrderContext.IncreaseComponentQuantityProperty (ctx, cmp, ntimes)
+                | Api.SetMinComponentOrderableQuantityProperty (_, cmp) -> OrderContext.SetMinComponentQuantityProperty (ctx, cmp)
+                | Api.SetMaxComponentOrderableQuantityProperty (_, cmp) -> OrderContext.SetMaxComponentQuantityProperty (ctx, cmp)
+                | Api.SetMedianComponentOrderableQuantityProperty (_, cmp) -> OrderContext.SetMedianComponentQuantityProperty (ctx, cmp)
 
             |> OrderContext.logOrderContext logger "start eval"
             |> OrderContext.evaluate logger provider
@@ -871,11 +871,11 @@ module OrderContext =
         | Api.SetMaxOrderableDoseRateProperty ctx
         | Api.SetMedianOrderableDoseRateProperty ctx
         // Component Quantity property commands
-        | Api.DecreaseComponentQuantityProperty (ctx, _, _)
-        | Api.IncreaseComponentQuantityProperty (ctx, _, _)
-        | Api.SetMinComponentQuantityProperty (ctx, _)
-        | Api.SetMaxComponentQuantityProperty (ctx, _)
-        | Api.SetMedianComponentQuantityProperty (ctx, _)
+        | Api.DecreaseComponentOrderableQuantityProperty (ctx, _, _)
+        | Api.IncreaseComponentOrderableQuantityProperty (ctx, _, _)
+        | Api.SetMinComponentOrderableQuantityProperty (ctx, _)
+        | Api.SetMaxComponentOrderableQuantityProperty (ctx, _)
+        | Api.SetMedianComponentOrderableQuantityProperty (ctx, _)
          ->
             let map = mapToShared ctx >> updateIntake >> setDemoVersion
 

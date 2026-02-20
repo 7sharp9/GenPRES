@@ -939,29 +939,45 @@ Scenarios: {scenarios}
         | UpdateOrderScenario ctx -> ctx |> processScenarioOrder logger SolveOrder   |> UpdateOrderScenario  |> ValidatedResult.createOkNoMsgs
         | ResetOrderScenario ctx  -> ctx |> processScenarioOrder logger ReCalcValues |> ResetOrderScenario   |> ValidatedResult.createOkNoMsgs
         // Frequency property commands
-        | DecreaseScheduleFrequencyProperty ctx -> processPropertyCmd ctx DecreaseFrequency DecreaseScheduleFrequencyProperty
-        | IncreaseScheduleFrequencyProperty ctx -> processPropertyCmd ctx IncreaseFrequency IncreaseScheduleFrequencyProperty
-        | SetMinScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMinFrequency SetMinScheduleFrequencyProperty
-        | SetMaxScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMaxFrequency SetMaxScheduleFrequencyProperty
-        | SetMedianScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMedianFrequency SetMedianScheduleFrequencyProperty
+        | DecreaseScheduleFrequencyProperty ctx -> processPropertyCmd ctx DecreaseScheduleFrequency
+                                                       DecreaseScheduleFrequencyProperty
+        | IncreaseScheduleFrequencyProperty ctx -> processPropertyCmd ctx IncreaseScheduleFrequency
+                                                       IncreaseScheduleFrequencyProperty
+        | SetMinScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMinScheduleFrequency
+                                                     SetMinScheduleFrequencyProperty
+        | SetMaxScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMaxScheduleFrequency
+                                                     SetMaxScheduleFrequencyProperty
+        | SetMedianScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMedianScheduleFrequency
+                                                        SetMedianScheduleFrequencyProperty
         // Dose Quantity property commands
-        | DecreaseOrderableDoseQuantityProperty (ctx, ntimes) -> processPropertyCmd ctx (DecreaseDoseQuantity ntimes) (fun ctx -> DecreaseOrderableDoseQuantityProperty (ctx, ntimes))
-        | IncreaseOrderableDoseQuantityProperty (ctx, ntimes) -> processPropertyCmd ctx (IncreaseDoseQuantity ntimes) (fun ctx -> IncreaseOrderableDoseQuantityProperty (ctx, ntimes))
-        | SetMinOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMinDoseQuantity SetMinOrderableDoseQuantityProperty
-        | SetMaxOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMaxDoseQuantity SetMaxOrderableDoseQuantityProperty
-        | SetMedianOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMedianDoseQuantity SetMedianOrderableDoseQuantityProperty
+        | DecreaseOrderableDoseQuantityProperty (ctx, ntimes) -> processPropertyCmd ctx (DecreaseOrderableDoseQuantity
+                                                                                             ntimes) (fun ctx -> DecreaseOrderableDoseQuantityProperty (ctx, ntimes))
+        | IncreaseOrderableDoseQuantityProperty (ctx, ntimes) -> processPropertyCmd ctx (IncreaseOrderableDoseQuantity
+                                                                                             ntimes) (fun ctx -> IncreaseOrderableDoseQuantityProperty (ctx, ntimes))
+        | SetMinOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMinOrderableDoseQuantity
+                                                         SetMinOrderableDoseQuantityProperty
+        | SetMaxOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMaxOrderableDoseQuantity
+                                                         SetMaxOrderableDoseQuantityProperty
+        | SetMedianOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMedianOrderableDoseQuantity
+                                                            SetMedianOrderableDoseQuantityProperty
         // Dose Rate property commands
-        | DecreaseOrderableDoseRateProperty (ctx, ntimes) -> processPropertyCmd ctx (DecreaseDoseRate ntimes) (fun ctx -> DecreaseOrderableDoseRateProperty (ctx, ntimes))
-        | IncreaseOrderableDoseRateProperty (ctx, ntimes) -> processPropertyCmd ctx (IncreaseDoseRate ntimes) (fun ctx -> IncreaseOrderableDoseRateProperty (ctx, ntimes))
-        | SetMinOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMinDoseRate SetMinOrderableDoseRateProperty
-        | SetMaxOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMaxDoseRate SetMaxOrderableDoseRateProperty
-        | SetMedianOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMedianDoseRate SetMedianOrderableDoseRateProperty
+        | DecreaseOrderableDoseRateProperty (ctx, ntimes) -> processPropertyCmd ctx (DecreaseOrderableDoseRate ntimes) (fun ctx -> DecreaseOrderableDoseRateProperty (ctx, ntimes))
+        | IncreaseOrderableDoseRateProperty (ctx, ntimes) -> processPropertyCmd ctx (IncreaseOrderableDoseRate ntimes) (fun ctx -> IncreaseOrderableDoseRateProperty (ctx, ntimes))
+        | SetMinOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMinOrderableDoseRate
+                                                     SetMinOrderableDoseRateProperty
+        | SetMaxOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMaxOrderableDoseRate
+                                                     SetMaxOrderableDoseRateProperty
+        | SetMedianOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMedianOrderableDoseRate
+                                                        SetMedianOrderableDoseRateProperty
         // Component Quantity property commands
-        | DecreaseComponentQuantityProperty (ctx, cmp, ntimes) -> processPropertyCmd ctx (DecreaseComponentQuantity (cmp, ntimes)) (fun ctx -> DecreaseComponentQuantityProperty (ctx, cmp, ntimes))
-        | IncreaseComponentQuantityProperty (ctx, cmp, ntimes) -> processPropertyCmd ctx (IncreaseComponentQuantity (cmp, ntimes)) (fun ctx -> IncreaseComponentQuantityProperty (ctx, cmp, ntimes))
-        | SetMinComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMinComponentQuantity cmp) (fun ctx -> SetMinComponentQuantityProperty (ctx, cmp))
-        | SetMaxComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMaxComponentQuantity cmp) (fun ctx -> SetMaxComponentQuantityProperty (ctx, cmp))
-        | SetMedianComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMedianComponentQuantity cmp) (fun ctx -> SetMedianComponentQuantityProperty (ctx, cmp))
+        | DecreaseComponentQuantityProperty (ctx, cmp, ntimes) -> processPropertyCmd ctx (
+                                                                      DecreaseComponentOrderableQuantity (cmp, ntimes)) (fun ctx -> DecreaseComponentQuantityProperty (ctx, cmp, ntimes))
+        | IncreaseComponentQuantityProperty (ctx, cmp, ntimes) -> processPropertyCmd ctx (
+                                                                      IncreaseComponentOrderableQuantity (cmp, ntimes)) (fun ctx -> IncreaseComponentQuantityProperty (ctx, cmp, ntimes))
+        | SetMinComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMinComponentOrderableQuantity cmp) (fun ctx -> SetMinComponentQuantityProperty (ctx, cmp))
+        | SetMaxComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMaxComponentOrderableQuantity cmp) (fun ctx -> SetMaxComponentQuantityProperty (ctx, cmp))
+        | SetMedianComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMedianComponentOrderableQuantity
+                                                                                       cmp) (fun ctx -> SetMedianComponentQuantityProperty (ctx, cmp))
 
 
     let logOrderContext (logger: Logger) msg cmd =

@@ -290,27 +290,27 @@ module Types =
     /// - Set to Min or Max. Uses the calculated min max constraints
     /// - Set to Median. Uses the calculated values or the increment with a min and max constraint.
     and ChangePropertyCommand =
-        | DecreaseFrequency
-        | IncreaseFrequency
-        | SetMinFrequency
-        | SetMaxFrequency
-        | SetMedianFrequency
-        | DecreaseDoseQuantity of ntimes: int
-        | IncreaseDoseQuantity of ntimes: int
-        | SetDoseQuantityPerc of perc: int
-        | SetMinDoseQuantity
-        | SetMaxDoseQuantity
-        | SetMedianDoseQuantity
-        | DecreaseDoseRate of ntimes: int
-        | IncreaseDoseRate of ntimes: int
-        | SetMinDoseRate
-        | SetMaxDoseRate
-        | SetMedianDoseRate
-        | DecreaseComponentQuantity of cmp: string * ntimes: int
-        | IncreaseComponentQuantity of cmp: string * ntimes: int
-        | SetMinComponentQuantity of cmp: string
-        | SetMaxComponentQuantity of cmp: string
-        | SetMedianComponentQuantity of cmp: string
+        | DecreaseScheduleFrequency
+        | IncreaseScheduleFrequency
+        | SetMinScheduleFrequency
+        | SetMaxScheduleFrequency
+        | SetMedianScheduleFrequency
+        | DecreaseOrderableDoseQuantity of ntimes: int
+        | IncreaseOrderableDoseQuantity of ntimes: int
+        | SetOrderableDoseQuantityPerc of perc: int
+        | SetMinOrderableDoseQuantity
+        | SetMaxOrderableDoseQuantity
+        | SetMedianOrderableDoseQuantity
+        | DecreaseOrderableDoseRate of ntimes: int
+        | IncreaseOrderableDoseRate of ntimes: int
+        | SetMinOrderableDoseRate
+        | SetMaxOrderableDoseRate
+        | SetMedianOrderableDoseRate
+        | DecreaseComponentOrderableQuantity of cmp: string * ntimes: int
+        | IncreaseComponentOrderableQuantity of cmp: string * ntimes: int
+        | SetMinComponentOrderableQuantity of cmp: string
+        | SetMaxComponentOrderableQuantity of cmp: string
+        | SetMedianComponentOrderableQuantity of cmp: string
         | ComponentInStock of cmp: string * onlyInStock: bool
 
 

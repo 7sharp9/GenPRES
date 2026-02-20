@@ -47,27 +47,6 @@ module OrderProcessor =
         |> OrderPropertyChange.proc [ ScheduleFrequency step ]
 
 
-    let orderPropertySetFrequency step ord =
-        ord
-        // clear frequency and dependent properties
-        |> OrderPropertyChange.proc
-            [
-                ScheduleFrequency Frequency.applyConstraints
-                // Dose quantity is solved and could be outside constraints
-                if ord.Orderable.Dose.Quantity |> Quantity.isSolved then
-                    OrderableDose Dose.setPerTimeToNonZeroPositive
-                    ComponentDose ("", Dose.setPerTimeToNonZeroPositive)
-                    ItemDose ("", "", Dose.setPerTimeToNonZeroPositive)
-                // Dose quantity is not solved yet, so per time should be
-                // within constraints
-                else
-                    OrderableDose Dose.applyPerTimeConstraints
-                    ComponentDose ("", Dose.applyPerTimeConstraints)
-                    ItemDose ("", "", Dose.applyPerTimeConstraints)
-            ]
-        |> OrderPropertyChange.proc [ ScheduleFrequency step ]
-
-
     // == Property Change Dose Rate
 
     let orderPropertyIncrOrDecrDoseRate step ord =
@@ -83,27 +62,6 @@ module OrderProcessor =
 
             ]
         // increase or decrease
-        |> OrderPropertyChange.proc [ OrderableDose step ]
-
-
-    let orderPropertySetDoseRate step ord =
-        ord
-        // clear dose rates and dependent properties
-        |> OrderPropertyChange.proc
-            [
-                if ord.Schedule.IsContinuous then
-                    ScheduleTime Time.setToNonZeroPositive
-
-                    OrderableDose Dose.applyConstraints
-                    ComponentDose ("", Dose.applyConstraints)
-                    ItemDose ("", "", Dose.applyConstraints)
-                else
-                    ScheduleTime Time.applyConstraints
-
-                    OrderableDose Dose.applyConstraints
-                    ComponentDose ("", Dose.setRateToNonZeroPositive)
-                    ItemDose ("", "", Dose.setRateToNonZeroPositive)
-            ]
         |> OrderPropertyChange.proc [ OrderableDose step ]
 
     // == Property Change Dose Quantity
@@ -136,52 +94,6 @@ module OrderProcessor =
             ]
         // decrease or increase
         |> OrderPropertyChange.proc [ OrderableDose step ]
-
-
-    let orderPropertySetDoseQuantity step ord =
-        ord
-        // clear dose quantity and dependent properties
-        |> OrderPropertyChange.proc
-            [
-                if ord.Schedule |> Schedule.hasTime then
-                    ScheduleTime Time.setToNonZeroPositive
-
-                OrderableQuantity Quantity.applyConstraints
-                ComponentOrderableQuantity ("", Quantity.applyConstraints)
-                ComponentOrderableCount ("", OrderVariable.Count.setToNonZeroPositive)
-                ItemOrderableQuantity ("", "", Quantity.applyConstraints)
-
-                OrderableDose Dose.applyConstraints
-                ComponentDose ("", Dose.applyConstraints)
-                ItemDose ("", "", Dose.applyConstraints)
-
-                OrderableDoseCount OrderVariable.Count.applyConstraints
-            ]
-        |> OrderPropertyChange.proc [ OrderableDose step ]
-
-
-    let orderPropertySetDoseQuantityPerc step ord =
-        ord
-        // clear dose quantity and dependent properties
-        |> OrderPropertyChange.proc
-            [
-                if ord.Schedule |> Schedule.hasTime then
-                    ScheduleTime Time.setToNonZeroPositive
-                    OrderableDose Dose.applyOnlyMaxConstraints
-
-                OrderableQuantity Quantity.applyConstraints
-                ComponentOrderableQuantity ("", Quantity.applyConstraints)
-                ComponentOrderableCount ("", OrderVariable.Count.setToNonZeroPositive)
-                ItemOrderableQuantity ("", "", Quantity.applyConstraints)
-
-                OrderableDose Dose.applyConstraints
-                ComponentDose ("", Dose.applyConstraints)
-                ItemDose ("", "", Dose.applyConstraints)
-
-                OrderableDoseCount OrderVariable.Count.applyConstraints
-            ]
-        |> OrderPropertyChange.proc [ OrderableDose step ]
-        |> Ok
 
 
     // == Property Change Component Quantity
@@ -240,103 +152,40 @@ module OrderProcessor =
         |> OrderPropertyChange.proc [ ComponentOrderableQuantity (cmp, step) ]
 
 
-    /// <summary>
-    /// Set a specific component's orderable quantity to a min, max, or median value
-    /// based on the min/incr/max constraints. Key relationships maintained:
-    /// - orb_qty = sum(cmp_orb_qty): orderable quantity is recalculated from components
-    /// - cmp_orb_qty = orb_dos_cnt * cmp_dos_qty: dose count stays constant
-    /// - itm_orb_cnc = itm_orb_qty / orb_qty: item concentrations update for all components
-    /// For timed schedules, rate is kept constant while time adjusts.
-    /// Components with already-solved quantities have doses recalculated;
-    /// unsolved components have full constraints applied.
-    /// </summary>
-    /// <param name="printErr">Whether to print errors</param>
-    /// <param name="logger">The logger for diagnostics</param>
-    /// <param name="step">The function to set the value (setMinValue, setMaxValue, or setMedianValue)</param>
-    /// <param name="cmp">The name of the component to modify</param>
-    /// <param name="ord">The order to process</param>
-    let orderPropertySetComponentQuantity printErr logger step cmp ord =
-        ord |> Ok
-        // apply constraints and prepare for min/max calculation
-        (*
-        |> OrderPropertyChange.proc
-            [
-                // keep rate constant and only change time
-                if ord.Schedule |> Schedule.hasTime then
-                    ScheduleTime Time.setToNonZeroPositive
+    let processChangeProperty cmd ord =
+        let setFreq step = OrderPropertyChange.proc [ ScheduleFrequency step ]
+        let setDose step = OrderPropertyChange.proc [ OrderableDose step ]
+        let setCmpOrbQty cmp step = OrderPropertyChange.proc [ ComponentOrderableQuantity (cmp, step) ]
 
-                // orderable quantity is calculated by adding component quantities
-                // but cannot be fixed to a certain maximum as this is determined by
-                // the component quantities
-                OrderableQuantity Quantity.applyOnlyMinIncrConstraints
-                // the component that has to be set to a min, max or median value
-                // first has to be set to the min, incr, max constraints for that component
-                ComponentOrderableQuantity (cmp, Quantity.applyOnlyMinIncrConstraints)
-                ItemOrderableQuantity (cmp, "", Quantity.applyOnlyMinIncrConstraints)
-
-                // keep the orderable dose rate constant but change the
-                // orderable dose, need to keep the dose quantity incr!
-                OrderableDose Dose.applyQuantityMinIncrConstraints
-                OrderableDose Dose.setPerTimeToNonZeroPositive
-
-                ComponentOrderableConcentration ("", Concentration.applyConstraints)
-                ItemOrderableConcentration ("", "", Concentration.applyConstraints)
-
-                // the relative contribution of each component quantity changes
-                ComponentOrderableCount ("", OrderVariable.Count.setToNonZeroPositive)
-
-                for c in ord.Orderable.Components do
-                    let cn = c.Name |> Name.toString
-
-                    if c.OrderableQuantity |> Quantity.isSolved |> not || cmp = cn then
-                        // component quantity is not set to a specific value
-                        // set the dose and concentration to the constraints that apply to that
-                        // component
-                        ComponentDose (cn, Dose.applyConstraints)
-                        ItemDose (cn, "", Dose.applyConstraints)
-                    else
-                        // component quantity is already set, so only
-                        // recalculate the dose
-                        ComponentDose (cn, Dose.setToNonZeroPositive)
-                        ItemDose (cn, "", Dose.setToNonZeroPositive)
-            ]
-        // recalc
-        |> solveMinMax "Order Property Set Component Quantity" printErr logger
-        *)
-        // step to a min, median or max dose quantity
-        |> Result.map (OrderPropertyChange.proc [ ComponentOrderableQuantity (cmp, step) ])
-
-
-    let processChangeProperty printErr logger cmd ord =
         match cmd with
         // Frequency
-        | DecreaseFrequency -> ord |> orderPropertyIncrOrDecrFrequency Frequency.decrease |> Ok
-        | IncreaseFrequency -> ord |> orderPropertyIncrOrDecrFrequency Frequency.increase |> Ok
-        | SetMinFrequency -> ord |> orderPropertySetFrequency Frequency.setMinValue |> Ok
-        | SetMedianFrequency -> ord |> orderPropertySetFrequency Frequency.setMedianValue |> Ok
-        | SetMaxFrequency -> ord |> orderPropertySetFrequency Frequency.setMaxValue |> Ok
+        | DecreaseScheduleFrequency -> ord |> orderPropertyIncrOrDecrFrequency Frequency.decrease
+        | IncreaseScheduleFrequency -> ord |> orderPropertyIncrOrDecrFrequency Frequency.increase
+        | SetMinScheduleFrequency -> ord |> setFreq Frequency.setMinValue
+        | SetMedianScheduleFrequency -> ord |> setFreq Frequency.setMedianValue
+        | SetMaxScheduleFrequency -> ord |> setFreq Frequency.setMaxValue
         // Dose Quantity
-        | SetDoseQuantityPerc n -> ord |> orderPropertySetDoseQuantityPerc (Dose.setPercValue n ord.Schedule false)
-        | DecreaseDoseQuantity n -> ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.decreaseQuantity n) |> Ok
-        | IncreaseDoseQuantity n -> ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.increaseQuantity n) |> Ok
-        | SetMinDoseQuantity -> ord |> orderPropertySetDoseQuantity (Dose.setMinDose ord.Schedule false) |> Ok
-        | SetMaxDoseQuantity -> ord |> orderPropertySetDoseQuantity (Dose.setMaxDose ord.Schedule false) |> Ok
-        | SetMedianDoseQuantity -> ord |> orderPropertySetDoseQuantity (Dose.setMedianDose ord.Schedule false) |> Ok
+        | DecreaseOrderableDoseQuantity n -> ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.decreaseQuantity n)
+        | IncreaseOrderableDoseQuantity n -> ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.increaseQuantity n)
+        | SetMinOrderableDoseQuantity -> ord |> setDose (Dose.setMinDose ord.Schedule false)
+        | SetMaxOrderableDoseQuantity -> ord |> setDose (Dose.setMaxDose ord.Schedule false)
+        | SetMedianOrderableDoseQuantity -> ord |> setDose (Dose.setMedianDose ord.Schedule false)
+        | SetOrderableDoseQuantityPerc n -> ord |> setDose (Dose.setPercValue n ord.Schedule false)
         // Dose Rate
-        | DecreaseDoseRate n -> ord |> orderPropertyIncrOrDecrDoseRate (Dose.decreaseRate n) |> Ok
-        | IncreaseDoseRate n -> ord |> orderPropertyIncrOrDecrDoseRate (Dose.increaseRate n) |> Ok
-        | SetMinDoseRate -> ord |> orderPropertySetDoseRate (Dose.setMinDose ord.Schedule true) |> Ok
-        | SetMaxDoseRate -> ord |> orderPropertySetDoseRate (Dose.setMaxDose ord.Schedule true) |> Ok
-        | SetMedianDoseRate -> ord |> orderPropertySetDoseRate (Dose.setMedianDose ord.Schedule true) |> Ok
+        | DecreaseOrderableDoseRate n -> ord |> orderPropertyIncrOrDecrDoseRate (Dose.decreaseRate n)
+        | IncreaseOrderableDoseRate n -> ord |> orderPropertyIncrOrDecrDoseRate (Dose.increaseRate n)
+        | SetMinOrderableDoseRate -> ord |> setDose (Dose.setMinDose ord.Schedule true)
+        | SetMaxOrderableDoseRate -> ord |> setDose (Dose.setMaxDose ord.Schedule true)
+        | SetMedianOrderableDoseRate -> ord |> setDose (Dose.setMedianDose ord.Schedule true)
         // Component Quantity
-        | DecreaseComponentQuantity (cmp, n) -> ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.decrease n) cmp |> Ok
-        | IncreaseComponentQuantity (cmp, n) -> ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.increase n) cmp |> Ok
-        | SetMinComponentQuantity cmp -> ord |> orderPropertySetComponentQuantity printErr logger Quantity.setMinValue cmp
-        | SetMaxComponentQuantity cmp -> ord |> orderPropertySetComponentQuantity printErr logger Quantity.setMaxValue cmp
-        | SetMedianComponentQuantity cmp -> ord |> orderPropertySetComponentQuantity printErr logger Quantity.setMedianValue cmp
+        | DecreaseComponentOrderableQuantity (cmp, n) -> ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.decrease n) cmp
+        | IncreaseComponentOrderableQuantity (cmp, n) -> ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.increase n) cmp
+        | SetMinComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMinValue
+        | SetMaxComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMaxValue
+        | SetMedianComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMedianValue
         | ComponentInStock(cmp, onlyInStock) ->
             ConsoleWriter.writeWarningMessage $"{cmd} not implemented" true false
-            ord |> Ok
+            ord
 
 
     let processClearedFrequency ord =
@@ -727,7 +576,7 @@ module OrderProcessor =
 
         | ChangeProperty (ord, cmd) -> //ord |> processChangeProperty cmd |> Ok
             [
-                { Name = $"change-property: {cmd}"; Guard = (fun _ -> true); Run = processChangeProperty false logger cmd }
+                { Name = $"change-property: {cmd}"; Guard = (fun _ -> true); Run = processChangeProperty cmd >> Ok }
                 { Name = "change-property: solve-minmax"; Guard = (fun _ -> true); Run = calcMinMaxStep }
             ]
             |> runPipeline ord

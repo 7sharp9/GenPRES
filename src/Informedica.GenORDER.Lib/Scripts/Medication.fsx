@@ -1140,12 +1140,12 @@ MedicationTexts.timedMultipleComponentsDoseComponent
         [
             CalcMinMax
             IncreaseIncrements
-            (fun ord -> (ord, "Samenstelling C" |> SetMedianComponentQuantity) |> ChangeProperty)
-            (fun ord -> (ord, "NaCl 3%" |> SetMedianComponentQuantity) |> ChangeProperty)
-            (fun ord -> (ord, "KCl 7,4%" |> SetMedianComponentQuantity) |> ChangeProperty)
-            (fun ord -> (ord, "gluc 10%" |> SetMedianComponentQuantity) |> ChangeProperty)
-            (fun ord -> (ord, DecreaseDoseQuantity 5000) |> ChangeProperty)
-            (fun ord -> (ord, "Samenstelling C" |> SetMinComponentQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "Samenstelling C" |> SetMedianComponentOrderableQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "NaCl 3%" |> SetMedianComponentOrderableQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "KCl 7,4%" |> SetMedianComponentOrderableQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "gluc 10%" |> SetMedianComponentOrderableQuantity) |> ChangeProperty)
+            (fun ord -> (ord, DecreaseOrderableDoseQuantity 5000) |> ChangeProperty)
+            (fun ord -> (ord, "Samenstelling C" |> SetMinComponentOrderableQuantity) |> ChangeProperty)
         ]
         |> HelperFunctions.run (Some fileLogger) med
 |> ignore
