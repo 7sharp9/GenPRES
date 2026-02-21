@@ -314,7 +314,7 @@ module Equation =
     /// Check whether an equation is valid
     /// </summary>
     /// <param name="eq">The equation</param>
-    let check eq =
+    let check onlyMinIncrMax eq =
         let isSub op (y : Variable) (xs : Variable list) =
             match xs with
             | [] -> true
@@ -328,13 +328,13 @@ module Equation =
                         y.Values
                         |> ValueRange.valueSetIsSubsetOf (xs |> List.reduce op).Values
                     if not b then
-                        $"not a subset: {y.Values |> toStr} {(xs |> List.reduce op).Values |> toStr}"
+                        $"not a subset: y:{y.Values |> toStr}  xs:{(xs |> List.reduce op).Values |> toStr}"
                         |> writeErrorMessage
 
                     b
                 else true
 
-        if eq |> isSolvable || eq |> isSolved then
+        if not onlyMinIncrMax && (eq |> isSolvable || eq |> isSolved) then
             match eq with
             | ProductEquation (y, xs) -> xs |> isSub (^*) y
             | SumEquation (y, xs) -> xs |> isSub (^+) y

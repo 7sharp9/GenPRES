@@ -21,7 +21,7 @@ module Order =
 
 
     module Mapping = EquationMapping
-
+    module Increment = Informedica.GenSolver.Lib.Variable.ValueRange.Increment
 
     /// Types and functions to deal
     /// with an `Orderable`, i.e., something
@@ -482,6 +482,22 @@ module Order =
 
             /// Decrease the rate of a Dose
             let decreaseRate useCalc n dos =
+                let n =
+                    if not useCalc then n
+                    else
+                        match
+                            dos.Rate
+                            |> Rate.toOrdVar
+                            |> _.CalculatedConstraints
+                            |> _.Incr with
+                        | Some incr ->
+                            let vu = incr |> Increment.toValueUnit
+                            let dr =
+                                Units.Volume.milliLiter |> Units.per Units.Time.hour
+                                |> ValueUnit.singleWithValue (1N / 10N)
+                            if vu = dr then 10 else 1
+                        | None -> 1
+
                 { (dos |> inf) with
                     Rate = dos.Rate |> Rate.decrease useCalc n
                 }
@@ -489,6 +505,22 @@ module Order =
 
             /// Increase the rate of a Dose
             let increaseRate useCalc n dos =
+                let n =
+                    if not useCalc then n
+                    else
+                        match
+                            dos.Rate
+                            |> Rate.toOrdVar
+                            |> _.CalculatedConstraints
+                            |> _.Incr with
+                        | Some incr ->
+                            let vu = incr |> Increment.toValueUnit
+                            let dr =
+                                Units.Volume.milliLiter |> Units.per Units.Time.hour
+                                |> ValueUnit.singleWithValue (1N / 10N)
+                            if vu = dr then 10 else 1
+                        | None -> 1
+
                 { (dos |> inf) with
                     Rate = dos.Rate |> Rate.increase useCalc n
                 }
