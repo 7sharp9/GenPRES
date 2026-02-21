@@ -3,6 +3,8 @@ namespace Informedica.GenOrder.Lib
 
 module OrderProcessor =
 
+    open MathNet.Numerics
+    open Informedica.GenUnits.Lib
     open Informedica.Utils.Lib
     open ConsoleWriter.NewLineNoTime
     open Order
@@ -10,8 +12,10 @@ module OrderProcessor =
     module Quantity = OrderVariable.Quantity
     module Concentration = OrderVariable.Concentration
     module Time = OrderVariable.Time
+    module Rate = OrderVariable.Rate
     module Frequency = OrderVariable.Frequency
     module Dose = Orderable.Dose
+    module Increment = Informedica.GenSolver.Lib.Variable.ValueRange.Increment
 
 
     let (|FrequencyCleared|RateCleared|TimeCleared|ConcentrationCleared|DoseQuantityCleared|DosePerTimeCleared|NotCleared|) (ord: Order) =
@@ -178,10 +182,10 @@ module OrderProcessor =
         // Dose Rate
         | DecreaseOrderableDoseRate n ->
             let useCalc = n > 1
-            ord |> orderPropertyIncrOrDecrDoseRate (Dose.decreaseRate useCalc 1)
+            ord |> orderPropertyIncrOrDecrDoseRate (Dose.decreaseRate useCalc n)
         | IncreaseOrderableDoseRate n ->
             let useCalc = n > 1
-            ord |> orderPropertyIncrOrDecrDoseRate (Dose.increaseRate useCalc 1)
+            ord |> orderPropertyIncrOrDecrDoseRate (Dose.increaseRate useCalc n)
         | SetMinOrderableDoseRate -> ord |> setDose (Dose.setMinDose ord.Schedule true)
         | SetMaxOrderableDoseRate -> ord |> setDose (Dose.setMaxDose ord.Schedule true)
         | SetMedianOrderableDoseRate -> ord |> setDose (Dose.setMedianDose ord.Schedule true)
@@ -517,13 +521,7 @@ module OrderProcessor =
             ||> List.fold (fun acc step -> acc |> Result.bind (runStep step))
 
         // Core step functions
-        let calcMinMaxStep ord =
-            // TODO: need to simplify unnecessary match
-            match calcMinMax logger ord with
-            | Ok o -> Ok o
-            | Error (o, errs) ->
-                //o |> stringTable |> Events.OrderScenario |> Logging.logInfo logger
-                Error (o, errs)
+        let calcMinMaxStep = calcMinMax logger
 
         let setCalculatedConstraintsStep =
             setCalculatedConstraints
