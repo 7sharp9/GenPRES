@@ -108,7 +108,6 @@ The following **16 dropdown selections** in the Order modal each trigger `SolveO
 | 13 | Pompsnelheid | `ChangeOrderableDoseRate` | `Orderable.Dose.Rate` |
 | 14 | Totale Hoeveelheid | `ChangeOrderableQuantity` | `Orderable.OrderableQuantity` |
 | 15 | Bereiding Hoeveelheid | `ChangeComponentOrderableQuantity` | `Component[selected].OrderableQuantity` |
-| 16 | Component Dosis | `ChangeComponentDoseQuantity` | `Component[selected].Dose.Quantity` |
 
 ### Visibility conditions
 
