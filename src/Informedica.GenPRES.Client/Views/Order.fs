@@ -1439,20 +1439,6 @@ module Order =
 
                     }
                     {
-                        // substance orderable concentration
-                        match substIndx, state.Order with
-                        | Some i, Some ord when ord.Schedule.IsContinuous |> not &&
-                                                itms |> Array.length > 0 &&
-                                                ord.Orderable.Components |> Array.length > 1 ->
-                            itms[i].OrderableConcentration.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
-                            |> Option.defaultValue [||]
-                            |> select false $"{itms[i].Name} concentratie" None (ChangeSubstanceOrderableConcentration >> dispatch) None false
-                        | _ ->
-                            [||]
-                            |> select true "" None ignore None false
-                    }
-                    {
                         // substance orderable quantity
                         match substIndx, state.Order with
                         | Some i, Some ord when ord.Schedule.IsContinuous &&
@@ -1462,6 +1448,20 @@ module Order =
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                             |> Option.defaultValue [||]
                             |> select false $"{itms[i].Name} hoeveelheid" None (ChangeSubstanceOrderableQuantity >> dispatch) None false
+                        | _ ->
+                            [||]
+                            |> select true "" None ignore None false
+                    }
+                    {
+                        // substance orderable concentration
+                        match substIndx, state.Order with
+                        | Some i, Some ord when ord.Schedule.IsContinuous |> not &&
+                                                itms |> Array.length > 0 &&
+                                                ord.Orderable.Components |> Array.length > 1 ->
+                            itms[i].OrderableConcentration.Variable.Vals
+                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
+                            |> Option.defaultValue [||]
+                            |> select false $"{itms[i].Name} concentratie" None (ChangeSubstanceOrderableConcentration >> dispatch) None false
                         | _ ->
                             [||]
                             |> select true "" None ignore None false
@@ -1482,7 +1482,8 @@ module Order =
                     {
                         // frequency
                         match state.Order with
-                        | Some ord ->
+                        | Some ord  when ord.Schedule.IsDiscontinuous ||
+                                         ord.Schedule.IsTimed ->
                             let xs =
                                 ord.Schedule.Frequency.Variable.Vals
                                 |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
@@ -1586,7 +1587,7 @@ module Order =
                             ord.Orderable.Dose.Rate.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                             |> Option.defaultValue [||]
-                            |> select false (Terms.``Order Drip rate`` |> getTerm "pompsnelheid") None (ChangeOrderableDoseRate >> dispatch) navigate false
+                            |> select false (Terms.``Order Drip rate`` |> getTerm "inloop snelheid") None (ChangeOrderableDoseRate >> dispatch) navigate false
                         | _ ->
                             [||]
                             |> select true "" None ignore None false
