@@ -216,49 +216,25 @@ module OrderProcessor =
         |> OrderPropertyChange.proc [ ScheduleFrequency Frequency.setStandardValues ]
 
 
-    let processClearedDoseQuantity ord =
+    let processClearedDose ord =
         ord
         |> OrderPropertyChange.proc
             [
                 if ord.Schedule |> Schedule.hasTime then
-                    ScheduleTime Time.setToNonZeroPositive
-                    OrderableDose Dose.setRateToNonZeroPositive
+                    ScheduleTime Time.applyConstraints
+                    OrderableDose Dose.applyConstraints
 
-                OrderableDose Dose.setPerTimeToNonZeroPositive
-                ComponentDose ("", Dose.setPerTimeToNonZeroPositive)
-                ItemDose ("", "", Dose.setPerTimeToNonZeroPositive)
-
-                OrderableDose Dose.setQuantityToNonZeroPositive
-                ComponentDose ("", Dose.setQuantityToNonZeroPositive)
-                ItemDose ("", "", Dose.setQuantityToNonZeroPositive)
-
-                OrderableQuantity Quantity.setToNonZeroPositive
-                OrderableDoseCount OrderVariable.Count.setToNonZeroPositive
-                ComponentOrderableCount ("", OrderVariable.Count.setToNonZeroPositive)
-                ComponentOrderableQuantity ("", Quantity.setToNonZeroPositive)
-                ItemOrderableQuantity ("", "", Quantity.setToNonZeroPositive)
-
-            ]
-        |> OrderPropertyChange.proc
-            [
                 OrderableQuantity Quantity.applyConstraints
                 ComponentOrderableQuantity ("", Quantity.applyConstraints)
+                ComponentOrderableCount ("", OrderVariable.Count.applyConstraints)
+                ComponentOrderableConcentration ("", Concentration.applyConstraints)
                 ItemOrderableQuantity ("", "", Quantity.applyConstraints)
+                ItemOrderableConcentration ("", "", Concentration.applyConstraints)
 
-                OrderableDose Dose.applyQuantityConstraints
-                ComponentDose ("", Dose.applyQuantityMaxConstraints)
                 OrderableDoseCount OrderVariable.Count.applyConstraints
-
-                if ord.Schedule |> Schedule.hasTime then
-                    ScheduleTime Time.applyConstraints
-                    OrderableDose Dose.setStandardRateConstraints
-
-                // if the orderable doesn't have a max constraint, then
-                // use the per-time constraints
-                if ord.Orderable |> Orderable.hasMaxDoseQuantityConstraint |> not then
-                    OrderableDose Dose.applyPerTimeConstraints
-                    ComponentDose ("", Dose.applyPerTimeConstraints)
-                    ItemDose ("", "", Dose.applyPerTimeConstraints)
+                OrderableDose Dose.applyConstraints
+                ComponentDose ("", Dose.applyConstraints)
+                ItemDose ("", "", Dose.applyConstraints)
             ]
 
 
@@ -305,7 +281,8 @@ module OrderProcessor =
                 ord
                 |> processClearedRate
                 |> solveAndToValues true
-            | ConcentrationCleared ->
+            | ConcentrationCleared -> "concentration cleared not implemented" |> failwith
+                (*
                 "Concentration cleared"
                 |> Events.OrderScenario
                 |> Logging.logInfo logger
@@ -333,13 +310,15 @@ module OrderProcessor =
                         ItemOrderableQuantity ("", "", Quantity.setToNonZeroPositive)
                     ]
                 |> solveAndToValues true
+                *)
             | _ ->
                 logUnmatched "continuous"
                 ord |> solveOrder "Process Cleared Order" true logger
         | Once
         | Discontinuous _ ->
             match ord with
-            | FrequencyCleared ->
+            | FrequencyCleared -> "frequency cleared not implemented" |> failwith
+                (*
                 "Frequency cleared"
                 |> Events.OrderScenario
                 |> Logging.logInfo logger
@@ -348,6 +327,7 @@ module OrderProcessor =
                 |> processClearedFrequency
                 // solve min/max and min/incr/max to values
                 |> solveAndToValues true
+                *)
             | DosePerTimeCleared
             | DoseQuantityCleared ->
                 "Dose per time or quantity cleared"
@@ -355,7 +335,7 @@ module OrderProcessor =
                 |> Logging.logInfo logger
 
                 ord
-                |> processClearedDoseQuantity
+                |> processClearedDose
                 // solve min/max, increase increments, and min/incr/max to values
                 |> solveIncrIncrAndToValues true
             | _ ->
@@ -364,7 +344,8 @@ module OrderProcessor =
         | OnceTimed _
         | Timed _ ->
             match ord with
-            | FrequencyCleared ->
+            | FrequencyCleared -> "frequency cleared not implemented" |> failwith
+                (*
                 "Frequency cleared"
                 |> Events.OrderScenario
                 |> Logging.logInfo logger
@@ -373,6 +354,7 @@ module OrderProcessor =
                 |> processClearedFrequency
                 // solve min/max and min/incr/max to values
                 |> solveAndToValues false
+                *)
             | RateCleared
             | TimeCleared ->
                 "Rate or Time cleared"
@@ -389,7 +371,7 @@ module OrderProcessor =
                 |> Logging.logInfo logger
 
                 ord
-                |> processClearedDoseQuantity
+                |> processClearedDose
                 // solve min/max, increase increments, and min/incr/max to values
                 |> solveIncrIncrAndToValues false
 

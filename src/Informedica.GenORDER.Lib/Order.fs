@@ -3814,7 +3814,7 @@ module Order =
                 |> List.map (fun ovar ->
                     if flag ||
                        ovar.DefinedConstraints.Incr |> Option.isNone ||
-                       ovar.Variable.Values |> ValueRange.isMinIncrMax |> not then ovar
+                       ovar.Variable |> Variable.isMinIncrMax |> not then ovar
                     else
                         flag <- true
 

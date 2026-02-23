@@ -864,14 +864,13 @@ module OrderVariable =
         x
         |> get
         |> getVar
-        |> Variable.getValueRange
         |> function
-            | vr when vr |> ValueRange.isMinMax ||
-                      vr |> ValueRange.isMinIncrMax ||
-                      vr |> ValueRange.isValueSet ->
-                vr
+            | vr when vr |> Variable.isMinMax ||
+                      vr |> Variable.isMinIncrMax ||
+                      vr |> Variable.isValSet ->
+                vr.Values
                 |> ValueRange.toMarkdown prec
-                // fix for example mg/kg*day to mg/kg/dag, which is mathematically the same
+                // fix, for example, mg/kg*day to mg/kg/dag, which is mathematically the same
                 |> String.replace "*" "/"
             | _ -> ""
 
@@ -1075,6 +1074,7 @@ module OrderVariable =
     /// increment-aligned value.
     /// </summary>
     /// <param name="isStepUp">Whether the operation is an increase, otherwise decrease</param>
+    /// <param name="useCalc">Whether the calculated increment should be used</param>
     /// <param name="n">The number of increases or decreases</param>
     /// <param name="ovar">The OrderVariable to step</param>
     /// <returns>The OrderVariable with stepped value, unchanged if no increment constraint</returns>

@@ -1275,7 +1275,7 @@ module Order =
                                 |> Option.defaultValue ("", [||])
 
                             vals
-                            |> select false label None (ChangeSubstanceDoseQuantityAdjust >> dispatch) None false
+                            |> select false label None (ChangeSubstanceDoseQuantityAdjust >> dispatch) None true
                         | _ ->
                             [||]
                             |> select true "" None ignore None false
@@ -1304,7 +1304,7 @@ module Order =
                                 |> Option.defaultValue ("", [||])
 
                             vals
-                            |> select false label None dispatch None false
+                            |> select false label None dispatch None true
                         | _ ->
                             [||]
                             |> select true "" None ignore None false
@@ -1358,7 +1358,7 @@ module Order =
                                         cmp.OrderableQuantity.Variable.Min.IsSome &&
                                         cmp.OrderableQuantity.Variable.Incr.IsSome &&
                                         cmp.OrderableQuantity.Variable.Max.IsSome ||
-                                        c = 1 || c > 10
+                                        c >= 1
 
                                 if not show then None
                                 else
@@ -1404,7 +1404,7 @@ module Order =
                                     itm.ComponentConcentration.Variable.Vals
                                     |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                                     |> Option.defaultValue [||]
-                                    |> select false "product sterkte" None (change >> dispatch) None true
+                                    |> select false "product sterkte" None (change >> dispatch) None false
                                 else JSX.jsx $"<></>"
                             | None ->
                                 match
@@ -1423,7 +1423,7 @@ module Order =
                                             itm.ComponentConcentration.Variable.Vals
                                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
                                             |> Option.defaultValue [||]
-                                            |> select false "product sterkte" None (change >> dispatch) None true
+                                            |> select false "product sterkte" None (change >> dispatch) None false
                                         else JSX.jsx $"<></>"
 
                                     | None ->
@@ -1504,7 +1504,7 @@ module Order =
                                         last = fun () -> SetMaxFrequencyProperty |> dispatch
                                     |}
                                     |> Some
-                            select false (Terms.``Order Frequency`` |> getTerm "frequentie") None (ChangeFrequency >> dispatch) navigate true xs
+                            select false (Terms.``Order Frequency`` |> getTerm "frequentie") None (ChangeFrequency >> dispatch) navigate false xs
                         | _ ->
                             [||]
                             |> select true "" None ignore None false

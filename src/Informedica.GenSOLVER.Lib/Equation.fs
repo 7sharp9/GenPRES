@@ -313,6 +313,7 @@ module Equation =
     /// <summary>
     /// Check whether an equation is valid
     /// </summary>
+    /// <param name="onlyMinIncrMax">Only calculate min/incr/max</param>
     /// <param name="eq">The equation</param>
     let check onlyMinIncrMax eq =
         let isSub op (y : Variable) (xs : Variable list) =
@@ -320,9 +321,8 @@ module Equation =
             | [] -> true
             | _  ->
                 let toStr = ValueRange.toString true
-                if y.Values |> ValueRange.isValueSet &&
-                   xs |> List.map Variable.getValueRange
-                      |> List.forall ValueRange.isValueSet then
+                if y |> Variable.isValSet &&
+                   xs |>  List.forall Variable.isValSet then
 
                     let b =
                         y.Values
@@ -372,7 +372,7 @@ module Equation =
                 |> Some
 
         // optimization to skip the most expensive calculation
-        let c = vars |> List.length
+        // let c = vars |> List.length
 
         vars
         |> List.fold (fun (n, acc) vars ->
