@@ -220,9 +220,11 @@ module OrderProcessor =
         ord
         |> OrderPropertyChange.proc
             [
+                if ord.Schedule |> Schedule.isFrequencyWithinConstraints |> not then
+                    ScheduleFrequency Frequency.applyConstraints
+
                 if ord.Schedule |> Schedule.hasTime then
                     ScheduleTime Time.applyConstraints
-                    OrderableDose Dose.applyConstraints
 
                 OrderableQuantity Quantity.applyConstraints
                 ComponentOrderableQuantity ("", Quantity.applyConstraints)
@@ -232,9 +234,12 @@ module OrderProcessor =
                 ItemOrderableConcentration ("", "", Concentration.applyConstraints)
 
                 OrderableDoseCount OrderVariable.Count.applyConstraints
-                OrderableDose Dose.applyConstraints
-                ComponentDose ("", Dose.applyConstraints)
-                ItemDose ("", "", Dose.applyConstraints)
+                OrderableDose Dose.applyQuantityConstraints
+                OrderableDose Dose.applyPerTimeConstraints
+                ComponentDose ("", Dose.applyQuantityConstraints)
+                ComponentDose ("", Dose.applyPerTimeConstraints)
+                ItemDose ("", "", Dose.applyQuantityConstraints)
+                ItemDose ("", "", Dose.applyPerTimeConstraints)
             ]
 
 
