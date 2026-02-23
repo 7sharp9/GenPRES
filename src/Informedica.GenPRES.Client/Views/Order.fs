@@ -1600,7 +1600,7 @@ module Order =
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 2} {v.Unit}"))
                             |> Option.defaultValue [||]
                             |> Array.distinctBy snd
-                            |> select false (Terms.``Order Administration time`` |> getTerm "inloop tijd") None (ChangeTime >> dispatch) None false
+                            |> select false (Terms.``Order Administration time`` |> getTerm "inloop tijd") None (ChangeTime >> dispatch) None true
                         | _ ->
                             [||]
                             |> select true "" None ignore None false

@@ -137,6 +137,15 @@ Navigation is offered only when the effective domain is:
 
 All other domains are considered non-navigable.
 
+There are generally two paths to navigate the quantitative order options:
+
+1. By selecting a specific value from the effective domain, or
+2. By stepping up or down by a defined increment from a solved value.
+
+The first option implies that the selected value belongs to the effective domain of the variable, so it always complies with the defined and calculated constraints. The second option implies that the new anchor value (current value ± increment) may transgress the effective domain, but is followed by a re-solving step that restores consistency. This means the second option can temporarily violate these constraints.
+
+When a specific order variable has a value that has transgressed the effective domain, the UI should show a warning indicator. When the user subsequently clears an order variable value — triggering a recalculation — any transgressed variable value should be reset to its effective calculated domain to restore option 1 navigation.
+
 ---
 
 ## 5. Navigation States

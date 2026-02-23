@@ -2345,11 +2345,23 @@ module Order =
             | _ -> None
 
 
+        let isFrequencyWithinConstraints =
+            getFrequency
+            >> Option.map Frequency.isWithinConstraints
+            >> Option.defaultValue true
+
+
         let getTime schedule =
             match schedule with
             | Continuous tme
             | Timed (_, tme) -> Some tme
             | _ -> None
+
+
+        let isTimeWithinConstraints =
+            getTime
+            >> Option.map Time.isWithinConstraints
+            >> Option.defaultValue true
 
 
         /// <summary>
@@ -2461,27 +2473,11 @@ module Order =
                 | _ -> true
 
 
-        let isFrequencyWithinConstraints schedule =
-            schedule
-            |> toOrdVars
-            |> function
-                | Some ovar, _ -> ovar |> OrderVariable.isWithinConstraints
-                | _ -> true
-
-
         let isTimeSolved schedule =
             schedule
             |> toOrdVars
             |> function
                 | _, Some ovar -> ovar |> OrderVariable.isSolved
-                | _ -> true
-
-
-        let isTimeWithinConstraints schedule =
-            schedule
-            |> toOrdVars
-            |> function
-                | _, Some ovar -> ovar |> OrderVariable.isWithinConstraints
                 | _ -> true
 
 
