@@ -1026,17 +1026,31 @@ module Medication =
                     else lim.Name
                 Form = shape
                 Quantities =
-                    let hasReconst =
-                        lim.Products
-                        |> Array.forall _.RequiresReconstitution
-                    if solutionRule.IsSome && hasReconst |> not then
+                    let oneMl =
                         1N
                         |> ValueUnit.singleWithUnit Units.Volume.milliLiter
-                        |> Some
-                    else
+
+                    let qts =
                         lim.Products
                         |> Array.map _.FormQuantities
                         |> ValueUnit.collect
+
+                    let isVol =
+                        qts
+                        |> Option.map (fun vu ->
+                            vu
+                            |> ValueUnit.eqsGroup oneMl
+                        )
+                        |> Option.defaultValue false
+
+                    let hasReconst =
+                        lim.Products
+                        |> Array.forall _.RequiresReconstitution
+
+                    if isVol && hasReconst |> not then
+                        Some oneMl
+                    else
+                        qts
                 Divisible =
                     lim.Products
                     |> Array.choose _.Divisible
@@ -1396,6 +1410,13 @@ module Medication =
         let setComponentQtyConcConstraints (med : Medication) (pc : ProductComponent) (cmpDto : Order.Orderable.Component.Dto.Dto) =
             let incr = med |> calculateDivisibility (Some pc)
 
+            cmpDto.OrderableConcentration.Constraints.MaxOpt <-
+                Units.Count.times
+                |> ValueUnit.singleWithValue 1N
+                |> Some
+                |> vuToDto
+            cmpDto.OrderableConcentration.Constraints.MaxIncl <- med.Components |> List.length = 1
+
             cmpDto.ComponentQuantity.Constraints.ValsOpt <- pc.Quantities |> vuToDto
             cmpDto.OrderableQuantity.Constraints.IncrOpt <- incr
 
@@ -1486,6 +1507,7 @@ module Medication =
 
             orbDto.DoseCount.Constraints |> setMinMaxConstraints false med.DoseCount
 
+            orbDto.OrderableQuantity.Constraints |> setMinMaxConstraints false med.Quantity
             match med.Quantities with
             | None ->
                 orbDto.OrderableQuantity.Constraints.MinOpt <- zero

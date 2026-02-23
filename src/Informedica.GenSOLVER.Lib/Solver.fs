@@ -93,16 +93,6 @@ module Solver =
         |> List.sortBy fst //Equation.countProduct
 
 
-    let check eqs =
-        if eqs |> List.forall (fun eq ->
-            eq |> Equation.isSolvable |> not ||
-            eq |> Equation.isSolved
-        ) then
-            eqs
-            |> List.forall Equation.check
-        else true
-
-
     /// <summary>
     /// Solve a set of equations.
     /// </summary>
@@ -153,8 +143,10 @@ module Solver =
                     sorted |> List.map snd
 
                 match que with
-                | [] ->
-                    match acc |> List.filter (Equation.check >> not) with
+                | [] -> acc |> Ok
+                    (*
+                    // can be used for debugging purposes
+                    match acc |> List.filter (Equation.check onlyMinIncrMax >> not) with
                     | []      -> acc |> Ok
                     | invalid ->
                         writeErrorMessage "invalid equations"
@@ -162,6 +154,7 @@ module Solver =
                         invalid
                         |> Exceptions.SolverInvalidEquations
                         |> Exceptions.raiseExc (Some log) []
+                    *)
 
                 | eq::tail ->
                     // need to calculate a result first to enable tail call optimization

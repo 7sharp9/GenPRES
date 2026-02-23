@@ -313,28 +313,28 @@ module Equation =
     /// <summary>
     /// Check whether an equation is valid
     /// </summary>
+    /// <param name="onlyMinIncrMax">Only calculate min/incr/max</param>
     /// <param name="eq">The equation</param>
-    let check eq =
+    let check onlyMinIncrMax eq =
         let isSub op (y : Variable) (xs : Variable list) =
             match xs with
             | [] -> true
             | _  ->
                 let toStr = ValueRange.toString true
-                if y.Values |> ValueRange.isValueSet &&
-                   xs |> List.map Variable.getValueRange
-                      |> List.forall ValueRange.isValueSet then
+                if y |> Variable.isValSet &&
+                   xs |>  List.forall Variable.isValSet then
 
                     let b =
                         y.Values
                         |> ValueRange.valueSetIsSubsetOf (xs |> List.reduce op).Values
                     if not b then
-                        $"not a subset: {y.Values |> toStr} {(xs |> List.reduce op).Values |> toStr}"
+                        $"not a subset: y:{y.Values |> toStr}  xs:{(xs |> List.reduce op).Values |> toStr}"
                         |> writeErrorMessage
 
                     b
                 else true
 
-        if eq |> isSolvable || eq |> isSolved then
+        if not onlyMinIncrMax && (eq |> isSolvable || eq |> isSolved) then
             match eq with
             | ProductEquation (y, xs) -> xs |> isSub (^*) y
             | SumEquation (y, xs) -> xs |> isSub (^+) y
@@ -372,7 +372,7 @@ module Equation =
                 |> Some
 
         // optimization to skip the most expensive calculation
-        let c = vars |> List.length
+        // let c = vars |> List.length
 
         vars
         |> List.fold (fun (n, acc) vars ->
@@ -388,10 +388,10 @@ module Equation =
                     // or if this is the last calculation (i.e., previous calculations
                     // where unchanged)
                     (*
-                    if y |> Variable.isSolved then None
-                    *)
                     if y |> Variable.isSolved ||
                        n = c && c > 2 && y |> Variable.hasValues then None
+                    *)
+                    if y |> Variable.isSolved then None
                     else
                         let op2 = if i = 0 then op1 else op2
                         // log starting the calculation

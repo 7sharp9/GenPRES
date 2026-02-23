@@ -849,11 +849,11 @@ module private Elmish =
             | Api.SetMaxOrderableDoseRateProperty ctx -> ctx |> CommandHandlers.setMaxDoseRateProperty state
             | Api.SetMedianOrderableDoseRateProperty ctx -> ctx |> CommandHandlers.setMedianDoseRateProperty state
             // Component Quantity property commands
-            | Api.DecreaseComponentQuantityProperty (ctx, cmp, ntimes) -> CommandHandlers.decreaseComponentQuantityProperty state ctx cmp ntimes
-            | Api.IncreaseComponentQuantityProperty (ctx, cmp, ntimes) -> CommandHandlers.increaseComponentQuantityProperty state ctx cmp ntimes
-            | Api.SetMinComponentQuantityProperty (ctx, cmp) -> CommandHandlers.setMinComponentQuantityProperty state ctx cmp
-            | Api.SetMaxComponentQuantityProperty (ctx, cmp) -> CommandHandlers.setMaxComponentQuantityProperty state ctx cmp
-            | Api.SetMedianComponentQuantityProperty (ctx, cmp) -> CommandHandlers.setMedianComponentQuantityProperty state ctx cmp
+            | Api.DecreaseComponentOrderableQuantityProperty (ctx, cmp, ntimes) -> CommandHandlers.decreaseComponentQuantityProperty state ctx cmp ntimes
+            | Api.IncreaseComponentOrderableQuantityProperty (ctx, cmp, ntimes) -> CommandHandlers.increaseComponentQuantityProperty state ctx cmp ntimes
+            | Api.SetMinComponentOrderableQuantityProperty (ctx, cmp) -> CommandHandlers.setMinComponentQuantityProperty state ctx cmp
+            | Api.SetMaxComponentOrderableQuantityProperty (ctx, cmp) -> CommandHandlers.setMaxComponentQuantityProperty state ctx cmp
+            | Api.SetMedianComponentOrderableQuantityProperty (ctx, cmp) -> CommandHandlers.setMedianComponentQuantityProperty state ctx cmp
 
         | LoadResourcesReloaded Started ->
             match state.Patient with
@@ -1207,7 +1207,7 @@ module private Elmish =
             | InProgress -> state, Cmd.none
             | Resolved ctx ->
                 { state with OrderContext = InProgress },
-                Api.DecreaseComponentQuantityProperty (ctx, cmp, ntimes)
+                Api.DecreaseComponentOrderableQuantityProperty (ctx, cmp, ntimes)
                 |> loadOrderContext (fun resp -> LoadComponentQuantityDecreasePropertyChange (cmp, ntimes, resp))
 
         | LoadComponentQuantityDecreasePropertyChange (_, _, Finished (Ok msg)) -> msg |> processOk
@@ -1222,7 +1222,7 @@ module private Elmish =
             | InProgress -> state, Cmd.none
             | Resolved ctx ->
                 { state with OrderContext = InProgress },
-                Api.IncreaseComponentQuantityProperty (ctx, cmp, ntimes)
+                Api.IncreaseComponentOrderableQuantityProperty (ctx, cmp, ntimes)
                 |> loadOrderContext (fun resp -> LoadComponentQuantityIncreasePropertyChange (cmp, ntimes, resp))
 
         | LoadComponentQuantityIncreasePropertyChange (_, _, Finished (Ok msg)) -> msg |> processOk
@@ -1237,7 +1237,7 @@ module private Elmish =
             | InProgress -> state, Cmd.none
             | Resolved ctx ->
                 { state with OrderContext = InProgress },
-                Api.SetMinComponentQuantityProperty (ctx, cmp)
+                Api.SetMinComponentOrderableQuantityProperty (ctx, cmp)
                 |> loadOrderContext (fun resp -> LoadComponentQuantitySetMinPropertyChange (cmp, resp))
 
         | LoadComponentQuantitySetMinPropertyChange (_, Finished (Ok msg)) -> msg |> processOk
@@ -1252,7 +1252,7 @@ module private Elmish =
             | InProgress -> state, Cmd.none
             | Resolved ctx ->
                 { state with OrderContext = InProgress },
-                Api.SetMaxComponentQuantityProperty (ctx, cmp)
+                Api.SetMaxComponentOrderableQuantityProperty (ctx, cmp)
                 |> loadOrderContext (fun resp -> LoadComponentQuantitySetMaxPropertyChange (cmp, resp))
 
         | LoadComponentQuantitySetMaxPropertyChange (_, Finished (Ok msg)) -> msg |> processOk
@@ -1267,7 +1267,7 @@ module private Elmish =
             | InProgress -> state, Cmd.none
             | Resolved ctx ->
                 { state with OrderContext = InProgress },
-                Api.SetMedianComponentQuantityProperty (ctx, cmp)
+                Api.SetMedianComponentOrderableQuantityProperty (ctx, cmp)
                 |> loadOrderContext (fun resp -> LoadComponentQuantitySetMedianPropertyChange (cmp, resp))
 
         | LoadComponentQuantitySetMedianPropertyChange (_, Finished (Ok msg)) -> msg |> processOk

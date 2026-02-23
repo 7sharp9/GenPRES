@@ -877,6 +877,102 @@ Components:
 		Solution:
 """
 
+    /// This scenario has a variable glucose content which can result in
+    /// an inappropriate low volume for the max protein concentration. This
+    /// happens when recalculating all possible values. The solution is to
+    /// treat the glucose component as a rest volume, i.e., only calculated.
+    let tpnWithMaxQuantity = """
+Id: 81607677-b226-4854-afd9-90faba665cc3
+Name: samenstelling c
+Quantity: max 830.5 ml
+Quantities:
+Route: INTRAVENEUS
+OrderType: TimedOrder
+Adjust: 11 kg
+Frequencies: 1 x/day
+Time: 20 hr - 24 hr
+Dose: [dun] ml
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: Samenstelling C
+	Form: vloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose: Samenstelling C, [dun] ml, [qty-adj] 10 ml/kg - 25 ml/kg/dosis
+	Solution:
+	Substances:
+
+		Name: eiwit
+		Quantities:
+		Concentrations: 0.08 g/ml
+		Dose:
+		Solution:  [conc] max 0.05 g/ml
+
+	Name: NaCl 3%
+	Form: vloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose: NaCl 3%, [dun] ml, [qty-adj] 6 ml/kg/dosis
+	Solution:
+	Substances:
+
+		Name: natrium
+		Quantities:
+		Concentrations: 0.5 mmol/ml
+		Dose:
+		Solution:  [conc] max 0.5 mmol/ml
+
+	Name: gluc 10%
+	Form: vloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: koolhydraat
+		Quantities:
+		Concentrations: 0.1 g/ml
+		Dose:
+		Solution:
+"""
+
+    /// test case for not solved component-orderable count
+    let adenosinDayOne = """
+54. 16,599: Informative
+Medication created:
+
+Id: 09be3945-a983-4209-88d5-a80006f57cd5
+Name: adenosine
+Quantity:
+Quantities:
+Route: INTRAVENEUS
+OrderType: OnceOrder
+Adjust: 10 kg
+Frequencies:
+Time:
+Dose: [qty-adj] max 20 ml/kg/dosis, [qty] max 1000 ml/dosis
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: adenosine
+	Form: infusievloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: adenosine
+		Quantities:
+		Concentrations: 3;2;5 mg/ml
+		Dose: adenosine, [dun] microg, [qty-adj] 100 microg/kg/dosis, [qty] max 6000 microg/dosis
+		Solution:
+"""
+
 
 module MedicationScenarios =
 
@@ -915,6 +1011,7 @@ module MedicationScenarios =
                 MedicationTexts.pcmDrink
                 MedicationTexts.vancoReconst
                 MedicationTexts.discontinousMultipleComponentMultipleItems
+                MedicationTexts.tpnWithMaxQuantity
             ]
             // |> List.last |> List.singleton
             |> List.map (createTest logger)
@@ -1043,12 +1140,24 @@ MedicationTexts.timedMultipleComponentsDoseComponent
         [
             CalcMinMax
             IncreaseIncrements
-            (fun ord -> (ord, "Samenstelling C" |> SetMedianComponentQuantity) |> ChangeProperty)
-            (fun ord -> (ord, "NaCl 3%" |> SetMedianComponentQuantity) |> ChangeProperty)
-            (fun ord -> (ord, "KCl 7,4%" |> SetMedianComponentQuantity) |> ChangeProperty)
-            (fun ord -> (ord, "gluc 10%" |> SetMedianComponentQuantity) |> ChangeProperty)
-            (fun ord -> (ord, DecreaseDoseQuantity 5000) |> ChangeProperty)
-            (fun ord -> (ord, "Samenstelling C" |> SetMinComponentQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "Samenstelling C" |> SetMedianComponentOrderableQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "NaCl 3%" |> SetMedianComponentOrderableQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "KCl 7,4%" |> SetMedianComponentOrderableQuantity) |> ChangeProperty)
+            (fun ord -> (ord, "gluc 10%" |> SetMedianComponentOrderableQuantity) |> ChangeProperty)
+            (fun ord -> (ord, DecreaseOrderableDoseQuantity 5000) |> ChangeProperty)
+            (fun ord -> (ord, "Samenstelling C" |> SetMinComponentOrderableQuantity) |> ChangeProperty)
         ]
         |> HelperFunctions.run (Some fileLogger) med
+|> ignore
+
+
+MedicationTexts.adenosinDayOne
+|> Medication.fromString
+|> function
+    | Error _ -> "fail" |> failwith
+    | Ok med ->
+        [
+            CalcMinMax
+        ]
+        |> HelperFunctions.run None med
 |> ignore

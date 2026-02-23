@@ -67,6 +67,7 @@ module Variable =
     /// Functions and types to create and handle `ValueRange`.
     module ValueRange =
 
+        open Informedica.GenSolver.Lib
         open Informedica.Utils.Lib
 
 
@@ -1094,6 +1095,12 @@ module Variable =
 
 
             /// <summary>
+            /// Check if a `ValueSet` is solved
+            /// </summary>
+            let isSolved = count >> ((=) 1)
+
+
+            /// <summary>
             /// Check if a `ValueSet` is empty.
             /// </summary>
             let isEmpty (ValueSet vu) = vu |> ValueUnit.isEmpty
@@ -1530,161 +1537,7 @@ module Variable =
             apply 0 0 zero zero zero zero zero zero zero ValueSet.count
 
 
-        /// Checks whether a `ValueRange` is `Unrestricted`
-        let isUnrestricted =
-            let returnFalse = Boolean.returnFalse
-
-            apply
-                true
-                false
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-
-
-        /// Checks whether a `ValueRange` is `NonZeroPositive`
-        let isNonZeroPositive =
-            let returnFalse = Boolean.returnFalse
-
-            apply
-                false
-                true
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-
-
-        /// Checks whether a `ValueRange` is `Min`
-        let isMin =
-            let returnFalse = Boolean.returnFalse
-
-            apply
-                false
-                false
-                Boolean.returnTrue
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-
-
-        /// Checks whether a `ValueRange` is `Max`
-        let isMax =
-            let returnFalse = Boolean.returnFalse
-
-            apply
-                false
-                false
-                returnFalse
-                Boolean.returnTrue
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-
-
-        /// Checks whether a `ValueRange` is `MinMax`
-        let isMinMax =
-            let returnFalse = Boolean.returnFalse
-
-            apply
-                false
-                false
-                returnFalse
-                returnFalse
-                Boolean.returnTrue
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-
-
-        /// Checks whether a `ValueRange` is `Incr`
-        let isIncr =
-            let returnFalse = Boolean.returnFalse
-
-            apply
-                false
-                false
-                returnFalse
-                returnFalse
-                returnFalse
-                Boolean.returnTrue
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-
-
-        /// Checks whether a `ValueRange` is `MinIncr`
-        let isMinIncr =
-            let returnFalse = Boolean.returnFalse
-
-            apply
-                false
-                false
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                Boolean.returnTrue
-                returnFalse
-                returnFalse
-                returnFalse
-
-
-        /// Checks whether a `ValueRange` is `IncrMax`
-        let isIncrMax =
-            let returnFalse = Boolean.returnFalse
-
-            apply
-                false
-                false
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                Boolean.returnTrue
-                returnFalse
-                returnFalse
-
-
-        /// Checks whether a `ValueRange` is `MinIncrMax`
-        let isMinIncrMax =
-            let returnFalse = Boolean.returnFalse
-
-            apply
-                false
-                false
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                returnFalse
-                Boolean.returnTrue
-                returnFalse
-
-
-        /// Checks whether a `ValueRange` is `ValueSet`
-        let isValueSet =
+        let isSolved =
             let returnFalse = Boolean.returnFalse
 
             apply
@@ -1697,7 +1550,7 @@ module Variable =
                 returnFalse
                 returnFalse
                 returnFalse
-                Boolean.returnTrue
+                ValueSet.isSolved
 
 
         /// <summary>
@@ -3605,7 +3458,7 @@ module Variable =
     /// Checks whether a `Variable` **v** is solved,
     /// i.e., there is but one possible value left.
     let isSolved var =
-        var |> getValueRange |> ValueRange.isValueSet
+        var |> getValueRange |> _.IsValSet
         && var |> count = 1
 
 
@@ -3618,37 +3471,42 @@ module Variable =
     /// Checks whether there are no restrictions to
     /// possible values a `Variable` can contain
     let isUnrestricted =
-        getValueRange >> ValueRange.isUnrestricted
+        getValueRange >> _.IsUnrestricted
 
 
     /// Checks whether the ValueRange of a Variable
     /// is non-zero and positive
     let isNonZeroPositive =
-        getValueRange >> ValueRange.isNonZeroPositive
+        getValueRange >> _.IsNonZeroPositive
 
 
     /// Checks whether the ValueRange of a Variable
     /// is a Minimum
-    let isMin = getValueRange >> ValueRange.isMin
+    let isMin = getValueRange >> _.IsMin
 
 
     /// Checks whether the ValueRange of a Variable
     /// is a Maximum
-    let isMax = getValueRange >> ValueRange.isMax
+    let isMax = getValueRange >> _.IsMax
 
 
     /// Checks whether the ValueRange of a Variable
     /// is a MinMax
-    let isMinMax = getValueRange >> ValueRange.isMinMax
+    let isMinMax = getValueRange >> _.IsMinMax
 
     /// Checks whether the ValueRange of a Variable
     /// is an MinIncr
-    let isMinIncr = getValueRange >> ValueRange.isMinIncr
+    let isMinIncr = getValueRange >> _.IsMinIncr
 
 
     /// Checks whether the ValueRange of a Variable
     /// is a MinIncrMax
-    let isMinIncrMax = getValueRange >> ValueRange.isMinIncrMax
+    let isMinIncrMax = getValueRange >> _.IsMinIncrMax
+
+
+    /// Checks whether the ValueRange of a Variable
+    /// is a ValSet
+    let isValSet = getValueRange >> _.IsValSet
 
 
     /// Checks whether the ValueRange of a Variable

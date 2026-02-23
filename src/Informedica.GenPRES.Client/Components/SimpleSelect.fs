@@ -17,6 +17,9 @@ module SimpleSelect =
                 values : (string * string) []
                 updateSelected : string option -> unit
                 navigate : {| 
+                    hasIncr: bool
+                    hasDecr: bool
+                    hasMedian: bool
                     first : unit -> unit
                     decrease : unit -> unit
                     median : unit -> unit 
@@ -76,7 +79,8 @@ module SimpleSelect =
         |}
 
         let navigation = 
-            if props.navigate.IsSome then
+            props.navigate
+            |> Option.map (fun nav ->
                 JSX.jsx
                     $"""
                 import IconButton from "@mui/material/IconButton";
@@ -86,17 +90,15 @@ module SimpleSelect =
                 sx={navigationSx}
                 >
                 <ButtonGroup variant="text" aria-label="navigation button group">
-                    <IconButton onClick={fun _ -> props.navigate.Value.first ()} >{Mui.Icons.FirstPageIcon}</IconButton>
-                    <IconButton onClick={fun _ -> props.navigate.Value.decrease () } >{Mui.Icons.SkipPreviousIcon}</IconButton>
-                    <IconButton onClick={fun _ -> props.navigate.Value.median ()} >{Mui.Icons.PauseIcon}</IconButton>
-                    <IconButton onClick={fun _ -> props.navigate.Value.increase ()} >{Mui.Icons.SkipNextIcon}</IconButton>
-                    <IconButton onClick={fun _ -> props.navigate.Value.last ()} >{Mui.Icons.LastPageIcon}</IconButton>
+                    <IconButton onClick={fun _ -> nav.first ()} >{Mui.Icons.FirstPageIcon}</IconButton>
+                    <IconButton disabled={not nav.hasDecr} onClick={fun _ -> nav.decrease () } >{Mui.Icons.SkipPreviousIcon}</IconButton>
+                    <IconButton disabled={not nav.hasMedian} onClick={fun _ -> nav.median ()} >{Mui.Icons.PauseIcon}</IconButton>
+                    <IconButton disabled={not nav.hasIncr} onClick={fun _ -> nav.increase ()} >{Mui.Icons.SkipNextIcon}</IconButton>
+                    <IconButton onClick={fun _ -> nav.last ()} >{Mui.Icons.LastPageIcon}</IconButton>
                 </ButtonGroup>
                 </Box>            
                 """
-                |> Some
-            else
-                None
+            )
 
         let endAdornment = 
             if navigation.IsNone && not isClear && props.hasClear then Some clearButton

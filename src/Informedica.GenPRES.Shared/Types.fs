@@ -154,8 +154,8 @@ module Types =
     type OrderVariable =
         {
             Name: string
-            Constraints: Variable
-            Calculated: Variable
+            DefinedConstraints: Variable
+            CalculatedConstraints: Variable
             Variable: Variable
         }
 
