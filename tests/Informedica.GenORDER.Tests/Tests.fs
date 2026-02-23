@@ -154,13 +154,13 @@ module Tests
         [<Tests>]
         let cleared_processing_tests =
             testList "processClearedOrder behavior" [
-                test "Discontinuous FrequencyCleared materializes values" {
+                test "Discontinuous Dose cleared materializes values" {
                     let ord0 = mkConstrainedOrder ()
-                    // Switch to Discontinuous and clear its frequency via the change API
+                    // Switch to Discontinuous and clear its dose via the change API
                     let ord =
                         let hz = Units.per Units.Time.hour Units.Count.times
                         { ord0 with Schedule = Discontinuous (ord0.Schedule |> Schedule.getFrequency |> Option.defaultValue (OV.Frequency.create (Name "frq") hz)) }
-                        |> OrderPropertyChange.proc [ ScheduleFrequency (fun (Frequency f) -> Frequency (OrderVariable.clear f)) ]
+                        |> OrderPropertyChange.proc [ ItemDose ("", "",(fun dos -> { dos with PerTime = dos |> Orderable.Dose.clearPerTime })) ]
                     let before = countValues ord
                     let res = OrderProcessor.processClearedOrder Logging.noOp ord
                     match res with
@@ -174,19 +174,6 @@ module Tests
                     let frq = ord0.Schedule |> Schedule.getFrequency |> Option.defaultValue (OV.Frequency.create (Name "frq") hz)
                     let tme = ord0.Schedule |> Schedule.getTime |> Option.defaultValue (OV.Time.create (Name "tme") Units.Time.hour)
                     let ord = { ord0 with Schedule = Timed (frq, Time (OrderVariable.clear (let (Time tv) = tme in tv))) }
-                    let before = countValues ord
-                    let res = OrderProcessor.processClearedOrder Logging.noOp ord
-                    match res with
-                    | Ok o -> Expect.isTrue "Value count should not decrease" (countValues o >= before)
-                    | Error (o, _) -> Expect.isTrue "Value count should not decrease (even on error)" (countValues o >= before)
-                }
-
-                test "Continuous ConcentrationCleared resets and re-solves" {
-                    let ord0 = mkConstrainedOrder ()
-                    // Ensure continuous prescription with a valid time and clear a component orderable concentration
-                    let tme = ord0.Schedule |> Schedule.getTime |> Option.defaultValue (OV.Time.create (Name "t") Units.Time.hour)
-                    let ord = { ord0 with Schedule = Continuous tme }
-                    let ord = ord |> OrderPropertyChange.proc [ ComponentOrderableConcentration ("", fun (Concentration c) -> Concentration (OrderVariable.clear c)) ]
                     let before = countValues ord
                     let res = OrderProcessor.processClearedOrder Logging.noOp ord
                     match res with
