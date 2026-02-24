@@ -1519,7 +1519,7 @@ module Order =
                         | Some i, Some ord when ord.Schedule.IsContinuous |> not &&
                                                 itms |> Array.length > 0 &&
                                                 ord.Orderable.Components |> Array.length > 1 ->
-                            let warning = itms[i].OrderableQuantity.Level |> getWarning                            
+                            let warning = itms[i].OrderableConcentration.Level |> getWarning                            
 
                             itms[i].OrderableConcentration.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))

@@ -1374,8 +1374,11 @@ module Models =
             let isNavigable (ovar: OrderVariable) =
                 if ovar |> isSolved then false
                 else
-                    ovar.Variable.Max.IsSome &&
-                    ovar.DefinedConstraints.Incr.IsSome ||
+                    // note that an ordervariable with an increment always has a
+                    // min value by definition as all order variables are initialized to
+                    // be non-zero positive and a min value is always a multiple of an
+                    // increment
+                    (ovar.Variable.Max.IsSome && ovar.DefinedConstraints.Incr.IsSome) ||
                     ovar.Variable.Vals
                     |> Option.map (_.Value >> Array.length >> fun c -> c > 1)
                     |> Option.defaultValue false

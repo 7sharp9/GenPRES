@@ -399,7 +399,7 @@ Shows an order for editing.
 | 14 | Administration | Schedule Frequency                | frequentie            | ✓                 | ✓          | —         | ✓        | —         |
 | 15 | Administration | Orderable Dose Quantity           | toedien hoeveelheid   | ✓                 | —          | ✓         | ✓        | —         |
 | 16 | Administration | Orderable Dose Rate               | inloop snelheid       | ✓                 | —          | ✓         | ✓        | —         |
-| 17 | Administration | Schedule Time                     | inloop tijd           | —                 | ✓          | —         | —        | —         |
+| 17 | Administration | Schedule Time                     | inloop tijd           | —                 | ✓          | —         | —        | ✓         |
 
 **Note**
 

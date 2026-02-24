@@ -108,9 +108,20 @@ module SimpleSelect =
             else
                 navigation
 
+        let hasNavigation =
+            props.navigate
+            |> Option.map (fun nav ->
+                [nav.first; nav.decrease; nav.median; nav.increase; nav.last]
+                |> List.exists Option.isSome
+            )
+            |> Option.defaultValue false
+
+        let hasInteraction = 
+            hasNavigation || props.values.Length > 1
+
         let sx =
-            match props.warning with
-            | Some color ->
+            match props.warning, hasInteraction with
+            | Some color, _ ->
                 {|
                     ``& .MuiSelect-icon`` =
                         {|
@@ -123,7 +134,20 @@ module SimpleSelect =
                     textUnderlineOffset = "3px"
                 |}
                 |> box
-            | None ->
+            | None, false ->
+                {| 
+                    ``& .MuiSelect-icon`` =
+                        {|
+                            visibility = 
+                                if endAdornment.IsNone then "visible" 
+                                else "hidden"
+                        |}
+                    backgroundColor = "action.hover"
+                    borderRadius = "4px"
+                    padding = "2px 8px"
+                |}
+                |> box
+            | None, true ->
                 {| 
                     ``& .MuiSelect-icon`` =
                         {|
