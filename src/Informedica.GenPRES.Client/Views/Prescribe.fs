@@ -191,6 +191,7 @@ module Prescribe =
                 isLoading = isLoading
                 hasClear = true
                 navigate = None
+                warning = None
             |})
 
         let multiSelect isLoading lbl selected dispatch xs =

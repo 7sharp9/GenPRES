@@ -995,7 +995,7 @@ Scenarios: {scenarios}
             [
                 $"Order is empty: {sc.Order |> Order.areAllConstraintsNotApplied}"
                 $"Order has constraints: {sc.Order |> Order.hasConstraints}"
-                $"Order within constraints: {sc.Order |> Order.isWithinConstraints}"
+                $"Order within constraints: {sc.Order |> Order.isWithinConstraints true}"
                 ""
                 $"Order has values: {sc.Order |> Order.hasValues}"
                 $"Order is solved: {sc.Order |> Order.isSolved}"
@@ -1006,9 +1006,9 @@ Scenarios: {scenarios}
             |> String.concat "\n"
             |> log
 
-            if sc.Order |> Order.isWithinConstraints |> not then
+            if sc.Order |> Order.isWithinConstraints true |> not then
                 sc.Order
-                |> Order.checkConstraints
+                |> Order.checkConstraints true
                 |> List.map (OrderVariable.toStringWithConstraints true false)
                 |> String.concat "\n"
                 |> sprintf "Variables outside constraints:\n%s"

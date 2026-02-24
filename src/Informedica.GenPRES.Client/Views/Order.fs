@@ -871,7 +871,7 @@ module Order =
                     | Resolved ctx ->
                         match ol.Component with
                         | None -> ()
-                        | Some cmp ->
+                        | Some _ ->
                             let ctx =
                                 { ctx with
                                     Scenarios =
@@ -1127,7 +1127,23 @@ module Order =
 
                 hasFrequency || hasDoseQty || hasDoseRate || hasTime
 
-        let select isLoading lbl selected updateSelected navigate hasClear xs =
+        let getWarning warning =
+            match warning with
+            | IsNormal -> None
+            | IsCaution -> Some Mui.Colors.Blue.``600``
+            | IsWarning -> Some  Mui.Colors.Orange.``700``
+            | IsAlert -> Some Mui.Colors.Red.``700``
+
+        let select 
+            isLoading
+            lbl 
+            selected 
+            updateSelected 
+            navigate 
+            hasClear 
+            warning 
+            xs =
+
             if xs |> Array.isEmpty && navigate |> Option.isNone then
                 JSX.jsx $"<></>"
             else
@@ -1140,7 +1156,9 @@ module Order =
                     values = xs
                     isLoading = isLoading
                     hasClear = hasClear
+                    warning = warning
                     navigate = navigate
+                    
                 |})
 
         let progress =
@@ -1158,10 +1176,8 @@ module Order =
 
         let fixPrecision = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision
 
-
         let onClickOk =
             fun () -> props.closeOrder ()
-
 
         let onClickReset =
             fun () ->
@@ -1188,6 +1204,33 @@ module Order =
             else JSX.jsx $"<></>"
 
         let content =
+            let createNav navigable solved 
+                setMin
+                decr
+                setMed
+                incr
+                setMax =
+                {|
+                    first = 
+                        if navigable then (fun () -> setMin |> dispatch) |> Some
+                        elif solved then (fun () -> 2 |> decr |> dispatch) |> Some
+                        else None
+                    decrease =
+                        if solved then (fun () -> 1 |> decr |> dispatch) |> Some
+                        else None
+                    median = 
+                        if navigable then (fun () -> setMed |> dispatch) |> Some
+                        else None
+                    increase = 
+                        if solved then (fun () -> 1 |> incr |> dispatch) |> Some
+                        else None
+                    last = 
+                        if navigable then (fun () -> setMax |> dispatch) |> Some
+                        elif solved then (fun () -> 2 |> incr |> dispatch) |> Some
+                        else None
+                |}
+                |> Some
+
             JSX.jsx
                 $"""
             import CardHeader from '@mui/material/CardHeader';
@@ -1213,10 +1256,10 @@ module Order =
                                 ord.Orderable.Components
                                 |> Array.map _.Name
                                 |> Array.map (fun s -> s, s)
-                                |> select false "componenten" state.SelectedComponent (ChangeComponent >> dispatch) None false
+                                |> select false "componenten" state.SelectedComponent (ChangeComponent >> dispatch) None false None
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // substance name
@@ -1228,10 +1271,10 @@ module Order =
                                 itms
                                 |> Array.map _.Name
                                 |> Array.map (fun s -> s, s)
-                                |> select false "stoffen" state.SelectedItem (ChangeItem >> dispatch) None false
+                                |> select false "stoffen" state.SelectedItem (ChangeItem >> dispatch) None false None
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {dosingDivider}
                     {
@@ -1251,11 +1294,13 @@ module Order =
                                 )
                                 |> Option.defaultValue ("", [||])
 
+                            let warning = itms[i].Dose.Quantity.Level |> getWarning
+
                             vals
-                            |> select false label None (ChangeSubstanceDoseQuantity >> dispatch) None false
+                            |> select false label None (ChangeSubstanceDoseQuantity >> dispatch) None false warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // substance dose quantity adjust
@@ -1274,11 +1319,13 @@ module Order =
                                 )
                                 |> Option.defaultValue ("", [||])
 
+                            let warning = itms[i].Dose.QuantityAdjust.Level |> getWarning
+
                             vals
-                            |> select false label None (ChangeSubstanceDoseQuantityAdjust >> dispatch) None true
+                            |> select false label None (ChangeSubstanceDoseQuantityAdjust >> dispatch) None true warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // substance dose per time / dose per time adjust
@@ -1303,11 +1350,17 @@ module Order =
                                 )
                                 |> Option.defaultValue ("", [||])
 
+                            let warning = 
+                                if useAdjust then
+                                    itms[i].Dose.PerTimeAdjust.Level |> getWarning
+                                else
+                                    itms[i].Dose.PerTime.Level |> getWarning
+
                             vals
-                            |> select false label None dispatch None true
+                            |> select false label None dispatch None true warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // substance dose rate / dose rate adust
@@ -1317,6 +1370,12 @@ module Order =
                         | Some i, Some ord when ord.Schedule.IsContinuous &&
                                                 itms |> Array.length > 0 ->
                             let dispatch = if useAdjust then ChangeSubstanceRateAdjust >> dispatch else ChangeSubstanceRate >> dispatch
+
+                            let warning = 
+                                if useAdjust then
+                                    itms[i].Dose.RateAdjust.Level |> getWarning
+                                else
+                                    itms[i].Dose.Rate.Level |> getWarning
 
                             if useAdjust then
                                 itms[i].Dose.RateAdjust.Variable.Vals
@@ -1328,10 +1387,10 @@ module Order =
                                 |> Array.distinctBy snd
                             )
                             |> Option.defaultValue [||]
-                            |> select false (Terms.``Order Adjusted dose`` |> getTerm "dosering") None dispatch navigate true
+                            |> select false (Terms.``Order Adjusted dose`` |> getTerm "dosering") None dispatch navigate true warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {preparationDivider}
                     {
@@ -1362,28 +1421,28 @@ module Order =
 
                                 if not show then None
                                 else
-                                    let solved = c = 1
-                                    {|
-                                        hasIncr = solved
-                                        hasDecr = solved
-                                        hasMedian = not solved
-                                        first = 
-                                            if not solved then fun () -> SetMinComponentQuantityProperty |> dispatch
-                                            else fun () -> 2 |> DecreaseComponentQuantityProperty |> dispatch
-                                        decrease = fun () -> 1 |> DecreaseComponentQuantityProperty |> dispatch
-                                        median = fun () -> SetMedianComponentQuantityProperty |> dispatch
-                                        increase = fun () -> 1 |> IncreaseComponentQuantityProperty |> dispatch
-                                        last = 
-                                            if not solved then fun () -> SetMaxComponentQuantityProperty |> dispatch
-                                            else fun () -> 2 |> IncreaseComponentQuantityProperty |> dispatch
-                                    |}
-                                    |> Some
+                                    let solved = ord |> isSolved
+                                    let navigable = 
+                                        cmp 
+                                        |> Option.map (_.OrderableQuantity >> OrderVariable.isNavigable)
+                                        |> Option.defaultValue false
+
+                                    createNav navigable solved 
+                                        SetMinComponentQuantityProperty
+                                        DecreaseComponentQuantityProperty
+                                        SetMedianComponentQuantityProperty
+                                        IncreaseComponentQuantityProperty
+                                        SetMaxComponentQuantityProperty
+
+                            let warning =
+                                cmp
+                                |> Option.bind (_.OrderableQuantity.Level >> getWarning)
 
                             vals
-                            |> select false "bereiding hoeveelheid" None (ChangeComponentOrderableQuantity >> dispatch) navigate false
+                            |> select false "bereiding hoeveelheid" None (ChangeComponentOrderableQuantity >> dispatch) navigate false warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // substance component concentration
@@ -1404,7 +1463,7 @@ module Order =
                                     itm.ComponentConcentration.Variable.Vals
                                     |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                                     |> Option.defaultValue [||]
-                                    |> select false "product sterkte" None (change >> dispatch) None false
+                                    |> select false "product sterkte" None (change >> dispatch) None false None
                                 else JSX.jsx $"<></>"
                             | None ->
                                 match
@@ -1423,19 +1482,19 @@ module Order =
                                             itm.ComponentConcentration.Variable.Vals
                                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
                                             |> Option.defaultValue [||]
-                                            |> select false "product sterkte" None (change >> dispatch) None false
+                                            |> select false "product sterkte" None (change >> dispatch) None false None
                                         else JSX.jsx $"<></>"
 
                                     | None ->
                                         [||]
-                                        |> select true "" None ignore None false
+                                        |> select true "" None ignore None false None
                                 | None ->
                                     [||]
-                                    |> select true "" None ignore None false
+                                    |> select true "" None ignore None false None
 
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
 
                     }
                     {
@@ -1444,13 +1503,15 @@ module Order =
                         | Some i, Some ord when ord.Schedule.IsContinuous &&
                                                 itms |> Array.length > 0 &&
                                                 ord.Orderable.Components |> Array.length > 1 ->
+                            let warning = itms[i].OrderableQuantity.Level |> getWarning
+
                             itms[i].OrderableQuantity.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                             |> Option.defaultValue [||]
-                            |> select false $"{itms[i].Name} hoeveelheid" None (ChangeSubstanceOrderableQuantity >> dispatch) None false
+                            |> select false $"{itms[i].Name} hoeveelheid" None (ChangeSubstanceOrderableQuantity >> dispatch) None false warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // substance orderable concentration
@@ -1458,25 +1519,29 @@ module Order =
                         | Some i, Some ord when ord.Schedule.IsContinuous |> not &&
                                                 itms |> Array.length > 0 &&
                                                 ord.Orderable.Components |> Array.length > 1 ->
+                            let warning = itms[i].OrderableQuantity.Level |> getWarning                            
+
                             itms[i].OrderableConcentration.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                             |> Option.defaultValue [||]
-                            |> select false $"{itms[i].Name} concentratie" None (ChangeSubstanceOrderableConcentration >> dispatch) None false
+                            |> select false $"{itms[i].Name} concentratie" None (ChangeSubstanceOrderableConcentration >> dispatch) None false warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // orderable quantity
                         match state.Order with
                         | Some ord when ord.Orderable.Components |> Array.length > 1 ->
+                            let warning = ord.Orderable.OrderableQuantity.Level |> getWarning
+
                             ord.Orderable.OrderableQuantity.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                             |> Option.defaultValue [||]
-                            |> select false "totale hoeveelheid" None (ChangeOrderableQuantity >> dispatch) None false
+                            |> select false "totale hoeveelheid" None (ChangeOrderableQuantity >> dispatch) None false warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {administrationDivider}
                     {
@@ -1492,22 +1557,22 @@ module Order =
                             let navigate =
                                 if xs |> Array.length <> 1 then None
                                 else
-                                    let solved = xs.Length = 1
-                                    {|
-                                        hasIncr = solved
-                                        hasDecr = solved
-                                        hasMedian = not solved
-                                        first = fun () -> SetMinFrequencyProperty |> dispatch
-                                        decrease = fun () -> DecreaseFrequencyProperty |> dispatch
-                                        median = fun () -> SetMedianFrequencyProperty |> dispatch
-                                        increase = fun () -> IncreaseFrequencyProperty |> dispatch
-                                        last = fun () -> SetMaxFrequencyProperty |> dispatch
-                                    |}
-                                    |> Some
-                            select false (Terms.``Order Frequency`` |> getTerm "frequentie") None (ChangeFrequency >> dispatch) navigate false xs
+                                    let solved = ord |> isSolved
+                                    let navigable = false
+
+                                    createNav navigable solved 
+                                        SetMinFrequencyProperty
+                                        (fun _ -> DecreaseFrequencyProperty)
+                                        SetMedianFrequencyProperty
+                                        (fun _ -> IncreaseFrequencyProperty)
+                                        SetMaxFrequencyProperty
+
+                            let warning = ord.Schedule.Frequency.Level |> getWarning
+
+                            select false (Terms.``Order Frequency`` |> getTerm "frequentie") None (ChangeFrequency >> dispatch) navigate false warning xs
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // orderable dose quantity
@@ -1528,33 +1593,51 @@ module Order =
                             let navigate =
                                 if not showNav then None
                                 else
-                                    let solved = 
-                                        ord.Orderable.Dose.Quantity.Variable.Vals
-                                        |> Option.map (fun vu -> vu.Value.Length = 1)
+                                    let canIncr =
+                                        ord.Orderable.Components |> Array.length = 1 ||
+                                        ord.Orderable.DoseCount.Variable.Vals
+                                        |> Option.map (fun vu ->
+                                            vu.Value
+                                            |> Array.map snd
+                                            |> Array.forall (fun v -> v > 1m)
+                                        )
                                         |> Option.defaultValue false
+
+                                    let solved = ord |> isSolved
+                                    let navigable = 
+                                        ord.Orderable.Dose.Quantity
+                                        |> OrderVariable.isNavigable
+                                    // specific case where increase is maximized by dose count
                                     {|
-                                        hasIncr = solved
-                                        hasDecr = solved
-                                        hasMedian = not solved
                                         first = 
-                                            if not solved then fun () -> SetMinDoseQuantityProperty |> dispatch
-                                            else fun () -> 2 |> DecreaseDoseQuantityProperty |> dispatch
-                                        decrease = fun () -> 1 |> DecreaseDoseQuantityProperty |> dispatch
-                                        median = fun () -> SetMedianDoseQuantityProperty |> dispatch
-                                        increase = fun () -> 1 |> IncreaseDoseQuantityProperty |> dispatch
+                                            if navigable then (fun () -> SetMinDoseQuantityProperty |> dispatch) |> Some
+                                            elif solved then (fun () -> 2 |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                            else None
+                                        decrease =
+                                            if solved then (fun () -> 1 |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                            else None
+                                        median = 
+                                            if navigable then (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
+                                            else None
+                                        increase = 
+                                            if solved && canIncr then (fun () -> 1 |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                            else None
                                         last = 
-                                            if not solved then fun () -> SetMaxDoseQuantityProperty |> dispatch
-                                            else fun () -> 2 |> IncreaseDoseQuantityProperty|> dispatch
+                                            if navigable then (fun () -> SetMaxDoseQuantityProperty |> dispatch) |> Some
+                                            elif solved && canIncr then (fun () -> 2 |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                            else None
                                     |}
                                     |> Some
+
+                            let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
 
                             ord.Orderable.Dose.Quantity.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
                             |> Option.defaultValue [||]
-                            |> select false "toedien hoeveelheid" None (ChangeOrderableDoseQuantity >> dispatch) navigate false
+                            |> select false "toedien hoeveelheid" None (ChangeOrderableDoseQuantity >> dispatch) navigate false warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // orderable dose rate
@@ -1562,48 +1645,41 @@ module Order =
                         | Some ord when ord.Schedule.IsContinuous ||
                                         ord.Schedule.IsTimed ||
                                         ord.Schedule.IsOnceTimed ->
-                            let solved = 
-                                ord.Orderable.Dose.Rate.Variable.Vals
-                                |> Option.map (fun vu -> vu.Value.Length = 1)
-                                |> Option.defaultValue false
+                            let solved = ord |> isSolved
+                            let navigable = ord.Orderable.Dose.Rate |> OrderVariable.isNavigable
 
                             let navigate =
-                                {|
-                                    hasIncr = solved
-                                    hasDecr = solved
-                                    hasMedian = not solved
-                                    first = 
-                                        if not solved then fun () -> SetMinDoseRateProperty |> dispatch
-                                        else fun () -> 2 |> DecreaseDoseRateProperty |> dispatch
-                                    decrease = fun () -> 1 |> DecreaseDoseRateProperty |> dispatch
-                                    median = fun () -> SetMedianDoseRateProperty |> dispatch
-                                    increase = fun () -> 1 |> IncreaseDoseRateProperty |> dispatch
-                                    last = 
-                                        if not solved then fun () -> SetMaxDoseRateProperty |> dispatch
-                                        else fun () -> 2 |> IncreaseDoseRateProperty |> dispatch
-                                |}
-                                |> Some
+                                createNav navigable solved 
+                                    SetMinDoseRateProperty
+                                    DecreaseDoseRateProperty
+                                    SetMedianDoseRateProperty
+                                    IncreaseDoseRateProperty
+                                    SetMaxDoseRateProperty
+
+                            let warning = ord.Orderable.Dose.Rate.Level |> getWarning
 
                             ord.Orderable.Dose.Rate.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                             |> Option.defaultValue [||]
-                            |> select false (Terms.``Order Drip rate`` |> getTerm "inloop snelheid") None (ChangeOrderableDoseRate >> dispatch) navigate false
+                            |> select false (Terms.``Order Drip rate`` |> getTerm "inloop snelheid") None (ChangeOrderableDoseRate >> dispatch) navigate false warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                     {
                         // administration time
                         match state.Order with
                         | Some ord ->
+                            let warning = ord.Schedule.Time.Level |> getWarning
+
                             ord.Schedule.Time.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 2} {v.Unit}"))
                             |> Option.defaultValue [||]
                             |> Array.distinctBy snd
-                            |> select false (Terms.``Order Administration time`` |> getTerm "inloop tijd") None (ChangeTime >> dispatch) None true
+                            |> select false (Terms.``Order Administration time`` |> getTerm "inloop tijd") None (ChangeTime >> dispatch) None true warning
                         | _ ->
                             [||]
-                            |> select true "" None ignore None false
+                            |> select true "" None ignore None false None
                     }
                 </Stack>
                 {progress}

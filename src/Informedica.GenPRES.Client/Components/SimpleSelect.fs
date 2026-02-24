@@ -17,17 +17,15 @@ module SimpleSelect =
                 values : (string * string) []
                 updateSelected : string option -> unit
                 navigate : {| 
-                    hasIncr: bool
-                    hasDecr: bool
-                    hasMedian: bool
-                    first : unit -> unit
-                    decrease : unit -> unit
-                    median : unit -> unit 
-                    increase : unit -> unit
-                    last : unit -> unit
+                    first : (unit -> unit) option
+                    decrease : (unit -> unit) option
+                    median : (unit -> unit) option 
+                    increase : (unit -> unit) option
+                    last : (unit -> unit) option
                 |} option
                 isLoading : bool
                 hasClear : bool
+                warning : string option
             |}
         ) =
 
@@ -81,6 +79,11 @@ module SimpleSelect =
         let navigation = 
             props.navigate
             |> Option.map (fun nav ->
+                let getNav prop =
+                    match prop with
+                    | Some onClick -> false, onClick  
+                    | None -> true, fun () -> ()
+                    
                 JSX.jsx
                     $"""
                 import IconButton from "@mui/material/IconButton";
@@ -90,11 +93,11 @@ module SimpleSelect =
                 sx={navigationSx}
                 >
                 <ButtonGroup variant="text" aria-label="navigation button group">
-                    <IconButton onClick={fun _ -> nav.first ()} >{Mui.Icons.FirstPageIcon}</IconButton>
-                    <IconButton disabled={not nav.hasDecr} onClick={fun _ -> nav.decrease () } >{Mui.Icons.SkipPreviousIcon}</IconButton>
-                    <IconButton disabled={not nav.hasMedian} onClick={fun _ -> nav.median ()} >{Mui.Icons.PauseIcon}</IconButton>
-                    <IconButton disabled={not nav.hasIncr} onClick={fun _ -> nav.increase ()} >{Mui.Icons.SkipNextIcon}</IconButton>
-                    <IconButton onClick={fun _ -> nav.last ()} >{Mui.Icons.LastPageIcon}</IconButton>
+                    <IconButton disabled={nav.first |> getNav |> fst} onClick={fun _ -> (nav.first |> getNav |> snd) ()} >{Mui.Icons.FirstPageIcon}</IconButton>
+                    <IconButton disabled={nav.decrease |> getNav |> fst} onClick={fun _ -> (nav.decrease |>getNav |> snd) () } >{Mui.Icons.SkipPreviousIcon}</IconButton>
+                    <IconButton disabled={nav.median |> getNav |> fst} onClick={fun _ -> (nav.median |> getNav |> snd) ()} >{Mui.Icons.PauseIcon}</IconButton>
+                    <IconButton disabled={nav.increase |> getNav |> fst} onClick={fun _ -> (nav.increase |> getNav |> snd) ()} >{Mui.Icons.SkipNextIcon}</IconButton>
+                    <IconButton disabled={nav.last |> getNav |> fst} onClick={fun _ -> (nav.last |> getNav |> snd) ()} >{Mui.Icons.LastPageIcon}</IconButton>
                 </ButtonGroup>
                 </Box>            
                 """
@@ -104,6 +107,32 @@ module SimpleSelect =
             if navigation.IsNone && not isClear && props.hasClear then Some clearButton
             else
                 navigation
+
+        let sx =
+            match props.warning with
+            | Some color ->
+                {|
+                    ``& .MuiSelect-icon`` =
+                        {|
+                            visibility = 
+                                if endAdornment.IsNone then "visible" 
+                                else "hidden"
+                        |}
+                    textDecoration = "underline double"
+                    textDecorationColor = color
+                    textUnderlineOffset = "3px"
+                |}
+                |> box
+            | None ->
+                {| 
+                    ``& .MuiSelect-icon`` =
+                        {|
+                            visibility = 
+                                if endAdornment.IsNone then "visible" 
+                                else "hidden"
+                        |}
+                |}
+                |> box
 
         JSX.jsx
             $"""
@@ -121,16 +150,7 @@ module SimpleSelect =
             onChange={handleChange}
             label={props.label}
             endAdornment={endAdornment}
-            sx=
-                {
-                    {| ``& .MuiSelect-icon`` =
-                        {|
-                            visibility = 
-                                if endAdornment.IsNone then "visible" 
-                                else "hidden"
-                        |}
-                    |}
-                }
+            sx={sx}
             >
                 {items}
             </Select>

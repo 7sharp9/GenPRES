@@ -157,7 +157,9 @@ module Types =
             DefinedConstraints: Variable
             CalculatedConstraints: Variable
             Variable: Variable
+            Level: Level
         }
+    and Level = | IsNormal | IsCaution | IsWarning | IsAlert
 
 
     type Schedule =

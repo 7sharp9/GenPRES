@@ -188,10 +188,10 @@ module Order =
                 create qty ptm rte tot qty_adj ptm_adj rte_adj tot_adj
 
 
-            let isWithinConstraints dos =
+            let isWithinConstraints useCalc dos =
                 dos
                 |> toOrdVars
-                |> List.forall OrderVariable.isWithinConstraints
+                |> List.forall (OrderVariable.isWithinConstraints useCalc)
 
 
             /// <summary>
@@ -241,9 +241,9 @@ module Order =
                 }
 
 
-            let isQuantityWithinConstraints dos =
-                (dos |> inf).Quantity |> Quantity.isWithinConstraints &&
-                dos.QuantityAdjust |> QuantityAdjust.isWithinConstraints
+            let isQuantityWithinConstraints useCalc dos =
+                (dos |> inf).Quantity |> Quantity.isWithinConstraints useCalc &&
+                dos.QuantityAdjust |> QuantityAdjust.isWithinConstraints useCalc
 
 
             /// <summary>
@@ -265,9 +265,9 @@ module Order =
                 }
 
 
-            let isPerTimeWithinConstraints dos =
-                (dos |> inf).PerTime |> PerTime.isWithinConstraints &&
-                dos.PerTimeAdjust |> PerTimeAdjust.isWithinConstraints
+            let isPerTimeWithinConstraints useCalc dos =
+                (dos |> inf).PerTime |> PerTime.isWithinConstraints useCalc &&
+                dos.PerTimeAdjust |> PerTimeAdjust.isWithinConstraints useCalc
 
 
             /// <summary>
@@ -282,9 +282,9 @@ module Order =
                 }
 
 
-            let isRateWithinConstraints dos =
-                (dos |> inf).Rate |> Rate.isWithinConstraints &&
-                dos.RateAdjust |> RateAdjust.isWithinConstraints
+            let isRateWithinConstraints useCalc dos =
+                (dos |> inf).Rate |> Rate.isWithinConstraints useCalc &&
+                dos.RateAdjust |> RateAdjust.isWithinConstraints useCalc
 
 
             /// <summary>
@@ -480,8 +480,7 @@ module Order =
             let clearRate = applyToRate Rate.clear
 
 
-            /// Decrease the rate of a Dose
-            let decreaseRate useCalc n dos =
+            let stepRate step useCalc n dos =
                 let n =
                     if not useCalc then n
                     else
@@ -499,31 +498,16 @@ module Order =
                         | None -> 1
 
                 { (dos |> inf) with
-                    Rate = dos.Rate |> Rate.decrease useCalc n
+                    Rate = dos.Rate |> step useCalc n
                 }
+
+            /// Decrease the rate of a Dose
+            let decreaseRate = stepRate Rate.decrease
 
 
             /// Increase the rate of a Dose
-            let increaseRate useCalc n dos =
-                let n =
-                    if not useCalc then n
-                    else
-                        match
-                            dos.Rate
-                            |> Rate.toOrdVar
-                            |> _.CalculatedConstraints
-                            |> _.Incr with
-                        | Some incr ->
-                            let vu = incr |> Increment.toValueUnit
-                            let dr =
-                                Units.Volume.milliLiter |> Units.per Units.Time.hour
-                                |> ValueUnit.singleWithValue (1N / 10N)
-                            if vu = dr then 10 else 1
-                        | None -> 1
+            let increaseRate = stepRate Rate.increase
 
-                { (dos |> inf) with
-                    Rate = dos.Rate |> Rate.increase useCalc n
-                }
 
             /// Clear both the rate and rateAdjust of a Dose
             /// by setting them to non-zero positive
@@ -799,6 +783,7 @@ module Order =
 
             /// Functions to create a Dose Dto and vice versa.
             module Dto =
+                open Informedica.GenOrder.Lib
 
 
                 module Units = ValueUnit.Units
@@ -852,6 +837,13 @@ module Order =
                     dto.RateAdjust <- dos.RateAdjust |> RateAdjust.toDto
                     dto.TotalAdjust <- dos.TotalAdjust |> TotalAdjust.toDto
 
+                    let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsAlert
+                    dto.Quantity.Level <- dos.Quantity |> Quantity.isWithinConstraints false |> getLevel
+                    dto.QuantityAdjust.Level <- dos.QuantityAdjust |> QuantityAdjust.isWithinConstraints false |> getLevel
+                    dto.PerTime.Level <- dos.PerTime |> PerTime.isWithinConstraints false |> getLevel
+                    dto.PerTimeAdjust.Level <- dos.PerTimeAdjust |> PerTimeAdjust.isWithinConstraints false |> getLevel
+                    dto.Rate.Level <- dos.Rate |> Rate.isWithinConstraints false |> getLevel
+                    dto.RateAdjust.Level <- dos.RateAdjust |> RateAdjust.isWithinConstraints false |> getLevel
                     dto
 
                 /// Create an empty Dose Dto
@@ -1202,6 +1194,12 @@ module Order =
                         |> Concentration.toDto
                     dto.Dose <-
                         itm.Dose |> Dose.Dto.toDto
+
+                    let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsWarning
+                    dto.OrderableQuantity.Level <-
+                        itm.OrderableQuantity |> Quantity.isWithinConstraints false |> getLevel
+                    dto.ComponentConcentration.Level <-
+                        itm.ComponentConcentration |> Concentration.isWithinConstraints false |> getLevel
 
                     dto
 
@@ -1748,6 +1746,19 @@ module Order =
                         cmp.Items
                         |> List.map Item.Dto.toDto
 
+                    let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsCaution
+                    dto.OrderableQuantity.Level <-
+                        [
+                            cmp.OrderableQuantity |> Quantity.toOrdVar
+                            cmp.OrderableConcentration |> Concentration.toOrdVar
+                            yield!
+                                cmp.Items
+                                |> List.map _.OrderableConcentration
+                                |> List.map Concentration.toOrdVar
+                        ]
+                        |> List.forall (OrderVariable.isWithinConstraints false)
+                        |> getLevel
+
                     dto
 
 
@@ -2255,6 +2266,10 @@ module Order =
                     orb.Components
                     |> List.map Component.Dto.toDto
 
+                let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsCaution
+                dto.OrderableQuantity.Level <-
+                    orb.OrderableQuantity |> Quantity.isWithinConstraints false |> getLevel
+
                 dto
 
 
@@ -2345,9 +2360,9 @@ module Order =
             | _ -> None
 
 
-        let isFrequencyWithinConstraints =
+        let isFrequencyWithinConstraints useCalc =
             getFrequency
-            >> Option.map Frequency.isWithinConstraints
+            >> Option.map (Frequency.isWithinConstraints useCalc)
             >> Option.defaultValue true
 
 
@@ -2358,9 +2373,9 @@ module Order =
             | _ -> None
 
 
-        let isTimeWithinConstraints =
+        let isTimeWithinConstraints useCalc =
             getTime
-            >> Option.map Time.isWithinConstraints
+            >> Option.map (Time.isWithinConstraints useCalc)
             >> Option.defaultValue true
 
 
@@ -2627,6 +2642,20 @@ module Order =
                     dto.Frequency <- freq |> Frequency.toDto
                     dto.Time      <- time |> Time.toDto
 
+
+                let getFreqLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsWarning
+                let getTimeLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsCaution
+                dto.Frequency.Level <-
+                    schedule
+                    |> getFrequency
+                    |> Option.map (Frequency.isWithinConstraints false >> getFreqLevel)
+                    |> Option.defaultValue dto.Frequency.Level
+
+                dto.Time.Level <-
+                    schedule
+                    |> getTime
+                    |> Option.map (Time.isWithinConstraints false >> getTimeLevel)
+                    |> Option.defaultValue dto.Time.Level
                 dto
 
 
@@ -3146,12 +3175,12 @@ module Order =
 
 
     /// Check whether all OrderVariables in an Order are within their constraints
-    let isWithinConstraints = toOrdVars >> List.forall OrderVariable.isWithinConstraints
+    let isWithinConstraints useCalc = toOrdVars >> List.forall (OrderVariable.isWithinConstraints useCalc)
 
 
     /// Check whether there are OrderVariables in an Order that are not within their constraints
     /// and return those OrderVariables
-    let checkConstraints = toOrdVars >> List.filter (OrderVariable.isWithinConstraints >> not)
+    let checkConstraints useCalc = toOrdVars >> List.filter (OrderVariable.isWithinConstraints useCalc >> not)
 
 
     let setCalculatedConstraints ord =
@@ -3897,7 +3926,7 @@ module Order =
 
 
         let wrap tb ovars s =
-            if ovars |> List.forall OrderVariable.isWithinConstraints then s |> Valid
+            if ovars |> List.forall (OrderVariable.isWithinConstraints false) then s |> Valid
             else s |> tb
 
 
@@ -4056,7 +4085,7 @@ module Order =
                         if
                             ord.Schedule
                             |> Schedule.getFrequency
-                            |> Option.map (Frequency.toOrdVar >> OrderVariable.isWithinConstraints)
+                            |> Option.map (Frequency.toOrdVar >> OrderVariable.isWithinConstraints false)
                             |> Option.defaultValue true then Valid
                         else Warning
 
@@ -4069,7 +4098,7 @@ module Order =
                         if
                             ord.Schedule
                             |> Schedule.getTime
-                            |> Option.map (Time.toOrdVar >> OrderVariable.isWithinConstraints)
+                            |> Option.map (Time.toOrdVar >> OrderVariable.isWithinConstraints false)
                             |> Option.defaultValue true then Valid
                         else Caution
 

@@ -57,11 +57,11 @@ An `OrderVariable` represents the combination of:
 Both Variable Value, Defined and Calculated constraints describe a domain that corresponds conceptually to a `ValueRange`, which may be:
 
 | Type              | Represented | Value                                                             | Constraints correspondence    |
-| ------------------- | ------------- | ------------------------------------------------------------------- | ------------------------------- |
+| ----------------- | ----------- | ----------------------------------------------------------------- | ----------------------------- |
 | `Unrestricted`.   | -           | N/A as all values are set to `NonZeroPositive` at initialisation  | -                             |
 | `NonZeroPositive` | x           | Initial state of the Value for an OrderVariable                   | -                             |
-| `Min`             | x           | OrderVariable as an expicit Min                                   | Some Min                      |
-| `Max`             | -           | N/A as an OrderVariable always have a Min or is `NonZeroPositive` | -                             |
+| `Min`             | x           | OrderVariable as an explicit Min                                  | Some Min                      |
+| `Max`             | -           | N/A as an OrderVariable always has a Min or is `NonZeroPositive`  | -                             |
 | `MinMax`          | x           | `MinMax`                                                          | Some Min, Some Max            |
 | `Incr`            | -           | N/A as there always is a Min                                      | -                             |
 | `MinIncr`         | x           | `MinIncr`                                                         | Some Min, Some Incr           |
@@ -146,6 +146,9 @@ The first option implies that the selected value belongs to the effective domain
 
 When a specific order variable has a value that has transgressed the effective domain, the UI should show a warning indicator. When the user subsequently clears an order variable value — triggering a recalculation — any transgressed variable value should be reset to its effective calculated domain to restore option 1 navigation.
 
+- Stepping is gated on whether the order is fully solved — increment/decrement buttons are disabled until all relevant order variables have a single resolved value, preventing discrepancies with prior calculated options.
+- Clearing selectively resets only preparation variables that have gone out of bounds, using the calculated constraints as the reference, while leaving in-bound values untouched.
+
 ---
 
 ## 5. Navigation States
@@ -229,15 +232,15 @@ Determines:
 Based on the structure of the effective (Calculated) value domain and/or existence of a defined increment.
 
 | Value                   | Defined      | Navigation State |
-| ----------------------- | ------------ | ------------------ |
+| ----------------------- | ------------ | ---------------- |
 | Non-Zero-Positive       |              | NON_NAVIGABLE    |
 | `MinIncrMax`            | Increment    | NAVIGABLE        |
 | Multiple Value `ValSet` |              | SELECTABLE       |
-| Single Value `ValSet    | No Increment | NON_NAVIGABLE    |
+| Single Value `ValSet`   | No Increment | NON_NAVIGABLE    |
 | Single Value `ValSet`   | Increment    | STEPABLE         |
 
 - All `OrderVariables` can start as NON_NAVIGABLE.
-- All `OrderVariables` can can become SELECTABLE.
+- All `OrderVariables` can become SELECTABLE.
 - Only `OrderVariables` with a defined increment can be NAVIGABLE.
 - Only `OrderVariables` with a defined increment can be STEPABLE.
 
@@ -259,6 +262,8 @@ Applies to bounded value-set domains, i.e. OrderVariable where the Value ValueRa
 Invariant:
 
 - All Variable values remain within Calculated and/or Defined constraints.
+
+---
 
 ## 8. State Table — Min–Median–Max Navigation
 
@@ -295,7 +300,7 @@ Applies when variables are solved to STEPABLEs, i.e. OrderVariable with a single
 Important:
 
 - During increment/decrement, the anchor value may transgress previous Calculated and/or Defined constraints.
-- Dependent variables reset to `NonZeroPositive` before re-solving and can alsoe transgress the Calculated and/or Defined constraints.
+- Dependent variables reset to `NonZeroPositive` before re-solving and can also transgress the Calculated and/or Defined constraints.
 
 ---
 
@@ -306,8 +311,8 @@ Re-anchoring computes a new order state.
 Steps:
 
 1. Create new order with updated anchor value.
-2. Reset dependent variables according to active navigation mode (Section 8, 9 or 10):
-    - Either use base line Calculated constraints or
+2. Reset dependent variables according to active navigation mode (Section 7, 8, or 9):
+    - Either use baseline Calculated constraints or
     - Set dependent variables to a NonZeroPositive state
 3. Re-run solver.
 4. Return new order state.
@@ -338,7 +343,7 @@ The OrderProcessor must:
 
 ## 13. Practical implementation
 
-Given the order model and the defined constraints that in real life exists, particularly the increment constraint, only a limited set of OrderVariables can be used for direct navigation:
+Given the order model and the defined constraints that exist in real life, particularly the increment constraint, only a limited set of OrderVariables can be used for direct navigation:
 
 - Schedule Frequency: always has an increment of 1 (whatever the unit) as it implies a count
 - Schedule Frequency: always has a defined constraints value set.
