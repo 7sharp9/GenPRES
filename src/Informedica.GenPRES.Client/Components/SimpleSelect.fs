@@ -25,6 +25,7 @@ module SimpleSelect =
                 |} option
                 isLoading : bool
                 hasClear : bool
+                warning : string option
             |}
         ) =
 
@@ -107,6 +108,32 @@ module SimpleSelect =
             else
                 navigation
 
+        let sx =
+            match props.warning with
+            | Some color ->
+                {|
+                    ``& .MuiSelect-icon`` =
+                        {|
+                            visibility = 
+                                if endAdornment.IsNone then "visible" 
+                                else "hidden"
+                        |}
+                    textDecoration = "underline double"
+                    textDecorationColor = color
+                    textUnderlineOffset = "3px"
+                |}
+                |> box
+            | None ->
+                {| 
+                    ``& .MuiSelect-icon`` =
+                        {|
+                            visibility = 
+                                if endAdornment.IsNone then "visible" 
+                                else "hidden"
+                        |}
+                |}
+                |> box
+
         JSX.jsx
             $"""
         import InputLabel from '@mui/material/InputLabel';
@@ -123,16 +150,7 @@ module SimpleSelect =
             onChange={handleChange}
             label={props.label}
             endAdornment={endAdornment}
-            sx=
-                {
-                    {| ``& .MuiSelect-icon`` =
-                        {|
-                            visibility = 
-                                if endAdornment.IsNone then "visible" 
-                                else "hidden"
-                        |}
-                    |}
-                }
+            sx={sx}
             >
                 {items}
             </Select>

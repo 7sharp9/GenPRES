@@ -883,22 +883,33 @@ module TypoGraphy =
         """
 
 
-    let fromTextBlock (textBlock : TextBlock) = 
+    let fromTextBlock (textBlock : TextBlock) =
         let print tb =
-            let items, color =
+            let items, color, hasWarning =
                 match tb with
-                | Valid items -> items, Colors.Green.``700``
-                | Caution items -> items, Colors.Blue.``600``
-                | Warning items -> items, Colors.Orange.``700``
-                | Alert items -> items, Colors.Red.``700``
+                | Valid items -> items, Colors.Green.``700``, false
+                | Caution items -> items, Colors.Blue.``600``, true
+                | Warning items -> items, Colors.Orange.``700``, true
+                | Alert items -> items, Colors.Red.``700``, true
 
-            items 
+            let warningSx =
+                if hasWarning then
+                    {|
+                        textDecoration = "underline double"
+                        textDecorationColor = color
+                        textUnderlineOffset = "3px"
+                    |}
+                    |> box
+                else
+                    {| |} |> box
+
+            items
             |> Array.map (fun item ->
                 match item with
                 | Normal s ->
                     JSX.jsx
                         $"""
-                    <Typography color={Colors.Grey.``700``} display="inline">{s}</Typography>
+                    <Typography color={Colors.Grey.``700``} display="inline" sx={warningSx}>{s}</Typography>
                     """
                 | Bold s ->
                     JSX.jsx
@@ -906,6 +917,7 @@ module TypoGraphy =
                     <Typography
                     color={color}
                     display="inline"
+                    sx={warningSx}
                     >
                     <strong> {s} </strong>
                     </Typography>
@@ -916,6 +928,7 @@ module TypoGraphy =
                     <Typography
                     color={Colors.Grey.``600``}
                     display="inline"
+                    sx={warningSx}
                     >
                     <strong>{s}</strong>
                     </Typography>

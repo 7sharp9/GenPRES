@@ -783,6 +783,7 @@ module Order =
 
             /// Functions to create a Dose Dto and vice versa.
             module Dto =
+                open Informedica.GenOrder.Lib
 
 
                 module Units = ValueUnit.Units
@@ -836,6 +837,13 @@ module Order =
                     dto.RateAdjust <- dos.RateAdjust |> RateAdjust.toDto
                     dto.TotalAdjust <- dos.TotalAdjust |> TotalAdjust.toDto
 
+                    let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsAlert
+                    dto.Quantity.Level <- dos.Quantity |> Quantity.isWithinConstraints false |> getLevel
+                    dto.QuantityAdjust.Level <- dos.QuantityAdjust |> QuantityAdjust.isWithinConstraints false |> getLevel
+                    dto.PerTime.Level <- dos.PerTime |> PerTime.isWithinConstraints false |> getLevel
+                    dto.PerTimeAdjust.Level <- dos.PerTimeAdjust |> PerTimeAdjust.isWithinConstraints false |> getLevel
+                    dto.Rate.Level <- dos.Rate |> Rate.isWithinConstraints false |> getLevel
+                    dto.RateAdjust.Level <- dos.RateAdjust |> RateAdjust.isWithinConstraints false |> getLevel
                     dto
 
                 /// Create an empty Dose Dto
@@ -2611,6 +2619,19 @@ module Order =
                     dto.Frequency <- freq |> Frequency.toDto
                     dto.Time      <- time |> Time.toDto
 
+
+                let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsWarning
+                dto.Frequency.Level <-
+                    schedule
+                    |> getFrequency
+                    |> Option.map (Frequency.isWithinConstraints false >> getLevel)
+                    |> Option.defaultValue dto.Frequency.Level
+
+                dto.Time.Level <-
+                    schedule
+                    |> getTime
+                    |> Option.map (Time.isWithinConstraints false >> getLevel)
+                    |> Option.defaultValue dto.Time.Level
                 dto
 
 

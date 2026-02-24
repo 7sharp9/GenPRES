@@ -214,6 +214,7 @@ module Formulary =
                 isLoading = isLoading
                 hasClear = true
                 navigate = None
+                warning = None
             |})
 
 

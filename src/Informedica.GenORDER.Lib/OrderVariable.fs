@@ -1162,7 +1162,8 @@ module OrderVariable =
             member val Constraints = Variable.Dto.dto () with get, set
             member val Calculated = Variable.Dto.dto () with get, set
             member val Variable = Variable.Dto.dto () with get, set
-
+            member val Level = IsNormal with get, set
+        and Level = | IsNormal | IsCaution | IsWarning | IsAlert
 
         /// Create a new `Dto` for an OrderVariable
         let dto () = Dto ()
@@ -1175,7 +1176,7 @@ module OrderVariable =
             old.Variable.IncrOpt <- None
             old.Variable.MaxOpt <- None
             old.Variable.ValsOpt <- None
-
+            old.Level <- IsNormal
 
         /// Create an OrderVariable from a Dto
         let fromDto (dto: Dto) =

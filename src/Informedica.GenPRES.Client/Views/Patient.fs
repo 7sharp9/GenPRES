@@ -406,6 +406,7 @@ module Patient =
                 navigate = None
                 isLoading = false
                 hasClear = true
+                warning = None
             |})
 
         let wghts =

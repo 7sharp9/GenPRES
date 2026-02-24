@@ -935,7 +935,7 @@ module Models =
                     let getString n =
                         Csv.getStringColumn cms sl n |> String.trim
 
-                    let getFloat = 
+                    let getFloat =
                         Csv.getFloatOptionColumn cms sl
                         >> Option.defaultValue 0.
 
@@ -1355,12 +1355,13 @@ module Models =
 
         module OrderVariable =
 
-            let create nme cst cal var =
+            let create nme cst cal var level =
                 {
                     Name = nme
                     DefinedConstraints = cst
                     CalculatedConstraints = cal
                     Variable = var
+                    Level = level
                 }
 
 
@@ -1488,7 +1489,7 @@ module Models =
 
                 if ord.Schedule.IsContinuous || ord.Schedule.IsOnceTimed || ord.Schedule.IsTimed then
                     ord.Orderable.Dose.Rate
-                    
+
                 if ord.Schedule.IsDiscontinuous || ord.Schedule.IsTimed then
                     ord.Schedule.Frequency
             ]
@@ -1541,7 +1542,7 @@ module Models =
 
 
     module OrderScenario =
-    
+
 
         let create ind nme frm rte dst dil cmp itm dils cmps itms prs prep adm o adj rr rn ids =
             {
@@ -1556,9 +1557,9 @@ module Models =
                 Diluents = dils
                 Components = cmps
                 Items = itms
-                Prescription = prs 
-                Preparation = prep 
-                Administration = adm 
+                Prescription = prs
+                Preparation = prep
+                Administration = adm
                 Order = o
                 UseAdjust = adj
                 UseRenalRule = rr

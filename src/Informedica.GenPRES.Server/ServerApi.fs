@@ -74,11 +74,19 @@ module Mappers =
 
 
         let mapToOrderVariable (dto : OrderVariable.Dto.Dto) : Types.OrderVariable =
+            let level =
+                match dto.Level with
+                | OrderVariable.Dto.IsNormal -> IsNormal
+                | OrderVariable.Dto.IsCaution -> IsCaution
+                | OrderVariable.Dto.IsWarning -> IsWarning
+                | OrderVariable.Dto.IsAlert -> IsAlert
+
             Models.Order.OrderVariable.create
                 dto.Name
                 (dto.Constraints |> mapToVariable)
                 (dto.Calculated |> mapToVariable)
                 (dto.Variable |> mapToVariable)
+                level
 
 
         let mapFromOrderVariable (ov : Types.OrderVariable) : OrderVariable.Dto.Dto =
@@ -87,7 +95,7 @@ module Mappers =
             dto.Variable <- ov.Variable |> mapFromVariable
             dto.Constraints <- ov.DefinedConstraints |> mapFromVariable
             dto.Calculated <- ov.CalculatedConstraints |> mapFromVariable
-            
+
             dto
 
 
