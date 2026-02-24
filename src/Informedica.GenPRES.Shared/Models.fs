@@ -1364,6 +1364,18 @@ module Models =
                 }
 
 
+            let isSolved (ovar: OrderVariable) =
+                ovar.Variable.Vals
+                |> Option.map (_.Value >> Array.length >> ((=) 1))
+                |> Option.defaultValue false
+
+
+            let hasVals (ovar: OrderVariable) =
+                ovar.Variable.Vals
+                |> Option.map (_.Value >> Array.length >> fun c -> c > 1)
+                |> Option.defaultValue false
+
+
             let (|NonNavigable|Navigable|Selectable|Stepable|) (ovar: OrderVariable) =
                 let var = ovar.Variable
                 let def = ovar.DefinedConstraints
@@ -1466,6 +1478,21 @@ module Models =
                 Start = sta
                 Stop = sto
             }
+
+
+        let isSolved (ord : Order) =
+            [
+                yield! ord.Orderable.Components |> Array.map _.OrderableQuantity
+                ord.Orderable.OrderableQuantity
+                ord.Orderable.Dose.Quantity
+
+                if ord.Schedule.IsContinuous || ord.Schedule.IsOnceTimed || ord.Schedule.IsTimed then
+                    ord.Orderable.Dose.Rate
+                    
+                if ord.Schedule.IsDiscontinuous || ord.Schedule.IsTimed then
+                    ord.Schedule.Frequency
+            ]
+            |> List.forall OrderVariable.isSolved
 
 
         module OrderLoader =
