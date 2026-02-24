@@ -1620,11 +1620,11 @@ module Order =
                                             if navigable then (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
                                             else None
                                         increase = 
-                                            if solved & canIncr then (fun () -> 1 |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                            if solved && canIncr then (fun () -> 1 |> IncreaseDoseQuantityProperty |> dispatch) |> Some
                                             else None
                                         last = 
                                             if navigable then (fun () -> SetMaxDoseQuantityProperty |> dispatch) |> Some
-                                            elif solved & canIncr then (fun () -> 2 |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                            elif solved && canIncr then (fun () -> 2 |> IncreaseDoseQuantityProperty |> dispatch) |> Some
                                             else None
                                     |}
                                     |> Some

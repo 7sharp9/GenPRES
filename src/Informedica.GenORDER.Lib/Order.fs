@@ -1748,7 +1748,16 @@ module Order =
 
                     let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsCaution
                     dto.OrderableQuantity.Level <-
-                        cmp.OrderableQuantity |> Quantity.isWithinConstraints false |> getLevel
+                        [
+                            cmp.OrderableQuantity |> Quantity.toOrdVar
+                            cmp.OrderableConcentration |> Concentration.toOrdVar
+                            yield!
+                                cmp.Items
+                                |> List.map _.OrderableConcentration
+                                |> List.map Concentration.toOrdVar
+                        ]
+                        |> List.forall (OrderVariable.isWithinConstraints false)
+                        |> getLevel
 
                     dto
 
