@@ -1195,6 +1195,12 @@ module Order =
                     dto.Dose <-
                         itm.Dose |> Dose.Dto.toDto
 
+                    let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsWarning
+                    dto.OrderableQuantity.Level <-
+                        itm.OrderableQuantity |> Quantity.isWithinConstraints false |> getLevel
+                    dto.ComponentConcentration.Level <-
+                        itm.ComponentConcentration |> Concentration.isWithinConstraints false |> getLevel
+
                     dto
 
 
@@ -1740,6 +1746,10 @@ module Order =
                         cmp.Items
                         |> List.map Item.Dto.toDto
 
+                    let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsCaution
+                    dto.OrderableQuantity.Level <-
+                        cmp.OrderableQuantity |> Quantity.isWithinConstraints false |> getLevel
+
                     dto
 
 
@@ -2247,6 +2257,10 @@ module Order =
                     orb.Components
                     |> List.map Component.Dto.toDto
 
+                let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsCaution
+                dto.OrderableQuantity.Level <-
+                    orb.OrderableQuantity |> Quantity.isWithinConstraints false |> getLevel
+
                 dto
 
 
@@ -2620,17 +2634,18 @@ module Order =
                     dto.Time      <- time |> Time.toDto
 
 
-                let getLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsWarning
+                let getFreqLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsWarning
+                let getTimeLevel b = if b then OrderVariable.Dto.IsNormal else OrderVariable.Dto.IsCaution
                 dto.Frequency.Level <-
                     schedule
                     |> getFrequency
-                    |> Option.map (Frequency.isWithinConstraints false >> getLevel)
+                    |> Option.map (Frequency.isWithinConstraints false >> getFreqLevel)
                     |> Option.defaultValue dto.Frequency.Level
 
                 dto.Time.Level <-
                     schedule
                     |> getTime
-                    |> Option.map (Time.isWithinConstraints false >> getLevel)
+                    |> Option.map (Time.isWithinConstraints false >> getTimeLevel)
                     |> Option.defaultValue dto.Time.Level
                 dto
 
