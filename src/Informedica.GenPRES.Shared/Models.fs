@@ -1371,10 +1371,14 @@ module Models =
                 |> Option.defaultValue false
 
 
-            let hasVals (ovar: OrderVariable) =
-                ovar.Variable.Vals
-                |> Option.map (_.Value >> Array.length >> fun c -> c > 1)
-                |> Option.defaultValue false
+            let isNavigable (ovar: OrderVariable) =
+                if ovar |> isSolved then false
+                else
+                    ovar.Variable.Max.IsSome &&
+                    ovar.DefinedConstraints.Incr.IsSome ||
+                    ovar.Variable.Vals
+                    |> Option.map (_.Value >> Array.length >> fun c -> c > 1)
+                    |> Option.defaultValue false
 
 
             let (|NonNavigable|Navigable|Selectable|Stepable|) (ovar: OrderVariable) =

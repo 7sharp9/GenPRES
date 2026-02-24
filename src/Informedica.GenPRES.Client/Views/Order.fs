@@ -1204,7 +1204,7 @@ module Order =
             else JSX.jsx $"<></>"
 
         let content =
-            let createNav hasVals solved 
+            let createNav navigable solved 
                 setMin
                 decr
                 setMed
@@ -1212,20 +1212,20 @@ module Order =
                 setMax =
                 {|
                     first = 
-                        if hasVals then (fun () -> setMin |> dispatch) |> Some
+                        if navigable then (fun () -> setMin |> dispatch) |> Some
                         elif solved then (fun () -> 2 |> decr |> dispatch) |> Some
                         else None
                     decrease =
                         if solved then (fun () -> 1 |> decr |> dispatch) |> Some
                         else None
                     median = 
-                        if hasVals then (fun () -> setMed |> dispatch) |> Some
+                        if navigable then (fun () -> setMed |> dispatch) |> Some
                         else None
                     increase = 
                         if solved then (fun () -> 1 |> incr |> dispatch) |> Some
                         else None
                     last = 
-                        if hasVals then (fun () -> setMax |> dispatch) |> Some
+                        if navigable then (fun () -> setMax |> dispatch) |> Some
                         elif solved then (fun () -> 2 |> incr |> dispatch) |> Some
                         else None
                 |}
@@ -1422,9 +1422,12 @@ module Order =
                                 if not show then None
                                 else
                                     let solved = ord |> isSolved
-                                    let hasVals = c > 1
+                                    let navigable = 
+                                        cmp 
+                                        |> Option.map (_.OrderableQuantity >> OrderVariable.isNavigable)
+                                        |> Option.defaultValue false
 
-                                    createNav hasVals solved 
+                                    createNav navigable solved 
                                         SetMinComponentQuantityProperty
                                         DecreaseComponentQuantityProperty
                                         SetMedianComponentQuantityProperty
@@ -1555,9 +1558,9 @@ module Order =
                                 if xs |> Array.length <> 1 then None
                                 else
                                     let solved = ord |> isSolved
-                                    let hasVals = false
+                                    let navigable = false
 
-                                    createNav hasVals solved 
+                                    createNav navigable solved 
                                         SetMinFrequencyProperty
                                         (fun _ -> DecreaseFrequencyProperty)
                                         SetMedianFrequencyProperty
@@ -1600,17 +1603,31 @@ module Order =
                                         )
                                         |> Option.defaultValue false
 
-                                    let solved = ord |> isSolved && canIncr
-                                    let hasVals = 
+                                    let solved = ord |> isSolved
+                                    let navigable = 
                                         ord.Orderable.Dose.Quantity
-                                        |> OrderVariable.hasVals
-
-                                    createNav hasVals solved 
-                                        SetMinDoseQuantityProperty
-                                        DecreaseDoseQuantityProperty
-                                        SetMedianDoseQuantityProperty
-                                        IncreaseDoseQuantityProperty
-                                        SetMaxDoseQuantityProperty
+                                        |> OrderVariable.isNavigable
+                                    // specific case where increase is maximized by dose count
+                                    {|
+                                        first = 
+                                            if navigable then (fun () -> SetMinDoseQuantityProperty |> dispatch) |> Some
+                                            elif solved then (fun () -> 2 |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                            else None
+                                        decrease =
+                                            if solved then (fun () -> 1 |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                            else None
+                                        median = 
+                                            if navigable then (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
+                                            else None
+                                        increase = 
+                                            if solved & canIncr then (fun () -> 1 |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                            else None
+                                        last = 
+                                            if navigable then (fun () -> SetMaxDoseQuantityProperty |> dispatch) |> Some
+                                            elif solved & canIncr then (fun () -> 2 |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                            else None
+                                    |}
+                                    |> Some
 
                             let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
 
@@ -1629,10 +1646,10 @@ module Order =
                                         ord.Schedule.IsTimed ||
                                         ord.Schedule.IsOnceTimed ->
                             let solved = ord |> isSolved
-                            let hasVals = ord.Orderable.Dose.Rate |> OrderVariable.hasVals
+                            let navigable = ord.Orderable.Dose.Rate |> OrderVariable.isNavigable
 
                             let navigate =
-                                createNav hasVals solved 
+                                createNav navigable solved 
                                     SetMinDoseRateProperty
                                     DecreaseDoseRateProperty
                                     SetMedianDoseRateProperty
