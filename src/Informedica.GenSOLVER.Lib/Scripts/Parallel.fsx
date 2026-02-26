@@ -108,7 +108,7 @@ module Solver =
             eq |> Equation.isSolved
         ) then
             eqs
-            |> List.forall Equation.check
+            |> List.forall (Equation.check false)
         else true
 
 
@@ -150,7 +150,7 @@ module Solver =
 
                 match que with
                 | [] ->
-                    match acc |> List.filter (Equation.check >> not) with
+                    match acc |> List.filter (Equation.check false >> not) with
                     | []      -> acc |> Ok
                     | invalid ->
                         writeErrorMessage "invalid equations"
@@ -294,7 +294,7 @@ module Solver =
 
                 match que with
                 | [] ->
-                    match acc |> List.filter (Equation.check >> not) with
+                    match acc |> List.filter (Equation.check false >> not) with
                     | []      -> acc |> Ok
                     | invalid ->
                         writeErrorMessage "invalid equations"
@@ -367,7 +367,7 @@ module Solver =
                 match rpl with
                 | [] -> eqs |> Ok
                 | _  ->
-                    rpl
+                    (onlyMinIncrMax, rpl)
                     |> Events.SolverStartSolving
                     |> Logger.logInfo log
 
@@ -476,7 +476,6 @@ module Tests =
         /// Solve equations sequentially
         let solveSequential onlyMinMax eqs =
             Informedica.GenSolver.Lib.Solver.solveAll
-                false       // useParallel = false (sequential)
                 onlyMinMax
                 logger
                 eqs
@@ -485,7 +484,6 @@ module Tests =
         /// Solve equations in parallel
         let solveParallel onlyMinMax eqs =
             Informedica.GenSolver.Lib.Solver.solveAll
-                true        // useParallel = true
                 onlyMinMax
                 logger
                 eqs
