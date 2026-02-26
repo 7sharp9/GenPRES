@@ -30,6 +30,8 @@
         "react-markdown": "^10.1.0"
     },
     "overrides": {
-        "glob": "^13.0.0"
+        "mocha": {
+            "glob": "^13.0.0"
+        }
     }
 }
