@@ -27,7 +27,7 @@ let ovar2 =
         Units.Count.times
 
 { ovar2 with
-    OrderVariable.Constraints.Min = None
+    OrderVariable.DefinedConstraints.Min = None
 }
 |> OrderVariable.applyConstraints
 
