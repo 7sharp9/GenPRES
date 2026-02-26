@@ -3,35 +3,35 @@
   "isRoot": true,
   "tools": {
     "paket": {
-      "version": "10.2.1",
+      "version": "10.3.1",
       "commands": [
         "paket"
       ],
       "rollForward": false
     },
     "femto": {
-      "version": "0.19.0",
+      "version": "0.21.0",
       "commands": [
         "femto"
       ],
       "rollForward": false
     },
     "fable": {
-      "version": "5.0.0-alpha.15",
+      "version": "5.0.0-alpha.24",
       "commands": [
         "fable"
       ],
       "rollForward": false
     },
     "fantomas": {
-      "version": "7.0.0",
+      "version": "7.0.5",
       "commands": [
         "fantomas"
       ],
       "rollForward": false
     },
     "husky": {
-      "version": "0.7.2",
+      "version": "0.8.0",
       "commands": [
         "husky"
       ],
