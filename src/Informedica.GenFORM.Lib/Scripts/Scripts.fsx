@@ -12,6 +12,7 @@ Environment.SetEnvironmentVariable("GENPRES_URL_ID", dataUrlId)
 
 #load "../Types.fs"
 #load "../Utils.fs"
+#load "../Logging.fs"
 #load "../Mapping.fs"
 #load "../Patient.fs"
 #load "../Product.fs"
@@ -21,6 +22,7 @@ Environment.SetEnvironmentVariable("GENPRES_URL_ID", dataUrlId)
 #load "../DoseType.fs"
 #load "../DoseRule.fs"
 #load "../Check.fs"
+#load "../SolutionLimit.fs"
 #load "../SolutionRule.fs"
 #load "../RenalRule.fs"
 #load "../PrescriptionRule.fs"

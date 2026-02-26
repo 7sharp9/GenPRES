@@ -3,7 +3,7 @@
 #r "nuget: Newtonsoft.Json"
 #r "nuget: NJsonSchema"
 
-#r "../../Informedica.Utils.Lib/bin/Debug/net8.0/Informedica.Utils.Lib.dll"
+#r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
 
 #load "../Types.fs"
 #load "../Utils.fs"
