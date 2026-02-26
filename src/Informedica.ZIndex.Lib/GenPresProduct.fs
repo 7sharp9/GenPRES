@@ -37,7 +37,7 @@ module GenPresProduct =
             ((n, gp.Form), gp))
         |> Array.groupBy fst
         |> Array.map (fun ((nm, sh), xs) ->
-            let gps = xs |> Array.map (fun (_, gp) -> gp)
+            let gps = xs |> Array.map snd
 
             let dpn =
                 Assortment.assortment ()

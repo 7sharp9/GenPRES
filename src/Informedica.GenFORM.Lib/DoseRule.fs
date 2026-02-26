@@ -537,12 +537,7 @@ module DoseRule =
 
     let doseRuleDataIsValid (dd: DoseRuleData) =
         match dd.DoseText |> DoseType.fromString dd.DoseType with
-        | NoDoseType ->
-            // assume an empty dose type is deliberate
-            if dd.DoseType |> String.notEmpty then
-                $"Not valid dose rule data:\n{dd}\n"
-                |> ConsoleWriter.NewLineNoTime.writeWarningMessage
-            false
+        | NoDoseType -> false
         | Once _ -> true
         | OnceTimed _ ->
             dd.MaxTime.IsSome && dd.TimeUnit |> String.notEmpty
@@ -554,6 +549,11 @@ module DoseRule =
         | Continuous _ ->
             dd.RateUnit |> String.notEmpty &&
             (dd.MaxRate.IsSome || dd.MaxRateAdj.IsSome)
+        |> fun b ->
+            if (not b) && (dd.DoseType |> String.notEmpty) then
+                $"Not valid dose rule data:\n{dd}\n"
+                |> ConsoleWriter.NewLineNoTime.writeWarningMessage
+            b
 
 
     let processDoseRuleData prods routeMapping (data, msgs) : GenFormResult<_> =
