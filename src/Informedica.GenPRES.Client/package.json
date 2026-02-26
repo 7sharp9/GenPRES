@@ -28,5 +28,10 @@
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
         "react-markdown": "^10.1.0"
+    },
+    "overrides": {
+        "mocha": {
+            "glob": "^13.0.0"
+        }
     }
 }
