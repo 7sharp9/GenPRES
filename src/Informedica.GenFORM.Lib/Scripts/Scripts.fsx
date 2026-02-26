@@ -72,7 +72,7 @@ provider.GetDoseRules ()
 
 // Usage
 provider.GetProducts ()
-|> Array.filter (fun p -> p.Generic = "nitroprusside")
+|> Array.filter (fun p -> p.Generic = "zoledroninezuur")
 
 
 let dr =
@@ -92,10 +92,9 @@ let dr =
                       |> ValueUnit.singleWithValue 10N
                       |> Some
                 }
-            Indication = Some "Sedatie op de IC"
-            Generic = Some "midazolam"
+            Generic = Some "zoledroninezuur"
             Form = None
-            Route = Some "INTRAVENEUS"
+            Route = None //Some "INTRAVENEUS"
         }
     |> Array.head
 
@@ -114,11 +113,9 @@ let doseRuleData =
 
 doseRuleData
 |> Array.filter (fun dr ->
-    dr.Generic = "Samenstelling C" &&
-    dr.DoseType = "timed" &&
-    dr.DoseText = "dag 1"
+    dr.Generic = "zoledroninezuur"
 )
-
+|> Array.map DoseRule.doseRuleDataIsValid
 
 
 

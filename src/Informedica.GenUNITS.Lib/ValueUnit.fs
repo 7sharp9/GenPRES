@@ -205,6 +205,8 @@ module Parser =
             [
                 {| unit = ud.Abbreviation.Eng; grp = ud.Group; f = setUnitValue ud.Unit |}
                 {| unit = ud.Abbreviation.Dut; grp = ud.Group; f = setUnitValue ud.Unit |}
+                {| unit = ud.Abbreviation.EngPlural; grp = ud.Group; f = setUnitValue ud.Unit |}
+                {| unit = ud.Abbreviation.DutchPlural; grp = ud.Group; f = setUnitValue ud.Unit |}
                 {| unit = ud.Name.Eng; grp = ud.Group; f = setUnitValue ud.Unit |}
                 {| unit = ud.Name.Dut; grp = ud.Group; f = setUnitValue ud.Unit |}
                 {| unit = ud.Name.EngPlural; grp = ud.Group; f = setUnitValue ud.Unit |}

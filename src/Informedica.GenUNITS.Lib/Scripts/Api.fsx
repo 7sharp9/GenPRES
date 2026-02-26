@@ -9,45 +9,7 @@ open Informedica.GenUnits.Lib
 open Informedica.Utils.Lib.BCL
 
 
-[|1N|]
-|> ValueUnit.withUnit Units.Count.times
-|> ValueUnit.toStringEngShort
-|> ValueUnit.fromString
+open FParsec
 
-"1;3;5 x"
-|> ValueUnit.fromString
-
-"10;20;30 mg/ml"
-|> ValueUnit.fromString
-|> Result.map ValueUnit.toStringEngShort
-
-
-1N
-|> ValueUnit.singleWithUnit (Units.General.general "stuk")
-|> ValueUnit.toStringEngShort
-|> ValueUnit.fromString
-
-
-"stuk"
-|> Units.groupIsGeneralOrNone
-
-"120 stuk"
-|> ValueUnit.fromString
-
-
-"120;240;500;1000;125;250;60;30;360;90;750;180 mg/stuk"
-|> ValueUnit.fromString
-
-"1; 10 mg/stuk"
-|> ValueUnit.fromString
-
-"0,8 mL/uur"
-//|> String.replace "," "."
-|> ValueUnit.fromString
-
-
-"x"
-|> FParsec.CharParsers.run Parser.parseUnit
-
-"x"
-|> Units.fromString
+"6 mos[Time]"
+|> run Parser.parseUnit

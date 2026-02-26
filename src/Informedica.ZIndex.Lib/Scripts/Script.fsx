@@ -11,7 +11,8 @@ open Informedica.Utils.Lib
 open Informedica.Utils.Lib.BCL
 open Informedica.ZIndex.Lib
 
-Environment.SetEnvironmentVariable(FilePath.GENPRES_PROD, "0")
+
+Environment.SetEnvironmentVariable(FilePath.GENPRES_PROD, "1")
 Environment.CurrentDirectory
 
 module File =
@@ -390,7 +391,7 @@ printfn "Loading Substance"
 Substance.load ()
 
 
-GenPresProduct.filter "natriumchloride" "" "intraveneus"
+GenPresProduct.filter "ZOLEDRONINEZUUR" "" "intraveneus"
 |> Array.collect _.GenericProducts
 |> Array.map (fun gp ->
     let subst = gp.Substances |> Array.distinctBy _.SubstanceId
@@ -403,10 +404,9 @@ GenPresProduct.filter "natriumchloride" "" "intraveneus"
     printfn $"{id}\t{lbl}\t{shp}\t{rte}\t{sn}\t{sq}"
 )
 
-9. / 58.44
 
 Substance.get ()
-|> Array.tryFind (fun s -> s.Name |> String.equalsCapInsens "natriumchloride")
+|> Array.tryFind (fun s -> s.Name |> String.equalsCapInsens "ZOLEDRONINEZUUR")
 
 
 GenPresProduct.filter "natriumchloride" "" ""
@@ -444,7 +444,10 @@ GenPresProduct.findByBrand "Picoprep"
 )
 
 
-GenPresProduct.findByGPK 9504
+GenPresProduct.findByGPK 121614
+
+GenPresProduct.getGPKS []
+|> Array.tryFind ((=) 121614)
 
 GenPresProduct.get []
 |> Array.filter (fun gpp ->
@@ -552,3 +555,50 @@ GenPresProduct.get []
 |> Array.distinct
 |> Array.sort
 |> Array.iteri (printfn "%i. %s")
+
+
+let gps = GenericProduct.get []
+gps.Length
+
+gps
+|> Array.filter (fun gp -> gp.Name |> String.startsWith "ZOLEDRONINEZUUR")
+
+open GenericProduct
+
+
+Zindex.BST711T.records ()
+|> Array.filter (fun gp ->
+    gp.GPKODE = 137367 &&
+    gp.MUTKOD <> 1 &&
+    gp.GPKTVR <> 980 && // filter form <> "NIET VAN TOEPASSING"
+    (gpks |> List.isEmpty ||
+     gpks
+     |> List.exists ((=) gp.GPKODE)))
+|> Array.map (fun gp ->
+    let nm = Names.getName gp.GPNMNR Names.Full
+    let lb = Names.getName gp.GPNMNR Names.Label
+
+    let an =
+        match
+            Zindex.BST801T.records ()
+            |> Array.tryFind (fun atc ->
+                atc.MUTKOD <> 1 &&
+                atc.ATCODE = gp.ATCODE
+            ) with
+        | Some atc' -> atc'.ATOMS
+        | None      -> ""
+    let sh = Names.getThes gp.GPKTVR Names.Form Names.Fifty
+    let rt = getRoutes gp
+    let ps = PrescriptionProduct.get gp.GPKODE
+    let un = Names.getThes gp.XPEHHV Names.FormUnit Names.Fifty
+
+    let ss =
+        ps
+        |> Array.collect (fun pp ->
+            pp.TradeProducts
+            |> Array.map _.Id
+        )
+        |> getSubstances un gp
+    printfn $"creating: {nm}"
+    create gp.GPKODE nm lb (gp.ATCODE.Trim()) an sh rt ss ps
+)
