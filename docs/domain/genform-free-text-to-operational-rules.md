@@ -80,14 +80,14 @@ OKRs should allow for:
 
 In addition, the following context information for a specific patient and clinical situation is required:
 
-2. The setting: location/department and  
-3. The patient: gender, and min/max ranges for age, weight, body surface area (BSA), gestational age, and post-menstrual age.
+1. The setting: location/department and  
+2. The patient: gender, and min/max ranges for age, weight, body surface area (BSA), gestational age, and post-menstrual age.
 
 Together, all of the above rule items form a constraint qualifying system that determines which actual quantitative dose rule settings are applicable. These quantitative settings are:
 
-4. The specific available medication product assortment that can be used  
-5. Dose schedule settings and  
-6. Dose limit settings
+1. The specific available medication product assortment that can be used  
+2. Dose schedule settings and  
+3. Dose limit settings
 
 The dose schedule settings contain all quantitative constraints to allow calculation of the dose scheduling, the dose limit settings contain the quantitative constraints to allow calculation of the actual dose.
 
@@ -213,13 +213,14 @@ Free Text → [GenFORM] → OKRs → [GenORDER] → Order Scenarios → [GenSOLV
 ```
 
 GenFORM occupies the **first transformation stage**, responsible for:
+
 1. Parsing free-text and semi-structured clinical texts
 2. Extracting Selection Constraints and Calculation Constraints
 3. Producing fully computable Operational Knowledge Rules (OKRs)
 
 ### 8.2. Patient Category vs Patient
 
-GenFORM defines **Patient Categories** (also referred to as "Patient" in rule tables)—these are *types* of patients characterized by demographic ranges (age, weight, BSA, gestational age). A Patient Category is not a specific individual but rather a classification used to determine which rules apply. 
+GenFORM defines **Patient Categories** (also referred to as "Patient" in rule tables)—these are *types* of patients characterized by demographic ranges (age, weight, BSA, gestational age). A Patient Category is not a specific individual but rather a classification used to determine which rules apply.
 
 In contrast, [GenORDER](./genorder-operational-rules-to-orders.md) works with a specific **Patient** instance—an actual individual with concrete demographic values. GenORDER matches the Patient's attributes against GenFORM's Patient Categories to select the applicable OKRs.
 
@@ -348,61 +349,61 @@ Libraries:
 
 ### Addendum C.2. Dose Rule Model Table
 
-| Object | Variable | Type | Unit | Description |
-| :---- | :---- | :---- | :---- | :---- |
-| Source | Name | text |  | The source of the dose rule |
-| Source | Text | text |  | The source dose description |
-| Generic | Name | text |  | The generic name |
-| Generic | Form | text |  | Pharmaceutical form to narrow down the dose rule |
-| Generic | Brand | text |  | A brand to narrow down the dose rule |
-| Generic | GPKs | text list |  | A list of GPKs to narrow down the dose rule |
-| Indication | Indication | text |  | The indication (label) for the dose rule |
-| Route | Route | text |  | The route |
-| Setting | Location | text |  | Hospital/institute/organization |
-| Setting | Department | text |  | The department |
-| Patient | Gender | male / female |  | The gender |
-| Patient | MinAge | int | day | The minimum age |
-| Patient | MaxAge | int | day | The maximum age |
-| Patient | MinWeight | int | gram | The minimum weight (in gram) |
-| Patient | MaxWeight | int | gram | The maximum weight |
-| Patient | MinBSA | float | m2 | The minimum bsa |
-| Patient | MaxBSA | float | m2 | The maximum bsa |
-| Patient | MinGestAge | int | day | The minimum gestational age |
-| Patient | MaxGestAge | int | day | The maximum gestational age |
-| Patient | MinPMAge | int | day | The minimum post-menstrual age |
-| Patient | MaxPMAge | int | day | The maximum post-menstrual age |
-| DoseType | DoseType | once / onceTimed / discontinuous / timed / continuous |  | The dose type of the dose rule |
-| DoseType | DoseText | text |  | A label for a dose type |
-| Schedule | Freqs | int list | count_unit / freq_unit | The possible frequencies |
-| Schedule | FreqUnit | text |  | The freq unit |
-| Schedule | MinTime | float | time_unit | The minimum time for infusion of a dose |
-| Schedule | MaxTime | float | time_unit | The maximum time for infusion of a dose |
-| Schedule | TimeUnit | text |  | The time unit to measure the infusion |
-| Schedule | MinInt | float | int_unit | The minimum interval between two doses |
-| Schedule | MaxInt | float | int_unit | The maximum interval between two doses |
-| Schedule | IntUnit | text |  | The interval unit |
-| Schedule | MinDur | float | dur_unit | The minimum duration of the dose rule |
-| Schedule | MaxDur | float | dur_unit | The maximum duration of the dose rule |
-| Schedule | DurUnit | text |  | The duration time unit |
-| Component | Component | text |  | The component the substance belongs to |
-| Substance | Substance | text |  | The substance used for the below fields |
-| DoseLimit | DoseUnit | text |  | The dose unit |
-| DoseLimit | AdjustUnit | kg / m2 |  | The adjust unit |
-| DoseLimit | RateUnit | text |  | The rate unit |
-| DoseLimit | MinQty | float | dose_unit | The minimum dose quantity |
-| DoseLimit | MaxQty | float | dose_unit | The maximum dose quantity |
-| DoseLimit | NormQtyAdj | float | dose_unit / adjust_unit | The 'normal' patient-adjusted dose quantity |
-| DoseLimit | MinQtyAdj | float | dose_unit / adjust_unit | The minimum adjusted dose quantity |
-| DoseLimit | MaxQtyAdj | float | dose_unit / adjust_unit | The maximum patient-adjusted dose quantity |
-| DoseLimit | MinPerTime | float | dose_unit / freq_unit | The minimum dose quantity per time |
-| DoseLimit | MaxPerTime | float | dose_unit / freq_unit | The maximum dose quantity per time |
-| DoseLimit | NormPerTimeAdj | float | dose_unit / adjust_unit / freq_unit | The 'normal' adjusted dose quantity per time |
-| DoseLimit | MinPerTimeAdj | float | dose_unit / adjust_unit / freq_unit | The minimum patient-adjusted dose quantity per time |
-| DoseLimit | MaxPerTimeAdj | float | dose_unit / adjust_unit / freq_unit | The maximum dose adjusted quantity per time |
-| DoseLimit | MinRate | float | dose_unit / rate_unit | The minimum dose rate |
-| DoseLimit | MaxRate | float | dose_unit / rate_unit | The maximum dose rate |
-| DoseLimit | MinRateAdj | float | dose_unit / adjust_unit / rate_unit | The minimum patient-adjusted dose rate |
-| DoseLimit | MaxRateAdj | float | dose_unit / adjust_unit / rate_unit | The maximum patient-adjusted dose rate |
+| Object | Variable | Type | Unit | Key | Description |
+| :---- | :---- | :---- | :---- | :----: | :---- |
+| Source | Name | text |  | yes | The source of the dose rule |
+| Source | Text | text |  | yes | The source dose description |
+| Generic | Name | text |  | yes | The generic name |
+| Generic | Form | text |  | yes | Pharmaceutical form to narrow down the dose rule |
+| Generic | Brand | text |  | yes | A brand to narrow down the dose rule |
+| Generic | GPKs | text list |  |  | A list of GPKs to narrow down the dose rule |
+| Indication | Indication | text |  | yes | The indication (label) for the dose rule |
+| Route | Route | text |  | yes | The route |
+| Setting | Location | text |  |  | Hospital/institute/organization |
+| Setting | Department | text |  | yes | The department |
+| Patient | Gender | male / female |  | yes | The gender |
+| Patient | MinAge | int | day | yes | The minimum age |
+| Patient | MaxAge | int | day | yes | The maximum age |
+| Patient | MinWeight | int | gram | yes | The minimum weight (in gram) |
+| Patient | MaxWeight | int | gram | yes | The maximum weight |
+| Patient | MinBSA | float | m2 | yes | The minimum bsa |
+| Patient | MaxBSA | float | m2 | yes | The maximum bsa |
+| Patient | MinGestAge | int | day | yes | The minimum gestational age |
+| Patient | MaxGestAge | int | day | yes | The maximum gestational age |
+| Patient | MinPMAge | int | day | yes | The minimum post-menstrual age |
+| Patient | MaxPMAge | int | day | yes | The maximum post-menstrual age |
+| DoseType | DoseType | once / onceTimed / discontinuous / timed / continuous |  | yes | The dose type of the dose rule |
+| DoseType | DoseText | text |  | yes | A label for a dose type |
+| Schedule | Freqs | int list | count_unit / freq_unit | yes | The possible frequencies |
+| Schedule | FreqUnit | text |  | yes | The freq unit |
+| Schedule | MinTime | float | time_unit | yes | The minimum time for infusion of a dose |
+| Schedule | MaxTime | float | time_unit | yes | The maximum time for infusion of a dose |
+| Schedule | TimeUnit | text |  | yes | The time unit to measure the infusion |
+| Schedule | MinInt | float | int_unit | yes | The minimum interval between two doses |
+| Schedule | MaxInt | float | int_unit | yes | The maximum interval between two doses |
+| Schedule | IntUnit | text |  | yes | The interval unit |
+| Schedule | MinDur | float | dur_unit | yes | The minimum duration of the dose rule |
+| Schedule | MaxDur | float | dur_unit | yes | The maximum duration of the dose rule |
+| Schedule | DurUnit | text |  | yes | The duration time unit |
+| Component | Component | text |  |  | The component the substance belongs to |
+| Substance | Substance | text |  |  | The substance used for the below fields |
+| DoseLimit | DoseUnit | text |  |  | The dose unit |
+| DoseLimit | AdjustUnit | kg / m2 |  | yes | The adjust unit |
+| DoseLimit | RateUnit | text |  |  | The rate unit |
+| DoseLimit | MinQty | float | dose_unit |  | The minimum dose quantity |
+| DoseLimit | MaxQty | float | dose_unit |  | The maximum dose quantity |
+| DoseLimit | NormQtyAdj | float | dose_unit / adjust_unit |  | The 'normal' patient-adjusted dose quantity |
+| DoseLimit | MinQtyAdj | float | dose_unit / adjust_unit |  | The minimum adjusted dose quantity |
+| DoseLimit | MaxQtyAdj | float | dose_unit / adjust_unit |  | The maximum patient-adjusted dose quantity |
+| DoseLimit | MinPerTime | float | dose_unit / freq_unit |  | The minimum dose quantity per time |
+| DoseLimit | MaxPerTime | float | dose_unit / freq_unit |  | The maximum dose quantity per time |
+| DoseLimit | NormPerTimeAdj | float | dose_unit / adjust_unit / freq_unit |  | The 'normal' adjusted dose quantity per time |
+| DoseLimit | MinPerTimeAdj | float | dose_unit / adjust_unit / freq_unit |  | The minimum patient-adjusted dose quantity per time |
+| DoseLimit | MaxPerTimeAdj | float | dose_unit / adjust_unit / freq_unit |  | The maximum dose adjusted quantity per time |
+| DoseLimit | MinRate | float | dose_unit / rate_unit |  | The minimum dose rate |
+| DoseLimit | MaxRate | float | dose_unit / rate_unit |  | The maximum dose rate |
+| DoseLimit | MinRateAdj | float | dose_unit / adjust_unit / rate_unit |  | The minimum patient-adjusted dose rate |
+| DoseLimit | MaxRateAdj | float | dose_unit / adjust_unit / rate_unit |  | The maximum patient-adjusted dose rate |
 
 ### Addendum C.1. Reconstitution and Dilution Rule Model Figure
 
