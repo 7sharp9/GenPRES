@@ -4212,9 +4212,7 @@ module Order =
                             |> Array.mapi (fun i itm ->
                                 // check whether the constraints are
                                 // per dose quantity or per doser per time
-                                let isPerDose =
-                                    if useAdj then itm.Dose.QuantityAdjust |> QuantityAdjust.hasConstraints
-                                    else itm.Dose.Quantity |> Quantity.hasConstraints
+                                let isPerDose = itm.Dose.QuantityAdjust |> QuantityAdjust.hasConstraints
 
                                 [|
                                     // the frequency
