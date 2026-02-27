@@ -1487,6 +1487,14 @@ module Order =
                         }
 
 
+            let pickNearestHigherElseLower cmp =
+                { (cmp |> inf) with
+                    ComponentQuantity =
+                        cmp.ComponentQuantity
+                        |> Quantity.pickNearestHigherElseLower cmp.OrderableQuantity
+                }
+
+
             let setDoseUnit sn du = applyToAllItems (Item.setDoseUnit sn du)
 
 
@@ -3922,6 +3930,19 @@ module Order =
         solveMinMax "Calc Min Max" true logger
 
 
+    let pickNearestHigherElseLowerComponentQuantity logger ord =
+        let newOrd =
+            { (ord |> inf) with
+                Order.Orderable.Components =
+                    ord.Orderable.Components
+                    |> List.map Orderable.Component.pickNearestHigherElseLower
+            }
+        if newOrd = ord then ord |> Ok
+        else
+            newOrd
+            |> solve "pick nearest cmp quantity" false false logger
+
+
     module Print =
 
         open Informedica.GenOrder.Lib
@@ -3966,16 +3987,19 @@ module Order =
 
         let printPrep printMd sns (ord: Order) =
             let hasCompQty =
+                // only print component quantity when relevant, i.e.,
+                // there is a component quantity > 1
                 ord.Orderable.Components
                 |> List.tryHead
                 |> Option.bind (fun cmp ->
                     cmp.ComponentQuantity
                     |> Quantity.toOrdVar
                     |> OrderVariable.getValSetValueUnit
-                    |> Option.map (fun vu ->
+                    |> Option.bind (fun vu ->
                         vu
                         |> ValueUnit.getValue
-                        |> Array.forall (fun br -> br > 1N)
+                        |> Array.tryExactlyOne
+                        |> Option.map (fun br -> br > 1N)
                     )
                 )
                 |> Option.defaultValue false
