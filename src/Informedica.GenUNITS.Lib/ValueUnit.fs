@@ -3770,6 +3770,24 @@ module ValueUnit =
                     |> toUnit
 
 
+    let pickNearestHigherElseLower (target: ValueUnit) (candidates: ValueUnit) =
+        if candidates |> ValueUnit.isEmpty then candidates
+        elif candidates |> ValueUnit.eqsGroup target |> not then candidates
+        else
+            candidates
+            |> ValueUnit.toBase
+            |> ValueUnit.applyToValue (fun brs1 ->
+                target
+                |> ValueUnit.getBaseValue
+                |> Array.tryExactlyOne
+                |> Option.map (fun br ->
+                    [| brs1 |> Array.pickNearestHigherElseLower br |]
+                )
+                |> Option.defaultValue brs1
+            ) // set selected base value
+            |> ValueUnit.toUnit
+
+
     //----------------------------------------------------------------------------
     // ValueUnit string functions
     //----------------------------------------------------------------------------

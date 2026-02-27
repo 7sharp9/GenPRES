@@ -511,6 +511,10 @@ module OrderProcessor =
                 ord
             |> Ok
 
+        let pickNearestHigherElseLowerComponentQuantityStep ord =
+            ord
+            |> pickNearestHigherElseLowerComponentQuantity logger
+
         match cmd with
         | CalcMinMax ord ->
             [
@@ -548,6 +552,7 @@ module OrderProcessor =
                 { Name = "solve-order: process-cleared"; Guard = (fun s -> s.DoseIsSolved && s.IsCleared); Run = processClearedStep }
                 { Name = "solve-order: ensure-values-1"; Guard = (_.HasValues >> not); Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2)};
                 { Name = "solve-order: final-solve"; Guard = (_.OrderIsSolved >> not); Run = solveStep }
+                { Name = "solve-order: pick-cmp-qty"; Guard = (fun _ -> true); Run = pickNearestHigherElseLowerComponentQuantityStep }
             ]
             |> runPipeline ord
 

@@ -1151,6 +1151,18 @@ module OrderVariable =
     let increase useCalc n = step true useCalc n
 
 
+    let pickNearestHigherElseLower target candidates =
+        match target |> getValSetValueUnit,
+              candidates |> getValSetValueUnit with
+        | Some vu1, Some vu2 ->
+            vu2
+            |> ValueUnit.pickNearestHigherElseLower vu1
+            |> ValueSet.create
+            |> ValSet
+            |> fun vr -> candidates |> setValueRange vr
+        | _ -> candidates
+
+
     module Dto =
 
         open Newtonsoft.Json
@@ -2045,6 +2057,16 @@ module OrderVariable =
 
 
         let increase = stepQuantity increase // useCalc n >> Quantity
+
+
+        let pickNearestHigherElseLower qty1 qty2 =
+            let ovar1 = qty1 |> toOrdVar
+            let ovar2 = qty2 |> toOrdVar
+
+            ovar2
+            |> pickNearestHigherElseLower ovar1
+            |> Quantity
+
 
 
     /// Type and functions that represent a quantity per time
