@@ -21,7 +21,7 @@ The following definitions align with the [GenFORM domain model](../../domain/gen
 | *Adjustment Unit* | A patient normalization unit used to scale doses (e.g., kg for weight, m² for BSA). |
 | *Reconstitution* | The process of converting a medication into an administrable form by adding a diluent. |
 | *Expansion Volume* | The increase in total volume resulting from reconstitution. |
-| *Dilution* | The process of further adjusting concentration and volume for safe administration. |
+| *Solution* | The process of further adjusting concentration and volume for safe administration. |
 | *Form* | The pharmaceutical form of a medication (e.g., tablet, injection, solution). Also referred to as "Shape" in some legacy contexts. |
 | *Generic Product (GPK)* | An abstract pharmaceutical product definition independent of branding. |
 | *Patient Category* | A classification of patients by demographic ranges (age, weight, BSA, gestational age) used to determine which rules apply. |
@@ -353,22 +353,20 @@ These fields correspond to the DoseLimit object in GenFORM:
 
 ---
 
-### 10. DilutionRules Sheet (SolutionRules)
+### 10. SolutionRules Sheet
 
-**Purpose**: Defines dilution rules for IV solution preparation, including diluent requirements and concentration limits for injectable medications. This sheet implements the Dilution Rule model from GenFORM.
-
-> **Note**: The sheet may be named "SolutionRules" for backward compatibility. In GenFORM terminology, this represents "Dilution Rules".
+**Purpose**: Defines solution rules for IV solution preparation, including diluent requirements and concentration limits for injectable medications. This sheet implements the Solution Rule model from GenFORM.
 
 **Required Columns**:
 
-#### Dilution Rule: Basic Identification (Selection Constraints)
+#### Solution Rule: Basic Identification (Selection Constraints)
 
 - `Generic` - Generic medication name
 - `Form` - Pharmaceutical form (Form in GenFORM terminology, optional)
 - `Route` - Administration route
 - `Indication` - Clinical indication (optional, must match corresponding Dose Rule)
 
-#### Dilution Rule: Setting, Administration Access Device, and Patient Category (Selection Constraints)
+#### Solution Rule: Setting, Administration Access Device, and Patient Category (Selection Constraints)
 
 - `Dep` - Department/ward (Setting.Department in GenFORM terminology, optional)
 - `CVL` - Administration access device: Central Venous Line (accepts "x" for true)
@@ -380,15 +378,15 @@ These fields correspond to the DoseLimit object in GenFORM:
 - `MinGestAge` - Minimum gestational age in days (numeric, optional)
 - `MaxGestAge` - Maximum gestational age in days (numeric, optional)
 
-#### Dilution Rule: Dose Configuration (Selection Constraints)
+#### Solution Rule: Dose Configuration (Selection Constraints)
 
-- `MinDose` - Minimum dose (DilutionRule.MinDose in GenFORM, numeric, optional)
-- `MaxDose` - Maximum dose (DilutionRule.MaxDose in GenFORM, numeric, optional)
+- `MinDose` - Minimum dose (SolutionRule.MinDose in GenFORM, numeric, optional)
+- `MaxDose` - Maximum dose (SolutionRule.MaxDose in GenFORM, numeric, optional)
 - `DoseType` - Temporal category of dosing: "once", "onceTimed", "discontinuous", "timed", or "continuous"
 
-#### Dilution Rule: Dilution Parameters (Calculation Constraints)
+#### Solution Rule: Solution Parameters (Calculation Constraints)
 
-These fields correspond to the DilutionRule object in GenFORM:
+These fields correspond to the SolutionRule object in GenFORM:
 
 - `Solutions` - Acceptable diluents (pipe-separated list: "solution1|solution2")
 - `Volumes` - Standard volume quantities (semicolon-separated numeric values in mL)
@@ -399,9 +397,9 @@ These fields correspond to the DilutionRule object in GenFORM:
 - `MinPerc` - Minimum percentage of solution for DoseQuantity (Administration Fraction min, numeric, optional)
 - `MaxPerc` - Maximum percentage of solution for DoseQuantity (Administration Fraction max, numeric, optional)
 
-#### Dilution Rule: Dilution Limits (Calculation Constraints)
+#### Solution Rule: Solution Limits (Calculation Constraints)
 
-These fields correspond to the DilutionLimit object in GenFORM:
+These fields correspond to the SolutionLimit object in GenFORM:
 
 - `Substance` - Active substance name (for concentration limits)
 - `Unit` - Substance unit (SubstUnit in GenFORM)
@@ -413,7 +411,7 @@ These fields correspond to the DilutionLimit object in GenFORM:
 - `MinConc` - Minimum substance concentration in SubstUnit/mL (numeric, optional)
 - `MaxConc` - Maximum substance concentration in SubstUnit/mL (numeric, optional)
 
-**Usage**: Used by `SolutionRule.get` (implements Dilution Rule) to provide IV solution preparation guidance with concentration limits and diluent requirements.
+**Usage**: Used by `SolutionRule.get` (implements Solution Rule) to provide IV solution preparation guidance with concentration limits and diluent requirements.
 
 **Example Data**:
 
@@ -642,7 +640,7 @@ All sheets are accessed through the following pattern:
 - **Data Size**: Sheets should be optimized for reasonable loading times
 - **Update Frequency**: Changes to sheets require application restart or cache invalidation
 - **Deduplication**: DoseRules sheet uses distinct filtering to prevent duplicate entries
-- **Complex Processing**: DilutionRules (SolutionRules) and RenalRules undergo complex grouping and filtering operations
+- **Complex Processing**: SolutionRules and RenalRules undergo complex grouping and filtering operations
 - **Age Restrictions**: RenalRules only apply to patients ≥28 days of age
 - **Emergency Data**: Emergency treatment sheets require rapid access for critical care scenarios
 
@@ -653,7 +651,7 @@ All sheets are accessed through the following pattern:
 - **Backup**: Maintain backup copies of critical data sheets
 - **Version Control**: Track changes to data sheets for audit purposes
 - **Clinical Governance**: Dose rule changes require clinical review and approval
-- **IV Safety**: Dilution rules require specialized clinical validation
+- **IV Safety**: Solution rules require specialized clinical validation
 - **Nephrology Review**: Renal adjustment rules require nephrology specialist approval
 - **Emergency Review**: Emergency treatment protocols require intensive care specialist approval
 
@@ -677,7 +675,7 @@ The application should gracefully handle:
 - **Cache Files**: Production may use local cache files for performance
 - **Data Updates**: Production requires careful data validation before updates
 - **Clinical Review**: All dose rule changes require clinical pharmacist approval
-- **IV Preparation**: Dilution rules require specialized pharmacy validation
+- **IV Preparation**: Solution rules require specialized pharmacy validation
 - **Renal Guidelines**: Renal rules must align with current nephrology practice guidelines
 - **Emergency Protocols**: Emergency treatment data must align with current resuscitation guidelines
 
@@ -690,7 +688,7 @@ This documentation is part of the Design History File (DHF) for GenPRES, support
 - **Change Control**: Establishes procedures for data updates and validation
 - **Verification**: Provides basis for data verification and validation testing
 - **Clinical Evidence**: Dose rules are based on established clinical guidelines and evidence
-- **IV Safety**: Dilution rules follow established pharmaceutical compounding standards
+- **IV Safety**: Solution rules follow established pharmaceutical compounding standards
 - **Renal Safety**: Renal adjustment rules follow established nephrology guidelines and evidence-based practice
 - **Emergency Care**: Emergency treatment protocols follow established resuscitation and critical care guidelines
 
@@ -713,7 +711,7 @@ For backward compatibility, some spreadsheet column names differ from GenFORM te
 |------------------|--------------|-------|
 | Form | Form | Pharmaceutical form |
 | Dep | Setting.Department | Department/ward |
-| SolutionRules | Dilution Rules | IV solution preparation rules |
+| SolutionRules | Solution Rules | IV solution preparation rules |
 | CVL/PVL | Administration Access Device | Central/Peripheral Venous Line |
 | DoseRed | Adjustment | Relative or Absolute dose adjustment |
 | eGFR | Standardized GFR | mL/min/1.73m² |
@@ -796,7 +794,7 @@ All F# script files updated to use `.Form` instead of `.Shape`:
 - `FormRoute` sheet uses `Form`
 - `ValidForms` sheet name and `Form` column
 - `DoseRules` sheet uses `Form`
-- `SolutionRules`/Dilution rules sheet uses `Form`
+- `SolutionRules`/Solution rules sheet uses `Form`
 - `Formulary` sheet uses `UseForm`
 
 If legacy datasets still contain `Shape`/`ValidShapes`/`UseShape`, they must be migrated (or handled explicitly in the loader) before they will load correctly.

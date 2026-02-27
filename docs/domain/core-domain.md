@@ -82,7 +82,7 @@ The transformation is implemented by three core systems:
 | *Component* | A physical product unit used to realize an Orderable (e.g., vial, ampoule, bag). |
 | *Item* | The actual substance delivered to the patient (e.g., a medication substance such as amoxicillin). |
 | *Dose Rule* | An OKR that defines qualitative and quantitative constraints for dosing a specific generic in a defined clinical context. |
-| *Dilution Rule* | An OKR that defines requirements for the amount and/or concentration of liquid medication. |
+| *Solution Rule* | An OKR that defines requirements for the amount and/or concentration of liquid medication. |
 | *Reconstitution Rule* | An OKR that defines how medication must be reconstituted to enable administration (e.g., converting powder to liquid). |
 | *Renal Rule* | An OKR used to adjust the dose advice according to renal function (GFR). |
 | *Patient Category* | A categorical description of the type of patient a rule applies to, defined by ranges for age, weight, BSA, gestational age, post-menstrual age, and gender. Used by GenFORM to define which patients an OKR covers. |
@@ -224,7 +224,7 @@ The constraint-based approach delivers two fundamental properties:
 
 - No invalid dose can be computed (violates constraint boundaries)
 - No contraindicated combination can be selected (filtered by selection constraints)
-- No preparation error can occur (dilution/reconstitution rules enforce correct volumes and concentrations)
+- No preparation error can occur (solution/reconstitution rules enforce correct volumes and concentrations)
 - Every presented option satisfies all applicable rules simultaneously
 
 **Efficiency**: By automating the constraint solving process:
@@ -241,7 +241,7 @@ The key insight is that **safety and efficiency are not trade-offs**—they are 
 Operational Knowledge Rules (OKRs) are implemented as four rule types in `Informedica.GenFORM.Lib`. For complete rule specifications including all fields, data types, and validation requirements, see [GenFORM: Free Text to Operational Rules](genform-free-text-to-operational-rules.md).
 
 1. **Dose Rule**: Defines dosing limits per indication, generic, route, patient, and dose type
-2. **Dilution Rule**: Defines preparation constraints (volumes, concentrations, drip rate, administration fraction) per patient and administration access
+2. **Solution Rule**: Defines preparation constraints (volumes, concentrations, drip rate, administration fraction) per patient and administration access
 3. **Reconstitution Rule**: Defines reconstitution steps (diluent volumes, expansion volumes) per generic product (GPK) and route
 4. **Renal Rule**: Defines dose adjustments based on renal function (GFR)
 
@@ -260,14 +260,14 @@ For detailed constraint definitions by rule type, see [GenFORM Section 6: Select
 
 - **Dose Rule**: Source, Generic, Indication, Route, Setting, Patient, Dose Type, Component, Substance
 - **Reconstitution Rule**: Generic, GPK, Form, Route, Setting
-- **Dilution Rule**: Generic, Form, Route, Indication, Dose Type, Setting, Administration Access, Patient, Dose, Substance
+- **Solution Rule**: Generic, Form, Route, Indication, Dose Type, Setting, Administration Access, Patient, Dose, Substance
 - **Renal Rule**: Source, Generic, Indication, Patient, Renal Function
 
 #### Calculation Constraints by Rule Type
 
 - **Dose Rule**: Schedule, Duration, Dose Limits
 - **Reconstitution Rule**: Diluent Volume, Expansion Volume
-- **Dilution Rule**: Volume, Drip Rate, Administration Fraction, Dose, Concentration
+- **Solution Rule**: Volume, Drip Rate, Administration Fraction, Dose, Concentration
 - **Renal Rule**: Schedule, Dose Adjustment (relative or absolute)
 
 **Example**:
@@ -452,7 +452,7 @@ This Core Domain Model document provides a high-level overview. For detailed spe
 
 | Topic | GenFORM Reference | GenORDER Reference | GenSOLVER Reference |
 | ----- | ----------------- | ------------------ | ------------------- |
-| Rule Types (Dose, Dilution, Reconstitution, Renal) | [Section 3](genform-free-text-to-operational-rules.md#3-sources-and-types-of-dose-rules) | — | — |
+| Rule Types (Dose, Solution, Reconstitution, Renal) | [Section 3](genform-free-text-to-operational-rules.md#3-sources-and-types-of-dose-rules) | — | — |
 | Patient Category Definition | [Appendix C.2](genform-free-text-to-operational-rules.md#addendum-c2-dose-rule-model-table) | [Section 4](genorder-operational-rules-to-orders.md#4.-ordercontext) | — |
 | Selection Constraints | [Section 6.1](genform-free-text-to-operational-rules.md#61-selection-constraints) | [Section 3.1](genorder-operational-rules-to-orders.md#3.1.-filter-stage-(inherited-from-genform)) | — |
 | Calculation Constraints | [Section 6.2](genform-free-text-to-operational-rules.md#62-calculation-constraints) | [Section 3.2](genorder-operational-rules-to-orders.md#3.2-solver-stage-(genorder-+-gensolver)) | [Section 3](gensolver-from-orders-to-quantitative-solutions.md#3-formal-constraint-solving-model) |
