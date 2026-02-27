@@ -40,7 +40,7 @@ The following sheets and their column definitions match the implementation exact
    - ✓ Includes deduplication logic
 
 7. **SolutionRules Sheet** (`SolutionRule.fs` - `get`)
-   - ✓ All columns for dilution rules verified
+   - ✓ All columns for solution rules verified
    - ✓ Sheet name: "SolutionRules"
    - ✓ Solutions use pipe separation (`|`)
    - ✓ Volumes and Quantities use semicolon separation (`;`)

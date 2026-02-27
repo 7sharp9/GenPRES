@@ -248,7 +248,7 @@ This GenSOLVER document is part of the GenPRES domain documentation. For the com
 | ----- | ------------------ |
 | Transformation Pipeline | [Core Domain Model](core-domain.md#the-transformation-pipeline) |
 | Core Definitions | [Core Domain Model](core-domain.md#core-definitions) |
-| Rule Types (Dose, Dilution, etc.) | [GenFORM Section 3](genform-free-text-to-operational-rules.md#3-sources-and-types-of-dose-rules) |
+| Rule Types (Dose, Solution, etc.) | [GenFORM Section 3](genform-free-text-to-operational-rules.md#3-sources-and-types-of-dose-rules) |
 | Patient Category vs Patient | [Core Domain Model](core-domain.md#core-definitions) |
 | Order Model (Orderable, Component, Item) | [GenORDER Section 6](genorder-operational-rules-to-orders.md#6.-order-model-(executable-structure)) |
 | Dose Semantics | [GenORDER Section 7](genorder-operational-rules-to-orders.md#7.-quantitative-dose-semantics) |

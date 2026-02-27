@@ -163,7 +163,7 @@ GenFORM can handle the following rules:
 
 - Dosing rules  
 - Reconstitution rules  
-- Dilution rules  
+- Solution rules  
 - Renal adjustment rules  
 - Interaction rules  
 - Duplicate medication rules
@@ -184,7 +184,7 @@ Dose rules as unstructured free text. Have to be manually extracted or parsed us
 
 ##### *- All Local Hospital Parenteralia/Oralia Rules in GenFORM*
 
-Reconstitution and dilution rules. Unstructured free text. Have to be manually extracted or parsed using a LLM based NLP parser.
+Reconstitution and solution rules. Unstructured free text. Have to be manually extracted or parsed using a LLM based NLP parser.
 
 ##### *- Part of National Farmacotherapeutic Formulary in GenFORM*
 
@@ -360,7 +360,7 @@ Shows a dose monitoring rule provided by the Z-Index registry that checks the Ge
 
 ##### *- Parenteralia*
 
-Give a view on all patient specific reconstitution- and dilution rule sets based on the local hospital parenteralia.
+Give a view on all patient specific reconstitution- and solution rule sets based on the local hospital parenteralia.
 
 ##### **Medication Prescription**
 
@@ -368,7 +368,7 @@ Allow adding or changing all possible medication orders, which then can be trans
 
 ##### **Deliverables**
 
-- **Informedica.GenPRES.Client: Desktop** - Has a Formularies and Parenteralia view to show the exact dosing-, reconstitution- and dilution rules along with dose rule check by the Z-Index registry.  
+- **Informedica.GenPRES.Client: Desktop** - Has a Formularies and Parenteralia view to show the exact dosing-, reconstitution- and solution rules along with dose rule check by the Z-Index registry.  
 - **Informedica.GenPRES.Client: Desktop** - Can add or adjust all order settings, shows the validity of the order against all rule sets.
 
 #### **Q3**. Nutrition Prescription / Treatment Prescription / Configuration
@@ -470,12 +470,12 @@ For every medication order an exact dose advice can be provided according to the
 This means that all medication in the
 
 - National Dutch Pediatric Formulary (Kinderformularium) can be prescribed and where applicable
-- Local Guidelines for dosing, reconstitution and dilution and
+- Local Guidelines for dosing, reconstitution and solution and
 - Adult dose rules from the National Adult Formulary (Farmacotherapeutisch Kompas) and
 - Antibiotic dose rules from the (SWAB) guidelines.  
 - Additionally renal dose adjustment can be applied according to renal function in the patient context.
 
-So, for every medication order, the dose, reconstitution, dilution and administration can be validated.
+So, for every medication order, the dose, reconstitution, solution and administration can be validated.
 
 **Deliverable: GUARANTEED**
 
@@ -539,7 +539,7 @@ HIX-Connect can provide a full roundtrip with session management, authorization 
 1. Interpret and structure Expert Knowledge (all guidelines/rules applicable to medication and nutrition).  
 2. **GenFORM**: Parse and structure Expert Knowledge to Operational Knowledge Rules.  
 3. **GenPROD**: Creating validated medication/nutrition Orders using GenSOLVER such that  
-4. *Orders* are Validated (dose, reconstitution, dilution, interaction, duplication, renal adjustment)  
+4. *Orders* are Validated (dose, reconstitution, solution, interaction, duplication, renal adjustment)  
 5. Can be Planned  
 6. *Preparation* is fully specified  
 7. *Administration* is fully specified.

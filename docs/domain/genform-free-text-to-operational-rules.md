@@ -25,9 +25,9 @@
     - [Addendum B.3. GenFORM Libraries](#addendum-b3-genform-libraries)
     - [Appendix C.1. Dose Rule Model Figure](#appendix-c1-dose-rule-model-figure)
     - [Addendum C.2. Dose Rule Model Table](#addendum-c2-dose-rule-model-table)
-    - [Addendum C.1. Reconstitution and Dilution Rule Model Figure](#addendum-c1-reconstitution-and-dilution-rule-model-figure)
+    - [Addendum C.1. Reconstitution and Solution Rule Model Figure](#addendum-c1-reconstitution-and-solution-rule-model-figure)
     - [Addendum C.2. Reconstitution Rule Model Table](#addendum-c2-reconstitution-rule-model-table)
-    - [Addendum C.3. Dilution Rule Model Table](#addendum-c3-dilution-rule-model-table)
+    - [Addendum C.3. Solution Rule Model Table](#addendum-c3-solution-rule-model-table)
     - [Addendum D.1. Renal Rule Model Figure](#addendum-d1-renal-rule-model-figure)
     - [Addendum D.2. Renal Rule Model Table](#addendum-d2-renal-rule-model-table)
     - [Addendum E.1. Product Component Model Figure](#addendum-e1-product-component-model-figure)
@@ -50,7 +50,7 @@
 | *Absolute Adjustment* | A renal or clinical adjustment expressed as an absolute numeric replacement of a dose. |
 | *Reconstitution* | The process of converting a medication into an administrable form by adding a diluent. |
 | *Expansion Volume* | The increase in total volume resulting from reconstitution. |
-| *Dilution* | The process of further adjusting concentration and volume for safe administration. |
+| *Solution* | The process of further adjusting concentration and volume for safe administration. |
 | *Administration Fraction* | The fraction of the prepared solution used to deliver the calculated dose. |
 | *Generic Product (GPK)* | An abstract pharmaceutical product definition independent of branding. |
 | *Prescription Product (PRK)* | A prescribable form of a generic product. |
@@ -194,7 +194,7 @@ All OKRs can be translated to either selection or calculation constraints. The s
 
 ## 7. Prescription Rules
 
-Dose-, Reconstitution-, Dilution- and Renal rules are combined within a patient context and specific setting into a Prescription Rule. The Prescription Rule can, therefore, be used to generate an order determining, prescription, preparation and administration of an order.
+Dose-, Reconstitution-, Solution- and Renal rules are combined within a patient context and specific setting into a Prescription Rule. The Prescription Rule can, therefore, be used to generate an order determining, prescription, preparation and administration of an order.
 
 ## 8. Related Documents
 
@@ -232,7 +232,7 @@ For a specific patient, a matching property like BSA can be calculated from weig
 |--------------|--------------------------------|-------|
 | Operational Knowledge Rule (OKR) | Rule (Core Domain) | Umbrella term for all computable rules |
 | Dose Rule | Dose Rule (GenORDER) | Applied to specific patient context in GenORDER |
-| Dilution Rule | Dilution Rule (GenORDER) | Formerly "SolutionRule" in some contexts |
+| Solution Rule | Solution Rule (GenORDER) | Formerly "DilutionRule" in some contexts |
 | Patient (in rule tables) | Patient Category (GenORDER) | GenFORM defines categories; GenORDER matches patients |
 | Selection Constraint | Filter Stage (GenORDER) | Determines rule applicability |
 | Calculation Constraint | Solver Stage (GenORDER) | Provides quantitative bounds |
@@ -438,25 +438,25 @@ Libraries:
 | Patient                      | MaxAge     | int                                                   | day             | yes | The maximum age                                                    |
 | Patient                      | MinWeight  | int                                                   | gram            | yes | The minimum weight                                                 |
 | Patient                      | MaxWeight  | int                                                   | gram            | yes | The maximum weight                                                 |
-| DilutionRule                 | MinDose    | float                                                 | unit            | yes | The minimum dose                                                   |
-| DilutionRule                 | MaxDose    | float                                                 | unit            | yes | The maximum dose                                                   |
-| DilutionRule                 | Solutions  | text list                                             |                 |     | The possible solutions that can be used                            |
-| DilutionRule                 | Volumes    | float list                                            | mL              |     | The possible volume quantities that can be used                    |
-| DilutionRule                 | MinVol     | float                                                 | mL              |     | The minimum volume                                                 |
-| DilutionRule                 | MaxVol     | float                                                 | mL              |     | The maximum volume                                                 |
-| DilutionRule                 | MinVolAdj  | float                                                 | mL / kg         |     | The minimum allowed dilution volume                                |
-| DilutionRule                 | MaxVolAdj  | float                                                 | mL / kg         |     | The maximum allowed dilution volume                                |
-| DilutionRule                 | MinDrip    | float                                                 | mL / hour       |     | The minimum allowed infusion rate                                  |
-| DilutionRule                 | MaxDrip    | float                                                 | mL / hour       |     | The maximum allowed infusion rate                                  |
-| DilutionRule                 | MinPerc    | float                                                 | perc            |     | The minimum percentage of the solution to use for the DoseQuantity |
-| DilutionRule                 | MaxPerc    | float                                                 | perc            |     | The maximum percentage of the solution to use for the DoseQuantity |
-| DilutionLimit                | Substance  | text                                                  |                 |     | The substance used for the below fields                            |
-| DilutionLimit                | SubstUnit  | text                                                  |                 |     | The unit to measure the substance                                  |
-| DilutionLimit                | Quantities | float list                                            | subst_unit      |     | The substance quantities that can be used                          |
-| DilutionLimit                | MinQty     | float                                                 | subst_unit      |     | The minimum substance quantity                                     |
-| DilutionLimit                | MaxQty     | float                                                 | subst_unit      |     | The maximum substance quantity                                     |
-| DilutionLimit                | MinConc    | float                                                 | subst_unit / mL |     | The minimum substance concentration                                |
-| DilutionLimit                | MaxConc    | float                                                 | subst_unit / mL |     | The maximum substance concentration                                |
+| SolutionRule                 | MinDose    | float                                                 | unit            | yes | The minimum dose                                                   |
+| SolutionRule                 | MaxDose    | float                                                 | unit            | yes | The maximum dose                                                   |
+| SolutionRule                 | Solutions  | text list                                             |                 |     | The possible solutions that can be used                            |
+| SolutionRule                 | Volumes    | float list                                            | mL              |     | The possible volume quantities that can be used                    |
+| SolutionRule                 | MinVol     | float                                                 | mL              |     | The minimum volume                                                 |
+| SolutionRule                 | MaxVol     | float                                                 | mL              |     | The maximum volume                                                 |
+| SolutionRule                 | MinVolAdj  | float                                                 | mL / kg         |     | The minimum allowed solution volume                                |
+| SolutionRule                 | MaxVolAdj  | float                                                 | mL / kg         |     | The maximum allowed solution volume                                |
+| SolutionRule                 | MinDrip    | float                                                 | mL / hour       |     | The minimum allowed infusion rate                                  |
+| SolutionRule                 | MaxDrip    | float                                                 | mL / hour       |     | The maximum allowed infusion rate                                  |
+| SolutionRule                 | MinPerc    | float                                                 | perc            |     | The minimum percentage of the solution to use for the DoseQuantity |
+| SolutionRule                 | MaxPerc    | float                                                 | perc            |     | The maximum percentage of the solution to use for the DoseQuantity |
+| SolutionLimit                | Substance  | text                                                  |                 |     | The substance used for the below fields                            |
+| SolutionLimit                | SubstUnit  | text                                                  |                 |     | The unit to measure the substance                                  |
+| SolutionLimit                | Quantities | float list                                            | subst_unit      |     | The substance quantities that can be used                          |
+| SolutionLimit                | MinQty     | float                                                 | subst_unit      |     | The minimum substance quantity                                     |
+| SolutionLimit                | MaxQty     | float                                                 | subst_unit      |     | The maximum substance quantity                                     |
+| SolutionLimit                | MinConc    | float                                                 | subst_unit / mL |     | The minimum substance concentration                                |
+| SolutionLimit                | MaxConc    | float                                                 | subst_unit / mL |     | The maximum substance concentration                                |
 
 ### Addendum D.1. Renal Rule Model Figure
 

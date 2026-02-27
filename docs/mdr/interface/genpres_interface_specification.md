@@ -1110,7 +1110,7 @@ The following scenarios are recommended to complete clinical coverage and should
 - Duplicate therapy detection and resolution (drug-class level)
 - Allergy/intolerance contraindication handling (alert and alternative)
 - Restricted product substitution rules (G-Standard compliant alternatives)
-- Smart reconstitution with multi-step dilutions (e.g., antibiotics for neonates)
+- Smart reconstitution with multi-step solutions (e.g., antibiotics for neonates)
 - Complex exact-times patterns across night shifts (24h clock rollover)
 - Multi-prescriber/multi-session conflict resolution and merge
 
