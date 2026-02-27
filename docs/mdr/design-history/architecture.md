@@ -121,7 +121,7 @@ Free Text → [GenFORM] → OKRs → [GenORDER] → Order Scenarios → [GenSOLV
 
 For details on:
 
-- Rule types (Dose Rule, Dilution Rule, Reconstitution Rule, Renal Rule), see [GenFORM Section 3](../../domain/genform-free-text-to-operational-rules.md#3-sources-and-types-of-dose-rules)
+- Rule types (Dose Rule, Solution Rule, Reconstitution Rule, Renal Rule), see [GenFORM Section 3](../../domain/genform-free-text-to-operational-rules.md#3-sources-and-types-of-dose-rules)
 - Order model structure, see [GenORDER Section 6](../../domain/genorder-operational-rules-to-orders.md#6.-order-model-(executable-structure))
 - Dose semantics (Quantity, Per Time, Rate, Total, Adjusted), see [GenORDER Section 7](../../domain/genorder-operational-rules-to-orders.md#7.-quantitative-dose-semantics)
 - Equation system (65 equations), see [GenORDER Appendix D.1](../../domain/genorder-operational-rules-to-orders.md#appendix-d.1.-equations-table)
