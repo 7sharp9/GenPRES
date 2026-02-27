@@ -71,22 +71,22 @@ Because OKRs are expressed as constraints, they can be used by a constraint-solv
 
 OKRs should allow for:
 
-1. Selecting the specific scenario determined by:  
-   1. The indication and  
-   2. The medication (generic naming) and  
-   3. The route of administration and/or  
-   4. The pharmaceutical form and  
+1. Selecting the specific scenario determined by:
+   1. The indication and
+   2. The medication (generic naming) and
+   3. The route of administration and/or
+   4. The pharmaceutical form and
    5. The type of dosing
 
 In addition, the following context information for a specific patient and clinical situation is required:
 
-1. The setting: location/department and  
+1. The setting: location/department and
 2. The patient: gender, and min/max ranges for age, weight, body surface area (BSA), gestational age, and post-menstrual age.
 
 Together, all of the above rule items form a constraint qualifying system that determines which actual quantitative dose rule settings are applicable. These quantitative settings are:
 
-1. The specific available medication product assortment that can be used  
-2. Dose schedule settings and  
+1. The specific available medication product assortment that can be used
+2. Dose schedule settings and
 3. Dose limit settings
 
 The dose schedule settings contain all quantitative constraints to allow calculation of the dose scheduling, the dose limit settings contain the quantitative constraints to allow calculation of the actual dose.
@@ -97,24 +97,24 @@ Finally, dose adjustment rules like renal rules can apply that are used to adjus
 
 Currently, dose rules are defined across multiple source documents and repositories. These rules can be categorized into two primary types:
 
-1. **Dose checking rules**: Rules that verify whether a prescribed dose falls within acceptable margins, primarily ensuring that no over- or underdosing occurs.  
+1. **Dose checking rules**: Rules that verify whether a prescribed dose falls within acceptable margins, primarily ensuring that no over- or underdosing occurs.
 2. **Dose advice rules**: Rules that specify recommended exact dose(s) within the boundaries set by the checking rules or that enable calculation of exact dose(s).
 
 Dose checking rules are maintained in the national registry, the G-Standaard. More specific dose advice rules are available in several additional sources:
 
-- *Farmacotherapeutisch Kompas*: contains dose advice rules for adults and part of the pediatric population.  
-- *Kinderformularium*: contains all pediatric dose advice rules.  
-- *SWAB (Stichting Werkgroep Antibiotica Beleid)* guidelines: contain antibiotic-specific dose advice rules.  
-- Oncology protocols: contain dose advice rules for oncology medications.  
+- *Farmacotherapeutisch Kompas*: contains dose advice rules for adults and part of the pediatric population.
+- *Kinderformularium*: contains all pediatric dose advice rules.
+- *SWAB (Stichting Werkgroep Antibiotica Beleid)* guidelines: contain antibiotic-specific dose advice rules.
+- Oncology protocols: contain dose advice rules for oncology medications.
 - Local protocols: contain hospital- or specialty-specific dose advice rules.
 
 ## 4. Additional Information
 
 To establish a structured and operational knowledge-rule system that supports prescribing, planning, preparation, and administration, additional information is required:
 
-- **Reconstitution rules**: define how medication must be reconstituted to enable administration of, for example, a powder as a liquid.  
-- **Dilution rules**: define requirements for the amount and/or concentration of liquid medication.  
-- **Renal rules**: used to adjust the dose advice according to the renal function (GFR normal, too low or too high).  
+- **Reconstitution rules**: define how medication must be reconstituted to enable administration of, for example, a powder as a liquid.
+- **Dilution rules**: define requirements for the amount and/or concentration of liquid medication.
+- **Renal rules**: used to adjust the dose advice according to the renal function (GFR normal, too low or too high).
 - **Product information**: defines product availability, pharmaceutical forms, and parameters required for calculating the delivered dose.
 
 Reconstitution and dilution rules are typically summarized in parenteralia, while the corresponding information for oral medication is provided in oralia.
@@ -127,8 +127,8 @@ All required product information can be obtained from the G-Standaard.
 
 In order to be available as an OKR, the dose rule needs to be structured so that:
 
-1. The context can be specified so it can be narrowed down to specifically one dose rule.  
-2. The resulting dose rule needs to contain all information necessary to perform a full calculation of prescription, preparation and administration of a medication.  
+1. The context can be specified so it can be narrowed down to specifically one dose rule.
+2. The resulting dose rule needs to contain all information necessary to perform a full calculation of prescription, preparation and administration of a medication.
 3. Every possible dosing scenario should be able to be encoded as an operational dose rule structure.
 
 This results in the dose rule structure as shown in Appendix D. The Dose Rule Structure.
@@ -139,57 +139,57 @@ All OKRs can be translated to either selection or calculation constraints. The s
 
 ### 6.1. Selection Constraints
 
-- Dose Rule  
-  - Source  
-  - Generic  
-  - Indication  
-  - Route  
-  - Setting  
-  - Patient  
-  - Dose Type  
-  - Component  
-  - Substance  
-- Reconstitution Rule  
-  - Generic  
-  - GPK  
-  - Form  
-  - Route  
-  - Setting  
-- Dilution Rule  
-  - Generic  
-  - Form  
-  - Route  
-  - Indication  
-  - Dose Type  
-  - Setting  
+- Dose Rule
+  - Source
+  - Generic
+  - Indication
+  - Route
+  - Setting
+  - Patient
+  - Dose Type
+  - Component
+  - Substance
+- Reconstitution Rule
+  - Generic
+  - GPK
+  - Form
+  - Route
+  - Setting
+- Dilution Rule
+  - Generic
+  - Form
+  - Route
+  - Indication
+  - Dose Type
+  - Setting
   - Administration Access Device (e.g., CVL/PVL)
-  - Patient  
-  - Dose  
-  - Substance  
-- Renal Rule  
-  - Source  
-  - Generic  
-  - Indication  
-  - Patient  
+  - Patient
+  - Dose
+  - Substance
+- Renal Rule
+  - Source
+  - Generic
+  - Indication
+  - Patient
   - Renal Function
 
 ### 6.2. Calculation Constraints
 
-- Dose Rule  
-  - Schedule  
-  - Duration  
-  - Dose Limits  
-- Reconstitution Rule:  
-  - Diluent Volume  
-  - Expansion Volume  
-- Dilution Rule:  
-  - Volume  
-  - Drip Rate  
-  - Administration Fraction  
-  - Dose  
-  - Concentration  
-- Renal Rule  
-  - Schedule  
+- Dose Rule
+  - Schedule
+  - Duration
+  - Dose Limits
+- Reconstitution Rule:
+  - Diluent Volume
+  - Expansion Volume
+- Dilution Rule:
+  - Volume
+  - Drip Rate
+  - Administration Fraction
+  - Dose
+  - Concentration
+- Renal Rule
+  - Schedule
   - Dose Adjustment (relative or absolute)
 
 ## 7. Prescription Rules
@@ -249,7 +249,7 @@ In tables, mutually exclusive options are represented by a bar "|".
 
 ### Appendix B.1. GenFORM Conceptual Architecture
 
-![image2](https://docs.google.com/drawings/d/e/2PACX-1vTyeou3dSXc9foR4wx2IvVmNCdXF3PM7RN9O2mElMuRY3de77eVDk9oYn8LfsU7u_JOBPd7ANVd_EA2/pub?w=958&h=654)  
+![image2](https://docs.google.com/drawings/d/e/2PACX-1vTyeou3dSXc9foR4wx2IvVmNCdXF3PM7RN9O2mElMuRY3de77eVDk9oYn8LfsU7u_JOBPd7ANVd_EA2/pub?w=958&h=654)
 
 Free text is structured by GenFORM to operational structured knowledge rules and can be returned as human-readable text.
 
@@ -261,86 +261,86 @@ Free text is structured by GenFORM to operational structured knowledge rules and
 
 Classification:
 
-- **Free Text Sources**  
-- **Utility Library**  
+- **Free Text Sources**
+- **Utility Library**
 - **Domain Library**
 
 Libraries:
 
 1. **Informedica.Agents.Lib:** Library using the FSharp MailboxProcessor to create message based agents.
    - Capabilities:
-     - Message-based agent abstraction using F# MailboxProcessor  
-     - Asynchronous, concurrent API execution model  
+     - Message-based agent abstraction using F# MailboxProcessor
+     - Asynchronous, concurrent API execution model
      - Specific low level agent implementations
 
 2. **Informedica.Logging.Lib:** Library with advanced printing capabilities to enable human-readable logging for analysis.
-   - Capabilities:  
-     - Human-readable logging and structured output for analysis  
-     - Advanced printing and formatting capabilities  
-     - Agent-based logging service  
+   - Capabilities:
+     - Human-readable logging and structured output for analysis
+     - Advanced printing and formatting capabilities
+     - Agent-based logging service
 
 3. **Informedica.NLP.Lib:** Library using NLP to extract structured rules from free text.
-   - Capabilities:  
-     - Natural language processing for rule extraction  
+   - Capabilities:
+     - Natural language processing for rule extraction
      - Conversion of free text to structured typed records
 
-4. **Informedica.OTS.Lib:** Library to retrieve and send rules sets to the OTS server for storage and version control. Can also export and import rules sets as spreadsheets.  
-   - Capabilities:  
-     - Integration with OTS server for product and rule set storage and version control  
-     - Rule set import/export to spreadsheet formats  
-     - Can log import and export  
+4. **Informedica.OTS.Lib:** Library to retrieve and send rules sets to the OTS server for storage and version control. Can also export and import rules sets as spreadsheets.
+   - Capabilities:
+     - Integration with OTS server for product and rule set storage and version control
+     - Rule set import/export to spreadsheet formats
+     - Can log import and export
      - Can run as an agent based microservice
 
-5. **Informedica.GenUnits.Lib:** Domain library handling complex value unit combinations and calculation.  
-   - Capabilities:  
-     - Complex value-unit combinations and dimensional analysis  
-     - Unit conversion and validation  
+5. **Informedica.GenUnits.Lib:** Domain library handling complex value unit combinations and calculation.
+   - Capabilities:
+     - Complex value-unit combinations and dimensional analysis
+     - Unit conversion and validation
      - Arithmetic operations on values with units
 
 6. **Informedica.ZIndex.Lib:** Performs first parsing of products and rules from the ZIndex registry. Products can be used by GenFORM.
-   - Capabilities:  
-     - Parsing of pharmaceutical products from ZIndex registry  
-     - Initial rule extraction from ZIndex data  
+   - Capabilities:
+     - Parsing of pharmaceutical products from ZIndex registry
+     - Initial rule extraction from ZIndex data
      - Product catalog and formulary management
 
-7. **Informedica.ZForm.Lib:** Additional processing of rules to more generic constructs. These rules can be used by GenFORM to check specific dose rules.  
-   - Capabilities:  
-     - Advanced rule processing and normalization  
-     - Conversion of ZIndex rules to generic constructs  
-     - Can store and retrieve products and rules in OTS  
-     - Can log extraction messages  
-     - Can run as an agent microservice  
+7. **Informedica.ZForm.Lib:** Additional processing of rules to more generic constructs. These rules can be used by GenFORM to check specific dose rules.
+   - Capabilities:
+     - Advanced rule processing and normalization
+     - Conversion of ZIndex rules to generic constructs
+     - Can store and retrieve products and rules in OTS
+     - Can log extraction messages
+     - Can run as an agent microservice
      - Can be exposed via MCP host
 
 8. **Informedica.NKF.Lib:** Library used to parse structured content from the Kinderformularium containing pediatric dosing rules.
-   - Capabilities:  
-     - Parsing of pediatric dosing guidelines from Kinderformularium  
-     - Structured pediatric dosing rules  
-     - Can log extraction messages  
-     - Can run as an agent based microservice  
+   - Capabilities:
+     - Parsing of pediatric dosing guidelines from Kinderformularium
+     - Structured pediatric dosing rules
+     - Can log extraction messages
+     - Can run as an agent based microservice
 
 9. **Informedica.FTK.Lib:** Library used to parse structured content from the Farmacotherapeutisch Kompas containing pediatric dosing rules.
-   - Capabilities:  
-     - Parsing of adult dosing guidelines from Farmacotherapeutisch Kompas  
-     - Structured adult dosing rules  
-     - Can log extraction messages  
+   - Capabilities:
+     - Parsing of adult dosing guidelines from Farmacotherapeutisch Kompas
+     - Structured adult dosing rules
+     - Can log extraction messages
      - Can run as an agent based microservice
 
 10. **Informedica.GenFORM.Lib:** Handles all rule sets and combines those with products creating specific patient context prescription rules.
-    - Capabilities:  
-      - Unified rule set management across all sources  
-      - Patient-context-specific prescription rule generation  
-      - Product-rule combination and validation  
-      - Can store and retrieve products and rules in OTS  
-      - Can log all rule retrieval messages  
-      - Can run as an agent based microservice  
+    - Capabilities:
+      - Unified rule set management across all sources
+      - Patient-context-specific prescription rule generation
+      - Product-rule combination and validation
+      - Can store and retrieve products and rules in OTS
+      - Can log all rule retrieval messages
+      - Can run as an agent based microservice
       - Can be accessed as a MCP service
 
 11. **Informedica.MCP.Lib:** Library enabling a MCP implementation and using LLMs.
-    - Capabilities:  
-      - Model Context Protocol (MCP) framework implementation in F#  
-      - LLM-powered extraction of structured typed records from free text  
-      - Agent-based MCP service execution  
+    - Capabilities:
+      - Model Context Protocol (MCP) framework implementation in F#
+      - LLM-powered extraction of structured typed records from free text
+      - Agent-based MCP service execution
       - Can host ZForm, GenFORM, GenORDER
 
 ### Appendix C.1. Dose Rule Model Figure
@@ -411,54 +411,54 @@ Libraries:
 
 ### Addendum C.2. Reconstitution Rule Model Table
 
-| Object | Property | Type | Unit | Description |
-| :---- | :---- | :---- | :---- | :---- |
-| Generic | GPK | text |  | The unique Generic Product Identifier |
-| Generic | Generic | text |  | The generic medication name |
-| Generic | Form | text |  | The pharmaceutical form of the generic medication |
-| Route | Route | text |  | The route |
-| Setting | Location | text |  | Hospital / institute / organization |
-| Setting | Department | text |  | The department |
-| Solution | DiluentVol | float | mL | The volume of the diluent |
-| Solution | ExpansionVol | float | mL | The expansion volume |
-| Solution | Diluents | text list |  | The possible diluents that can be used |
+| Object | Property | Type | Unit | Key | Description |
+| :---- | :---- | :---- | :---- | :----: | :---- |
+| Generic | GPK | text |  | yes | The unique Generic Product Identifier |
+| Generic | Generic | text |  |  | The generic medication name |
+| Generic | Form | text |  |  | The pharmaceutical form of the generic medication |
+| Route | Route | text |  | yes | The route |
+| Setting | Location | text |  | yes | Hospital / institute / organization |
+| Setting | Department | text |  | yes | The department |
+| Solution | DiluentVol | float | mL |  | The volume of the diluent |
+| Solution | ExpansionVol | float | mL |  | The expansion volume |
+| Solution | Diluents | text list |  |  | The possible diluents that can be used |
 
 ### Addendum C.3. Dilution Rule Model Table
 
-| Object | Property | Type | Unit | Description |
-| :---- | :---- | :---- | :---- | :---- |
-| Generic | Generic | text |  | The generic name |
-| Generic | Form | text |  | The pharmaceutical form name of the generic medication |
-| Route | Route | text |  | The route |
-| Indication | Indication | text |  | The corresponding matching dose rule indication |
-| DoseType | DoseType | once / onceTimed / discontinuous / timed / continuous |  | The dosetype |
-| Administration Access Device | CVL | boolean |  | Central Venous Line |
-| Administration Access Device | PVL | boolean |  | Peripheral Venous Line |
-| Setting | Location | text |  | Hospital / institute / organization |
-| Setting | Department | text |  | The department |
-| Patient | MinAge | int | day | The minimum age |
-| Patient | MaxAge | int | day | The maximum age |
-| Patient | MinWeight | int | gram | The minimum weight |
-| Patient | MaxWeight | int | gram | The maximum weight |
-| DilutionRule | MinDose | float | unit | The minimum dose |
-| DilutionRule | MaxDose | float | unit | The maximum dose |
-| DilutionRule | Solutions | text list |  | The possible solutions that can be used |
-| DilutionRule | Volumes | float list | mL | The possible volume quantities that can be used |
-| DilutionRule | MinVol | float | mL | The minimum volume |
-| DilutionRule | MaxVol | float | mL | The maximum volume |
-| DilutionRule | MinVolAdj | float | mL / kg | The minimum allowed dilution volume |
-| DilutionRule | MaxVolAdj | float | mL / kg | The maximum allowed dilution volume |
-| DilutionRule | MinDrip | float | mL / hour | The minimum allowed infusion rate |
-| DilutionRule | MaxDrip | float | mL / hour | The maximum allowed infusion rate |
-| DilutionRule | MinPerc | float | perc | The minimum percentage of the solution to use for the DoseQuantity |
-| DilutionRule | MaxPerc | float | perc | The maximum percentage of the solution to use for the DoseQuantity |
-| DilutionLimit | Substance | text |  | The substance used for the below fields |
-| DilutionLimit | SubstUnit | text |  | The unit to measure the substance |
-| DilutionLimit | Quantities | float list | subst_unit | The substance quantities that can be used |
-| DilutionLimit | MinQty | float | subst_unit | The minimum substance quantity |
-| DilutionLimit | MaxQty | float | subst_unit | The maximum substance quantity |
-| DilutionLimit | MinConc | float | subst_unit / mL | The minimum substance concentration |
-| DilutionLimit | MaxConc | float | subst_unit / mL | The maximum substance concentration |
+| Object | Property | Type | Unit | Key | Description |
+| :---- | :---- | :---- | :---- | :----: | :---- |
+| Generic | Generic | text |  | yes | The generic name |
+| Generic | Form | text |  | yes | The pharmaceutical form name of the generic medication |
+| Route | Route | text |  | yes | The route |
+| Indication | Indication | text |  | yes | The corresponding matching dose rule indication |
+| DoseType | DoseType | once / onceTimed / discontinuous / timed / continuous |  | yes | The dosetype |
+| Administration Access Device | CVL | boolean |  | yes | Central Venous Line |
+| Administration Access Device | PVL | boolean |  | yes | Peripheral Venous Line |
+| Setting | Location | text |  | yes | Hospital / institute / organization |
+| Setting | Department | text |  | yes | The department |
+| Patient | MinAge | int | day | yes | The minimum age |
+| Patient | MaxAge | int | day | yes | The maximum age |
+| Patient | MinWeight | int | gram | yes | The minimum weight |
+| Patient | MaxWeight | int | gram | yes | The maximum weight |
+| DilutionRule | MinDose | float | unit | yes | The minimum dose |
+| DilutionRule | MaxDose | float | unit | yes | The maximum dose |
+| DilutionRule | Solutions | text list |  | yes | The possible solutions that can be used |
+| DilutionRule | Volumes | float list | mL | yes | The possible volume quantities that can be used |
+| DilutionRule | MinVol | float | mL | yes | The minimum volume |
+| DilutionRule | MaxVol | float | mL | yes | The maximum volume |
+| DilutionRule | MinVolAdj | float | mL / kg | yes | The minimum allowed dilution volume |
+| DilutionRule | MaxVolAdj | float | mL / kg | yes | The maximum allowed dilution volume |
+| DilutionRule | MinDrip | float | mL / hour | yes | The minimum allowed infusion rate |
+| DilutionRule | MaxDrip | float | mL / hour | yes | The maximum allowed infusion rate |
+| DilutionRule | MinPerc | float | perc | yes | The minimum percentage of the solution to use for the DoseQuantity |
+| DilutionRule | MaxPerc | float | perc | yes | The maximum percentage of the solution to use for the DoseQuantity |
+| DilutionLimit | Substance | text |  |  | The substance used for the below fields |
+| DilutionLimit | SubstUnit | text |  |  | The unit to measure the substance |
+| DilutionLimit | Quantities | float list | subst_unit |  | The substance quantities that can be used |
+| DilutionLimit | MinQty | float | subst_unit |  | The minimum substance quantity |
+| DilutionLimit | MaxQty | float | subst_unit |  | The maximum substance quantity |
+| DilutionLimit | MinConc | float | subst_unit / mL |  | The minimum substance concentration |
+| DilutionLimit | MaxConc | float | subst_unit / mL |  | The maximum substance concentration |
 
 ### Addendum D.1. Renal Rule Model Figure
 
@@ -466,45 +466,45 @@ Libraries:
 
 ### Addendum D.2. Renal Rule Model Table
 
-| Object | Variable | Type | Unit | Description |
-| :---- | :---- | :---- | :---- | :---- |
-| Generic | Generic | text |  | The generic name |
-| Route | Route | text |  | The route |
-| Indication | Indication | text |  | The corresponding matching dose rule indication |
-| Source | Source | text |  | The source of the renal rule |
-| Patient | MinAge | int | day | The minimum age |
-| Patient | MaxAge | int | day | The maximum age |
-| Renal | ContDial | boolean |  | If continuous dialysis |
-| Renal | IntDial | boolean |  | If discontinuous dialysis |
-| Renal | PerDial | boolean |  | If peritoneal dialysis |
-| Renal | MinGFR | float | mL / min / 1.73 m2 | The minimum standardized GFR |
-| Renal | MaxGFR | float | mL / min / 1.73 m2 | The maximum standardized GFR |
-| DoseType | DoseType | once / onceTimed / discontinuous / timed / continuous |  | Dose type |
-| DoseType | DoseText | text |  | The dose type description |
-| Schedule | Freqs | int list | count / freq_unit | The possible frequencies |
-| Schedule | MinInt | float | int_unit | The minimum interval duration |
-| Schedule | MaxInt | float | int_unit | The maximum interval duration |
-| Schedule | IntUnit | text |  | The interval time unit |
-| Substance | Substance | text |  | The matching substance for the DoseLimit |
-| Adjustment | DoseRed | rel / abs |  | Whether the dose limit is relative or absolute |
-| DoseLimit | DoseUnit | text |  | The dose substance dose unit |
-| DoseLimit | AdjustUnit | text |  | The adjust unit (kg or m2) |
-| Schedule | FreqUnit | text |  | The frequency time unit |
-| Schedule | RateUnit | text |  | The rate time unit |
-| DoseLimit | MinQty | float | count /dose_unit | The relative or absolute minimum dose quantity (renal adjustment) |
-| DoseLimit | MaxQty | float | count /dose_unit | The relative or absolute maximum dose quantity (renal adjustment) |
-| DoseLimit | NormQtyAdj | float | count /dose_unit / adjust_unit | The relative or absolute norm dose patient-adjusted quantity (renal adjustment) |
-| DoseLimit | MinQtyAdj | float | count /dose_unit / adjust_unit | The relative or absolute minimum dose patient-adjusted quantity (renal adjustment) |
-| DoseLimit | MaxQtyAdj | float | count /dose_unit / adjust_unit | The relative or absolute maximum dose patient-adjusted quantity (renal adjustment) |
-| DoseLimit | MinPerTime | float | count /dose_unit / freq_unit | The relative or absolute minimum dose per time (renal adjustment) |
-| DoseLimit | MaxPerTime | float | count /dose_unit / freq_unit | The relative or absolute maximum dose per time (renal adjustment) |
-| DoseLimit | NormPerTimeAdj | float | count /dose_unit / adjust_unit / freq_unit | The relative or absolute norm dose patient-adjusted per time (renal adjustment) |
-| DoseLimit | MinPerTimeAdj | float | count /dose_unit / adjust_unit / freq_unit | The relative or absolute minimum dose patient-adjusted per time (renal adjustment) |
-| DoseLimit | MaxPerTimeAdj | float | count /dose_unit / adjust_unit / freq_unit | The relative or absolute maximum dose patient-adjusted per time (renal adjustment) |
-| DoseLimit | MinRate | float | count /dose_unit / rate_unit | The relative or absolute minimum dose rate (renal adjustment) |
-| DoseLimit | MaxRate | float | count /dose_unit / rate_unit | The relative or absolute maximum dose rate (renal adjustment) |
-| DoseLimit | MinRateAdj | float | count /dose_unit / adjust_unit / rate_unit | The relative or absolute minimum patient-adjusted dose rate (renal adjustment) |
-| DoseLimit | MaxRateAdj | float | count /dose_unit / adjust_unit / rate_unit | The relative or absolute minimum patient-adjusted dose rate (renal adjustment) |
+| Object | Variable | Type | Unit | Key | Description |
+| :---- | :---- | :---- | :---- | :----: | :---- |
+| Generic | Generic | text |  | yes | The generic name |
+| Route | Route | text |  | yes | The route |
+| Indication | Indication | text |  | yes | The corresponding matching dose rule indication |
+| Source | Source | text |  | yes | The source of the renal rule |
+| Patient | MinAge | int | day | yes | The minimum age |
+| Patient | MaxAge | int | day | yes | The maximum age |
+| Renal | ContDial | boolean |  | yes | If continuous dialysis |
+| Renal | IntDial | boolean |  | yes | If discontinuous dialysis |
+| Renal | PerDial | boolean |  | yes | If peritoneal dialysis |
+| Renal | MinGFR | float | mL / min / 1.73 m2 | yes | The minimum standardized GFR |
+| Renal | MaxGFR | float | mL / min / 1.73 m2 | yes | The maximum standardized GFR |
+| DoseType | DoseType | once / onceTimed / discontinuous / timed / continuous |  | yes | Dose type |
+| DoseType | DoseText | text |  | yes | The dose type description |
+| Schedule | Freqs | int list | count / freq_unit | yes | The possible frequencies |
+| Schedule | MinInt | float | int_unit | yes | The minimum interval duration |
+| Schedule | MaxInt | float | int_unit | yes | The maximum interval duration |
+| Schedule | IntUnit | text |  | yes | The interval time unit |
+| Substance | Substance | text |  |  | The matching substance for the DoseLimit |
+| Adjustment | DoseRed | rel / abs |  |  | Whether the dose limit is relative or absolute |
+| DoseLimit | DoseUnit | text |  |  | The dose substance dose unit |
+| DoseLimit | AdjustUnit | text |  |  | The adjust unit (kg or m2) |
+| Schedule | FreqUnit | text |  | yes | The frequency time unit |
+| Schedule | RateUnit | text |  |  | The rate time unit |
+| DoseLimit | MinQty | float | count /dose_unit |  | The relative or absolute minimum dose quantity (renal adjustment) |
+| DoseLimit | MaxQty | float | count /dose_unit |  | The relative or absolute maximum dose quantity (renal adjustment) |
+| DoseLimit | NormQtyAdj | float | count /dose_unit / adjust_unit |  | The relative or absolute norm dose patient-adjusted quantity (renal adjustment) |
+| DoseLimit | MinQtyAdj | float | count /dose_unit / adjust_unit |  | The relative or absolute minimum dose patient-adjusted quantity (renal adjustment) |
+| DoseLimit | MaxQtyAdj | float | count /dose_unit / adjust_unit |  | The relative or absolute maximum dose patient-adjusted quantity (renal adjustment) |
+| DoseLimit | MinPerTime | float | count /dose_unit / freq_unit |  | The relative or absolute minimum dose per time (renal adjustment) |
+| DoseLimit | MaxPerTime | float | count /dose_unit / freq_unit |  | The relative or absolute maximum dose per time (renal adjustment) |
+| DoseLimit | NormPerTimeAdj | float | count /dose_unit / adjust_unit / freq_unit |  | The relative or absolute norm dose patient-adjusted per time (renal adjustment) |
+| DoseLimit | MinPerTimeAdj | float | count /dose_unit / adjust_unit / freq_unit |  | The relative or absolute minimum dose patient-adjusted per time (renal adjustment) |
+| DoseLimit | MaxPerTimeAdj | float | count /dose_unit / adjust_unit / freq_unit |  | The relative or absolute maximum dose patient-adjusted per time (renal adjustment) |
+| DoseLimit | MinRate | float | count /dose_unit / rate_unit |  | The relative or absolute minimum dose rate (renal adjustment) |
+| DoseLimit | MaxRate | float | count /dose_unit / rate_unit |  | The relative or absolute maximum dose rate (renal adjustment) |
+| DoseLimit | MinRateAdj | float | count /dose_unit / adjust_unit / rate_unit |  | The relative or absolute minimum patient-adjusted dose rate (renal adjustment) |
+| DoseLimit | MaxRateAdj | float | count /dose_unit / adjust_unit / rate_unit |  | The relative or absolute minimum patient-adjusted dose rate (renal adjustment) |
 
 ### Addendum E.1. Product Component Model Figure
 

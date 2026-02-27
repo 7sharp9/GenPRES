@@ -1,5 +1,5 @@
 
-#r "nuget: FSharp.Data"
+#r "nuget: FSharp.Data, 8.0.0"
 #r "nuget: MathNet.Numerics.FSharp"
 #r "nuget: FParsec"
 #r "nuget: Newtonsoft.Json"
