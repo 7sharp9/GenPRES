@@ -113,11 +113,11 @@ Dose checking rules are maintained in the national registry, the G-Standaard. Mo
 To establish a structured and operational knowledge-rule system that supports prescribing, planning, preparation, and administration, additional information is required:
 
 - **Reconstitution rules**: define how medication must be reconstituted to enable administration of, for example, a powder as a liquid.
-- **Dilution rules**: define requirements for the amount and/or concentration of liquid medication.
+- **Solution rules**: define requirements for the amount and/or concentration of liquid medication.
 - **Renal rules**: used to adjust the dose advice according to the renal function (GFR normal, too low or too high).
 - **Product information**: defines product availability, pharmaceutical forms, and parameters required for calculating the delivered dose.
 
-Reconstitution and dilution rules are typically summarized in parenteralia, while the corresponding information for oral medication is provided in oralia.
+Reconstitution and solution rules are typically summarized in parenteralia, while the corresponding information for oral medication is provided in oralia.
 
 For renal rules specific sections are available in the Kinderformularium or specific renal reference guidelines.
 
@@ -155,7 +155,7 @@ All OKRs can be translated to either selection or calculation constraints. The s
   - Form
   - Route
   - Setting
-- Dilution Rule
+- Solution Rule
   - Generic
   - Form
   - Route
@@ -182,7 +182,7 @@ All OKRs can be translated to either selection or calculation constraints. The s
 - Reconstitution Rule:
   - Diluent Volume
   - Expansion Volume
-- Dilution Rule:
+- Solution Rule:
   - Volume
   - Drip Rate
   - Administration Fraction
@@ -349,116 +349,114 @@ Libraries:
 
 ### Addendum C.2. Dose Rule Model Table
 
-| Object | Variable | Type | Unit | Key | Description |
-| :---- | :---- | :---- | :---- | :----: | :---- |
-| Source | Name | text |  | yes | The source of the dose rule |
-| Source | Text | text |  | yes | The source dose description |
-| Generic | Name | text |  | yes | The generic name |
-| Generic | Form | text |  | yes | Pharmaceutical form to narrow down the dose rule |
-| Generic | Brand | text |  | yes | A brand to narrow down the dose rule |
-| Generic | GPKs | text list |  |  | A list of GPKs to narrow down the dose rule |
-| Indication | Indication | text |  | yes | The indication (label) for the dose rule |
-| Route | Route | text |  | yes | The route |
-| Setting | Location | text |  |  | Hospital/institute/organization |
-| Setting | Department | text |  | yes | The department |
-| Patient | Gender | male / female |  | yes | The gender |
-| Patient | MinAge | int | day | yes | The minimum age |
-| Patient | MaxAge | int | day | yes | The maximum age |
-| Patient | MinWeight | int | gram | yes | The minimum weight (in gram) |
-| Patient | MaxWeight | int | gram | yes | The maximum weight |
-| Patient | MinBSA | float | m2 | yes | The minimum bsa |
-| Patient | MaxBSA | float | m2 | yes | The maximum bsa |
-| Patient | MinGestAge | int | day | yes | The minimum gestational age |
-| Patient | MaxGestAge | int | day | yes | The maximum gestational age |
-| Patient | MinPMAge | int | day | yes | The minimum post-menstrual age |
-| Patient | MaxPMAge | int | day | yes | The maximum post-menstrual age |
-| DoseType | DoseType | once / onceTimed / discontinuous / timed / continuous |  | yes | The dose type of the dose rule |
-| DoseType | DoseText | text |  | yes | A label for a dose type |
-| Schedule | Freqs | int list | count_unit / freq_unit | yes | The possible frequencies |
-| Schedule | FreqUnit | text |  | yes | The freq unit |
-| Schedule | MinTime | float | time_unit | yes | The minimum time for infusion of a dose |
-| Schedule | MaxTime | float | time_unit | yes | The maximum time for infusion of a dose |
-| Schedule | TimeUnit | text |  | yes | The time unit to measure the infusion |
-| Schedule | MinInt | float | int_unit | yes | The minimum interval between two doses |
-| Schedule | MaxInt | float | int_unit | yes | The maximum interval between two doses |
-| Schedule | IntUnit | text |  | yes | The interval unit |
-| Schedule | MinDur | float | dur_unit | yes | The minimum duration of the dose rule |
-| Schedule | MaxDur | float | dur_unit | yes | The maximum duration of the dose rule |
-| Schedule | DurUnit | text |  | yes | The duration time unit |
-| Component | Component | text |  |  | The component the substance belongs to |
-| Substance | Substance | text |  |  | The substance used for the below fields |
-| DoseLimit | DoseUnit | text |  |  | The dose unit |
-| DoseLimit | AdjustUnit | kg / m2 |  | yes | The adjust unit |
-| DoseLimit | RateUnit | text |  |  | The rate unit |
-| DoseLimit | MinQty | float | dose_unit |  | The minimum dose quantity |
-| DoseLimit | MaxQty | float | dose_unit |  | The maximum dose quantity |
-| DoseLimit | NormQtyAdj | float | dose_unit / adjust_unit |  | The 'normal' patient-adjusted dose quantity |
-| DoseLimit | MinQtyAdj | float | dose_unit / adjust_unit |  | The minimum adjusted dose quantity |
-| DoseLimit | MaxQtyAdj | float | dose_unit / adjust_unit |  | The maximum patient-adjusted dose quantity |
-| DoseLimit | MinPerTime | float | dose_unit / freq_unit |  | The minimum dose quantity per time |
-| DoseLimit | MaxPerTime | float | dose_unit / freq_unit |  | The maximum dose quantity per time |
-| DoseLimit | NormPerTimeAdj | float | dose_unit / adjust_unit / freq_unit |  | The 'normal' adjusted dose quantity per time |
-| DoseLimit | MinPerTimeAdj | float | dose_unit / adjust_unit / freq_unit |  | The minimum patient-adjusted dose quantity per time |
-| DoseLimit | MaxPerTimeAdj | float | dose_unit / adjust_unit / freq_unit |  | The maximum dose adjusted quantity per time |
-| DoseLimit | MinRate | float | dose_unit / rate_unit |  | The minimum dose rate |
-| DoseLimit | MaxRate | float | dose_unit / rate_unit |  | The maximum dose rate |
-| DoseLimit | MinRateAdj | float | dose_unit / adjust_unit / rate_unit |  | The minimum patient-adjusted dose rate |
-| DoseLimit | MaxRateAdj | float | dose_unit / adjust_unit / rate_unit |  | The maximum patient-adjusted dose rate |
+| Object     | Variable       | Type                                                  | Unit                                | Key | Description                                         |
+|------------|----------------|-------------------------------------------------------|-------------------------------------|-----|-----------------------------------------------------|
+| Source     | Name           | text                                                  |                                     | yes | The source of the dose rule                         |
+| Source     | Text           | text                                                  |                                     | yes | The source dose description                         |
+| Generic    | Name           | text                                                  |                                     | yes | The generic name                                    |
+| Generic    | Form           | text                                                  |                                     | yes | Pharmaceutical form to narrow down the dose rule    |
+| Generic    | Brand          | text                                                  |                                     | yes | A brand to narrow down the dose rule                |
+| Generic    | GPKs           | text list                                             |                                     |     | A list of GPKs to narrow down the dose rule         |
+| Indication | Indication     | text                                                  |                                     | yes | The indication (label) for the dose rule            |
+| Route      | Route          | text                                                  |                                     | yes | The route                                           |
+| Setting    | Location       | text                                                  |                                     |     | Hospital/institute/organization                     |
+| Setting    | Department     | text                                                  |                                     | yes | The department                                      |
+| Patient    | Gender         | male / female                                         |                                     | yes | The gender                                          |
+| Patient    | MinAge         | int                                                   | day                                 | yes | The minimum age                                     |
+| Patient    | MaxAge         | int                                                   | day                                 | yes | The maximum age                                     |
+| Patient    | MinWeight      | int                                                   | gram                                | yes | The minimum weight (in gram)                        |
+| Patient    | MaxWeight      | int                                                   | gram                                | yes | The maximum weight                                  |
+| Patient    | MinBSA         | float                                                 | m2                                  | yes | The minimum bsa                                     |
+| Patient    | MaxBSA         | float                                                 | m2                                  | yes | The maximum bsa                                     |
+| Patient    | MinGestAge     | int                                                   | day                                 | yes | The minimum gestational age                         |
+| Patient    | MaxGestAge     | int                                                   | day                                 | yes | The maximum gestational age                         |
+| Patient    | MinPMAge       | int                                                   | day                                 | yes | The minimum post-menstrual age                      |
+| Patient    | MaxPMAge       | int                                                   | day                                 | yes | The maximum post-menstrual age                      |
+| DoseType   | DoseType       | once / onceTimed / discontinuous / timed / continuous |                                     | yes | The dose type of the dose rule                      |
+| DoseType   | DoseText       | text                                                  |                                     |     | A label for a dose type                             |
+| Schedule   | Freqs          | int list                                              | count_unit / freq_unit              |     | The possible frequencies                            |
+| Schedule   | FreqUnit       | text                                                  |                                     |     | The freq unit                                       |
+| Schedule   | MinTime        | float                                                 | time_unit                           |     | The minimum time for infusion of a dose             |
+| Schedule   | MaxTime        | float                                                 | time_unit                           |     | The maximum time for infusion of a dose             |
+| Schedule   | TimeUnit       | text                                                  |                                     |     | The time unit to measure the infusion               |
+| Schedule   | MinInt         | float                                                 | int_unit                            |     | The minimum interval between two doses              |
+| Schedule   | MaxInt         | float                                                 | int_unit                            |     | The maximum interval between two doses              |
+| Schedule   | IntUnit        | text                                                  |                                     |     | The interval unit                                   |
+| Schedule   | MinDur         | float                                                 | dur_unit                            |     | The minimum duration of the dose rule               |
+| Schedule   | MaxDur         | float                                                 | dur_unit                            |     | The maximum duration of the dose rule               |
+| Schedule   | DurUnit        | text                                                  |                                     |     | The duration time unit                              |
+| Component  | Component      | text                                                  |                                     |     | The component the substance belongs to              |
+| Substance  | Substance      | text                                                  |                                     |     | The substance used for the below fields             |
+| DoseLimit  | DoseUnit       | text                                                  |                                     |     | The dose unit                                       |
+| DoseLimit  | AdjustUnit     | kg / m2                                               |                                     |     | The adjust unit                                     |
+| DoseLimit  | RateUnit       | text                                                  |                                     |     | The rate unit                                       |
+| DoseLimit  | MinQty         | float                                                 | dose_unit                           |     | The minimum dose quantity                           |
+| DoseLimit  | MaxQty         | float                                                 | dose_unit                           |     | The maximum dose quantity                           |
+| DoseLimit  | MinQtyAdj      | float                                                 | dose_unit / adjust_unit             |     | The minimum adjusted dose quantity                  |
+| DoseLimit  | MaxQtyAdj      | float                                                 | dose_unit / adjust_unit             |     | The maximum patient-adjusted dose quantity          |
+| DoseLimit  | MinPerTime     | float                                                 | dose_unit / freq_unit               |     | The minimum dose quantity per time                  |
+| DoseLimit  | MaxPerTime     | float                                                 | dose_unit / freq_unit               |     | The maximum dose quantity per time                  |
+| DoseLimit  | MinPerTimeAdj  | float                                                 | dose_unit / adjust_unit / freq_unit |     | The minimum patient-adjusted dose quantity per time |
+| DoseLimit  | MaxPerTimeAdj  | float                                                 | dose_unit / adjust_unit / freq_unit |     | The maximum dose adjusted quantity per time         |
+| DoseLimit  | MinRate        | float                                                 | dose_unit / rate_unit               |     | The minimum dose rate                               |
+| DoseLimit  | MaxRate        | float                                                 | dose_unit / rate_unit               |     | The maximum dose rate                               |
+| DoseLimit  | MinRateAdj     | float                                                 | dose_unit / adjust_unit / rate_unit |     | The minimum patient-adjusted dose rate              |
+| DoseLimit  | MaxRateAdj     | float                                                 | dose_unit / adjust_unit / rate_unit |     | The maximum patient-adjusted dose rate              |
 
-### Addendum C.1. Reconstitution and Dilution Rule Model Figure
+### Addendum C.1. Reconstitution and Solution Rule Model Figure
 
 ![image5](https://docs.google.com/drawings/d/e/2PACX-1vTCmWhej7l1HTUelmCR8PGOjG-VbFCXpG4tBHLRSWIayhyk-okLkkqUENUOCKugOHZP6YafcFdE_Ti3/pub?w=858&h=567)
 
 ### Addendum C.2. Reconstitution Rule Model Table
 
-| Object | Property | Type | Unit | Key | Description |
-| :---- | :---- | :---- | :---- | :----: | :---- |
-| Generic | GPK | text |  | yes | The unique Generic Product Identifier |
-| Generic | Generic | text |  |  | The generic medication name |
-| Generic | Form | text |  |  | The pharmaceutical form of the generic medication |
-| Route | Route | text |  | yes | The route |
-| Setting | Location | text |  | yes | Hospital / institute / organization |
-| Setting | Department | text |  | yes | The department |
-| Solution | DiluentVol | float | mL |  | The volume of the diluent |
-| Solution | ExpansionVol | float | mL |  | The expansion volume |
-| Solution | Diluents | text list |  |  | The possible diluents that can be used |
+| Object   | Property     | Type      | Unit | Key | Description                                       |
+|----------|--------------|-----------|------|-----|---------------------------------------------------|
+| Generic  | GPK          | text      |      | yes | The unique Generic Product Identifier             |
+| Generic  | Generic      | text      |      |     | The generic medication name                       |
+| Generic  | Form         | text      |      |     | The pharmaceutical form of the generic medication |
+| Route    | Route        | text      |      | yes | The route                                         |
+| Setting  | Location     | text      |      | yes | Hospital / institute / organization               |
+| Setting  | Department   | text      |      | yes | The department                                    |
+| Solution | DiluentVol   | float     | mL   |     | The volume of the diluent                         |
+| Solution | ExpansionVol | float     | mL   |     | The expansion volume                              |
+| Solution | Diluents     | text list |      |     | The possible diluents that can be used            |
 
-### Addendum C.3. Dilution Rule Model Table
+### Addendum C.3. Solution Rule Model Table
 
-| Object | Property | Type | Unit | Key | Description |
-| :---- | :---- | :---- | :---- | :----: | :---- |
-| Generic | Generic | text |  | yes | The generic name |
-| Generic | Form | text |  | yes | The pharmaceutical form name of the generic medication |
-| Route | Route | text |  | yes | The route |
-| Indication | Indication | text |  | yes | The corresponding matching dose rule indication |
-| DoseType | DoseType | once / onceTimed / discontinuous / timed / continuous |  | yes | The dosetype |
-| Administration Access Device | CVL | boolean |  | yes | Central Venous Line |
-| Administration Access Device | PVL | boolean |  | yes | Peripheral Venous Line |
-| Setting | Location | text |  | yes | Hospital / institute / organization |
-| Setting | Department | text |  | yes | The department |
-| Patient | MinAge | int | day | yes | The minimum age |
-| Patient | MaxAge | int | day | yes | The maximum age |
-| Patient | MinWeight | int | gram | yes | The minimum weight |
-| Patient | MaxWeight | int | gram | yes | The maximum weight |
-| DilutionRule | MinDose | float | unit | yes | The minimum dose |
-| DilutionRule | MaxDose | float | unit | yes | The maximum dose |
-| DilutionRule | Solutions | text list |  | yes | The possible solutions that can be used |
-| DilutionRule | Volumes | float list | mL | yes | The possible volume quantities that can be used |
-| DilutionRule | MinVol | float | mL | yes | The minimum volume |
-| DilutionRule | MaxVol | float | mL | yes | The maximum volume |
-| DilutionRule | MinVolAdj | float | mL / kg | yes | The minimum allowed dilution volume |
-| DilutionRule | MaxVolAdj | float | mL / kg | yes | The maximum allowed dilution volume |
-| DilutionRule | MinDrip | float | mL / hour | yes | The minimum allowed infusion rate |
-| DilutionRule | MaxDrip | float | mL / hour | yes | The maximum allowed infusion rate |
-| DilutionRule | MinPerc | float | perc | yes | The minimum percentage of the solution to use for the DoseQuantity |
-| DilutionRule | MaxPerc | float | perc | yes | The maximum percentage of the solution to use for the DoseQuantity |
-| DilutionLimit | Substance | text |  |  | The substance used for the below fields |
-| DilutionLimit | SubstUnit | text |  |  | The unit to measure the substance |
-| DilutionLimit | Quantities | float list | subst_unit |  | The substance quantities that can be used |
-| DilutionLimit | MinQty | float | subst_unit |  | The minimum substance quantity |
-| DilutionLimit | MaxQty | float | subst_unit |  | The maximum substance quantity |
-| DilutionLimit | MinConc | float | subst_unit / mL |  | The minimum substance concentration |
-| DilutionLimit | MaxConc | float | subst_unit / mL |  | The maximum substance concentration |
+| Object                       | Property   | Type                                                  | Unit            | Key | Description                                                        |
+|------------------------------|------------|-------------------------------------------------------|-----------------|-----|--------------------------------------------------------------------|
+| Generic                      | Generic    | text                                                  |                 | yes | The generic name                                                   |
+| Generic                      | Form       | text                                                  |                 | yes | The pharmaceutical form name of the generic medication             |
+| Route                        | Route      | text                                                  |                 | yes | The route                                                          |
+| Indication                   | Indication | text                                                  |                 | yes | The corresponding matching dose rule indication                    |
+| DoseType                     | DoseType   | once / onceTimed / discontinuous / timed / continuous |                 | yes | The dosetype                                                       |
+| Administration Access Device | CVL        | boolean                                               |                 | yes | Central Venous Line                                                |
+| Administration Access Device | PVL        | boolean                                               |                 | yes | Peripheral Venous Line                                             |
+| Setting                      | Location   | text                                                  |                 | yes | Hospital / institute / organization                                |
+| Setting                      | Department | text                                                  |                 | yes | The department                                                     |
+| Patient                      | MinAge     | int                                                   | day             | yes | The minimum age                                                    |
+| Patient                      | MaxAge     | int                                                   | day             | yes | The maximum age                                                    |
+| Patient                      | MinWeight  | int                                                   | gram            | yes | The minimum weight                                                 |
+| Patient                      | MaxWeight  | int                                                   | gram            | yes | The maximum weight                                                 |
+| DilutionRule                 | MinDose    | float                                                 | unit            | yes | The minimum dose                                                   |
+| DilutionRule                 | MaxDose    | float                                                 | unit            | yes | The maximum dose                                                   |
+| DilutionRule                 | Solutions  | text list                                             |                 |     | The possible solutions that can be used                            |
+| DilutionRule                 | Volumes    | float list                                            | mL              |     | The possible volume quantities that can be used                    |
+| DilutionRule                 | MinVol     | float                                                 | mL              |     | The minimum volume                                                 |
+| DilutionRule                 | MaxVol     | float                                                 | mL              |     | The maximum volume                                                 |
+| DilutionRule                 | MinVolAdj  | float                                                 | mL / kg         |     | The minimum allowed dilution volume                                |
+| DilutionRule                 | MaxVolAdj  | float                                                 | mL / kg         |     | The maximum allowed dilution volume                                |
+| DilutionRule                 | MinDrip    | float                                                 | mL / hour       |     | The minimum allowed infusion rate                                  |
+| DilutionRule                 | MaxDrip    | float                                                 | mL / hour       |     | The maximum allowed infusion rate                                  |
+| DilutionRule                 | MinPerc    | float                                                 | perc            |     | The minimum percentage of the solution to use for the DoseQuantity |
+| DilutionRule                 | MaxPerc    | float                                                 | perc            |     | The maximum percentage of the solution to use for the DoseQuantity |
+| DilutionLimit                | Substance  | text                                                  |                 |     | The substance used for the below fields                            |
+| DilutionLimit                | SubstUnit  | text                                                  |                 |     | The unit to measure the substance                                  |
+| DilutionLimit                | Quantities | float list                                            | subst_unit      |     | The substance quantities that can be used                          |
+| DilutionLimit                | MinQty     | float                                                 | subst_unit      |     | The minimum substance quantity                                     |
+| DilutionLimit                | MaxQty     | float                                                 | subst_unit      |     | The maximum substance quantity                                     |
+| DilutionLimit                | MinConc    | float                                                 | subst_unit / mL |     | The minimum substance concentration                                |
+| DilutionLimit                | MaxConc    | float                                                 | subst_unit / mL |     | The maximum substance concentration                                |
 
 ### Addendum D.1. Renal Rule Model Figure
 
@@ -466,45 +464,45 @@ Libraries:
 
 ### Addendum D.2. Renal Rule Model Table
 
-| Object | Variable | Type | Unit | Key | Description |
-| :---- | :---- | :---- | :---- | :----: | :---- |
-| Generic | Generic | text |  | yes | The generic name |
-| Route | Route | text |  | yes | The route |
-| Indication | Indication | text |  | yes | The corresponding matching dose rule indication |
-| Source | Source | text |  | yes | The source of the renal rule |
-| Patient | MinAge | int | day | yes | The minimum age |
-| Patient | MaxAge | int | day | yes | The maximum age |
-| Renal | ContDial | boolean |  | yes | If continuous dialysis |
-| Renal | IntDial | boolean |  | yes | If discontinuous dialysis |
-| Renal | PerDial | boolean |  | yes | If peritoneal dialysis |
-| Renal | MinGFR | float | mL / min / 1.73 m2 | yes | The minimum standardized GFR |
-| Renal | MaxGFR | float | mL / min / 1.73 m2 | yes | The maximum standardized GFR |
-| DoseType | DoseType | once / onceTimed / discontinuous / timed / continuous |  | yes | Dose type |
-| DoseType | DoseText | text |  | yes | The dose type description |
-| Schedule | Freqs | int list | count / freq_unit | yes | The possible frequencies |
-| Schedule | MinInt | float | int_unit | yes | The minimum interval duration |
-| Schedule | MaxInt | float | int_unit | yes | The maximum interval duration |
-| Schedule | IntUnit | text |  | yes | The interval time unit |
-| Substance | Substance | text |  |  | The matching substance for the DoseLimit |
-| Adjustment | DoseRed | rel / abs |  |  | Whether the dose limit is relative or absolute |
-| DoseLimit | DoseUnit | text |  |  | The dose substance dose unit |
-| DoseLimit | AdjustUnit | text |  |  | The adjust unit (kg or m2) |
-| Schedule | FreqUnit | text |  | yes | The frequency time unit |
-| Schedule | RateUnit | text |  |  | The rate time unit |
-| DoseLimit | MinQty | float | count /dose_unit |  | The relative or absolute minimum dose quantity (renal adjustment) |
-| DoseLimit | MaxQty | float | count /dose_unit |  | The relative or absolute maximum dose quantity (renal adjustment) |
-| DoseLimit | NormQtyAdj | float | count /dose_unit / adjust_unit |  | The relative or absolute norm dose patient-adjusted quantity (renal adjustment) |
-| DoseLimit | MinQtyAdj | float | count /dose_unit / adjust_unit |  | The relative or absolute minimum dose patient-adjusted quantity (renal adjustment) |
-| DoseLimit | MaxQtyAdj | float | count /dose_unit / adjust_unit |  | The relative or absolute maximum dose patient-adjusted quantity (renal adjustment) |
-| DoseLimit | MinPerTime | float | count /dose_unit / freq_unit |  | The relative or absolute minimum dose per time (renal adjustment) |
-| DoseLimit | MaxPerTime | float | count /dose_unit / freq_unit |  | The relative or absolute maximum dose per time (renal adjustment) |
-| DoseLimit | NormPerTimeAdj | float | count /dose_unit / adjust_unit / freq_unit |  | The relative or absolute norm dose patient-adjusted per time (renal adjustment) |
-| DoseLimit | MinPerTimeAdj | float | count /dose_unit / adjust_unit / freq_unit |  | The relative or absolute minimum dose patient-adjusted per time (renal adjustment) |
-| DoseLimit | MaxPerTimeAdj | float | count /dose_unit / adjust_unit / freq_unit |  | The relative or absolute maximum dose patient-adjusted per time (renal adjustment) |
-| DoseLimit | MinRate | float | count /dose_unit / rate_unit |  | The relative or absolute minimum dose rate (renal adjustment) |
-| DoseLimit | MaxRate | float | count /dose_unit / rate_unit |  | The relative or absolute maximum dose rate (renal adjustment) |
-| DoseLimit | MinRateAdj | float | count /dose_unit / adjust_unit / rate_unit |  | The relative or absolute minimum patient-adjusted dose rate (renal adjustment) |
-| DoseLimit | MaxRateAdj | float | count /dose_unit / adjust_unit / rate_unit |  | The relative or absolute minimum patient-adjusted dose rate (renal adjustment) |
+| Object     | Variable       | Type                                                  | Unit                                       | Key | Description                                                                        |
+|------------|----------------|-------------------------------------------------------|--------------------------------------------|-----|------------------------------------------------------------------------------------|
+| Generic    | Generic        | text                                                  |                                            | yes | The generic name                                                                   |
+| Route      | Route          | text                                                  |                                            | yes | The route                                                                          |
+| Indication | Indication     | text                                                  |                                            | yes | The corresponding matching dose rule indication                                    |
+| Source     | Source         | text                                                  |                                            | yes | The source of the renal rule                                                       |
+| Patient    | MinAge         | int                                                   | day                                        | yes | The minimum age                                                                    |
+| Patient    | MaxAge         | int                                                   | day                                        | yes | The maximum age                                                                    |
+| Renal      | ContDial       | boolean                                               |                                            | yes | If continuous dialysis                                                             |
+| Renal      | IntDial        | boolean                                               |                                            | yes | If discontinuous dialysis                                                          |
+| Renal      | PerDial        | boolean                                               |                                            | yes | If peritoneal dialysis                                                             |
+| Renal      | MinGFR         | float                                                 | mL / min / 1.73 m2                         | yes | The minimum standardized GFR                                                       |
+| Renal      | MaxGFR         | float                                                 | mL / min / 1.73 m2                         | yes | The maximum standardized GFR                                                       |
+| DoseType   | DoseType       | once / onceTimed / discontinuous / timed / continuous |                                            | yes | Dose type                                                                          |
+| DoseType   | DoseText       | text                                                  |                                            | yes | The dose type description                                                          |
+| Schedule   | Freqs          | int list                                              | count / freq_unit                          | yes | The possible frequencies                                                           |
+| Schedule   | MinInt         | float                                                 | int_unit                                   |     | The minimum interval duration                                                      |
+| Schedule   | MaxInt         | float                                                 | int_unit                                   |     | The maximum interval duration                                                      |
+| Schedule   | IntUnit        | text                                                  |                                            |     | The interval time unit                                                             |
+| Substance  | Substance      | text                                                  |                                            |     | The matching substance for the DoseLimit                                           |
+| Adjustment | DoseRed        | rel / abs                                             |                                            |     | Whether the dose limit is relative or absolute                                     |
+| DoseLimit  | DoseUnit       | text                                                  |                                            |     | The dose substance dose unit                                                       |
+| DoseLimit  | AdjustUnit     | text                                                  |                                            |     | The adjust unit (kg or m2)                                                         |
+| Schedule   | FreqUnit       | text                                                  |                                            |     | The frequency time unit                                                            |
+| Schedule   | RateUnit       | text                                                  |                                            |     | The rate time unit                                                                 |
+| DoseLimit  | MinQty         | float                                                 | count /dose_unit                           |     | The relative or absolute minimum dose quantity (renal adjustment)                  |
+| DoseLimit  | MaxQty         | float                                                 | count /dose_unit                           |     | The relative or absolute maximum dose quantity (renal adjustment)                  |
+| DoseLimit  | NormQtyAdj     | float                                                 | count /dose_unit / adjust_unit             |     | The relative or absolute norm dose patient-adjusted quantity (renal adjustment)    |
+| DoseLimit  | MinQtyAdj      | float                                                 | count /dose_unit / adjust_unit             |     | The relative or absolute minimum dose patient-adjusted quantity (renal adjustment) |
+| DoseLimit  | MaxQtyAdj      | float                                                 | count /dose_unit / adjust_unit             |     | The relative or absolute maximum dose patient-adjusted quantity (renal adjustment) |
+| DoseLimit  | MinPerTime     | float                                                 | count /dose_unit / freq_unit               |     | The relative or absolute minimum dose per time (renal adjustment)                  |
+| DoseLimit  | MaxPerTime     | float                                                 | count /dose_unit / freq_unit               |     | The relative or absolute maximum dose per time (renal adjustment)                  |
+| DoseLimit  | NormPerTimeAdj | float                                                 | count /dose_unit / adjust_unit / freq_unit |     | The relative or absolute norm dose patient-adjusted per time (renal adjustment)    |
+| DoseLimit  | MinPerTimeAdj  | float                                                 | count /dose_unit / adjust_unit / freq_unit |     | The relative or absolute minimum dose patient-adjusted per time (renal adjustment) |
+| DoseLimit  | MaxPerTimeAdj  | float                                                 | count /dose_unit / adjust_unit / freq_unit |     | The relative or absolute maximum dose patient-adjusted per time (renal adjustment) |
+| DoseLimit  | MinRate        | float                                                 | count /dose_unit / rate_unit               |     | The relative or absolute minimum dose rate (renal adjustment)                      |
+| DoseLimit  | MaxRate        | float                                                 | count /dose_unit / rate_unit               |     | The relative or absolute maximum dose rate (renal adjustment)                      |
+| DoseLimit  | MinRateAdj     | float                                                 | count /dose_unit / adjust_unit / rate_unit |     | The relative or absolute minimum patient-adjusted dose rate (renal adjustment)     |
+| DoseLimit  | MaxRateAdj     | float                                                 | count /dose_unit / adjust_unit / rate_unit |     | The relative or absolute minimum patient-adjusted dose rate (renal adjustment)     |
 
 ### Addendum E.1. Product Component Model Figure
 
@@ -512,74 +510,74 @@ Libraries:
 
 ### Addendum E.2. Product Component Model Table
 
-| Object | Prop | Type | Unit | Description |
-| :---- | :---- | :---- | :---- | :---- |
-| GenPRES Product | Name | text |  | The name of the GenPRES product. |
-| GenPRES Product | Form | text |  | Shared pharmaceutical form for all included generic products. |
-| GenPRES Product | Routes | text list |  | Routes of administration associated with the GenPRES product. |
-| GenPRES Product | PharmacologicalGroups | text list |  | Pharmacological groups applied to this product. |
-| GenPRES Product | Unit | text |  | Dose unit used at the GenPRES level (e.g., mg, mmol, IU). |
-| GenPRES Product | Synonyms | text list |  | Synonyms for searching and matching. |
-| GenPRES Product | GenericProducts | Generic Product list |  | Generic products belonging to this GenPRES product. |
-| Generic Product | Id (GPK) | int |  | Generic product identifier (GPK). |
-| Generic Product | Name | text |  | Full generic product name. |
-| Generic Product | Label | text |  | Display label for the generic product. |
-| Generic Product | ATC | text |  | ATC-5 code for classification. |
-| Generic Product | ATCName | text |  | ATC-5 description. |
-| Generic Product | Form | text |  | Pharmaceutical form. |
-| Generic Product | Routes | text list |  | Routes of administration. |
-| Generic Product | Substances | ProductSubstance list |  | Full substance composition of the generic product. |
-| Generic Product | PrescriptionProducts | Prescription Product list |  | Prescription products belonging to this generic product. |
-| Product Substance | SubstanceId | int |  | Identifier of the substance. |
-| Product Substance | SortOrder | int |  | Ordering index for display and naming. |
-| Product Substance | SubstanceName | text |  | Name of the active or additional substance. |
-| Product Substance | SubstanceQuantity | float | substance_unit | Quantity of the substance. |
-| Product Substance | SubstanceUnit | text |  | Unit of the substance quantity. |
-| Product Substance | GenericId | int |  | Identifier of the underlying generic substance. |
-| Product Substance | GenericName | text |  | Name of the generic (salt) substance. |
-| Product Substance | GenericQuantity | float | generic_unit | Quantity of the generic substance. |
-| Product Substance | GenericUnit | text |  | Unit of measured generic substance. |
-| Product Substance | FormUnit | text |  | Form-dependent unit (e.g., mg/mL). |
-| Product Substance | IsAdditional | boolean |  | Whether substance is additional (not active). |
-| Prescription Product | Id (PRK) | int |  | Prescription product identifier (PRK). |
-| Prescription Product | Name | text |  | Full prescription product name. |
-| Prescription Product | Label | text |  | Display label for prescription product. |
-| Prescription Product | Quantity | float | form_unit | Pharmaceutical form quantity. |
-| Prescription Product | Unit | text |  | Unit corresponding to Quantity. |
-| Prescription Product | Container | text |  | Container description. |
-| Prescription Product | TradeProducts | Trade Product list |  | Trade products included under this prescription product. |
-| Trade Product | Id (HPK) | int |  | Trade product identifier (HPK). |
-| Trade Product | Name | text |  | Full trade product name. |
-| Trade Product | Label | text |  | Display label. |
-| Trade Product | Brand | text |  | Brand/manufacturer’s product name. |
-| Trade Product | Company | text |  | Company/marketing authorization holder. |
-| Trade Product | Denominator | int |  | Strength denominator used for concentration. |
-| Trade Product | UnitWeight | float | unit | Strength or unit weight. |
-| Trade Product | Route | text list |  | Routes of administration. |
-| Trade Product | Substances | Product Substance list |  | Substance composition at trade level. |
-| Trade Product | ConsumerProducts | Consumer Product list |  | Consumer-level package variants. |
-| Consumer Product | Id (ZInr) | int |  | Consumer product identifier. |
-| Consumer Product | Name | text |  | Consumer product name. |
-| Consumer Product | Label | text |  | Display label. |
-| Consumer Product | Quantity | float | container_unit | Pack quantity for consumer sale. |
-| Consumer Product | Container | text |  | Container description. |
-| Product Component | GPK | int |  | Generic product identifier. |
-| Product Component | ATC | text |  | ATC classification code. |
-| Product Component | MainGroup | text |  | Main pharmacological group. |
-| Product Component | SubGroup | text |  | Subgroup classification. |
-| Product Component | Generic | text |  | Generic name. |
-| Product Component | UseGenericName | boolean |  | Whether generic name should be used for display. |
-| Product Component | UseForm | boolean |  | Whether the pharmaceutical form should be included in naming. |
-| Product Component | UseBrand | boolean |  | Whether brand name should be used. |
-| Product Component | TallMan | text |  | Tall-Man lettering for LASA safety. |
-| Product Component | Synonyms | text list |  | Search synonyms. |
-| Product Component | Product | text |  | Product name generated for user-facing display. |
-| Product Component | Label | text |  | Label used in UI/selection. |
-| Product Component | Form | text |  | Pharmaceutical form. |
-| Product Component | Routes | text list |  | Routes of administration. |
-| Product Component | FormQuantities | float list | form_unit | List of form quantities (e.g., 5 mg, 10 mg). |
-| Product Component | FormUnit | text |  | Unit corresponding to form quantities. |
-| Product Component | RequiresReconstitution | boolean |  | Whether the product requires reconstitution before use. |
-| Product Component | Reconstitution | text |  | Description or parameters for reconstitution. |
-| Product Component | Divisible | int |  | Divisibility of the dosage form. |
-| Product Component | Substances | Substance Item list |  | Substance items associated with this component. |
+| Object               | Prop                   | Type                      | Unit           | Key | Description                                                   |
+|----------------------|------------------------|---------------------------|----------------|-----|---------------------------------------------------------------|
+| GenPRES Product      | Name                   | text                      |                | yes | The name of the GenPRES product.                              |
+| GenPRES Product      | Form                   | text                      |                | yes | Shared pharmaceutical form for all included generic products. |
+| GenPRES Product      | Routes                 | text list                 |                | yes | Routes of administration associated with the GenPRES product. |
+| GenPRES Product      | PharmacologicalGroups  | text list                 |                |     | Pharmacological groups applied to this product.               |
+| GenPRES Product      | Unit                   | text                      |                | yes | Dose unit used at the GenPRES level (e.g., mg, mmol, IU).     |
+| GenPRES Product      | Synonyms               | text list                 |                |     | Synonyms for searching and matching.                          |
+| GenPRES Product      | GenericProducts        | Generic Product list      |                |     | Generic products belonging to this GenPRES product.           |
+| Generic Product      | Id (GPK)               | int                       |                | yes | Generic product identifier (GPK).                             |
+| Generic Product      | Name                   | text                      |                | yes | Full generic product name.                                    |
+| Generic Product      | Label                  | text                      |                | yes | Display label for the generic product.                        |
+| Generic Product      | ATC                    | text                      |                |     | ATC-5 code for classification.                                |
+| Generic Product      | ATCName                | text                      |                |     | ATC-5 description.                                            |
+| Generic Product      | Form                   | text                      |                | yes | Pharmaceutical form.                                          |
+| Generic Product      | Routes                 | text list                 |                | yes | Routes of administration.                                     |
+| Generic Product      | Substances             | ProductSubstance list     |                | yes | Full substance composition of the generic product.            |
+| Generic Product      | PrescriptionProducts   | Prescription Product list |                |     | Prescription products belonging to this generic product.      |
+| Product Substance    | SubstanceId            | int                       |                |     | Identifier of the substance.                                  |
+| Product Substance    | SortOrder              | int                       |                |     | Ordering index for display and naming.                        |
+| Product Substance    | SubstanceName          | text                      |                | yes | Name of the active or additional substance.                   |
+| Product Substance    | SubstanceQuantity      | float                     | substance_unit | yes | Quantity of the substance.                                    |
+| Product Substance    | SubstanceUnit          | text                      |                | yes | Unit of the substance quantity.                               |
+| Product Substance    | GenericId              | int                       |                |     | Identifier of the underlying generic substance.               |
+| Product Substance    | GenericName            | text                      |                |     | Name of the generic (salt) substance.                         |
+| Product Substance    | GenericQuantity        | float                     | generic_unit   |     | Quantity of the generic substance.                            |
+| Product Substance    | GenericUnit            | text                      |                |     | Unit of measured generic substance.                           |
+| Product Substance    | FormUnit               | text                      |                |     | Form-dependent unit (e.g., mg/mL).                            |
+| Product Substance    | IsAdditional           | boolean                   |                |     | Whether substance is additional (not active).                 |
+| Prescription Product | Id (PRK)               | int                       |                | yes | Prescription product identifier (PRK).                        |
+| Prescription Product | Name                   | text                      |                | yes | Full prescription product name.                               |
+| Prescription Product | Label                  | text                      |                | yes | Display label for prescription product.                       |
+| Prescription Product | Quantity               | float                     | form_unit      | yes | Pharmaceutical form quantity.                                 |
+| Prescription Product | Unit                   | text                      |                | yes | Unit corresponding to Quantity.                               |
+| Prescription Product | Container              | text                      |                |     | Container description.                                        |
+| Prescription Product | TradeProducts          | Trade Product list        |                |     | Trade products included under this prescription product.      |
+| Trade Product        | Id (HPK)               | int                       |                | yes | Trade product identifier (HPK).                               |
+| Trade Product        | Name                   | text                      |                | yes | Full trade product name.                                      |
+| Trade Product        | Label                  | text                      |                |     | Display label.                                                |
+| Trade Product        | Brand                  | text                      |                | yes | Brand/manufacturer’s product name.                            |
+| Trade Product        | Company                | text                      |                |     | Company/marketing authorization holder.                       |
+| Trade Product        | Denominator            | int                       |                |     | Strength denominator used for concentration.                  |
+| Trade Product        | UnitWeight             | float                     | unit           |     | Strength or unit weight.                                      |
+| Trade Product        | Route                  | text list                 |                |     | Routes of administration.                                     |
+| Trade Product        | Substances             | Product Substance list    |                |     | Substance composition at trade level.                         |
+| Trade Product        | ConsumerProducts       | Consumer Product list     |                |     | Consumer-level package variants.                              |
+| Consumer Product     | Id (ZInr)              | int                       |                | yes | Consumer product identifier.                                  |
+| Consumer Product     | Name                   | text                      |                |     | Consumer product name.                                        |
+| Consumer Product     | Label                  | text                      |                |     | Display label.                                                |
+| Consumer Product     | Quantity               | float                     | container_unit | yes | Pack quantity for consumer sale.                              |
+| Consumer Product     | Container              | text                      |                | yes | Container description.                                        |
+| Product Component    | GPK                    | int                       |                |     | Generic product identifier.                                   |
+| Product Component    | ATC                    | text                      |                |     | ATC classification code.                                      |
+| Product Component    | MainGroup              | text                      |                |     | Main pharmacological group.                                   |
+| Product Component    | SubGroup               | text                      |                |     | Subgroup classification.                                      |
+| Product Component    | Generic                | text                      |                |     | Generic name.                                                 |
+| Product Component    | UseGenericName         | boolean                   |                |     | Whether generic name should be used for display.              |
+| Product Component    | UseForm                | boolean                   |                |     | Whether the pharmaceutical form should be included in naming. |
+| Product Component    | UseBrand               | boolean                   |                |     | Whether brand name should be used.                            |
+| Product Component    | TallMan                | text                      |                |     | Tall-Man lettering for LASA safety.                           |
+| Product Component    | Synonyms               | text list                 |                |     | Search synonyms.                                              |
+| Product Component    | Product                | text                      |                |     | Product name generated for user-facing display.               |
+| Product Component    | Label                  | text                      |                |     | Label used in UI/selection.                                   |
+| Product Component    | Form                   | text                      |                |     | Pharmaceutical form.                                          |
+| Product Component    | Routes                 | text list                 |                |     | Routes of administration.                                     |
+| Product Component    | FormQuantities         | float list                | form_unit      |     | List of form quantities (e.g., 5 mg, 10 mg).                  |
+| Product Component    | FormUnit               | text                      |                |     | Unit corresponding to form quantities.                        |
+| Product Component    | RequiresReconstitution | boolean                   |                |     | Whether the product requires reconstitution before use.       |
+| Product Component    | Reconstitution         | text                      |                |     | Description or parameters for reconstitution.                 |
+| Product Component    | Divisible              | int                       |                |     | Divisibility of the dosage form.                              |
+| Product Component    | Substances             | Substance Item list       |                |     | Substance items associated with this component.               |
