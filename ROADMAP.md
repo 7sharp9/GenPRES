@@ -23,7 +23,7 @@ First production-ready release with MDR compliance and clinical validation.
 **Status**: In Development
 
 **Major Milestones**:
-- 12 structured workshops (see [Production Plan](docs/roadmap/genpres-production-plan-2026-v3.md))
+- 12 structured workshops (see [Architecture and Timeline](docs/roadmap/genpres-architecture-and-timeline.md))
 - Complete MDR documentation package
 - Clinical validation studies
 - Regulatory compliance verification
@@ -296,8 +296,8 @@ Want to contribute to GenPRES development?
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-10-25
-**Next Review**: 2026-01-25
+**Document Version**: 1.1
+**Last Updated**: 2026-02-28
+**Next Review**: 2026-05-28
 
 For the most up-to-date information, see the [project GitHub repository](https://github.com/informedica/GenPRES).

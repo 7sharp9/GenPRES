@@ -208,66 +208,9 @@ This project follows specific organizational patterns:
 
 ### Coding Standards
 
-#### F# Development
+Follow the [F# Coding Instructions](.github/instructions/fsharp-coding.instructions.md) for code style, formatting, type design, error handling, testing, and documentation guidelines.
 
-Follow our [F# Coding Instructions](.github/instructions/fsharp-coding.instructions.md) which include:
-
-- Use 4 spaces for indentation (no tabs)
-- Keep lines under 120 characters
-- Use meaningful names with PascalCase for types/modules, camelCase for local bindings
-- Use discriminated unions for domain modeling
-- Prefer immutable data structures
-- Use Result<'T, 'Error> for operations that can fail
-- Write comprehensive unit tests using Expecto
-- Use property-based testing for complex logic
-
-#### Commit Messages
-
-Follow our [Commit Message Instructions](.github/instructions/commit-message.instructions.md):
-
-Use conventional commits format:
-
-```text
-<type>[optional scope]: <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
-
-**Scopes for GenPRES**:
-
-- Library scopes: `gensolver`, `genorder`, `genunits`, `zindex`, `utils`
-- Application scopes: `client`, `server`, `api`, `ui`, `config`
-- Infrastructure scopes: `deps`, `docker`, `github`, `build`, `deploy`
-
-**Examples**:
-
-```text
-feat(genorder): add pediatric dosage calculation
-fix(genunits): correct mg/ml to mmol/L conversion for NaCl
-docs(readme): update installation instructions
-test(gensolver): add property-based tests for constraint solving
-```
-
-### Testing Requirements
-
-- Write unit tests for all public functions
-- Use Expecto as the testing framework
-- Include both positive and negative test cases
-- Test edge cases and error conditions
-- Use property-based testing with FsCheck for mathematical operations
-- Ensure tests are readable and maintainable
-
-### Documentation
-
-- Use XML documentation for public APIs
-- Include examples in documentation when helpful
-- Document complex algorithms or business rules
-- Keep comments focused on "why" rather than "what"
-- Update README.md if adding new features or changing setup procedures
+Follow the [Commit Message Instructions](.github/instructions/commit-message.instructions.md) for conventional commit format, types, scopes, and examples.
 
 ## Domain-Specific Guidelines
 
@@ -281,20 +224,7 @@ When contributing to medical functionality:
 - **Error Handling**: Provide clear, actionable error messages for medical professionals
 - **MDR Compliance**: Ensure all medical-related changes align with Medical Device Regulation requirements
 
-### Mathematical Operations
-
-- Use units of measure for all physical quantities
-- Ensure calculations preserve unit safety
-- Test with edge cases (zero, negative, infinity)
-- Include precision and accuracy considerations
-- Document mathematical properties being maintained
-
-### Performance Considerations
-
-- Use sequences (seq) for large datasets
-- Consider async patterns for I/O operations
-- Profile before optimizing
-- Maintain functional approaches while being pragmatic about performance
+For mathematical operations, units of measure, performance, and testing guidelines, see [F# Coding Instructions](.github/instructions/fsharp-coding.instructions.md).
 
 ## Development Workflow
 

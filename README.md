@@ -111,17 +111,4 @@ Any help or collaboration is welcome! You can fork this repository, post issues,
 Some specifics, for more detailed information look at the [CONTRIBUTING.md](CONTRIBUTING.md):
 
 - **An opt-in strategy is used** in the `.gitignore` file, i.e. you have to specifically define what should be included instead or the other way around.
-- commits are tagged with
-  - **feat**: A new feature for the user
-  - **fix**: A bug fix, note that this should not be used for documentation fixes or refactoring
-  - **docs**: Documentation only changes
-  - **style**: Changes that do not affect the meaning of the code (white-space, formatting, etc.)
-  - **refactor**: A code change that neither fixes a bug nor adds a feature
-  - **perf**: A code change that improves performance
-  - **test**: Adding missing tests or correcting existing tests
-  - **build**: Changes that affect the build system or external dependencies
-  - **ci**: Changes to CI configuration files and scripts
-  - **chore**: Other changes that don't modify src or test files
-  - **revert**: Reverts a previous commit
-
-For detailed commit message guidelines and conventions, see [commit-message.instructions.md](.github/instructions/commit-message.instructions.md).
+- Commits follow [conventional commit format](.github/instructions/commit-message.instructions.md) with types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.

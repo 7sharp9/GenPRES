@@ -1,0 +1,365 @@
+# AGENTS.md
+
+Instructions for AI coding agents working on the GenPRES repository. Make edits small, test-driven, and follow existing repository patterns.
+
+> **⚠️ CRITICAL — SCRIPT-ONLY CODE POLICY ⚠️**
+>
+> **DO NOT write new code in source files (`.fs`).** All new features, fixes, enhancements, and experiments MUST be implemented exclusively in F# Interactive script files (`.fsx`) in the `Scripts/` directories. The user will review your work and decide what to migrate to source files.
+>
+> **Allowed changes to `.fs` source files:**
+>
+> - Adding, updating, or correcting **comments and documentation**
+> - **Targeted refactoring of a single function** when explicitly requested by the user
+> - **Client-side UI code** in `src/Informedica.GenPRES.Client/` — this is the only exception, because Fable/Elmish UI code cannot be run in FSI scripts
+>
+> **NOT allowed in other `.fs` source files:**
+>
+> - Adding new functions or modules
+> - Implementing new features or bug fixes
+> - Any code change not explicitly requested as a source-file edit
+>
+> This policy exists because GenPRES is a medical device software project. Unreviewed code changes to source files risk introducing unvalidated behavior into clinical medication workflows. The user is the sole gatekeeper for source file changes.
+>
+> See the **Script-Based Development Workflow** section below for how to work within this constraint.
+
+## Project Overview
+
+GenPRES is a Clinical Decision Support System (CDSS) for medication prescribing, built entirely in F# using the SAFE Stack (Saturn, Azure, Fable, Elmish). It provides safe and efficient medication order entry, calculation, and validation for medical settings.
+
+## Quick Start — Build, Run & Test
+
+### Prerequisites
+
+- **.NET SDK**, **Node.js**, and **npm**
+
+For the canonical list of supported versions, see the **Toolchain Requirements** section in [`DEVELOPMENT.md`](DEVELOPMENT.md#toolchain-requirements). For environment variables, see [`DEVELOPMENT.md`](DEVELOPMENT.md#environment-configuration).
+
+### Build and Run
+
+**IMPORTANT:** This repository contains multiple projects. Always specify the solution file:
+
+```bash
+# CORRECT - specify the solution
+dotnet build GenPRES.sln
+dotnet test GenPRES.sln
+
+# INCORRECT - will fail with "more than one project" error
+dotnet build
+dotnet test
+```
+
+- `dotnet run` - Start full application (server + client with hot reload)
+- `dotnet run list` - Show all available build targets
+- `dotnet run Build` - Build the solution
+- `dotnet run Bundle` - Create production bundle
+- `dotnet run Clean` - Clean build artifacts
+- Access the application at `http://localhost:5173`
+
+### Testing
+
+- `dotnet run ServerTests` - Run all F# unit tests using Expecto
+- `dotnet run TestHeadless` - Run tests in headless mode
+- `dotnet run WatchTests` - Run tests in watch mode
+- `dotnet test GenPRES.sln` - Alternative way to run all tests
+
+Individual library tests:
+
+```bash
+dotnet test tests/Informedica.GenSOLVER.Tests/
+dotnet test tests/Informedica.GenORDER.Tests/
+dotnet test tests/Informedica.GenUNITS.Tests/
+# ... etc for other test projects
+```
+
+### Code Quality
+
+- `dotnet run Format` - Format F# code using Fantomas
+
+### Docker
+
+- `docker build --build-arg GENPRES_URL_ARG="your_secret_url_id" -t halcwb/genpres .`
+- `docker run -it -p 8080:8085 halcwb/genpres`
+- `dotnet run DockerRun` - Run pre-built Docker image
+
+## Key Code Locations
+
+- F# libraries under `src/`
+- Tests: `tests/` (Expecto + FsCheck). Look for BigRational and ValueUnit tests.
+- Resource loading and tests: `src/Informedica.GenForm.Lib/Api.fs` and `tests/`
+- Sheet parsers: `Mapping.fs`, `Product.fs`, `DoseRule.fs`, `SolutionRule.fs`, `RenalRule.fs`
+- Unit and BigRational helpers: `src/Informedica.GenUnits.Lib/ValueUnit.fs`
+- Sheet documentation: `docs/mdr/design-history/genpres_resource_requirements.md`
+
+**Important:** an opt-in strategy is used in the `.gitignore` file — you have to specifically define what should be included instead of the other way around!
+
+## Configuration Architecture
+
+- All medication rules and constraints stored in Google Spreadsheets
+- Downloaded as CSV and parsed dynamically
+- `GENPRES_URL_ID` environment variable controls which spreadsheet to use
+- Local cache files provide offline medication data access
+
+## Communication Pattern
+
+- Client-server communication via Fable.Remoting (type-safe RPC)
+- API contracts defined in `src/Informedica.GenPRES.Shared/Api.fs`
+- Server processes medication calculations and returns validated results
+
+## Resource Loading Pattern
+
+- Docs with sheet specs: `docs/mdr/design-history/genpres_resource_requirements.md`.
+- Check `genpres_resource_requirements.md` for expected sheet and column names.
+- Resources are loaded from Google Sheets via `Web.getDataFromSheet dataUrlId "SheetName"`.
+- Mapping helper functions use `Csv.getStringColumn` / `Csv.getFloatOptionColumn` and call getString/getFloat-style delegates.
+- The central `ResourceConfig` (in `Api.fs`) expects functions returning `GenFormResult<'T>` (alias for `Result<'T, Message list>`). Use the `*Result` variants where present (e.g., `Mapping.getRouteMapping` or `Mapping.getRouteMappingResult`) and wrap with `delay` when the signature expects a `unit -> GenFormResult<_>`.
+- To add/modify sheet mappings: adjust the mapper in the corresponding module (e.g., `Product.Reconstitution.get`, `DoseRule.get`) and update `genpres_resource_requirements.md` to reflect column names.
+- Update the mapper to read columns by name using the `get` delegate (e.g., `let get = getColumn row in get "Generic"`), parse with `BigRational.toBrs` / `getFloat` as appropriate.
+- If adding optional numeric columns, use `getFloatOptionColumn` and `Option.bind BigRational.fromFloat`.
+
+## Result and Error Handling
+
+- IO and parsing functions should return `GenFormResult<'T>` (i.e., Result). Use `FsToolkit.ErrorHandling.ResultCE` computation expression for readability (`result { let! x = ... }`).
+- When editing `ResourceConfig` or callers, make sure to handle `Result` values consistently; use `Result.bind`, CE, or `delay` for unit-returning getters.
+
+## BigRational & ValueUnit Semantics
+
+- BigRational operations are used broadly for dosing math. Respect existing helpers in `Informedica.GenUnits.Lib`.
+- `removeBigRationalMultiples` semantics: it keeps the smallest positive BigRational representatives and removes later values that are integer multiples of a previously kept value. Example: [1/3; 1/2; 1] → keep 1/2 and 1/3 (both non-multiples of each other), but if 1/2 and 1 are present, keep 1/2 and remove 1 (1 is multiple of 1/2).
+- Use `BigRational.isMultiple` when reasoning about integer multiples.
+- Prefer using existing helpers like `ValueUnit.singleWithUnit`, `ValueUnit.withUnit`, etc., when manipulating units.
+- Use **BigRational** for all medication calculations (absolute precision).
+- Use `[<RequireQualifiedAccess>]` on DUs and modules.
+
+## Testing Patterns
+
+All tests use Expecto with Expecto.Flip for fluent assertions:
+
+```fsharp
+open Expecto
+open Expecto.Flip
+
+test "example test" {
+    actual
+    |> Expect.equal "should match expected" expected
+}
+```
+
+### Test Scenarios
+
+Test scenarios are defined in `tests/Informedica.GenORDER.Tests/Scenarios.fs` and include:
+
+- `pcmSupp` - Paracetamol suppository
+- `amfo` - Amphotericin B liposomal IV
+- `morfCont` - Morphine continuous infusion
+- `pcmDrink` - Paracetamol oral liquid
+- `cotrim` - Cotrimoxazole
+- `tpn` / `tpnComplete` - Total parenteral nutrition
+- `fullMedication` - Fully populated medication (all fields set)
+
+## Common Errors and Solutions
+
+### "Specify which project or solution file to use"
+
+```
+MSBUILD : error MSB1011: Specify which project or solution file to use
+because this folder contains more than one project or solution file.
+```
+
+**Solution:** Always specify `GenPRES.sln`:
+
+```bash
+dotnet build GenPRES.sln
+dotnet test GenPRES.sln
+```
+
+### FSI Script Path Errors
+
+If FSI scripts fail to load dependencies, ensure you're running from the script's directory:
+
+```bash
+cd src/Informedica.GenORDER.Lib/Scripts
+dotnet fsi Tests.fsx
+```
+
+### DLL Not Found
+
+If FSI scripts fail because DLLs are not found, rebuild the solution first:
+
+```bash
+dotnet build GenPRES.sln
+```
+
+## Script-Based Development Workflow
+
+**IMPORTANT: All new code MUST be written in `.fsx` script files only — never in `.fs` source files.** The user will review and migrate verified code to the codebase. See the critical policy at the top of this document.
+
+GenPRES uses an FSI script-based workflow for safely implementing new functionality in a mature ("brown-field") codebase. Instead of modifying production source files directly, you copy or shadow existing code into `.fsx` scripts, experiment and test interactively, and only migrate verified code back to the codebase.
+
+### Real-World Example: Cross-Project Feature in a Single Script
+
+Commit `d51252c` added a "pick nearest higher else lower component quantity" feature that ultimately touched 3 libraries and 7 source files (`Array.fs`, `ValueUnit.fs`, `OrderVariable.fs`, `Order.fs`, `OrderProcessor.fs`). But it was **prototyped first in a single script** — `src/Informedica.GenUNITS.Lib/Scripts/Api.fsx`:
+
+```fsharp
+#load "load.fsx"                          // loads GenUnits source files + compiled Utils DLL
+
+open Informedica.GenUnits.Lib
+
+// 1. Prototype a helper that belongs in Utils.Lib
+module Array =
+    let inline pickNearestHigherElseLower target xs =
+        if Array.isEmpty xs then invalidArg "xs" "Array cannot be empty"
+        let ys = xs |> Array.sort
+        match ys |> Array.tryFind (fun x -> x >= target) with
+        | Some x -> x                   // smallest value >= target
+        | None -> ys[ys.Length - 1]     // no higher value: take highest lower
+
+// 2. Prototype a ValueUnit function that uses the Array helper above
+module ValueUnit =
+    let pickNearestHigherElseLower (target: ValueUnit) (candidates: ValueUnit) =
+        if candidates |> ValueUnit.isEmpty then candidates
+        elif candidates |> ValueUnit.eqsGroup target |> not then candidates
+        else
+            candidates
+            |> ValueUnit.toBase
+            |> ValueUnit.applyToValue (fun brs1 ->
+                target
+                |> ValueUnit.getBaseValue
+                |> Array.tryExactlyOne
+                |> Option.map (fun br ->
+                    [| brs1 |> Array.pickNearestHigherElseLower br |]
+                )
+                |> Option.defaultValue brs1
+            )
+            |> ValueUnit.toUnit
+```
+
+Because `load.fsx` loads the GenUnits source files via `#load` and references the compiled Utils DLL via `#r`, you can prototype functions from **multiple libraries** in one interactive session. Once the logic is verified in FSI, the code is migrated to the appropriate source files across projects.
+
+### Infrastructure
+
+Every library has a `Scripts/` directory containing:
+
+- `load.fsx` — Bootstrap script that loads compiled DLLs from dependent libraries and `#load`s the library's own `.fs` source files. This gives FSI access to the full library context.
+- Development scripts (e.g., `Solver.fsx`, `Medication.fsx`, `Tests.fsx`) — Working scripts for experimentation and testing.
+
+Example `load.fsx` pattern:
+
+```fsharp
+#r "nuget: MathNet.Numerics.FSharp"
+#r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
+#load "../Types.fs"
+#load "../Variable.fs"
+#load "../Solver.fs"
+// ... etc
+```
+
+### Workflow
+
+1. **Set the current directory** — Always start with `Environment.CurrentDirectory <- __SOURCE_DIRECTORY__` so relative paths resolve correctly.
+2. **Load project context** — Use `#load "load.fsx"` to load all dependencies.
+3. **Reference NuGet packages inline** — Use `#r "nuget: Expecto, 9.0.4"` for test frameworks or other packages.
+4. **Copy only the code you need** — Don't drag entire modules; start with just the functions you plan to modify.
+5. **Modify and extend** — Refactor, optimize, or add new features in the script.
+6. **Write tests in the same script** — Verify your changes with inline Expecto tests.
+7. **Reuse existing test suites** — Load test files from the `tests/` directory via `#load` and run them against your modified code.
+8. **Migrate when confident** — Once verified, move the improved code back into the source files.
+
+### Module Shadowing Pattern
+
+Shadow an existing module to extend it with new functions while keeping all original functions accessible:
+
+```fsharp
+#load "load.fsx"
+
+open Informedica.GenOrder.Lib
+
+// Shadow the Medication module to add new functions
+module Medication =
+    // Open the original module - all existing functions become available
+    open Informedica.GenOrder.Lib.Medication
+
+    // Add new function
+    let fromString (s: string) : Result<Medication, string list> =
+        // implementation...
+
+    // Existing functions like toString, template, toOrderDto are now
+    // automatically available as Medication.toString, etc.
+```
+
+This allows calling both new and existing functions through the same module name:
+
+```fsharp
+let text = myMed |> Medication.toString       // original function
+let parsed = text |> Medication.fromString    // new function
+```
+
+### Testing in Scripts
+
+Write Expecto tests directly in the script file:
+
+```fsharp
+#r "nuget: expecto"
+
+open Expecto
+open Expecto.Flip
+
+let tests =
+    testList "feature tests" [
+        test "roundtrip works" {
+            let original = Scenarios.pcmSupp
+            let text = original |> Medication.toString |> String.concat "\n"
+            match text |> Medication.fromString with
+            | Error errs -> failwith $"Parse failed: {errs}"
+            | Ok parsed ->
+                parsed.Id |> Expect.equal "Id matches" original.Id
+        }
+    ]
+
+runTestsWithCLIArgs [] [||] tests
+```
+
+You can also reuse existing tests from the test projects:
+
+```fsharp
+// Load existing tests directly
+#load "../../../tests/Informedica.GenSOLVER.Tests/Tests.fs"
+
+open Informedica.GenSolver.Tests
+// Run existing test suites against your modified code
+```
+
+### Tips
+
+- **Partial evaluation** — Select part of a script and send it to FSI to validate small functions without reloading everything.
+- **Keep FSI sessions alive** — Build up state interactively rather than restarting FSI each time. Tools like the [fsi-mcp-server](https://github.com/halcwb/fsi-mcp-server) enable AI-assisted interactive sessions over MCP.
+- **Modularize scripts** — Break scripts into logical regions (helpers, refactored code, tests) with comments for easier navigation.
+- **Rebuild before scripting** — Run `dotnet build GenPRES.sln` first so `load.fsx` can find the compiled DLLs.
+
+## Data Dependencies
+
+- Production requires proprietary medication cache files (not in repository)
+- Demo version uses sample medication data included in repository
+- Google Spreadsheets contain live configuration — changes affect running systems
+
+## Safety, MDR and Documentation
+
+- This project targets clinical medication workflows. Any change that affects dosing, rules, parsing, or resource mapping must include: unit tests, changelog entry, and an update to `docs/mdr/design-history/genpres_resource_requirements.md` if spreadsheet columns or semantics changed.
+- Add notes to CONTRIBUTING.md if the change introduces a new external dependency or changes deployment behavior.
+
+## Checklist for Automated Edits
+
+- [ ] Small, focused change with < 300 LOC modified when possible.
+- [ ] Add or update unit tests covering the change.
+- [ ] Ensure `dotnet run servertests` passes locally for affected projects.
+- [ ] Update `genpres_resource_requirements.md` if spreadsheet column names or semantics change.
+- [ ] Use conventional commit message with scope and short description.
+
+## Related Documentation
+
+- Coding standards: [F# Coding Instructions](.github/instructions/fsharp-coding.instructions.md)
+- Code formatting: [F# Code Formatting](.github/instructions/fsharp-code-formatting.md)
+- Commit conventions: [Commit Message Instructions](.github/instructions/commit-message.instructions.md)
+- Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Development setup: [DEVELOPMENT.md](DEVELOPMENT.md)
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Domain model: `docs/domain/core-domain.md`

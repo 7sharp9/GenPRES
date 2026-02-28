@@ -351,6 +351,6 @@ This governance model is inspired by:
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-10-25
-**Next Review**: 2026-04-25 (or sooner if significant changes occur)
+**Document Version**: 1.1
+**Last Updated**: 2026-02-28
+**Next Review**: 2026-08-28 (or sooner if significant changes occur)

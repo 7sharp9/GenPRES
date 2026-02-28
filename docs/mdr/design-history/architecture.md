@@ -201,12 +201,4 @@ For details on:
 
 ### Domain Libraries
 
-- **Informedica.GenFORM.Lib**: Operational Knowledge Rules implementation
-- **Informedica.GenORDER.Lib**: Order scenario generation and management
-- **Informedica.GenSOLVER.Lib**: Constraint solving engine
-- **Informedica.GenUNITS.Lib**: Unit-aware computation
-- **Informedica.ZForm.Lib**: Rule extraction from G-Standaard
-- **Informedica.NKF.Lib**: Kinderformularium dosing rules
-- **Informedica.FTK.Lib**: Farmacotherapeutisch Kompas rules
-
-For complete library specifications, see [GenFORM Appendix B.3](../../domain/genform-free-text-to-operational-rules.md#addendum-b3-genform-libraries).
+For the complete library list with dependency order, see the [Core Libraries](../../../DEVELOPMENT.md#core-libraries) section in DEVELOPMENT.md. For detailed library specifications including capabilities, see [GenFORM Appendix B.3](../../domain/genform-free-text-to-operational-rules.md#addendum-b3-genform-libraries).

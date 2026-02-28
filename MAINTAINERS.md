@@ -283,7 +283,7 @@ Maintainers are recognized through:
 
 ## Updates
 
-This document is updated as maintainer roles change. Last updated: **2025-10-25**
+This document is updated as maintainer roles change. Last updated: **2026-02-28**
 
 Maintainer changes are documented in Git commit history for transparency.
 
