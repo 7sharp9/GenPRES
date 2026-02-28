@@ -205,7 +205,7 @@ See the sections below for detailed analysis of missing items and implementation
 ##### Other Documentation
 
 - ✅ **docs/roadmap/** - Strategic planning and workshops
-  - ✅ **genpres-production-plan-2026-v3.md** - Production roadmap with 12 workshops
+  - ✅ **genpres-architecture-and-timeline.md** - Architecture and timeline with 12 workshops
   - ✅ **w1-project-structure-and-governance.md** - This document
 - ✅ **docs/scenarios/** - Clinical scenario examples (6 files)
   - Newborn.md, Infant.md, Child.md, Teenager.md, Adult.md, Toddler.md
@@ -1087,7 +1087,7 @@ scripts/:
 Many missing root-level files should link to detailed MDR documentation:
 
 - `ARCHITECTURE.md` → `docs/mdr/design-history/architecture.md`
-- `ROADMAP.md` → `docs/roadmap/genpres-production-plan-2026-v3.md`
+- `ROADMAP.md` → `docs/roadmap/genpres-architecture-and-timeline.md`
 - `CHANGELOG.md` (user-facing) ≠ `docs/mdr/design-history/change-log.md` (developer)
 - ADRs should reference design history files for detailed technical decisions
 

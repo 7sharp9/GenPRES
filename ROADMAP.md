@@ -276,7 +276,7 @@ Our roadmap is guided by:
 ## Detailed Planning
 
 For detailed workshop planning and task breakdown, see:
-- [GenPRES Production Plan 2026 v3](docs/roadmap/genpres-production-plan-2026-v3.md)
+- [GenPRES Architecture and Timeline](docs/roadmap/genpres-architecture-and-timeline.md)
 - [W1: Project Structure & Governance](docs/roadmap/w1-project-structure-and-governance.md)
 
 ## Get Involved
