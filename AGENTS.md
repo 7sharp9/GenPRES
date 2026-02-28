@@ -2,6 +2,26 @@
 
 Instructions for AI coding agents working on the GenPRES repository. Make edits small, test-driven, and follow existing repository patterns.
 
+> **⚠️ CRITICAL — SCRIPT-ONLY CODE POLICY ⚠️**
+>
+> **DO NOT write new code in source files (`.fs`).** All new features, fixes, enhancements, and experiments MUST be implemented exclusively in F# Interactive script files (`.fsx`) in the `Scripts/` directories. The user will review your work and decide what to migrate to source files.
+>
+> **Allowed changes to `.fs` source files:**
+>
+> - Adding, updating, or correcting **comments and documentation**
+> - **Targeted refactoring of a single function** when explicitly requested by the user
+> - **Client-side UI code** in `src/Informedica.GenPRES.Client/` — this is the only exception, because Fable/Elmish UI code cannot be run in FSI scripts
+>
+> **NOT allowed in other `.fs` source files:**
+>
+> - Adding new functions or modules
+> - Implementing new features or bug fixes
+> - Any code change not explicitly requested as a source-file edit
+>
+> This policy exists because GenPRES is a medical device software project. Unreviewed code changes to source files risk introducing unvalidated behavior into clinical medication workflows. The user is the sole gatekeeper for source file changes.
+>
+> See the **Script-Based Development Workflow** section below for how to work within this constraint.
+
 ## Project Overview
 
 GenPRES is a Clinical Decision Support System (CDSS) for medication prescribing, built entirely in F# using the SAFE Stack (Saturn, Azure, Fable, Elmish). It provides safe and efficient medication order entry, calculation, and validation for medical settings.
@@ -127,6 +147,7 @@ test "example test" {
 ### Test Scenarios
 
 Test scenarios are defined in `tests/Informedica.GenORDER.Tests/Scenarios.fs` and include:
+
 - `pcmSupp` - Paracetamol suppository
 - `amfo` - Amphotericin B liposomal IV
 - `morfCont` - Morphine continuous infusion
@@ -145,6 +166,7 @@ because this folder contains more than one project or solution file.
 ```
 
 **Solution:** Always specify `GenPRES.sln`:
+
 ```bash
 dotnet build GenPRES.sln
 dotnet test GenPRES.sln
@@ -166,6 +188,152 @@ If FSI scripts fail because DLLs are not found, rebuild the solution first:
 ```bash
 dotnet build GenPRES.sln
 ```
+
+## Script-Based Development Workflow
+
+**IMPORTANT: All new code MUST be written in `.fsx` script files only — never in `.fs` source files.** The user will review and migrate verified code to the codebase. See the critical policy at the top of this document.
+
+GenPRES uses an FSI script-based workflow for safely implementing new functionality in a mature ("brown-field") codebase. Instead of modifying production source files directly, you copy or shadow existing code into `.fsx` scripts, experiment and test interactively, and only migrate verified code back to the codebase.
+
+### Real-World Example: Cross-Project Feature in a Single Script
+
+Commit `d51252c` added a "pick nearest higher else lower component quantity" feature that ultimately touched 3 libraries and 7 source files (`Array.fs`, `ValueUnit.fs`, `OrderVariable.fs`, `Order.fs`, `OrderProcessor.fs`). But it was **prototyped first in a single script** — `src/Informedica.GenUNITS.Lib/Scripts/Api.fsx`:
+
+```fsharp
+#load "load.fsx"                          // loads GenUnits source files + compiled Utils DLL
+
+open Informedica.GenUnits.Lib
+
+// 1. Prototype a helper that belongs in Utils.Lib
+module Array =
+    let inline pickNearestHigherElseLower target xs =
+        if Array.isEmpty xs then invalidArg "xs" "Array cannot be empty"
+        let ys = xs |> Array.sort
+        match ys |> Array.tryFind (fun x -> x >= target) with
+        | Some x -> x                   // smallest value >= target
+        | None -> ys[ys.Length - 1]     // no higher value: take highest lower
+
+// 2. Prototype a ValueUnit function that uses the Array helper above
+module ValueUnit =
+    let pickNearestHigherElseLower (target: ValueUnit) (candidates: ValueUnit) =
+        if candidates |> ValueUnit.isEmpty then candidates
+        elif candidates |> ValueUnit.eqsGroup target |> not then candidates
+        else
+            candidates
+            |> ValueUnit.toBase
+            |> ValueUnit.applyToValue (fun brs1 ->
+                target
+                |> ValueUnit.getBaseValue
+                |> Array.tryExactlyOne
+                |> Option.map (fun br ->
+                    [| brs1 |> Array.pickNearestHigherElseLower br |]
+                )
+                |> Option.defaultValue brs1
+            )
+            |> ValueUnit.toUnit
+```
+
+Because `load.fsx` loads the GenUnits source files via `#load` and references the compiled Utils DLL via `#r`, you can prototype functions from **multiple libraries** in one interactive session. Once the logic is verified in FSI, the code is migrated to the appropriate source files across projects.
+
+### Infrastructure
+
+Every library has a `Scripts/` directory containing:
+
+- `load.fsx` — Bootstrap script that loads compiled DLLs from dependent libraries and `#load`s the library's own `.fs` source files. This gives FSI access to the full library context.
+- Development scripts (e.g., `Solver.fsx`, `Medication.fsx`, `Tests.fsx`) — Working scripts for experimentation and testing.
+
+Example `load.fsx` pattern:
+
+```fsharp
+#r "nuget: MathNet.Numerics.FSharp"
+#r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
+#load "../Types.fs"
+#load "../Variable.fs"
+#load "../Solver.fs"
+// ... etc
+```
+
+### Workflow
+
+1. **Set the current directory** — Always start with `Environment.CurrentDirectory <- __SOURCE_DIRECTORY__` so relative paths resolve correctly.
+2. **Load project context** — Use `#load "load.fsx"` to load all dependencies.
+3. **Reference NuGet packages inline** — Use `#r "nuget: Expecto, 9.0.4"` for test frameworks or other packages.
+4. **Copy only the code you need** — Don't drag entire modules; start with just the functions you plan to modify.
+5. **Modify and extend** — Refactor, optimize, or add new features in the script.
+6. **Write tests in the same script** — Verify your changes with inline Expecto tests.
+7. **Reuse existing test suites** — Load test files from the `tests/` directory via `#load` and run them against your modified code.
+8. **Migrate when confident** — Once verified, move the improved code back into the source files.
+
+### Module Shadowing Pattern
+
+Shadow an existing module to extend it with new functions while keeping all original functions accessible:
+
+```fsharp
+#load "load.fsx"
+
+open Informedica.GenOrder.Lib
+
+// Shadow the Medication module to add new functions
+module Medication =
+    // Open the original module - all existing functions become available
+    open Informedica.GenOrder.Lib.Medication
+
+    // Add new function
+    let fromString (s: string) : Result<Medication, string list> =
+        // implementation...
+
+    // Existing functions like toString, template, toOrderDto are now
+    // automatically available as Medication.toString, etc.
+```
+
+This allows calling both new and existing functions through the same module name:
+
+```fsharp
+let text = myMed |> Medication.toString       // original function
+let parsed = text |> Medication.fromString    // new function
+```
+
+### Testing in Scripts
+
+Write Expecto tests directly in the script file:
+
+```fsharp
+#r "nuget: expecto"
+
+open Expecto
+open Expecto.Flip
+
+let tests =
+    testList "feature tests" [
+        test "roundtrip works" {
+            let original = Scenarios.pcmSupp
+            let text = original |> Medication.toString |> String.concat "\n"
+            match text |> Medication.fromString with
+            | Error errs -> failwith $"Parse failed: {errs}"
+            | Ok parsed ->
+                parsed.Id |> Expect.equal "Id matches" original.Id
+        }
+    ]
+
+runTestsWithCLIArgs [] [||] tests
+```
+
+You can also reuse existing tests from the test projects:
+
+```fsharp
+// Load existing tests directly
+#load "../../../tests/Informedica.GenSOLVER.Tests/Tests.fs"
+
+open Informedica.GenSolver.Tests
+// Run existing test suites against your modified code
+```
+
+### Tips
+
+- **Partial evaluation** — Select part of a script and send it to FSI to validate small functions without reloading everything.
+- **Keep FSI sessions alive** — Build up state interactively rather than restarting FSI each time. Tools like the [fsi-mcp-server](https://github.com/halcwb/fsi-mcp-server) enable AI-assisted interactive sessions over MCP.
+- **Modularize scripts** — Break scripts into logical regions (helpers, refactored code, tests) with comments for easier navigation.
+- **Rebuild before scripting** — Run `dotnet build GenPRES.sln` first so `load.fsx` can find the compiled DLLs.
 
 ## Data Dependencies
 
