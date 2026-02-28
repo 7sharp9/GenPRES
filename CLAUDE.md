@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/claude-code) when working with code in this repository.
+Read and follow the instructions in [AGENTS.md](AGENTS.md).
+
+This file contains additional guidance specific to Claude Code (claude.ai/claude-code).
 
 ## Session Startup
 
@@ -12,37 +14,7 @@ mcp__fsi-mcp__get_fsi_status
 
 This establishes whether the F# Interactive MCP server is available for the session. If running, prefer using the MCP tools for all F# interactive work (see "Running FSI Scripts" below).
 
-## Quick Reference
-
-### Build Commands
-
-**IMPORTANT:** This repository contains multiple projects. Always specify the solution file:
-
-```bash
-# CORRECT - specify the solution
-dotnet build GenPRES.sln
-dotnet test GenPRES.sln
-
-# INCORRECT - will fail with "more than one project" error
-dotnet build
-dotnet test
-```
-
-### Running Tests
-
-```bash
-# Run all server tests (from project root)
-dotnet run servertests
-
-# Run tests for a specific library
-dotnet test tests/Informedica.GenORDER.Tests/
-dotnet test tests/Informedica.GenSOLVER.Tests/
-
-# Alternative using solution
-dotnet test GenPRES.sln
-```
-
-### Running FSI Scripts
+## Running FSI Scripts
 
 **IMPORTANT:** When running F# code interactively, always check if the FSI MCP server is available first using `mcp__fsi-mcp__get_fsi_status`. If the server is running, prefer using the MCP tools over `dotnet fsi`:
 
@@ -72,70 +44,6 @@ dotnet fsi Medication.fsx
 # INCORRECT - will fail with path errors
 dotnet fsi src/Informedica.GenORDER.Lib/Scripts/Tests.fsx
 ```
-
-### Full Application
-
-```bash
-# Start full application (server + client with hot reload)
-dotnet run
-
-# List all available build targets
-dotnet run list
-```
-
-## Related Documentation
-
-For detailed guidance, refer to these files:
-
-| File | Purpose |
-|------|---------|
-| [WARP.md](WARP.md) | Project overview, architecture, and common commands |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | Development environment setup and toolchain requirements |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture and design decisions |
-| [.github/instructions/fsharp-coding.instructions.md](.github/instructions/fsharp-coding.instructions.md) | F# coding guidelines and patterns |
-| [.github/instructions/fsharp-code-formatting.md](.github/instructions/fsharp-code-formatting.md) | Code formatting conventions |
-| [.github/instructions/commit-message.instructions.md](.github/instructions/commit-message.instructions.md) | Commit message format and examples |
-
-## Project Structure
-
-For the complete project folder structure, library list, and dependency order, see [DEVELOPMENT.md](DEVELOPMENT.md). For the full architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
-
-## Testing Patterns
-
-### Expecto Framework
-
-All tests use Expecto with Expecto.Flip for fluent assertions:
-
-```fsharp
-open Expecto
-open Expecto.Flip
-
-test "example test" {
-    actual
-    |> Expect.equal "should match expected" expected
-}
-```
-
-### FSI Test Scripts
-
-Scripts in `Scripts/` directories can run tests interactively:
-
-- `Tests.fsx` - General test runner template with FsCheck generators
-- `Medication.fsx` - Medication-specific scenarios and tests
-- `load.fsx` - Loads all dependencies (referenced by other scripts)
-
-The `load.fsx` script loads `Scenarios.fs` from the test project, making test scenarios available in FSI.
-
-### Test Scenarios
-
-Test scenarios are defined in `tests/Informedica.GenORDER.Tests/Scenarios.fs` and include:
-- `pcmSupp` - Paracetamol suppository
-- `amfo` - Amphotericin B liposomal IV
-- `morfCont` - Morphine continuous infusion
-- `pcmDrink` - Paracetamol oral liquid
-- `cotrim` - Cotrimoxazole
-- `tpn` / `tpnComplete` - Total parenteral nutrition
-- `fullMedication` - Fully populated medication (all fields set)
 
 ## Script-Only Development
 
@@ -204,49 +112,12 @@ let tests =
 runTestsWithCLIArgs [] [||] tests
 ```
 
-### Benefits
+### FSI Test Scripts
 
-- **Safe** - Source files are never modified by Claude
-- **Verifiable** - User can review and validate before migrating
-- **Iterative** - Rapid FSI feedback without compilation cycles
-- **Traceable** - All changes are contained in script files
+Scripts in `Scripts/` directories can run tests interactively:
 
-## Common Errors and Solutions
+- `Tests.fsx` - General test runner template with FsCheck generators
+- `Medication.fsx` - Medication-specific scenarios and tests
+- `load.fsx` - Loads all dependencies (referenced by other scripts)
 
-### "Specify which project or solution file to use"
-
-```
-MSBUILD : error MSB1011: Specify which project or solution file to use
-because this folder contains more than one project or solution file.
-```
-
-**Solution:** Always specify `GenPRES.sln`:
-```bash
-dotnet build GenPRES.sln
-dotnet test GenPRES.sln
-```
-
-### FSI Script Path Errors
-
-If FSI scripts fail to load dependencies, ensure you're running from the script's directory:
-
-```bash
-cd src/Informedica.GenORDER.Lib/Scripts
-dotnet fsi Tests.fsx
-```
-
-### DLL Not Found
-
-If FSI scripts fail because DLLs are not found, rebuild the solution first:
-
-```bash
-dotnet build GenPRES.sln
-```
-
-## Code Style and Conventions
-
-For F# coding standards, see [F# Coding Instructions](.github/instructions/fsharp-coding.instructions.md). For commit message format, see [Commit Message Instructions](.github/instructions/commit-message.instructions.md). For medical safety considerations, see [DEVELOPMENT.md](DEVELOPMENT.md#medical-safety-considerations).
-
-Key project-specific conventions:
-- Use **BigRational** for all medication calculations (absolute precision)
-- Use `[<RequireQualifiedAccess>]` on DUs and modules
+The `load.fsx` script loads `Scenarios.fs` from the test project, making test scenarios available in FSI.
