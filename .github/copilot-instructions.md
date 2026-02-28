@@ -7,7 +7,7 @@ This file is a concise set of instructions for automated coding agents working o
 - Preserve medical-device safety posture: do not ship breaking changes without tests and documentation (MDR requirements apply).
 
 ## Quick start — run & test
-- Build / run the app locally: use the repo root and `dotnet run` (requires .NET 9).
+- Build / run the app locally: use the repo root and `dotnet run`. For toolchain version requirements, see [DEVELOPMENT.md](../DEVELOPMENT.md#toolchain-requirements).
 - Run tests: `dotnet run servertests` from repo root or run individual test projects under `tests/`.
 
 ## Key code locations
@@ -17,7 +17,7 @@ This file is a concise set of instructions for automated coding agents working o
 **Important: an opt-in strategy is used** in the `.gitignore` file, i.e. you have to specifically define what should be included instead or the other way around!!
 
 
-Also consult: [CONTRIBUTING.md](https://github.com/halcwb/GenPres2?tab=contributing-ov-file)
+Also consult: [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 ## Code standards
 Follow the project coding standards:
@@ -38,12 +38,6 @@ Follow the project coding standards:
 ## Result and error handling
 - IO and parsing functions should return `GenFormResult<'T>` (i.e., Result). Use `FsToolkit.ErrorHandling.ResultCE` computation expression for readability (`result { let! x = ... }`).
 - When editing `ResourceConfig` or callers, make sure to handle `Result` values consistently; use `Result.bind`, CE, or `delay` for unit-returning getters.
-
-## BigRational & ValueUnit semantics (important)
-- BigRational operations are used broadly for dosing math. Respect existing helpers in `Informedica.GenUnits.Lib`.
-- removeBigRationalMultiples semantics: it keeps the smallest positive BigRational representatives and removes later values that are integer multiples of a previously kept value. Example: [1/3; 1/2; 1] -> keep 1/2 and 1/3 (both non-multiples of each other), but if 1/2 and 1 are present, keep 1/2 and remove 1 (1 is multiple of 1/2).
-- Use `BigRational.isMultiple` when reasoning about integer multiples.
-- Prefer using existing helpers like `ValueUnit.singleWithUnit`, `ValueUnit.withUnit`, etc., when manipulating units.
 
 ## BigRational & ValueUnit semantics (important)
 - BigRational operations are used broadly for dosing math. Respect existing helpers in `Informedica.GenUnits.Lib`.

@@ -60,40 +60,9 @@ dotnet test tests/Informedica.GenUNITS.Tests/
 
 ## Architecture Overview
 
-### High-Level Structure
+GenPRES follows a client-server web application architecture built on the [SAFE Stack](https://safe-stack.github.io/). For the complete architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md) and `docs/mdr/design-history/architecture.md`. For the core domain model and transformation pipeline, see `docs/domain/core-domain.md`.
 
-GenPRES follows a client-server web application architecture:
-
-- **Server** (`src/Informedica.GenPRES.Server/`): F# + Saturn/Giraffe web framework, exposes REST API
-- **Client** (`src/Informedica.GenPRES.Client/`): F# + Fable (compiled to JavaScript) + React + Vite
-- **Shared** (`src/Informedica.GenPRES.Shared/`): Common types and API contracts
-- **Libraries** (`src/Informedica.*.Lib/`): Domain-specific F# libraries
-
-For an in-depth description of the core domain model and transformation pipeline, see `docs/domain/core-domain.md` and the related GenFORM, GenORDER, and GenSOLVER specifications under `docs/domain/`.
-
-### Key Libraries
-
-1. **Informedica.GenORDER.Lib**: Core medication order modeling and calculation
-   - Hierarchical order model (Order → Prescription → Orderable → Component → Item)
-   - Maps clinical orders to mathematical equations for solving
-   - Supports complex dosing scenarios (per kg, per BSA, ranges, restrictions)
-
-2. **Informedica.GenSOLVER.Lib**: Constraint solving engine
-   - Solves systems of equations with order-independent calculations
-   - Uses BigRational for absolute precision to avoid medication dosing errors
-   - Handles ranges and restrictions (e.g., dose 60-80mg, frequency 2-4 times/day)
-
-3. **Informedica.GenUNITS.Lib**: Units of measure system
-   - Automatic unit conversion and validation
-   - All calculations performed in base units
-   - Prevents unit-related medication errors
-
-4. **Informedica.ZIndex.Lib**: Dutch medication database integration
-   - Product data and drug information lookup
-   - Maps to local cached medication data
-
-5. **Informedica.GenFORM.Lib**: Pharmaceutical forms and preparations
-   - Handles different medication forms and preparation methods
+For the complete library list and dependency order, see the [Core Libraries](DEVELOPMENT.md#core-libraries) section in DEVELOPMENT.md.
 
 ### Configuration Architecture
 
@@ -110,77 +79,18 @@ For an in-depth description of the core domain model and transformation pipeline
 
 ## Key Development Patterns
 
-### Medical Domain Focus
+For coding standards, testing patterns, and F# development guidelines, see the [F# Coding Instructions](.github/instructions/fsharp-coding.instructions.md).
 
-- All calculations are unit-safe and use absolute precision (BigRational)
-- Order-independent calculation engine - any variable can be solved from any combination of knowns
-- Comprehensive validation for medication safety
-- Support for complex clinical scenarios (pediatric dosing, weight-based calculations, etc.)
-
-### F# Functional Architecture
-
-- Immutable data structures throughout
-- Extensive use of discriminated unions for domain modeling  
-- Property-based testing with FsCheck for mathematical properties
-- Actor model (MailboxProcessor) for concurrent processing
-
-### Testing Strategy
-
-- Uses Expecto test framework across all F# projects
-- Property-based tests for mathematical calculations and unit conversions
-- Integration tests for medication calculation scenarios
-- Test data includes medical scenarios for validation
+For medical safety considerations, see the [Domain-Specific Guidelines](DEVELOPMENT.md#domain-specific-guidelines) section in DEVELOPMENT.md.
 
 ## Commit Message Conventions
 
-Use conventional commits with specific scopes:
-
-For the canonical and detailed commit message instructions, including types, scopes, and examples, see the "Commit Messages" section in `DEVELOPMENT.md` and `.github/instructions/commit-message.instructions.md`.
-
-### Library Scopes
-
-For the canonical list of supported scopes and their descriptions, see the "Scopes for GenPRES" subsection in `DEVELOPMENT.md` and the scopes section in `.github/instructions/commit-message.instructions.md`.
-
-- `gensolver`: Constraint solving and equations
-- `genorder`: Medical orders and prescriptions  
-- `genunits`: Units of measure and calculations
-- `zindex`: Medication database integration
-- `utils`: Shared utilities
-
-### Application Scopes  
-
-See `DEVELOPMENT.md` and `.github/instructions/commit-message.instructions.md` for the full set of application and infrastructure scopes.
-
-- `client`: Client-side application
-- `server`: Server-side application
-- `api`: API endpoints or contracts
-
-### Examples
-
-```
-feat(genorder): add pediatric dosage calculation
-fix(gensolver): resolve infinite loop in constraint propagation  
-refactor(genunits): extract unit conversion logic
-test(genorder): add property tests for dose calculations
-```
+Follow the [Commit Message Instructions](.github/instructions/commit-message.instructions.md) for conventional commit format, types, scopes, and examples.
 
 ## Important Notes
-
-### Medical Safety Considerations
-
-- This system handles medication dosing calculations - precision and safety are critical
-- All mathematical operations use BigRational to prevent rounding errors
-- Extensive validation prevents dangerous medication combinations or doses
-- Changes to calculation logic require thorough testing
 
 ### Data Dependencies
 
 - Production requires proprietary medication cache files (not in repository)
 - Demo version uses sample medication data included in repository
 - Google Spreadsheets contain live configuration - changes affect running systems
-
-### Performance Considerations
-
-- Calculation engine optimized for complex scenarios with large possibility spaces
-- Local caching used for medication data to ensure responsive UI
-- Mathematical modeling ongoing to improve efficiency for range-based calculations

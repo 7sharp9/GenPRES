@@ -742,7 +742,7 @@ See the sections below for detailed analysis of missing items and implementation
 
 ### 🟡 Medium Priority (Should Have)
 
-9. **ARCHITECTURE.md** - Root-level system overview (linking to detailed docs)
+9. ~~**ARCHITECTURE.md**~~ - ✅ Completed
 10. **ADR directory** - Architecture Decision Records with templates
 11. **Test coverage reporting** - Codecov or Coveralls integration
 12. **Dependabot** - Automated dependency updates and security alerts
@@ -812,16 +812,16 @@ GenPRES2/
 ├── 📄 README.md                              ✅ Exists - Entry point
 ├── 📄 LICENSE                                ✅ Exists - Open source license
 ├── 📄 CONTRIBUTING.md                        ⚠️ Enhance with MDR checklist
-├── 📄 CODE_OF_CONDUCT.md                     ❌ ADD - Use Contributor Covenant
-├── 📄 SECURITY.md                            ❌ ADD - Vulnerability disclosure
-├── 📄 SUPPORT.md                             ❌ ADD - Getting help guide
-├── 📄 GOVERNANCE.md                          ❌ ADD - Project governance model
-├── 📄 MAINTAINERS.md                         ❌ ADD - Maintainer roster
+├── 📄 CODE_OF_CONDUCT.md                     ✅ Exists - Contributor Covenant v2.1
+├── 📄 SECURITY.md                            ✅ Exists - Vulnerability disclosure
+├── 📄 SUPPORT.md                             ✅ Exists - Getting help guide
+├── 📄 GOVERNANCE.md                          ✅ Exists - Project governance model
+├── 📄 MAINTAINERS.md                         ✅ Exists - Maintainer roster
 ├── 📄 ARCHITECTURE.md                        ✅ Exists - Quick architecture reference
 │                                                      → Links to docs/mdr/design-history/architecture.md
-├── 📄 ROADMAP.md                             ❌ ADD - Public roadmap
-│                                                      → Links to docs/roadmap/genpres-production-plan-2026-v3.md
-├── 📄 CHANGELOG.md                           ❌ ADD - User-facing release notes
+├── 📄 ROADMAP.md                             ✅ Exists - Public roadmap
+│                                                      → Links to docs/roadmap/genpres-architecture-and-timeline.md
+├── 📄 CHANGELOG.md                           ✅ Exists - User-facing release notes
 │                                                      → Separate from docs/mdr/design-history/change-log.md
 ├── 📄 AUTHORS.md                             ❌ ADD - Contributors list
 ├── 📄 .editorconfig                          ❌ ADD - Editor configuration
@@ -858,7 +858,7 @@ GenPRES2/
 ├── 📁 docs/                                  ✅ Exists
 │   │
 │   ├── 📁 roadmap/                           ✅ Exists - Strategic planning & workshops
-│   │   ├── 📄 genpres-production-plan-2026-v3.md ✅ Exists - Production roadmap
+│   │   ├── 📄 genpres-architecture-and-timeline.md ✅ Exists - Architecture and timeline
 │   │   ├── 📄 w1-project-structure-and-governance.md ✅ This document
 │   │   └── 📄 w2-through-w12.md              ❌ ADD - Future workshop docs
 │   │

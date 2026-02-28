@@ -98,21 +98,7 @@ For detailed guidance, refer to these files:
 
 ## Project Structure
 
-- **src/Informedica.*.Lib/** - Domain-specific F# libraries
-- **tests/Informedica.*.Tests/** - Test projects (one per library)
-- **src/Informedica.GenPRES.Server/** - Server application
-- **src/Informedica.GenPRES.Client/** - Client application (Fable/React)
-- **src/Informedica.GenPRES.Shared/** - Shared types and API contracts
-
-### Key Libraries
-
-| Library | Purpose |
-|---------|---------|
-| GenORDER.Lib | Core medication order modeling and calculation |
-| GenSOLVER.Lib | Constraint solving engine with BigRational precision |
-| GenUNITS.Lib | Units of measure system |
-| GenFORM.Lib | Pharmaceutical forms and preparations |
-| ZIndex.Lib | Dutch medication database integration |
+For the complete project folder structure, library list, and dependency order, see [DEVELOPMENT.md](DEVELOPMENT.md). For the full architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Testing Patterns
 
@@ -257,36 +243,10 @@ If FSI scripts fail because DLLs are not found, rebuild the solution first:
 dotnet build GenPRES.sln
 ```
 
-## Code Style Highlights
+## Code Style and Conventions
 
-- **4 spaces** for indentation (no tabs)
-- **PascalCase** for types, modules, public members
-- **camelCase** for local bindings and private members
+For F# coding standards, see [F# Coding Instructions](.github/instructions/fsharp-coding.instructions.md). For commit message format, see [Commit Message Instructions](.github/instructions/commit-message.instructions.md). For medical safety considerations, see [DEVELOPMENT.md](DEVELOPMENT.md#medical-safety-considerations).
+
+Key project-specific conventions:
 - Use **BigRational** for all medication calculations (absolute precision)
-- Use **discriminated unions** for domain modeling
-- Prefer **modules and functions** over classes
 - Use `[<RequireQualifiedAccess>]` on DUs and modules
-
-## Commit Messages
-
-Use conventional commits format:
-
-```
-<type>(<scope>): <description>
-```
-
-Common scopes: `genorder`, `gensolver`, `genunits`, `zindex`, `client`, `server`, `api`
-
-Examples:
-```
-feat(genorder): add pediatric dosage calculation
-fix(gensolver): resolve infinite loop in constraint propagation
-test(genorder): add property tests for dose calculations
-```
-
-## Medical Safety Note
-
-This system handles medication dosing calculations. Precision and safety are critical:
-- All mathematical operations use **BigRational** to prevent rounding errors
-- Extensive validation prevents dangerous medication combinations or doses
-- Changes to calculation logic require thorough testing
