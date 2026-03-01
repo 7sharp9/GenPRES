@@ -1,9 +1,9 @@
 #load "load.fsx"
 
 open System
-let dataUrlId = "1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM"
+Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
 Environment.SetEnvironmentVariable("GENPRES_PROD", "1")
-Environment.SetEnvironmentVariable("GENPRES_URL_ID", dataUrlId)
+let dataUrlId = Environment.GetEnvironmentVariable("GENPRES_URL_ID")
 
 
 #load "../Types.fs"
