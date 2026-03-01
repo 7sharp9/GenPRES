@@ -346,6 +346,18 @@ open Informedica.GenSolver.Tests
 - This project targets clinical medication workflows. Any change that affects dosing, rules, parsing, or resource mapping must include: unit tests, changelog entry, and an update to `docs/mdr/design-history/genpres_resource_requirements.md` if spreadsheet columns or semantics changed.
 - Add notes to CONTRIBUTING.md if the change introduces a new external dependency or changes deployment behavior.
 
+## AI/LLM Usage Policy
+
+This policy applies to **all contributors**, not just AI agents.
+
+> **LLMs must not be given direct write access to `.fs` source files**, except for client-side UI code in `src/Informedica.GenPRES.Client/`.
+
+Contributors using AI coding tools (GitHub Copilot, Claude, Cursor, Warp AI, etc.) must route all non-UI code through `.fsx` scripts first, following the script-based development workflow described above. The human contributor is responsible for reviewing, verifying, and manually migrating script code into source files.
+
+This restriction exists because GenPRES is a medical device software project. Allowing LLMs to directly modify source files risks introducing unvalidated behavior into clinical medication workflows. Human review of every source file change is a safety requirement.
+
+Contributors must also disclose when code submitted in a pull request is **vibe coded** — see [CONTRIBUTING.md](CONTRIBUTING.md#ai-assisted-contributions) for the definition and disclosure requirements.
+
 ## Checklist for Automated Edits
 
 - [ ] Small, focused change with < 300 LOC modified when possible.
