@@ -7,14 +7,7 @@ stopWatch.Start ()
 fsi.AddPrinter<System.DateTime> _.ToShortDateString()
 
 
-#r "nuget: MathNet.Numerics.FSharp"
-#r "nuget: FParsec"
-#r "nuget: Newtonsoft.Json"
-#r "nuget: Aether"
-#r "nuget: Markdig"
-#r "nuget: ClosedXML"
-#r "nuget: FsToolkit.ErrorHandling"
-#r "nuget: ConsoleTables, 2.4.2"
+#load "../../../scripts/load-dependencies.fsx"
 
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"

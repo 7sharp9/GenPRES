@@ -1,8 +1,5 @@
 
-#r "nuget: MathNet.Numerics.FSharp"
-#r "nuget: FParsec"
-#r "nuget: Newtonsoft.Json"
-#r "nuget: Aether"
+#load "../../../scripts/load-dependencies.fsx"
 
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
