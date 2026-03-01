@@ -35,6 +35,13 @@ I confirm that these changes:
 - [ ] Follow the guidelines specified in [DEVELOPMENT.md](../../DEVELOPMENT.md).
 - [ ] Have been thoroughly tested.
 - [ ] Don't introduce new security vulnerabilities.
+- [ ] Follow the [AI/LLM Usage Policy](../../AGENTS.md#aillm-usage-policy) — LLMs were not given direct write access to `.fs` source files (except client-side UI code).
+
+### AI/Vibe Coding Disclosure
+
+- [ ] Some or all code in this PR is **vibe coded** (substantially AI-generated). If checked, describe below which parts were AI-generated, which tool was used, and how the code was verified.
+
+<!-- If the checkbox above is checked, add details here: -->
 
 I confirm that I have:
 
