@@ -54,12 +54,6 @@ module Web =
     open Informedica.ZIndex.Lib
 
 
-    // Constraints spreadsheet GenPres
-    //https://docs.google.com/spreadsheets/d/1nny8rn9zWtP8TMawB3WeNWhl5d4ofbWKbGzGqKTd49g/edit?usp=sharing
-    [<Literal>]
-    let dataUrlId = "1nny8rn9zWtP8TMawB3WeNWhl5d4ofbWKbGzGqKTd49g"
-
-
     /// <summary>
     /// Get the data from the GenPres sheet.
     /// </summary>

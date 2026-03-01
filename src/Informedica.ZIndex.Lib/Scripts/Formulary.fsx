@@ -1,4 +1,5 @@
 
+
 #load "load.fsx"
 
 #time
@@ -10,15 +11,16 @@ open Informedica.Utils.Lib.BCL
 open Informedica.ZIndex.Lib
 
 
-Environment.CurrentDirectory
-
-
-
+Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
 Environment.SetEnvironmentVariable(FilePath.GENPRES_PROD, "1")
 
-let dataUrl = "16ftzbk2CNtPEq3KAOeP7LEexyg3B-E5w52RPOyQVVks"
+
+let dataUrl = Environment.GetEnvironmentVariable("GENPRES_URL_ID")
 
 
+printfn $"dataurl: {dataUrl}"
+
+(*
 let prods =
     Web.GoogleSheets.getCsvDataFromSheetSync dataUrl "Formulary"
     |> Array.skip 1
@@ -60,4 +62,4 @@ let prods =
 prods |> Array.iter (fun (name, form, brands, genName) -> printfn $"{name}\t{form}\t{brands}\t{genName}")
 
 
-GenPresProduct.findByGPK 21000
+*)

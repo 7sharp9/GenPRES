@@ -27,6 +27,7 @@
     <None Include="Scripts\Medication.fsx" />
     <None Include="Scripts\Constraints.fsx" />
     <None Include="Scripts\NormDose.fsx" />
+    <None Include="Scripts\Nutrition.fsx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Informedica.GenSOLVER.Lib\Informedica.GenSOLVER.Lib.fsproj" />

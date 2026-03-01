@@ -1,10 +1,10 @@
 
 open System
 
-Environment.SetEnvironmentVariable("GENPRES_LOG", "1")
+Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
+Environment.SetEnvironmentVariable("GENPRES_LOG", "i")
 Environment.SetEnvironmentVariable("GENPRES_PROD", "1")
-Environment.SetEnvironmentVariable("GENPRES_DEBUG", "v")
-Environment.SetEnvironmentVariable("GENPRES_URL_ID", "1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM")
+Environment.SetEnvironmentVariable("GENPRES_DEBUG", "1")
 
 #load "load.fsx"
 

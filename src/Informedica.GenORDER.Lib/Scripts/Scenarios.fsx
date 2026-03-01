@@ -5,9 +5,9 @@
 
 open System
 
+Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
 Environment.SetEnvironmentVariable("GENPRES_DEBUG", "0")
 Environment.SetEnvironmentVariable("GENPRES_PROD", "1")
-Environment.SetEnvironmentVariable("GENPRES_URL_ID", "1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM")
 
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
@@ -39,7 +39,7 @@ module GenFormResult =
 let provider : Resources.IResourceProvider =
     Api.getCachedProviderWithDataUrlId
         OrderLogging.noOp
-        "1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM"
+        (Environment.GetEnvironmentVariable("GENPRES_URL_ID"))
 
 
 
