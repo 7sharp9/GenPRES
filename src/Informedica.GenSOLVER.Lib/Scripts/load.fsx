@@ -1,6 +1,5 @@
 
-#r "nuget: MathNet.Numerics.FSharp"
-#r "nuget: FParsec"
+#load "../../../scripts/load-dependencies.fsx"
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
 #r "../../Informedica.Logging.Lib/bin/Debug/net10.0/Informedica.Logging.Lib.dll"

@@ -1,10 +1,5 @@
 
-#r "nuget: MathNet.Numerics.FSharp"
-#r "nuget: FParsec"
-#r "nuget: Newtonsoft.Json"
-#r "nuget: Aether"
-#r "nuget: Markdig"
-#r "nuget: ClosedXML, 0.97"
+#load "../../../scripts/load-dependencies.fsx"
 
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"

@@ -1,7 +1,4 @@
-#r "nuget: Unquote"
-#r "nuget: MathNet.Numerics.FSharp"
-#r "nuget: Newtonsoft.Json"
-#r "nuget: ConsoleTables"
+#load "../../../scripts/load-dependencies.fsx"
 
 #load "../Continuation.fs"
 #load "../Constants.fs"

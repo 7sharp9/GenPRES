@@ -1,9 +1,6 @@
 
 #time
 
-#r "nuget: expecto"
-#r "nuget: FSharp.Data"
-
 #load "load.fsx"
 
 // load demo or product cache

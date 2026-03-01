@@ -1,9 +1,5 @@
 
-#r "nuget: MathNet.Numerics.FSharp"
-#r "nuget: Aether"
-#r "nuget: FsToolkit.ErrorHandling"
-#r "nuget: Validus"
-#r "nuget: FParsec"
+#load "../../../scripts/load-dependencies.fsx"
 
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"

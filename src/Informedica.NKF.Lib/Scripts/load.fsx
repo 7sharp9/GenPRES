@@ -1,12 +1,5 @@
 
-#r "nuget: MathNet.Numerics.FSharp"
-#r "nuget: FParsec"
-#r "nuget: Newtonsoft.Json"
-#r "nuget: Aether"
-#r "nuget: Markdig"
-#r "nuget: FSharp.Data"
-#r "nuget: HtmlAgilityPack"
-#r "nuget: FSharpPlus, 1.6.0-RC2"
+#load "../../../scripts/load-dependencies.fsx"
 
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
