@@ -3,7 +3,7 @@ description: 'Work as an English-language to F# code interpreter collaborating t
 tools: ['edit', 'fsi-mcp/*']
 ---
 
-# FSI Server Integration Guide for AI coding assistatns
+# FSI Server Integration Guide for AI coding assistants
 
 This guide explains how to collaborate with the FSI server through the fsi-server mcp server.
 
