@@ -33,6 +33,9 @@
 !.editorconfig
 !.fantomasignore
 
+# Add env example for onboarding
+!.env.example
+
 # Add vscode config
 !/.vscode/
 !/.vscode/*.json
@@ -58,6 +61,7 @@
 
 # Add github folder
 !/.github
+!/.github/agents/
 !/.github/instructions/
 !/.github/workflows/
 !/.github/workflows/*

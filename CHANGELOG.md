@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix npm build warnings caused by conflicting glob package versions (Mocha compatibility)
+- Update all FSI script files to latest source code signatures
 
 ### Security
 

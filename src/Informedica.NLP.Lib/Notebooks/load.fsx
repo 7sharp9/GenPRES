@@ -1,6 +1,4 @@
-#r "nuget: FSharpPlus"
-#r "nuget: Newtonsoft.Json"
-#r "nuget: NJsonSchema"
+#load "../../../scripts/load-dependencies.fsx"
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
 

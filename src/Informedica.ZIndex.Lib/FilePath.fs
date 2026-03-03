@@ -108,10 +108,6 @@ module FilePath =
             s
 
 
-    //https://docs.google.com/spreadsheets/d/1AEVYnqjAbVniu3VuczeoYvMu3RRBu930INhr3QzSDYQ/edit?usp=sharing
-    let [<Literal>] genpres = "1AEVYnqjAbVniu3VuczeoYvMu3RRBu930INhr3QzSDYQ"
-
-
     let [<Literal>] GENPRES_PROD = "GENPRES_PROD"
 
 

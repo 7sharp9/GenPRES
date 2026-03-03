@@ -39,19 +39,7 @@ module GenPresProduct =
         |> Array.map (fun ((nm, sh), xs) ->
             let gps = xs |> Array.map snd
 
-            let dpn =
-                Assortment.assortment ()
-                |> Array.filter (fun pr ->
-                        gps
-                        |> Array.exists (fun gp ->
-                            pr.GPK = gp.Id
-                        )
-
-                )
-                |> Array.fold (fun acc pr ->
-                    if acc = "" then pr.Generic
-                    else acc
-                ) ""
+            let dpn = ""
 
             let ph =
                 gps

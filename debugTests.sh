@@ -3,6 +3,9 @@
 # debugTests - Run all test projects with debug mode
 # Usage: ./debugTests.sh
 
+# Load env vars from .env (GENPRES_URL_ID etc.)
+set -a; source .env; set +a
+
 echo "Running all test projects in debug mode..."
 echo "=========================================="
 

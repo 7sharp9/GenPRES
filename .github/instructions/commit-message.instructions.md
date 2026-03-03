@@ -1,3 +1,7 @@
+---
+description: "Conventional commit message format and guidelines for the GenPRES project"
+---
+
 # Git Commit Message Instructions
 
 ## General Guidelines

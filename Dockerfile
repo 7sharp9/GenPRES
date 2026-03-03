@@ -56,7 +56,7 @@ RUN dotnet run bundle
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 COPY --from=app-build /workspace/deploy /app
 
-ENV GENPRES_LOG="1"
+ENV GENPRES_LOG=0
 ENV GENPRES_PROD="1"
 ENV GENPRES_DEBUG="0"
 ARG GENPRES_URL_ARG

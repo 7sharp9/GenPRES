@@ -1,7 +1,5 @@
 
-#r "nuget: Expecto"
-#r "nuget: Expecto.FsCheck"
-#r "nuget: Unquote"
+#load "../../../scripts/load-dependencies.fsx"
 
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"

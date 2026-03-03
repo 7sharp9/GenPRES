@@ -7,7 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Continuation.fs" />
     <Compile Include="Constants.fs" />
     <Compile Include="Memoization.fs" />
     <Compile Include="Reflection.fs" />
@@ -34,12 +33,12 @@
     <Compile Include="Path.fs" />
     <Compile Include="File.fs" />
     <Compile Include="Csv.fs" />
-    <Compile Include="Web.fs" />
     <Compile Include="Env.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Console.fs" />
     <Compile Include="ConsoleTables.fs" />
     <Compile Include="StopWatch.fs" />
+    <Compile Include="Web.fs" />
     <None Include="Scripts/load.fsx" />
     <None Include="Scripts/Scripts.fsx" />
   </ItemGroup>

@@ -176,13 +176,3 @@ module Mapping =
             f.ZIndexFreq |> BigRational.toFloat = freq &&
             f.ZIndexUnit = un
         )
-
-
-    let stringToRoute =
-        Informedica.ZIndex.Lib.Route.routeMapping ()
-        |> Informedica.ZIndex.Lib.Route.fromString
-
-
-    let routeToString =
-        Informedica.ZIndex.Lib.Route.routeMapping ()
-        |> Informedica.ZIndex.Lib.Route.toString

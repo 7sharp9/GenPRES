@@ -275,28 +275,43 @@ This project uses an opt-in strategy for `.gitignore`:
 
 ### Environment Configuration
 
-For development, use these environment variables. Proper configuration is essential to avoid resource loading issues (see [Issue #44](https://github.com/informedica/GenPRES/issues/44) for troubleshooting guidance):
+This project uses a `.env` file at the project root as the single source of truth for environment variables. The `.env` file is excluded from git by the opt-in `.gitignore` strategy, so secrets are never committed.
+
+#### Quick Setup
+
+1. Copy the example file: `cp .env.example .env`
+2. Edit `.env` and fill in the `GENPRES_URL_ID` value (ask a team member for the production URL ID)
+
+The `.env` file uses standard `KEY=VALUE` format:
 
 ```bash
-export GENPRES_URL_ID=1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM  # Default demo data URL
-export GENPRES_LOG=1          # Logging level (1 = enabled)
-export GENPRES_PROD=0         # Must be 0 for demo version
-export GENPRES_DEBUG=1        # Enable debug mode
+GENPRES_URL_ID=<your-url-id>   # Google Sheets data URL ID (required)
+GENPRES_LOG=i                  # Logging level: 0=off, d=debug, i=info, w=warning, e=error
+GENPRES_PROD=0                 # Production mode: 0=demo (safe default), 1=production data
+GENPRES_DEBUG=1                # Debug mode: 0=off, 1=on
 ```
+
+#### How It Works
+
+Environment variables are resolved in this priority order (highest first):
+
+1. **Already-set environment variable** (from shell, CI, Docker) — takes precedence
+2. **`.env` file** — loaded by shell scripts or `Env.loadDotEnv()` in F#
+3. **Hardcoded default in source code** — safe fallback (demo data)
+
+This means you can always override `.env` values by setting an environment variable directly.
+
+#### Loading in Different Contexts
+
+- **Shell**: Source `.env` manually with `set -a; source .env; set +a` before running commands.
+- **F# scripts (FSI)**: Scripts call `Informedica.Utils.Lib.Env.loadDotEnv()` which searches upward for `.env` from the current directory.
+- **IDEs (Rider, VS Code)**: The `Env.loadDotEnv()` call in scripts ensures variables are available even when the IDE doesn't inherit shell environment.
+- **Docker**: Source `.env` before `docker build` to pass `GENPRES_URL_ID` as a build argument.
 
 #### Common Environment Variable Issues
 
-**Missing GENPRES_URL_ID**: Will cause "cannot find column" errors when the application tries to load resources from Google Sheets.
+**Missing GENPRES_URL_ID**: Will cause "cannot find column" errors when the application tries to load resources from Google Sheets. Make sure your `.env` file exists and contains a valid `GENPRES_URL_ID`.
 
 **Incorrect GENPRES_PROD value**: Setting this to anything other than `0` in development may cause authentication or data access issues.
 
-#### Alternative Setup Methods
-
-Many developers prefer using tools like `direnv` for automatic environment variable loading:
-
-1. Install direnv: `brew install direnv` (macOS) or equivalent for your OS
-2. Create `.envrc` file in project root with the variables above
-3. Run `direnv allow` to enable automatic loading
-4. Variables will be loaded automatically when entering the project directory
-
-For other environment variable management approaches, see [Issue #44](https://github.com/informedica/GenPRES/issues/44) for community discussions and recommendations.
+For background on this approach, see [Issue #44](https://github.com/informedica/GenPRES/issues/44).

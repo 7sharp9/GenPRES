@@ -37,7 +37,7 @@ let tryGetEnv key = Env.getItem key
 $"""
 
 === Environmental variables ===
-GENPRES_URL_ID={tryGetEnv "GENPRES_URL_ID" |> Option.defaultValue "1IZ3sbmrM4W4OuSYELRmCkdxpN9SlBI-5TLSvXWhHVmA"}
+GENPRES_URL_ID={tryGetEnv "GENPRES_URL_ID" |> Option.defaultValue "NO GENPRES_URL_ID"}
 GENPRES_LOG={tryGetEnv "GENPRES_LOG" |> Option.defaultValue "0"}
 GENPRES_PROD={tryGetEnv "GENPRES_PROD" |> Option.defaultValue "0"}
 GENPRES_DEBUG={tryGetEnv "GENPRES_DEBUG" |> Option.defaultValue "i"}
@@ -69,7 +69,7 @@ let provider =
         |> Option.defaultValue Informedica.GenOrder.Lib.Logging.noOp
 
     tryGetEnv "GENPRES_URL_ID"
-    |> Option.defaultValue "1IZ3sbmrM4W4OuSYELRmCkdxpN9SlBI-5TLSvXWhHVmA"
+    |> Option.defaultWith (fun () -> failwith "No GENPRES_URL_ID")
     |> Informedica.GenForm.Lib.Api.getCachedProviderWithDataUrlId logger
 
 

@@ -71,18 +71,9 @@ module Utils =
         open Informedica.Utils.Lib
 
 
-        /// The url to the data sheet for Constraints
-        let [<Literal>] dataUrlIdConstraints = "1nny8rn9zWtP8TMawB3WeNWhl5d4ofbWKbGzGqKTd49g"
-
-
-        /// The url to the data sheet for GenPRES
-        /// https://docs.google.com/spreadsheets/d/1AEVYnqjAbVniu3VuczeoYvMu3RRBu930INhr3QzSDYQ/edit?usp=sharing
-        let [<Literal>] private dataUrlIdGenPres = "1AEVYnqjAbVniu3VuczeoYvMu3RRBu930INhr3QzSDYQ"
-
-
         let private getDataUrlId () =
             Env.getItem "GENPRES_URL_ID"
-            |> Option.defaultValue  dataUrlIdGenPres
+            |> Option.defaultWith (fun () -> failwith "No valid data url id")
             |> fun s  ->
                 ConsoleWriter.writeInfoMessage $"using: {s}" true false
                 s
@@ -98,7 +89,9 @@ module Utils =
         /// <param name="sheet">The specific sheet</param>
         /// <returns>The data as a table of string array array</returns>
         let getDataFromSheet urlId sheet =
-            fun () -> Web.GoogleSheets.getCsvDataFromSheetSync urlId sheet
+            fun () ->
+                Web.GoogleSheets.getCsvDataFromSheetResultSync urlId sheet
+                |> Result.defaultValue [||]
             |> StopWatch.clockFunc $"loaded {sheet} from web sheet"
 
 
@@ -263,4 +256,3 @@ module Utils =
         let toString prec vu =
             ValueUnit.toStringDecimalDutchShortWithPrec prec vu
             |> String.replace ";" ", "
-
