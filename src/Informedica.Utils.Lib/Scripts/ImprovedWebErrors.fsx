@@ -7,7 +7,7 @@
 /// 3. Provides actionable hints when the URL ID may be outdated
 ///
 /// To migrate to source: update `src/Informedica.Utils.Lib/Web.fs`
-/// - Replace `download` with `downloadWithCheck`
+/// - Replace `download` with `downloadResult`
 /// - Replace `getDataFromSheet` with the improved version below
 
 System.Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
