@@ -501,18 +501,3 @@ module Types =
             /// The unit in which the doses are measured
             Unit: string
         }
-
-
-    /// The Assortment Product that is
-    /// available as a GenericProduct.
-    type Assortment =
-        {
-            /// The GPK code
-            GPK: int
-            /// The generic name
-            Generic: string
-            /// The TallMan alternative name
-            TallMan : string
-            /// The Divisibility of the product
-            Divisible : int
-        }
