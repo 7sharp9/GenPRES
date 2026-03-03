@@ -59,7 +59,7 @@ module Totals =
 
 
     let getVolume tu pres (dose: Dose) =
-        if dose 
+        if dose
            |> Order.Orderable.Dose.toOrdVars
            |> List.map _.Variable
            |> List.exists isVolume then
@@ -76,7 +76,7 @@ module Totals =
                 Name.create ["wght"]
                 |> Variable.empty
                 |> fun var ->
-                    var 
+                    var
                     |> Variable.setValueRange (
                         w
                         |> Variable.ValueRange.ValueSet.create
@@ -119,37 +119,39 @@ module Totals =
 
 
     let totals =
-        Web.GoogleSheets.getCsvDataFromSheetSync
+        // TODO: need to replace hard coded url id!!
+        Web.GoogleSheets.getCsvDataFromSheetResultSync
             "1s76xvQJXhfTpV15FuvTZfB-6pkkNTpSB30p51aAca8I"
             "Totals"
+        |> Result.defaultValue [||]
 
-            |> fun data ->
-                let getColumn =
-                    data
-                    |> Array.head
-                    |> Csv.getStringColumn
-
+        |> fun data ->
+            let getColumn =
                 data
-                |> Array.tail
-                |> Array.map (fun r ->
-                    let get = getColumn r
-                    let toBrOpt = BigRational.toBrs >> Array.tryHead
+                |> Array.head
+                |> Csv.getStringColumn
 
-                    {|
-                        Name = get "Name"
-                        MinAge = get "MinAge" |> toBrOpt
-                        MaxAge = get "MaxAge" |> toBrOpt
-                        MinWeight = get "MinWeight" |> toBrOpt
-                        MaxWeight = get "MaxWeight" |> toBrOpt
-                        Unit = get "Unit" |> Units.fromString
-                        Adj = get "Adj" |> Units.fromString
-                        TimeUnit = get "TimeUnit" |> Units.fromString
-                        MinPerTime = get "MinPerTime" |> toBrOpt
-                        MaxPerTime = get "MaxPerTime" |> toBrOpt
-                        MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt
-                        MaxPerTimeAdj = get "MaxPerTimeAdj" |> toBrOpt
-                    |}
-                )
+            data
+            |> Array.tail
+            |> Array.map (fun r ->
+                let get = getColumn r
+                let toBrOpt = BigRational.toBrs >> Array.tryHead
+
+                {|
+                    Name = get "Name"
+                    MinAge = get "MinAge" |> toBrOpt
+                    MaxAge = get "MaxAge" |> toBrOpt
+                    MinWeight = get "MinWeight" |> toBrOpt
+                    MaxWeight = get "MaxWeight" |> toBrOpt
+                    Unit = get "Unit" |> Units.fromString
+                    Adj = get "Adj" |> Units.fromString
+                    TimeUnit = get "TimeUnit" |> Units.fromString
+                    MinPerTime = get "MinPerTime" |> toBrOpt
+                    MaxPerTime = get "MaxPerTime" |> toBrOpt
+                    MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt
+                    MaxPerTimeAdj = get "MaxPerTimeAdj" |> toBrOpt
+                |}
+            )
 
 
 

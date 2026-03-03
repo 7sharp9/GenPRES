@@ -106,4 +106,4 @@ module ImprovedGoogleSheets =
 
 
 // Uncomment to run the smoke test interactively in FSI:
-// ImprovedGoogleSheets.runSmokeTest ()
+ImprovedGoogleSheets.runSmokeTest ()

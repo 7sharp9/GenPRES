@@ -70,4 +70,5 @@ module Web =
             failwith msg
         | Some urlId ->
             sheet
-            |> Web.GoogleSheets.getCsvDataFromSheetSync urlId
+            |> Web.GoogleSheets.getCsvDataFromSheetResultSync urlId
+            |> Result.defaultValue [||]

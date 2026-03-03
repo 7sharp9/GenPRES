@@ -30,7 +30,7 @@ module Utils =
     module GenFormResult =
 
 
-        let inline map f r : GenFormResult<_> = 
+        let inline map f r : GenFormResult<_> =
             match r with
             | Ok (x, msgs) -> (x |> f, msgs) |> Ok
             | Error msgs -> msgs |> Error
@@ -122,7 +122,9 @@ module Utils =
         /// <param name="sheet">The specific sheet</param>
         /// <returns>The data as a table of string array array</returns>
         let getDataFromSheet urlId sheet =
-            fun () -> Web.GoogleSheets.getCsvDataFromSheetSync urlId sheet
+            fun () ->
+                Web.GoogleSheets.getCsvDataFromSheetResultSync urlId sheet
+                |> Result.defaultValue [||]
             |> StopWatch.clockFunc $"loaded {sheet} from web sheet"
 
 
@@ -174,7 +176,6 @@ module Utils =
 
     module Calculations =
 
-        open MathNet.Numerics
         open Informedica.GenUnits.Lib
 
         module Conversions = Informedica.GenCore.Lib.Conversions
@@ -247,7 +248,6 @@ module Utils =
 
     module ValueUnit =
 
-        open MathNet.Numerics
         open Informedica.GenUnits.Lib
 
 
@@ -284,7 +284,6 @@ module Utils =
 
     module MinMax =
 
-        open MathNet.Numerics
         open Informedica.GenUnits.Lib
         open Informedica.GenCore.Lib.Ranges
 
