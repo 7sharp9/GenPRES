@@ -286,6 +286,8 @@ module Medication =
     // automatically available as Medication.toString, etc.
 ```
 
+**NOTE** The module has the same name as the original (`Medication`), but because it's defined in the script, it shadows the original module. By opening the original module inside the new one, you bring all existing functions into scope, allowing you to call them as if they were part of the new module.
+
 This allows calling both new and existing functions through the same module name:
 
 ```fsharp
