@@ -51,9 +51,8 @@ module ImprovedGoogleSheets =
                               - The GENPRES_URL_ID environment variable is set correctly\n\
                               - The URL ID has not expired or been rotated"
                 else
-                    use! stream = resp.Content.ReadAsStreamAsync() |> Async.AwaitTask
-                    use reader = new StreamReader(stream)
-                    return Ok(reader.ReadToEnd())
+                    let! content = resp.Content.ReadAsStringAsync() |> Async.AwaitTask
+                    return Ok(content)
             with ex ->
                 return
                     Error
