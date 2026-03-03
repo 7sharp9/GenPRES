@@ -9,13 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **GenOrder**: Pick nearest higher (else lower) component quantity when component orderable quantity is set
+
 ### Changed
+
+- **GenOrder**: Improved printing of component quantity
+- **GenOrder**: Print dose adjust only when it has defined constraints; otherwise show dose per time (or dose adjust per time)
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- Fix npm build warnings caused by conflicting glob package versions (Mocha compatibility)
+- Update all FSI script files to latest source code signatures
 
 ### Security
 
