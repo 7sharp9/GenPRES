@@ -3,17 +3,9 @@ namespace Informedica.ZIndex.Lib
 
 module RuleFinder =
 
+    open Informedica.Utils.Lib.BCL
 
     type MinMax = RuleMinMax
-
-
-
-    /// Create a route from a string
-    let createRoute = Route.fromString (Route.routeMapping ())
-
-
-    /// Check if a route exists.
-    let eqsRoute = Route.routeExists (Route.routeMapping ())
 
 
     /// Check whether a float n is in range of a MinMax.
@@ -85,7 +77,6 @@ module RuleFinder =
             match prod with
             | GPKRoute (_, route)   -> route
             | GenericFormRoute gsr -> gsr.Route
-            |> createRoute
 
         match prod with
         | GPKRoute (gpk, _) -> [| gpk |]
@@ -100,7 +91,7 @@ module RuleFinder =
             |> Array.filter (fun dr ->
                 (dr.CareGroup = DoseRule.Constants.intensive || dr.CareGroup = DoseRule.Constants.all)
                 && dr.GenericProduct |> Array.exists (fun gp -> gp.Id = gpk)
-                && dr.Routes |> eqsRoute r
+                && dr.Routes |> Array.exists (String.equalsCapInsens r)
                 && dr.Age    |> inRange pat.Age
                 && dr.Weight |> inRange pat.Weight
                 && dr.BSA    |> inRange pat.BSA
@@ -311,4 +302,3 @@ module RuleFinder =
             |> Some
 
         | None -> None
-

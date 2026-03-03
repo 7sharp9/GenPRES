@@ -7,36 +7,31 @@ module Utils =
     open Informedica.Utils.Lib.Web
 
 
+
+    module Constants =
+
+        let [<Literal>] GENPRES_URL_ID = "GENPRES_URL_ID"
+
+
+
     module Web =
 
         open Informedica.Utils.Lib
 
-
-        //https://docs.google.com/spreadsheets/d/1nny8rn9zWtP8TMawB3WeNWhl5d4ofbWKbGzGqKTd49g/edit?usp=sharing
-        let [<Literal>] constraints = "1nny8rn9zWtP8TMawB3WeNWhl5d4ofbWKbGzGqKTd49g"
-
-
-        //https://docs.google.com/spreadsheets/d/1AEVYnqjAbVniu3VuczeoYvMu3RRBu930INhr3QzSDYQ/edit?usp=sharing
-        let [<Literal>] genpres = "1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM"
-
-
-
-        /// <summary>
-        /// Get data from a Google sheet containing constraints
-        /// </summary>
-        /// <param name="sheet">The sheet to get</param>
-        /// <returns>A array table of string arrays</returns>
-        let getDataFromConstraints sheet = GoogleSheets.getCsvDataFromSheetSync constraints sheet
 
 
         /// <summary>
         /// Get data from a Google sheet containing data for GenPres
         /// </summary>
         /// <returns>A array table of string arrays</returns>
-        let getDataFromGenPres =
-            Env.getItem "GENPRES_URL_ID"
-            |> Option.defaultValue genpres
-            |> GoogleSheets.getCsvDataFromSheetSync
+        let getDataFromGenPres sheet =
+            Env.loadDotEnv () |> ignore
+
+            Env.getItem Constants.GENPRES_URL_ID
+            |> Option.defaultWith (fun () -> failwith $"{Constants.GENPRES_URL_ID} not set")
+            |> fun urlId -> GoogleSheets.getCsvDataFromSheetResultSync urlId sheet // urlId sheet
+            |> Result.defaultValue [||]
+
 
 
 
@@ -51,11 +46,6 @@ module Utils =
         /// `mins` and `maxs` as annotations
         /// for resp. the min and max value.
         let toString = Informedica.GenForm.Lib.Utils.MinMax.toString
-
-
-    module Constants =
-
-        let [<Literal>] GENPRES_URL_ID = "GENPRES_URL_ID"
 
 
 

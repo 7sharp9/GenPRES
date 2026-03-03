@@ -15,10 +15,30 @@ Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
 Environment.SetEnvironmentVariable(FilePath.GENPRES_PROD, "1")
 
 
-let dataUrl = Environment.GetEnvironmentVariable("GENPRES_URL_ID")
+let dataUrl = "1rfOo5UjGoVHT5h-bJxR7FS-Qgz4faRrNGLeu2Yj8SS8" //Environment.GetEnvironmentVariable("GENPRES_URL_ID")
 
 
 printfn $"dataurl: {dataUrl}"
+
+
+let data = Web.GoogleSheets.getCsvDataFromSheetSync dataUrl "Formulary"
+
+
+/// The Assortment Product that is
+/// available as a GenericProduct.
+type Assortment =
+    {
+        /// The GPK code
+        GPK: string
+        /// The generic name
+        Generic: string
+        /// The TallMan alternative name
+        TallMan : string
+        /// The Divisibility of the product
+        Divisible : int
+    }
+
+
 
 (*
 let prods =

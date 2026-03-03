@@ -61,6 +61,7 @@
 
 # Add github folder
 !/.github
+!/.github/agents/
 !/.github/instructions/
 !/.github/workflows/
 !/.github/workflows/*

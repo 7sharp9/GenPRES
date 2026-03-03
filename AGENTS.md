@@ -369,7 +369,7 @@ Contributors must also disclose when code submitted in a pull request is **vibe 
 ## Related Documentation
 
 - Coding standards: [F# Coding Instructions](.github/instructions/fsharp-coding.instructions.md)
-- Code formatting: [F# Code Formatting](.github/instructions/fsharp-code-formatting.md)
+- Code formatting: [F# Code Formatting](.github/instructions/fsharp-code-formatting.instructions.md)
 - Commit conventions: [Commit Message Instructions](.github/instructions/commit-message.instructions.md)
 - Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Development setup: [DEVELOPMENT.md](DEVELOPMENT.md)

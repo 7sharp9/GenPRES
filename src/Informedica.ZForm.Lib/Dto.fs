@@ -309,8 +309,6 @@ module Dto =
 
         let rte =
             dto.Route
-            |> Mapping.stringToRoute
-            |> Mapping.routeToString
 
         let dto =
             if dto.BSAInM2 > 0. then dto

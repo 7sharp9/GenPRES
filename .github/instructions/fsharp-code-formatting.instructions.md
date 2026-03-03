@@ -1,3 +1,8 @@
+---
+description: "F# code formatting and indentation conventions"
+applyTo: "**/*.fs,**/*.fsx"
+---
+
 # FSharp Code Formatting Instructions
 
 Block indentation should follow a general standard of 4 spaces per indentation level. Also, whatever is delimiting the scope (like `[` or `{` or `(`) should be aligned with the indentation level of the block when it is closed.

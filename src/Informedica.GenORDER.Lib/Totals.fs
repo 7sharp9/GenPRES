@@ -59,7 +59,7 @@ module Totals =
 
 
     let getVolume tu pres (dose: Dose) =
-        if dose 
+        if dose
            |> Order.Orderable.Dose.toOrdVars
            |> List.map _.Variable
            |> List.exists isVolume then
@@ -76,7 +76,7 @@ module Totals =
                 Name.create ["wght"]
                 |> Variable.empty
                 |> fun var ->
-                    var 
+                    var
                     |> Variable.setValueRange (
                         w
                         |> Variable.ValueRange.ValueSet.create
@@ -119,15 +119,16 @@ module Totals =
 
 
     let totals =
-        Web.GoogleSheets.getCsvDataFromSheetSync
+        // TODO: need to replace hard coded url id!!
+        Web.GoogleSheets.getCsvDataFromSheetResultSync
             "1s76xvQJXhfTpV15FuvTZfB-6pkkNTpSB30p51aAca8I"
             "Totals"
+        |> Result.defaultValue [||]
 
-            |> fun data ->
-                let getColumn =
-                    data
-                    |> Array.head
-                    |> Csv.getStringColumn
+        |> fun data ->
+            if data.Length <= 1 then [||]
+            else
+                let getColumn = data |> Array.head |> Csv.getStringColumn
 
                 data
                 |> Array.tail
