@@ -19,7 +19,6 @@ module Utils =
         open Informedica.Utils.Lib
 
 
-
         /// <summary>
         /// Get data from a Google sheet containing data for GenPres
         /// </summary>
@@ -33,21 +32,12 @@ module Utils =
             |> Result.defaultValue [||]
 
 
-
-
     module MinMax =
-
-        open MathNet.Numerics
-        open Informedica.GenCore.Lib.Ranges
-        open Informedica.GenUnits.Lib
-
 
         /// Turn a `MinMax` to a string with
         /// `mins` and `maxs` as annotations
         /// for resp. the min and max value.
         let toString = Informedica.GenForm.Lib.Utils.MinMax.toString
-
-
 
 
 /// Types and functions to deal with

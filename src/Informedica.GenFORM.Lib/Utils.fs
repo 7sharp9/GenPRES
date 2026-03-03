@@ -97,24 +97,6 @@ module Utils =
 
     module Web =
 
-
-        /// The url to the data sheet for Constraints
-        let [<Literal>] dataUrlIdConstraints = "1nny8rn9zWtP8TMawB3WeNWhl5d4ofbWKbGzGqKTd49g"
-
-
-        /// The url to the data sheet for GenPRES
-        /// https://docs.google.com/spreadsheets/d/1AEVYnqjAbVniu3VuczeoYvMu3RRBu930INhr3QzSDYQ/edit?usp=sharing
-        let [<Literal>] private dataUrlIdGenPres = "1AEVYnqjAbVniu3VuczeoYvMu3RRBu930INhr3QzSDYQ"
-
-
-        let private getDataUrlId () =
-            Env.getItem "GENPRES_URL_ID"
-            |> Option.defaultValue  dataUrlIdGenPres
-            |> fun s  ->
-                writeInfoMessage $"using: {s}"
-                s
-
-
         /// <summary>
         /// Get data from a web sheet
         /// </summary>
