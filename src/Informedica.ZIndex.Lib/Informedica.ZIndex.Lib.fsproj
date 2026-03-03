@@ -14,7 +14,6 @@
     <Compile Include="CodeGen.fs" />
     <Compile Include="Zindex.fs" />
     <Compile Include="Names.fs" />
-    <Compile Include="Route.fs" />
     <Compile Include="Substance.fs" />
     <Compile Include="ConsumerProduct.fs" />
     <Compile Include="TradeProduct.fs" />

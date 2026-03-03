@@ -26,9 +26,9 @@ module Tests =
                 let zindexDir = Path.Combine(dataDir, "zindex")
                 try
                     Directory.CreateDirectory(zindexDir) |> ignore
-                    
+
                     let result = FilePath.getDataPathInternal tempDir ""
-                    
+
                     result
                     |> Expect.equal "should resolve to data directory" dataDir
                 finally
@@ -45,9 +45,9 @@ module Tests =
                 try
                     Directory.CreateDirectory(zindexDir) |> ignore
                     Directory.CreateDirectory(childDir) |> ignore
-                    
+
                     let result = FilePath.getDataPathInternal childDir ""
-                    
+
                     result
                     |> Expect.equal "should resolve to ancestor data directory" dataDir
                 finally
@@ -64,9 +64,9 @@ module Tests =
                 try
                     Directory.CreateDirectory(tempCurrentDir) |> ignore
                     Directory.CreateDirectory(zindexDir) |> ignore
-                    
+
                     let result = FilePath.getDataPathInternal tempCurrentDir tempAssemblyDir
-                    
+
                     result
                     |> Expect.equal "should resolve via assembly location" dataDir
                 finally
@@ -83,9 +83,9 @@ module Tests =
                 try
                     Directory.CreateDirectory(tempCurrentDir) |> ignore
                     Directory.CreateDirectory(tempAssemblyDir) |> ignore
-                    
+
                     let result = FilePath.getDataPathInternal tempCurrentDir tempAssemblyDir
-                    
+
                     result
                     |> Expect.equal "should fall back to ./data" "./data"
                 finally
@@ -110,7 +110,7 @@ module Tests =
                         DoseRule.frequencies ()
                     with
                     | _ -> [||]
-                
+
                 // If frequencies succeeds, result should be non-empty
                 // If it throws (e.g., missing data files), result should be empty array
                 // Either way, this should not throw an unhandled exception
@@ -260,7 +260,7 @@ module Tests =
             // Get all distinct frequencies
             try
                 DoseRule.frequencies ()
-            with 
+            with
             | _ -> [||]
             |> Array.map (fun f ->
                 f.Time
@@ -448,7 +448,7 @@ module Tests =
                     RuleFinder.createFilter None None None None "diclofenac" "" ""
                     |> RuleFinder.find []
                     |> Array.map (fun dr ->
-                        (dr.Routes |> Array.map RuleFinder.createRoute, dr)
+                        (dr.Routes, dr)
                     )
                     |> Array.groupBy (fun (r, _) ->
                         r

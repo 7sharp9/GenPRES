@@ -9,8 +9,8 @@ module MinMax =
     open Informedica.GenCore.Lib.Ranges
 
 
-    let private toString = 
-        MinMax.toString 
+    let private toString =
+        MinMax.toString
             (ValueUnit.toStringDecimalDutchShortWithPrec 2)
             (ValueUnit.toStringDecimalDutchShortWithPrec 2)
 
@@ -51,7 +51,11 @@ module Web =
 
 
     open Informedica.Utils.Lib
-    open Informedica.ZIndex.Lib
+
+
+    let genpresUrlId =
+        Env.loadDotEnv () |> ignore
+        Env.getItem "GENPRES_URL_ID"
 
 
     /// <summary>
@@ -59,6 +63,11 @@ module Web =
     /// </summary>
     /// <param name="sheet">The sheet name</param>
     let getDataFromSheet sheet =
-        sheet
-        |> Web.GoogleSheets.getCsvDataFromSheetSync FilePath.genpres
-
+        match genpresUrlId with
+        | None ->
+            let msg = "Cannot load the GENPRES_URL_ID"
+            ConsoleWriter.writeErrorMessage msg true false
+            failwith msg
+        | Some urlId ->
+            sheet
+            |> Web.GoogleSheets.getCsvDataFromSheetSync urlId

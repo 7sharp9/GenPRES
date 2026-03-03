@@ -8,7 +8,6 @@ module Types =
 
     open Informedica.GenUnits.Lib
 
-    type Route = Informedica.ZIndex.Lib.Types.Route.Route
     type MinMax = Informedica.GenCore.Lib.Ranges.MinMax
 
 
