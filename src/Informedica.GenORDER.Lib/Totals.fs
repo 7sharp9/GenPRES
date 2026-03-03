@@ -119,9 +119,13 @@ module Totals =
 
 
     let totals =
-        // TODO: need to replace hard coded url id!!
+        let urlId =
+            Env.loadDotEnv () |> ignore
+            Env.getItem Utils.Constants.GENPRES_URL_ID
+            |> Option.defaultWith (fun () -> failwith $"No valid {Utils.Constants.GENPRES_URL_ID}")
+
         Web.GoogleSheets.getCsvDataFromSheetResultSync
-            "1s76xvQJXhfTpV15FuvTZfB-6pkkNTpSB30p51aAca8I"
+            urlId
             "Totals"
         |> Result.defaultValue [||]
 
