@@ -126,32 +126,31 @@ module Totals =
         |> Result.defaultValue [||]
 
         |> fun data ->
-            let getColumn =
+            if data.Length <= 1 then [||]
+            else
+                let getColumn = data |> Array.head |> Csv.getStringColumn
+
                 data
-                |> Array.head
-                |> Csv.getStringColumn
+                |> Array.tail
+                |> Array.map (fun r ->
+                    let get = getColumn r
+                    let toBrOpt = BigRational.toBrs >> Array.tryHead
 
-            data
-            |> Array.tail
-            |> Array.map (fun r ->
-                let get = getColumn r
-                let toBrOpt = BigRational.toBrs >> Array.tryHead
-
-                {|
-                    Name = get "Name"
-                    MinAge = get "MinAge" |> toBrOpt
-                    MaxAge = get "MaxAge" |> toBrOpt
-                    MinWeight = get "MinWeight" |> toBrOpt
-                    MaxWeight = get "MaxWeight" |> toBrOpt
-                    Unit = get "Unit" |> Units.fromString
-                    Adj = get "Adj" |> Units.fromString
-                    TimeUnit = get "TimeUnit" |> Units.fromString
-                    MinPerTime = get "MinPerTime" |> toBrOpt
-                    MaxPerTime = get "MaxPerTime" |> toBrOpt
-                    MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt
-                    MaxPerTimeAdj = get "MaxPerTimeAdj" |> toBrOpt
-                |}
-            )
+                    {|
+                        Name = get "Name"
+                        MinAge = get "MinAge" |> toBrOpt
+                        MaxAge = get "MaxAge" |> toBrOpt
+                        MinWeight = get "MinWeight" |> toBrOpt
+                        MaxWeight = get "MaxWeight" |> toBrOpt
+                        Unit = get "Unit" |> Units.fromString
+                        Adj = get "Adj" |> Units.fromString
+                        TimeUnit = get "TimeUnit" |> Units.fromString
+                        MinPerTime = get "MinPerTime" |> toBrOpt
+                        MaxPerTime = get "MaxPerTime" |> toBrOpt
+                        MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt
+                        MaxPerTimeAdj = get "MaxPerTimeAdj" |> toBrOpt
+                    |}
+                )
 
 
 
