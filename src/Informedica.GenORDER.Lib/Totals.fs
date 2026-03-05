@@ -58,7 +58,9 @@ module Totals =
             |> Option.defaultValue var
 
 
+    /// Get the volume
     let getVolume tu pres (dose: Dose) =
+        // TODO this is maybe too simplistic
         if dose
            |> Order.Orderable.Dose.toOrdVars
            |> List.map _.Variable

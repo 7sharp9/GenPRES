@@ -1,6 +1,9 @@
 namespace Informedica.Utils.Lib
 
+open System
 
+
+[<Obsolete("use regular Result type")>]
 type ValidatedResult<'T, 'Msg> = Result<'T * 'Msg list, 'Msg list>
 
 
@@ -35,13 +38,17 @@ module Result =
 [<RequireQualifiedAccess>]
 module ValidatedResult =
 
+    [<Obsolete("use regular result type")>]
     // Creation functions
     let createOkWithMsgs msgs x : ValidatedResult<_, _> = (x, msgs) |> Ok
 
+    [<Obsolete("use regular Result type")>]
     let createOkNoMsgs x = createOkWithMsgs [] x
 
+    [<Obsolete("use regular Result type")>]
     let createOk x msgs = createOkWithMsgs msgs x
 
+    [<Obsolete("use regular Result type")>]
     let createError msgs = Error msgs
 
     // Extraction functions

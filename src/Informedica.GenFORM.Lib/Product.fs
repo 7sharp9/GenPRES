@@ -18,6 +18,94 @@ module Product =
     module ATCGroup = Informedica.ZIndex.Lib.ATCGroup
 
 
+    let getFormularyProducts dataUrlId =
+        try
+            Web.GoogleSheets.getCsvDataFromSheetResultSync dataUrlId "Formulary"
+            |> Result.bind (fun data ->
+                let getColumn =
+                    data
+                    |> Array.head
+                    |> Csv.getStringColumn
+
+                let products =
+                    data
+                    |> Array.tail
+                    |> Array.map (fun r ->
+                        let get = getColumn r
+
+                        // Extract departments from the columns marked with 'x'
+                        let departments =
+                            ["UMCU"; "ICC"; "NEO"; "ICK"; "HCK"]
+                            |> List.filter (fun dept -> (get dept) = "x")
+
+                        // Determine product type - this is a placeholder, actual logic needed
+                        let getProdType s =
+                            match s with
+                            | "medication" -> ProductType.MedicationProduct
+                            | "enteral" -> ProductType.EnteralProduct
+                            | "parenteral" -> ProductType.ParenteralProduct
+                            | _ -> ProductType.NoProduct
+
+                        {
+                            GPK = get "GPKODE"
+                            ProductType = get "Type" |> getProdType
+                            Departments = departments
+                            Generic = get "Generic"
+                            TallMan = get "TallMan"
+                            Divisible = get "Divisible" |> Int32.tryParse
+                            UseGenName = get "UseGenName" = "x"
+                            UseForm = get "UseForm" = "x"
+                            UseBrand = get "UseBrand" = "x"
+                            Mmol = get "Mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            Form = get "Form" |> Option.ofObj
+                            Brand = get "Brand" |> Option.ofObj
+                            GenName = get "GenName" |> Option.ofObj
+                            Unit = get "Unit" |> Option.ofObj
+                            EnergyKCal = get "Energy kCal" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            CarbG = get "Carb g" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            ProtG = get "Prot g" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            LipG = get "Lip g" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            SodMmol = get "Sod mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            PotMmol = get "Pot mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            CalcMmol = get "Calc mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            PosphMmol = get "Posph mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            MagnMmol = get "Magn mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            ChlorMmol = get "Chlor mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            IronMmol = get "Iron mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            VitDIE = get "VitD IE" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                            IsReconste = get "IsReconste" = "x"
+                            IsDilute = get "IsDilute" = "x"
+                            IsAdditive = get "IsAdditive" = "x"
+                        }
+                    )
+                    // filter out dummy
+                    |> Array.filter (fun fp -> fp.GPK = "0" |> not)
+                Ok (products, [])
+            )
+            |> Result.mapError (fun err -> [ err |> Warning ])
+        with
+        | exn -> GenFormResult.createError "getFormularyProducts" exn
+
+
+    let getAdditionalSubstances (fp: FormularyProduct) =
+        [
+
+            "glucose g", fp.CarbG
+            "energie kCal", fp.EnergyKCal
+            "eiwit g", fp.ProtG
+            "koolhydraat g", fp.CarbG
+            "vet g", fp.LipG
+            "natrium mmol", fp.SodMmol
+            "kalium mmol", fp.PotMmol
+            "calcium mmol", fp.CalcMmol
+            "fosfaat mmol", fp.PosphMmol
+            "magnesium mmol", fp.MagnMmol
+            "ijzer mmol", fp.IronMmol
+            "VitD IE", fp.VitDIE
+            "chloor mmol", fp.ChlorMmol
+        ]
+
+
     module Location =
 
 
@@ -51,8 +139,7 @@ module Product =
     module Reconstitution =
 
 
-
-        let get dataUrlId : GenFormResult<_> =
+        let get dataUrlId : Result<_, _> =
             try
                 Web.getDataFromSheet dataUrlId "Reconstitution"
                 |> fun data ->
@@ -112,236 +199,171 @@ module Product =
             ) rs
 
 
+    let createSubstance
+        name
+        conc
+        unit
+        formUnit
+        unitMapping
+        =
+        let conc =
+            conc
+            |> Option.bind (fun q ->
+                unit
+                |> Mapping.mapUnit unitMapping
+                |> function
+                    | None ->
+                        writeErrorMessage $"cannot map unit: {unit}"
+                        None
+                    | Some u ->
+                        let isMolar =
+                            u |> ValueUnit.Group.eqsGroup Units.Molar.milliMole
+                        let u =
+                            u
+                            |> Units.per formUnit
+
+                        (isMolar, q |> ValueUnit.singleWithUnit u)
+                        |> Some
+            )
+
+        {
+            Name = name
+            Concentration = conc |> Option.map snd
+            MolarConcentration =
+                conc
+                |> Option.bind (fun (isMolar, vu) ->
+                    if isMolar then vu |> Some else None
+                )
+        }
+
+
     module Enteral =
 
 
-        let get dataUrlId unitMapping : GenFormResult<_> =
-            try
-                Web.getDataFromSheet dataUrlId "EntFeeding"
-
-                |> fun data ->
-                    let getColumn =
-                        data
-                        |> Array.head
-                        |> Csv.getStringColumn
-
-                    data
-                    |> Array.tail
-                    |> Array.map (fun r ->
-                        let get = getColumn r
-                        let toBrOpt = BigRational.toBrs >> Array.tryHead
-
-                        {|
-                            Name = get "Name"
-                            Unit = get "Eenheid"
-                            Substances =
-                                [|
-                                    "volume mL", get "volume mL" |> toBrOpt
-                                    "energie kCal", get "energie kCal" |> toBrOpt
-                                    "eiwit g", get "eiwit g" |> toBrOpt
-                                    "koolhydraat g", get "KH g" |> toBrOpt
-                                    "vet g", get "vet g" |> toBrOpt
-                                    "natrium mmol", get "Na mmol" |> toBrOpt
-                                    "kalium mmol", get "K mmol" |> toBrOpt
-                                    "calcium mmol", get "Ca mmol" |> toBrOpt
-                                    "fosfaat mmol", get "P mmol" |> toBrOpt
-                                    "magnesium mmol", get "Mg mmol" |> toBrOpt
-                                    "ijzer mmol", get "Fe mmol" |> toBrOpt
-                                    "VitD IE", get "VitD IE" |> toBrOpt
-                                    "chloor mmol", get "Cl mmol" |> toBrOpt
-
-                                |]
-                        |}
+        let createProduct
+            name
+            formUnit
+            unitMapping
+            substs
+            =
+            {
+                GPK =  name
+                ATC = ""
+                MainGroup = ""
+                SubGroup = ""
+                Generic = name
+                UseGenericName = false
+                UseForm = false
+                UseBrand = false
+                TallMan = "" //r.TallMan
+                Synonyms = [||]
+                Product = name
+                Label = name
+                Form = "voeding"
+                Routes = [| "ORAAL" |]
+                FormQuantities =
+                    formUnit
+                    |> ValueUnit.singleWithValue 1N
+                FormUnit = formUnit
+                RequiresReconstitution = false
+                Reconstitution = [||]
+                Divisible = Some 10N
+                Substances =
+                    substs
+                    |> List.map (fun (s, q) ->
+                        let n, u =
+                            match s |> String.split " " with
+                            | [n; u] -> n |> String.trim, u |> String.trim
+                            | _ -> failwith $"cannot parse substance {s}"
+                        createSubstance n q u formUnit unitMapping
                     )
-                    |> Array.map (fun r ->
-                        let formUnit =
-                            r.Unit
-                            |> Units.fromString
-                            |> Option.defaultValue Units.Volume.milliLiter
-                        {
-                            GPK =  r.Name
-                            ATC = ""
-                            MainGroup = ""
-                            SubGroup = ""
-                            Generic = r.Name
-                            UseGenericName = false
-                            UseForm = false
-                            UseBrand = false
-                            TallMan = "" //r.TallMan
-                            Synonyms = [||]
-                            Product = r.Name
-                            Label = r.Name
-                            Form = "voeding"
-                            Routes = [| "ORAAL" |]
-                            FormQuantities =
-                                formUnit
-                                |> ValueUnit.singleWithValue 1N
-                            FormUnit = formUnit
-                            RequiresReconstitution = false
-                            Reconstitution = [||]
-                            Divisible = Some 10N
-                            Substances =
-                                r.Substances
-                                |> Array.filter (fun (n, q) ->
-                                    n |> String.equalsCapInsens "volume mL" |> not &&
-                                    q
-                                    |> Option.map (fun br -> br > 0N)
-                                    |> Option.defaultValue false
-                                )
-                                |> Array.map (fun (s, q) ->
-                                    let n, u =
-                                        match s |> String.split " " with
-                                        | [n; u] -> n |> String.trim, u |> String.trim
-                                        | _ -> failwith $"cannot parse substance {s}"
-                                    {
-                                        Name = n
-                                        Concentration =
-                                            q
-                                            |> Option.bind (fun q ->
-                                                u
-                                                |> Mapping.mapUnit unitMapping
-                                                |> function
-                                                    | None ->
-                                                        writeErrorMessage $"cannot map unit: {u}"
-                                                        None
-                                                    | Some u ->
-                                                        let u =
-                                                            u
-                                                            |> Units.per formUnit
-                                                        q
-                                                        |> ValueUnit.singleWithUnit u
-                                                        |> Some
-                                            )
-                                        MolarConcentration = None
-                                    }
-                                )
-                                |> Array.filter (fun s ->
-                                    s.Name |> String.notEmpty &&
-                                    (s.Concentration |> Option.isSome ||
-                                    s.MolarConcentration |> Option.isSome)
-                                )
-                        }
+                    |> List.filter (fun s ->
+                        s.Name |> String.notEmpty &&
+                        (s.Concentration |> Option.isSome ||
+                        s.MolarConcentration |> Option.isSome)
                     )
-                |> GenFormResult.createOkNoMsgs
-            with
-            | exn -> GenFormResult.createError "Enteral.get" exn
+                    |> List.toArray
+            }
+
+
+        let get unitMapping (prods: FormularyProduct []) =
+                prods
+                |> Array.filter _.ProductType.IsEnteralProduct
+                |> Array.choose (fun fp ->
+                    let formUnit =
+                        fp.Unit
+                        |> Option.bind Units.fromString
+
+                    match formUnit with
+                    | None -> None
+                    | Some fu ->
+                        fp
+                        |> getAdditionalSubstances
+                        |> createProduct fp.Generic fu unitMapping
+                        |> Some
+                )
 
 
     module Parenteral =
 
-
-        let get dataUrlId unitMapping : GenFormResult<_> =
-            try
-                Web.getDataFromSheet dataUrlId "ParentMeds"
-                |> fun data ->
-                    let getColumn =
-                        data
-                        |> Array.head
-                        |> Csv.getStringColumn
-
-                    data
-                    |> Array.tail
-                    |> Array.map (fun r ->
-                        let get = getColumn r
-                        let toBrOpt = BigRational.toBrs >> Array.tryHead
-
-                        {|
-                            GPK = get "GPK"
-                            Name = get "Name"
-                            Substances =
-                                [|
-                                    "volume mL", get "volume mL" |> toBrOpt
-                                    "glucose g", get "glucose g" |> toBrOpt
-                                    "energie kCal", get "energie kCal" |> toBrOpt
-                                    "eiwit g", get "eiwit g" |> toBrOpt
-                                    "koolhydraat g", get "koolhydraat g" |> toBrOpt
-                                    "vet g", get "vet g" |> toBrOpt
-                                    "natrium mmol", get "natrium mmol" |> toBrOpt
-                                    "kalium mmol", get "kalium mmol" |> toBrOpt
-                                    "calcium mmol", get "calcium mmol" |> toBrOpt
-                                    "fosfaat mmol", get "fosfaat mmol" |> toBrOpt
-                                    "magnesium mmol", get "magnesium mmol" |> toBrOpt
-                                    "ijzer mmol", get "ijzer mmol" |> toBrOpt
-                                    "VitD IE", get "VitD IE" |> toBrOpt
-                                    "chloor mmol", get "chloor mmol" |> toBrOpt
-
-                                |]
-                            Oplosmiddel = get "volume mL"
-                            Verdunner = get "volume mL"
-                            IsOplosmiddel = get "Oplosmiddel" = "TRUE"
-                            IsVerdunner = get "Verdunner" = "TRUE"
-                        |}
+        let createProduct
+            name
+            unitMapping
+            substs
+            =
+            {
+                GPK =  name
+                ATC = ""
+                MainGroup = ""
+                SubGroup = ""
+                Generic = name
+                UseGenericName = false
+                UseForm = false
+                UseBrand = false
+                TallMan = "" //r.TallMan
+                Synonyms = [||]
+                Product = name
+                Label = name
+                Form = "vloeistof"
+                Routes = [| "INTRAVENEUS"; "ORAAL" |]
+                FormQuantities =
+                    Units.Volume.milliLiter
+                    |> ValueUnit.singleWithValue 1N
+                FormUnit =
+                    Units.Volume.milliLiter
+                RequiresReconstitution = false
+                Reconstitution = [||]
+                Divisible = Some 10N
+                Substances =
+                    substs
+                    |> List.map (fun (s, q) ->
+                        let n, u =
+                            match s |> String.split " " with
+                            | [n; u] -> n |> String.trim, u |> String.trim
+                            | _ -> failwith $"cannot parse substance {s}"
+                        createSubstance n q u Units.Volume.milliLiter unitMapping
                     )
-                    |> Array.map (fun r ->
-
-                        {
-                            GPK =  r.GPK
-                            ATC = ""
-                            MainGroup = ""
-                            SubGroup = ""
-                            Generic = r.Name
-                            UseGenericName = false
-                            UseForm = false
-                            UseBrand = false
-                            TallMan = "" //r.TallMan
-                            Synonyms = [||]
-                            Product = r.Name
-                            Label = r.Name
-                            Form = "vloeistof"
-                            Routes = [| "INTRAVENEUS"; "ORAAL" |]
-                            FormQuantities =
-                                Units.Volume.milliLiter
-                                |> ValueUnit.singleWithValue 1N
-                            FormUnit =
-                                Units.Volume.milliLiter
-                            RequiresReconstitution = false
-                            Reconstitution = [||]
-                            Divisible = Some 10N
-                            Substances =
-                                r.Substances
-                                |> Array.filter (fun (n, q) ->
-                                    n |> String.equalsCapInsens "volume mL" |> not &&
-                                    q
-                                    |> Option.map (fun br -> br > 0N)
-                                    |> Option.defaultValue false
-                                )
-                                |> Array.map (fun (s, q) ->
-                                    let n, u =
-                                        match s |> String.split " " with
-                                        | [n; u] -> n |> String.trim, u |> String.trim
-                                        | _ -> failwith $"cannot parse substance {s}"
-                                    {
-                                        Name = n
-                                        Concentration =
-                                            q
-                                            |> Option.bind (fun q ->
-                                                u
-                                                |> Mapping.mapUnit unitMapping
-                                                |> function
-                                                    | None ->
-                                                        writeErrorMessage $"cannot map unit: {u}"
-                                                        None
-                                                    | Some u ->
-                                                        let u =
-                                                            u
-                                                            |> Units.per Units.Volume.milliLiter
-                                                        q
-                                                        |> ValueUnit.singleWithUnit u
-                                                        |> Some
-                                            )
-                                        MolarConcentration = None
-                                    }
-                                )
-                                |> Array.filter (fun s ->
-                                    s.Name |> String.notEmpty &&
-                                    (s.Concentration |> Option.isSome ||
-                                    s.MolarConcentration |> Option.isSome)
-                                )
-                        }
+                    |> List.filter (fun s ->
+                        s.Name |> String.notEmpty &&
+                        (s.Concentration |> Option.isSome ||
+                        s.MolarConcentration |> Option.isSome)
                     )
-                |> GenFormResult.createOkNoMsgs
-            with
-            | exn -> GenFormResult.createError "Parenteral.get" exn
+                    |> List.toArray
+                    |> Array.filter (fun s ->
+                        s.Name |> String.notEmpty &&
+                        (s.Concentration |> Option.isSome ||
+                        s.MolarConcentration |> Option.isSome)
+                    )
+            }
+
+        let get unitMapping (prods: FormularyProduct []) =
+            prods
+            |> Array.filter _.ProductType.IsParenteralProduct
+                |> Array.map (fun fp ->
+                    fp
+                    |> getAdditionalSubstances
+                    |> createProduct fp.Generic unitMapping
+                )
 
 
     let create gen rte substs =
@@ -389,13 +411,9 @@ module Product =
         formRoutes
         (reconstitution : Reconstitution[])
         name
-        useGenName
-        useForm
-        useBrand
         synonyms
         formQuantities
-        divisible
-        molarConcentration
+        (fp: FormularyProduct)
         (gp : Informedica.ZIndex.Lib.Types.GenericProduct)
         =
 
@@ -430,9 +448,9 @@ module Product =
                 |> Array.tryHead
                 |> Option.defaultValue ""
             Generic = name
-            UseGenericName = useGenName
-            UseForm = useForm
-            UseBrand = useBrand
+            UseGenericName = fp.UseGenName
+            UseForm = fp.UseForm
+            UseBrand = fp.UseBrand
             TallMan = ""
             Synonyms = synonyms
             Product =
@@ -459,7 +477,7 @@ module Product =
                     r.GPK = $"{gp.Id}"
                 )
             Divisible =
-                match divisible with
+                match fp.Divisible with
                 | Some d -> d |> BigRational.fromInt |> Some
                 | None ->
                     let rs =
@@ -470,7 +488,7 @@ module Product =
                     else
                         rs[0].Divisibility
             Substances =
-                let additional =
+                let ppAdditional =
                     gp.PrescriptionProducts
                     |> Array.collect (fun pp ->
                         pp.TradeProducts
@@ -481,77 +499,57 @@ module Product =
                         s.IsAdditional
                     )
 
+                let fpAdditional =
+                    fp
+                    |> getAdditionalSubstances
+                    |> List.map (fun (s, q) ->
+                        let n, u =
+                            match s |> String.split " " with
+                            | [n; u] -> n |> String.trim, u |> String.trim
+                            | _ -> failwith $"cannot parse substance {s}"
+                        createSubstance n q u formUnit unitMapping
+                    )
+                    |> List.filter (fun s ->
+                        s.Name |> String.notEmpty &&
+                        (s.Concentration |> Option.isSome ||
+                        s.MolarConcentration |> Option.isSome)
+                    )
+                    |> List.toArray
+
                 gp.Substances
                 |> Array.filter (fun ps ->
                     ps.SubstanceQuantity > 0.
                 )
-                |> Array.append additional
+                |> Array.append ppAdditional
                 // TODO should be group by as additional can have different concentrations
                 |> Array.distinctBy _.SubstanceId
                 |> Array.map (fun s ->
                     let su =
-                            s.SubstanceUnit
-                            |> Mapping.mapUnit unitMapping
-                            |> Option.map (fun u ->
-                                CombiUnit(u, OpPer, formUnit)
-                            )
-                            |> Option.defaultValue NoUnit
+                        s.SubstanceUnit
+                        |> Mapping.mapUnit unitMapping
+                        |> Option.map (fun u ->
+                            CombiUnit(u, OpPer, formUnit)
+                        )
+                        |> Option.defaultValue NoUnit
                     {
-                        Name = s |> rename s.SubstanceName useGenName
+                        Name = s |> rename s.SubstanceName fp.UseGenName
                         Concentration =
                             s.SubstanceQuantity
                             |> BigRational.fromFloat
                             |> Option.map (ValueUnit.singleWithUnit su)
                         MolarConcentration =
-                            if molarConcentration |> Option.isNone ||
+                            if fp.Mmol |> Option.isNone ||
                                s.SubstanceName |> String.equalsCapInsens name |> not then None
                             // only apply mmol to substance with the same name as the product
                             else
                                 let u = Units.Molar.milliMole |> Units.per formUnit
-                                molarConcentration.Value
-                                |> BigRational.fromFloat
+                                fp.Mmol
                                 |> Option.map (ValueUnit.singleWithUnit u)
                     }
                 )
-
+                |> Array.append fpAdditional
         }
 
-
-    let getFormularyProducts dataUrlId : GenFormResult<_> =
-        try
-            fun () ->
-                Web.getDataFromSheet dataUrlId "Formulary"
-                |> fun data ->
-                    let getColumn =
-                        data
-                        |> Array.head
-                        |> Csv.getStringColumn
-
-                    data
-                    |> Array.tail
-                    |> Array.map (fun r ->
-                        let get = getColumn r
-
-                        {
-                            GPKODE = get "GPKODE" |> Int32.parse
-                            Apotheek = get "UMCU"
-                            ICC = get "ICC"
-                            NEO = get "NEO"
-                            ICK = get "ICK"
-                            HCK = get "HCK"
-                            Generic = get "Generic"
-                            UseGenName = get "UseGenName" = "x"
-                            UseForm = get "UseForm" = "x"
-                            UseBrand = get "UseBrand" = "x"
-                            TallMan = get "TallMan"
-                            MilliMoleOption = get "Mmol" |> Double.tryParse
-                            Divisible = get "Divisible" |> Int32.tryParse
-                        }
-                    )
-            |> StopWatch.clockFunc "retrieved formulary products"
-            |> GenFormResult.createOkNoMsgs
-        with
-        | exn -> GenFormResult.createError "FormularyProducts" exn
 
 
     let get
@@ -566,20 +564,24 @@ module Product =
         =
         fun () ->
             formularyProducts
+            |> Array.choose (fun fp ->
+                fp.GPK
+                |> Int32.tryParse
+                |> Option.map (fun gpk -> gpk, fp)
+            )
             // find the matching GenPresProducts
-            |> Array.collect (fun r ->
-                r.GPKODE
+            |> Array.collect (fun (gpk, fp) ->
+                gpk
                 |> GenPresProduct.findByGPK
-                |> Array.map (fun gpp -> (r, gpp))
+                |> Array.map (fun gpp -> (gpk, fp, gpp))
             )
             // collect the GenericProducts
             // filtered by "valid form" and
             // at least one substance quantity > 0
-            |> Array.collect (fun (r, gpp) ->
+            |> Array.collect (fun (gpk, fp, gpp) ->
                 gpp.GenericProducts
                 |> Array.filter (fun gp ->
-                    gp.Id = r.GPKODE &&
-
+                    gp.Id = gpk &&
                     validForms
                     |> Array.exists (String.equalsCapInsens gp.Form) &&
                     gp.Substances
@@ -587,11 +589,11 @@ module Product =
                         s.SubstanceQuantity > 0.
                     )
                 )
-                |> Array.map (fun gp -> r, gp)
+                |> Array.map (fun gp -> fp, gp)
             )
             // create the Product records
-            |> Array.map (fun (r, gp) ->
-                let name = r.Generic |> String.toLower
+            |> Array.map (fun (fp, gp) ->
+                let name = fp.Generic |> String.toLower
 
                 let synonyms =
                     gp.PrescriptionProducts
@@ -618,13 +620,9 @@ module Product =
                        formRoutes
                        reconstitution
                        name
-                       r.UseGenName
-                       r.UseForm
-                       r.UseBrand
                        synonyms
                        formQuantities
-                       r.Divisible
-                       r.MilliMoleOption
+                       fp
             )
             |> Array.append parenteral
             |> Array.append enteral

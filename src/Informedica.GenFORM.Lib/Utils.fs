@@ -30,13 +30,13 @@ module Utils =
     module GenFormResult =
 
 
-        let inline map f r : GenFormResult<_> =
+        let inline map f r : Result<_, _> =
             match r with
             | Ok (x, msgs) -> (x |> f, msgs) |> Ok
             | Error msgs -> msgs |> Error
 
 
-        let inline bind (f : 'a -> GenFormResult<'b>) (r : GenFormResult<'a>) : GenFormResult<'b> =
+        let inline bind (f : 'a -> Result<_, _>) (r : Result<_, _>) : Result<_, _> =
             match r with
             | Ok (x, msgs1) ->
                 match x |> f with
@@ -46,10 +46,10 @@ module Utils =
 
 
 
-        let createError source exn : GenFormResult<_> = [ Message.createExnMsg source exn ] |> Error
+        let createError source exn : Result<_, _> = [ Message.createExnMsg source exn ] |> Error
 
 
-        let mapErrorSource s r : GenFormResult<_> =
+        let mapErrorSource s r : Result<_, _> =
             r
             |> Result.mapError (fun msgs ->
                 msgs
@@ -62,7 +62,7 @@ module Utils =
             )
 
 
-        let createOk x msgs : GenFormResult<_> = (x, msgs) |> Ok
+        let createOk x msgs : Result<_, _> = (x, msgs) |> Ok
 
 
         let createOkWithMsgs msgs x = createOk x msgs
@@ -80,7 +80,7 @@ module Utils =
         /// If all results are Ok, returns Ok with concatenated arrays and all messages.
         /// If any result is Error, returns Error with all accumulated messages.
         /// </remarks>
-        let foldResults (results: GenFormResult<'T array> array) : GenFormResult<'T array> =
+        let foldResults (results: Result<'T array * Message list, _> array) : Result<'T array * Message list, _> =
             results
             |> Array.fold (fun acc result ->
                 match acc, result with

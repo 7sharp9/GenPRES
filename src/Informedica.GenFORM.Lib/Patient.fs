@@ -148,7 +148,7 @@ module PatientCategory =
                 | Some w, Some h ->
                     Calculations.calcDuBois w h
                     |> Some
-                    |> Utils.MinMax.inRange p.BSA
+                    |> MinMax.inRange p.BSA
                 | _ -> true
             if filter.Patient.Age |> Option.isSome then
                 yield! [|
@@ -170,7 +170,7 @@ module PatientCategory =
                                 // if no gest age assume full term
                                 |> Option.defaultValue Utils.ValueUnit.ageFullTerm
                                 |> Some
-                                |> Utils.MinMax.inRange p.GestAge
+                                |> MinMax.inRange p.GestAge
                     // post-menstrual age check: if patient category is empty (all patients), pass;
                     // otherwise calculate PM age (age + gestational age, defaulting gestational to full term)
                     // and check if within patient category PM age range
@@ -182,7 +182,7 @@ module PatientCategory =
                             // if no gest age assume full term
                             |> Option.defaultValue (filter.Patient.Age.Value + Utils.ValueUnit.ageFullTerm)
                             |> Some
-                            |> Utils.MinMax.inRange p.PMAge
+                            |> MinMax.inRange p.PMAge
                 |]
             // patient gender must match patient category gender (or category allows any gender)
             fun (p: PatientCategory) -> filter |> Gender.filter p.Gender
@@ -207,14 +207,14 @@ module PatientCategory =
         ([| patCat |],
         [|
             fun (p: PatientCategory) -> pat.Department |> eqs p.Department
-            fun (p: PatientCategory) -> pat.Age |> Utils.MinMax.inRange p.Age
-            fun (p: PatientCategory) -> pat.Weight |> Utils.MinMax.inRange p.Weight
+            fun (p: PatientCategory) -> pat.Age |> MinMax.inRange p.Age
+            fun (p: PatientCategory) -> pat.Weight |> MinMax.inRange p.Weight
             fun (p: PatientCategory) ->
                 match pat.Weight, pat.Height with
                 | Some w, Some h ->
                     Calculations.calcDuBois w h
                     |> Some
-                    |> Utils.MinMax.inRange p.BSA
+                    |> MinMax.inRange p.BSA
                 | _ -> true
             if pat.Age |> Option.isSome then
                 yield! [|
@@ -234,7 +234,7 @@ module PatientCategory =
                                 // if no gest age assume full term
                                 |> Option.defaultValue Utils.ValueUnit.ageFullTerm
                                 |> Some
-                                |> Utils.MinMax.inRange p.GestAge
+                                |> MinMax.inRange p.GestAge
                     // check pm age
                     fun (p: PatientCategory) ->
                         // alle patients rule
@@ -244,7 +244,7 @@ module PatientCategory =
                             // if no gest age assume full term
                             |> Option.defaultValue (pat.Age.Value + Utils.ValueUnit.ageFullTerm)
                             |> Some
-                            |> Utils.MinMax.inRange p.PMAge
+                            |> MinMax.inRange p.PMAge
                 |]
 //            fun (p: PatientCategory) -> filter |> Gender.filter p.Gender
             fun (p: PatientCategory) ->
@@ -266,8 +266,8 @@ module PatientCategory =
             | Some a, Some b -> a = b
 
         let inRange (minMax1 : MinMax) minMax2 =
-            minMax1.Min |> Option.map Limit.getValueUnit |> Utils.MinMax.inRange minMax2 &&
-            minMax2.Max |> Option.map Limit.getValueUnit |> Utils.MinMax.inRange minMax2
+            minMax1.Min |> Option.map Limit.getValueUnit |> MinMax.inRange minMax2 &&
+            minMax2.Max |> Option.map Limit.getValueUnit |> MinMax.inRange minMax2
 
         ([| patCat2 |],
         [|

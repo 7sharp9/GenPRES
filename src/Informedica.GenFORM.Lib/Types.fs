@@ -4,6 +4,7 @@ namespace Informedica.GenForm.Lib
 [<AutoOpen>]
 module Types =
 
+    open System
     open MathNet.Numerics
 
     open Informedica.Utils.Lib
@@ -172,22 +173,70 @@ module Types =
         }
 
 
+    /// The Formulary Product that is
+    /// available as a GenericProduct.
     type FormularyProduct =
         {
-            Apotheek: string
-            GPKODE: int
+            /// The GPK code
+            GPK: string
+            /// The type of procuct
+            ProductType: ProductType
+            /// The department UMCU, ICC, NEO, ICK, etc...
+            Departments: string list
+            /// The generic name
             Generic: string
-            HCK: string
-            ICC: string
-            ICK: string
-            NEO: string
-            Divisible: int option
-            MilliMoleOption: float option
-            TallMan: string
-            UseBrand: bool
+            /// The TallMan alternative name
+            TallMan : string
+            /// The Divisibility of the product
+            Divisible : int option
+            /// Use generic name
             UseGenName: bool
+            /// Use form
             UseForm: bool
+            /// Use brand
+            UseBrand: bool
+            /// Mmol
+            Mmol: BigRational option
+            /// Form
+            Form: string option
+            /// Brand
+            Brand: string option
+            /// Generic name
+            GenName: string option
+            /// Unit
+            Unit: string option
+            /// Energy in kCal
+            EnergyKCal: BigRational option
+            /// Carbohydrates in g
+            CarbG: BigRational option
+            /// Protein in g
+            ProtG: BigRational option
+            /// Lipids in g
+            LipG: BigRational option
+            /// Sodium in mmol
+            SodMmol: BigRational option
+            /// Potassium in mmol
+            PotMmol: BigRational option
+            /// Calcium in mmol
+            CalcMmol: BigRational option
+            /// Phosphorus in mmol
+            PosphMmol: BigRational option
+            /// Magnesium
+            MagnMmol: BigRational option
+            /// Chloride in mmol
+            ChlorMmol: BigRational option
+            /// Iron in mmol
+            IronMmol: BigRational option
+            /// Vitamin D in IE
+            VitDIE: BigRational option
+            /// Is reconstituted
+            IsReconste: bool
+            /// Is diluted
+            IsDilute: bool
+            /// Is additive
+            IsAdditive: bool
         }
+    and ProductType = | MedicationProduct | ParenteralProduct | EnteralProduct | NoProduct
 
 
     type ComponentItem =
@@ -675,5 +724,6 @@ module Types =
         interface IMessage
 
 
+    [<Obsolete("use regular result type")>]
     type GenFormResult<'T> =
         ValidatedResult<'T, Message>

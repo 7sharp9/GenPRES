@@ -128,14 +128,14 @@ module Resources =
 
     type ResourceConfig =
         {
-            GetUnitMappings: unit -> GenFormResult<UnitMapping []>
-            GetRouteMappings: unit -> GenFormResult<RouteMapping []>
-            GetValidForms: unit -> GenFormResult<string []>
-            GetFormRoutes: UnitMapping [] -> GenFormResult<FormRoute []>
-            GetFormularyProducts: unit -> GenFormResult<FormularyProduct []>
-            GetReconstitution: unit -> GenFormResult<Reconstitution []>
-            GetParenteralMeds: UnitMapping[] -> GenFormResult<Product []>
-            GetEnteralFeeding: UnitMapping[] -> GenFormResult<Product []>
+            GetUnitMappings: unit -> Result<UnitMapping[] * Message list, Message list>
+            GetRouteMappings: unit -> Result<RouteMapping [] * Message list, Message list>
+            GetValidForms: unit -> Result<string [] * Message list, Message list>
+            GetFormRoutes: UnitMapping [] -> Result<FormRoute [] * Message list, Message list>
+            GetFormularyProducts: unit -> Result<FormularyProduct [] * Message list, Message list>
+            GetReconstitution: unit -> Result<Reconstitution [] * Message list, Message list>
+            GetParenteralMeds: UnitMapping[] -> Result<Product [] * Message list, Message list>
+            GetEnteralFeeding: UnitMapping[] -> Result<Product [] * Message list, Message list>
             GetProducts:
                 UnitMapping[] ->
                 RouteMapping[] ->
@@ -150,13 +150,13 @@ module Resources =
                 RouteMapping[] ->
                 FormRoute[] ->
                 Product[] ->
-                GenFormResult<DoseRule []>
+                Result<DoseRule [] * Message list, Message list>
             GetSolutionRules:
                 RouteMapping[] ->
                 Product[] ->
                 Product[] ->
-                GenFormResult<SolutionRule []>
-            GetRenalRules: unit -> GenFormResult<RenalRule []>
+                Result<SolutionRule [] * Message list, Message list>
+            GetRenalRules: unit -> Result<RenalRule [] * Message list, Message list>
         }
 
 
@@ -165,15 +165,33 @@ module Resources =
 
     /// Default resource configuration using the standard get functions
     let defaultResourceConfig dataUrlId =
+        let unitMapping = Mapping.getUnitMapping dataUrlId
+        let formProds = Product.getFormularyProducts dataUrlId
         {
-            GetUnitMappings = Mapping.getUnitMapping dataUrlId |> delay
+            GetUnitMappings = fun () -> unitMapping
             GetRouteMappings = Mapping.getRouteMapping dataUrlId |> delay
             GetValidForms = Mapping.getValidForms dataUrlId |> delay
             GetFormRoutes = Mapping.getFormRoutes dataUrlId
-            GetFormularyProducts = fun () -> Product.getFormularyProducts dataUrlId
+            GetFormularyProducts = fun () -> formProds
             GetReconstitution = Product.Reconstitution.get dataUrlId |> delay
-            GetParenteralMeds = Product.Parenteral.get dataUrlId
-            GetEnteralFeeding = Product.Enteral.get dataUrlId
+            GetParenteralMeds =
+                fun mapping ->
+                    formProds
+                    |> Result.map fst
+                    |> Result.map (fun prods ->
+                        prods
+                        |> Product.Parenteral.get mapping
+                        , []
+                    )
+            GetEnteralFeeding =
+                fun mapping ->
+                    formProds
+                    |> Result.map fst
+                    |> Result.map (fun prods ->
+                        prods
+                        |> Product.Enteral.get mapping
+                        , []
+                    )
             GetProducts = Product.get
             GetDoseRules = DoseRule.get dataUrlId
             GetSolutionRules = SolutionRule.get dataUrlId
@@ -419,7 +437,7 @@ module Api =
         PrescriptionRule.getForPatient doseRules solutionRules renalRules routeMappings
 
 
-    let filterPrescriptionRules (provider: IResourceProvider) filter : GenFormResult<PrescriptionRule array> =
+    let filterPrescriptionRules (provider: IResourceProvider) filter : Result<PrescriptionRule array * Message list, Message list> =
         let doseRules = getDoseRules provider
         let solutionRules = getSolutionRules provider
         let routeMappings = getRouteMapping provider
