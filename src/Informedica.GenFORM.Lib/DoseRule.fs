@@ -631,7 +631,7 @@ module DoseRule =
 
 
     let processDoseRuleData prods routeMapping (data, msgs) : GenFormResult<_> =
-        let warnings = Collections.Generic.Dictionary<_, _>()
+        let warnings = System.Collections.Concurrent.ConcurrentDictionary<_, _>()
 
         let grouped =
             data
@@ -668,7 +668,7 @@ module DoseRule =
                             if warnings.ContainsKey(key) |> not then
                                 let msg =
                                     $"{key}: no products found"
-                                warnings.Add(key, msg)
+                                warnings.TryAdd(key, msg) |> ignore
 
                             [|
                                 { r with
