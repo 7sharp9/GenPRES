@@ -15,8 +15,8 @@ module Prescribe =
         {|
             orderContext: Deferred<OrderContext>
             updateOrderContext: Api.OrderContextCommand -> unit
-            treatmentPlan : Deferred<TreatmentPlan>
-            updateTreatmentPlan : TreatmentPlan -> unit
+            treatmentPlan : Deferred<OrderPlan>
+            updateTreatmentPlan : OrderPlan -> unit
             localizationTerms : Deferred<string [] []>
         |}) =
 

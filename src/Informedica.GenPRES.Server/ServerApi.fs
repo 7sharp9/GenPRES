@@ -533,7 +533,7 @@ module Mappers =
             }
 
 
-    let mapToIntake (intake : Informedica.GenOrder.Lib.Types.Totals) : Totals =
+    let mapToTotals (intake : Informedica.GenOrder.Lib.Types.Totals) : Totals =
         let toTextItem =
             Option.map parseTextItem
             >> (Option.defaultValue [||])
@@ -761,7 +761,7 @@ module Order =
     open Mappers
 
 
-    let getIntake age wghtInGram (ords: Order []) =
+    let getTotals age wghtInGram (ords: Order []) =
         let wghtInKg =
             wghtInGram
             |> Option.map BigRational.fromInt
@@ -776,7 +776,7 @@ module Order =
         ords
         |> Array.map Order.mapFromSharedToOrder
         |> Totals.getTotals age wghtInKg
-        |> mapToIntake
+        |> mapToTotals
 
 
 module OrderContext =
@@ -811,7 +811,7 @@ module OrderContext =
 
                 ctx.Scenarios
                 |> Array.map _.Order
-                |> Order.getIntake a w
+                |> Order.getTotals a w
         }
 
 
@@ -933,7 +933,7 @@ module OrderContext =
                 raise e
 
 
-module TreatmentPlan =
+module OrderPlan =
 
     open Shared
     open Shared.Types
@@ -941,7 +941,7 @@ module TreatmentPlan =
     module OrderLogger = Informedica.GenOrder.Lib.OrderLogging
 
 
-    let updateTreatmentPlan logger provider (tp : TreatmentPlan) =
+    let updateOrderPlan logger provider (tp : OrderPlan) =
         match tp.Selected with
         | Some os ->
             os
@@ -968,7 +968,7 @@ module TreatmentPlan =
         | None -> tp
 
 
-    let calculateTotals (tp : TreatmentPlan) =
+    let calculateTotals (tp : OrderPlan) =
         { tp with
             Totals =
                 let w = tp.Patient |> Models.Patient.getWeight |> Option.map int
@@ -982,7 +982,7 @@ module TreatmentPlan =
 
                 scs
                 |> Array.map _.Order
-                |> Order.getIntake a w
+                |> Order.getTotals a w
         }
 
 
@@ -1011,26 +1011,26 @@ module Command =
                     |> Result.map (OrderContextUpdated >> OrderContextResp)
             }
 
-        | TreatmentPlanCmd (UpdateTreatmentPlan tp) ->
+        | OrderPlanCmd (UpdateOrderPlan tp) ->
             async {
                 if agent.IsSome then
                     do! agent.Value |> Logging.setComponentName (Some "TreatmentPlan")
                 return
                     tp
-                    |> TreatmentPlan.updateTreatmentPlan logger provider
-                    |> TreatmentPlan.calculateTotals
-                    |> TreatmentPlanUpdated
-                    |> TreatmentPlanResp
+                    |> OrderPlan.updateOrderPlan logger provider
+                    |> OrderPlan.calculateTotals
+                    |> OrderPlanUpdated
+                    |> OrderPlanResp
                     |> Ok
             }
 
-        | TreatmentPlanCmd (FilterTreatmentPlan tp) ->
+        | OrderPlanCmd (FilterOrderPlan tp) ->
             async {
                 return
                     tp
-                    |> TreatmentPlan.calculateTotals
-                    |> TreatmentPlanFiltered
-                    |> TreatmentPlanResp
+                    |> OrderPlan.calculateTotals
+                    |> OrderPlanFiltered
+                    |> OrderPlanResp
                     |> Ok
             }
 

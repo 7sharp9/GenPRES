@@ -1702,7 +1702,7 @@ module Models =
             }
 
 
-    module TreatmentPlan =
+    module OrderPlan =
 
         let create pat srs =
             {

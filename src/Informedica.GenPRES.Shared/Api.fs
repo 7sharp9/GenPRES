@@ -9,7 +9,7 @@ module Api =
 
     type Command =
         | OrderContextCmd of OrderContextCommand
-        | TreatmentPlanCmd of TreatmentPlanCommand
+        | OrderPlanCmd of OrderPlanCommand
         | FormularyCmd of Formulary
         | ParenteraliaCmd of Parenteralia
 
@@ -44,14 +44,13 @@ module Api =
         | SetMaxComponentOrderableQuantityProperty of OrderContext * cmp: string
         | SetMedianComponentOrderableQuantityProperty of OrderContext * cmp: string
 
-
-    and TreatmentPlanCommand =
-        | UpdateTreatmentPlan of TreatmentPlan
-        | FilterTreatmentPlan of TreatmentPlan
+    and OrderPlanCommand =
+        | UpdateOrderPlan of OrderPlan
+        | FilterOrderPlan of OrderPlan
 
     type Response =
         | OrderContextResp of OrderContextResponse
-        | TreatmentPlanResp of TreatmentPlanResponse
+        | OrderPlanResp of OrderPlanResponse
         | FormularyResp of Formulary
         | ParentaraliaResp of Parenteralia
 
@@ -61,9 +60,9 @@ module Api =
         | OrderContextRefreshed of OrderContext
         | ResourcesReloaded of OrderContext
 
-    and TreatmentPlanResponse =
-        | TreatmentPlanFiltered of TreatmentPlan
-        | TreatmentPlanUpdated of TreatmentPlan
+    and OrderPlanResponse =
+        | OrderPlanFiltered of OrderPlan
+        | OrderPlanUpdated of OrderPlan
 
 
     module Command =
@@ -95,7 +94,8 @@ module Api =
             | OrderContextCmd (SetMaxComponentOrderableQuantityProperty (_, cmp)) -> $"SetMaxComponentQuantityProperty cmp={cmp}"
             | OrderContextCmd (SetMedianComponentOrderableQuantityProperty (_, cmp)) -> $"SetMedianComponentQuantityProperty cmp={cmp}"
 
-            | TreatmentPlanCmd _ -> "TreatmentPlanCmd"
+            | OrderPlanCmd (UpdateOrderPlan _) -> "UpdatedOrderPlan"
+            | OrderPlanCmd (FilterOrderPlan _) -> "FilterOrderPlan"
             | FormularyCmd _ -> "FormularyCmd"
             | ParenteraliaCmd _ -> "ParenteraliaCmd"
 

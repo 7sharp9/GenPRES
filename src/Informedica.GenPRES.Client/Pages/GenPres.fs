@@ -121,8 +121,8 @@ module GenPres =
             products: Deferred<Product list>
             orderContext: Deferred<OrderContext>
             updateOrderContext : Api.OrderContextCommand -> unit
-            treatmentPlan: Deferred<TreatmentPlan>
-            treatmentPlanCommand: Api.TreatmentPlanCommand -> unit
+            treatmentPlan: Deferred<OrderPlan>
+            treatmentPlanCommand: Api.OrderPlanCommand -> unit
             formulary: Deferred<Formulary>
             updateFormulary : Formulary -> unit
             parenteralia : Deferred<Parenteralia>
@@ -237,7 +237,7 @@ module GenPres =
                                     orderContext = props.orderContext
                                     updateOrderContext = props.updateOrderContext
                                     treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = Api.UpdateTreatmentPlan >> props.treatmentPlanCommand
+                                    updateTreatmentPlan = Api.UpdateOrderPlan >> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
                                 |}
                             | Global.Pages.Nutrition ->
@@ -246,8 +246,8 @@ module GenPres =
                             | Global.Pages.TreatmentPlan ->
                                 Views.TreatmentPlan.View {|
                                     treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = Api.UpdateTreatmentPlan >> props.treatmentPlanCommand
-                                    filterTreatmentPlan = Api.FilterTreatmentPlan >> props.treatmentPlanCommand
+                                    updateTreatmentPlan = Api.UpdateOrderPlan >> props.treatmentPlanCommand
+                                    filterTreatmentPlan = Api.FilterOrderPlan >> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
                                 |}
                             | Global.Pages.Formulary ->
@@ -266,7 +266,7 @@ module GenPres =
                                     orderContext = props.orderContext
                                     updateOrderContext = props.updateOrderContext
                                     treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = Api.UpdateTreatmentPlan >> props.treatmentPlanCommand
+                                    updateTreatmentPlan = Api.UpdateOrderPlan >> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
                                 |}
 

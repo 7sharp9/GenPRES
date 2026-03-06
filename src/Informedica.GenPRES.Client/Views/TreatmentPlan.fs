@@ -13,9 +13,9 @@ module TreatmentPlan =
 
     [<JSX.Component>]
     let View (props : {|
-        treatmentPlan: Deferred<TreatmentPlan>
-        updateTreatmentPlan: TreatmentPlan -> unit
-        filterTreatmentPlan: TreatmentPlan -> unit
+        treatmentPlan: Deferred<OrderPlan>
+        updateTreatmentPlan: OrderPlan -> unit
+        filterTreatmentPlan: OrderPlan -> unit
         localizationTerms : Deferred<string [] []>
         |}) =
 

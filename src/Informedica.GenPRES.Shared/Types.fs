@@ -463,7 +463,7 @@ module Types =
         }
 
 
-    type TreatmentPlan =
+    type OrderPlan =
         {
             Patient: Patient
             Selected : OrderScenario option

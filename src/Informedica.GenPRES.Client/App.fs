@@ -26,14 +26,15 @@ module private Elmish =
             ContinuousMedication: Deferred<ContinuousMedication list>
             Products: Deferred<Product list>
             OrderContext: Deferred<OrderContext>
-            TreatmentPlan : Deferred<TreatmentPlan>
+            TreatmentPlan: Deferred<OrderPlan>
+            NutritionPlan: Deferred<OrderPlan>
             Formulary: Deferred<Formulary>
             Parenteralia: Deferred<Parenteralia>
-            Localization : Deferred<string [][]>
-            Hospitals : Deferred<string []>
-            Context : Context
+            Localization: Deferred<string [][]>
+            Hospitals: Deferred<string []>
+            Context: Context
             ShowDisclaimer: bool
-            IsDemo : bool
+            IsDemo: bool
             SnackbarMsg : string
             SnackbarOpen : bool
         }
@@ -85,7 +86,7 @@ module private Elmish =
         | LoadComponentQuantitySetMaxPropertyChange of cmp: string * resp: ApiResponse
         | LoadComponentQuantitySetMedianPropertyChange of cmp: string * resp: ApiResponse
 
-        | TreatmentPlanCommand of Api.TreatmentPlanCommand
+        | TreatmentPlanCommand of Api.OrderPlanCommand
         | LoadUpdatedTreatmentPlan of ApiResponse
         | LoadFilteredTreatmentPlan of ApiResponse
 
@@ -128,8 +129,8 @@ module private Elmish =
             { state with
                 OrderContext = Resolved ctx
             }, Cmd.none
-        | Api.TreatmentPlanResp (Api.TreatmentPlanFiltered tp)
-        | Api.TreatmentPlanResp (Api.TreatmentPlanUpdated tp) ->
+        | Api.OrderPlanResp (Api.OrderPlanFiltered tp)
+        | Api.OrderPlanResp (Api.OrderPlanUpdated tp) ->
             {  state with
                 TreatmentPlan = Resolved tp
             }, Cmd.none
@@ -146,7 +147,7 @@ module private Elmish =
     let loadOrderContext resp = Api.OrderContextCmd >> createApiMsg resp
 
 
-    let loadTreatmentPlan resp = Api.TreatmentPlanCmd >> createApiMsg resp
+    let loadTreatmentPlan resp = Api.OrderPlanCmd >> createApiMsg resp
 
 
     let loadFormuarly = Api.FormularyCmd >> createApiMsg LoadFormulary
@@ -357,7 +358,11 @@ module private Elmish =
             TreatmentPlan =
                 match pat with
                 | None -> HasNotStartedYet
-                | Some p -> TreatmentPlan.create p [||] |> Resolved
+                | Some p -> OrderPlan.create p [||] |> Resolved
+            NutritionPlan =
+                match pat with
+                | None -> HasNotStartedYet
+                | Some p -> OrderPlan.create p [||] |> Resolved
             Formulary = HasNotStartedYet
             Parenteralia = HasNotStartedYet
             Localization = HasNotStartedYet
@@ -652,7 +657,7 @@ module private Elmish =
                     match pat with
                     | None -> HasNotStartedYet
                     | Some p ->
-                        let tp = TreatmentPlan.create p [||]
+                        let tp = OrderPlan.create p [||]
                         state.TreatmentPlan
                         |> Deferred.map (fun tp ->
                             { tp with Patient = p }
@@ -1278,7 +1283,7 @@ module private Elmish =
 
         | TreatmentPlanCommand tpCmd ->
             match tpCmd with
-            | Api.UpdateTreatmentPlan tp ->
+            | Api.UpdateOrderPlan tp ->
                 let onlySetOrderContext =
                     state.TreatmentPlan
                     |> Deferred.map (fun st -> st.Selected.IsNone && tp.Selected.IsSome)
@@ -1297,7 +1302,7 @@ module private Elmish =
                     Page = TreatmentPlan
                     TreatmentPlan = Resolved tp
                 }, cmd
-            | Api.FilterTreatmentPlan tp ->
+            | Api.FilterOrderPlan tp ->
                 { state with
                     TreatmentPlan = Resolved tp
                 }, Cmd.ofMsg (LoadFilteredTreatmentPlan Started)
@@ -1309,14 +1314,14 @@ module private Elmish =
                 match state.TreatmentPlan with
                 | HasNotStartedYet ->
                     { state with TreatmentPlan = InProgress },
-                    TreatmentPlan.create pat [||]
-                    |> Api.UpdateTreatmentPlan
+                    OrderPlan.create pat [||]
+                    |> Api.UpdateOrderPlan
                     |> loadTreatmentPlan LoadUpdatedTreatmentPlan
                 | InProgress -> state, Cmd.none
                 | Resolved tp ->
                     { state with TreatmentPlan = InProgress },
                     tp
-                    |> Api.UpdateTreatmentPlan
+                    |> Api.UpdateOrderPlan
                     |> loadTreatmentPlan LoadUpdatedTreatmentPlan
 
         | LoadUpdatedTreatmentPlan (Finished (Ok msg)) -> msg |> processOk
@@ -1332,14 +1337,14 @@ module private Elmish =
                 match state.TreatmentPlan with
                 | HasNotStartedYet ->
                     { state with TreatmentPlan = InProgress },
-                    TreatmentPlan.create pat [||]
-                    |> Api.FilterTreatmentPlan
+                    OrderPlan.create pat [||]
+                    |> Api.FilterOrderPlan
                     |> loadTreatmentPlan LoadFilteredTreatmentPlan
                 | InProgress -> state, Cmd.none
                 | Resolved tp ->
                     { state with TreatmentPlan = InProgress },
                     tp
-                    |> Api.FilterTreatmentPlan
+                    |> Api.FilterOrderPlan
                     |> loadTreatmentPlan LoadFilteredTreatmentPlan
 
         | LoadFilteredTreatmentPlan (Finished (Ok msg)) -> msg |> processOk
