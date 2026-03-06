@@ -948,8 +948,8 @@ module OrderPlan =
             |> Models.OrderContext.fromOrderScenario tp.Patient
             |> Api.UpdateOrderScenario
             |> OrderContext.evaluate logger provider
-            |> Result.map (fun pr ->
-                let newOsc = pr.Scenarios |> Array.tryExactlyOne
+            |> Result.map (fun ctx ->
+                let newOsc = ctx.Scenarios |> Array.tryExactlyOne
 
                 { tp with
                     Selected = newOsc

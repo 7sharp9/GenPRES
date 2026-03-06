@@ -330,7 +330,7 @@ module TreatmentPlan =
                                 | _ -> HasNotStartedYet
                             updateOrderScenario = updateOrderScenario
                             navigateOrderScenario = {|
-                                setMinFrequency = ignore // Api.SetMinOrderFrequencyProperty >> props.updateOrderContext
+                                setMinFrequency = ignore //Api.SetMinOrderFrequencyProperty >> updateOrderScenario
                                 decrFrequency = ignore
                                 setMedianFrequency = ignore //Api.SetMedianOrderFrequencyProperty >> props.updateOrderContext
                                 incrFrequency = ignore

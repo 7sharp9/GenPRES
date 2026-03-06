@@ -456,7 +456,6 @@ module Types =
         {
             DemoVersion: bool
             Filter: Filter
-            // NOTE: Maybe not Patient but PatientInfo as things can change, i.e., age, weight, length
             Patient: Patient
             Scenarios: OrderScenario []
             Intake: Totals
