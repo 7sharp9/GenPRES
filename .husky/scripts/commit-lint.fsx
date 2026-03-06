@@ -9,11 +9,17 @@ let scopes = "agents|logging|nlp|ots|genunits|gensolver|gencore|zindex|zform|nkf
 let pattern = $"^(?:%s{types})(?:\((?:%s{scopes})\))?(?::) "
 let msgHeading = commitMsgFile |> File.ReadAllLines |> Array.head
 
+let toList (s: string) =
+    s.Split('|') |> Array.map (fun s -> $"- {s}") |> String.concat "\n"
+
 if Regex.IsMatch(msgHeading, pattern) then
     exit 0
 else
     Console.Error.WriteLine "Invalid commit message"
     printfn "Valid examples: 'feat(gensolver): add something', 'docs: update README.md'"
     printfn "See guidelines in .github/instructions/commit-message.instructions.md"
-
+    printfn ""
+    printfn $"Valid types:\n{types |> toList}"
+    printfn ""
+    printfn $"Valid scopes:\n{scopes |> toList}"
     exit 1
