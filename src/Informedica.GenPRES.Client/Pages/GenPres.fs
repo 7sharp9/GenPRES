@@ -120,7 +120,7 @@ module GenPres =
             onSelectContinuousMedicationItem: string -> unit
             products: Deferred<Product list>
             orderContext: Deferred<OrderContext>
-            updateOrderContext : Api.OrderContextCommand -> unit
+            updateOrderContext : (Api.OrderContextCommand * OrderContext) -> unit
             treatmentPlan: Deferred<OrderPlan>
             treatmentPlanCommand: Api.OrderPlanCommand -> unit
             formulary: Deferred<Formulary>
@@ -237,7 +237,7 @@ module GenPres =
                                     orderContext = props.orderContext
                                     updateOrderContext = props.updateOrderContext
                                     treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = Api.UpdateOrderPlan >> props.treatmentPlanCommand
+                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
                                 |}
                             | Global.Pages.Nutrition ->
@@ -246,8 +246,13 @@ module GenPres =
                             | Global.Pages.TreatmentPlan ->
                                 Views.TreatmentPlan.View {|
                                     treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = Api.UpdateOrderPlan >> props.treatmentPlanCommand
+                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     filterTreatmentPlan = Api.FilterOrderPlan >> props.treatmentPlanCommand
+                                    navigateOrderPlan =
+                                        fun (cmd, ctx) ->
+                                            match props.treatmentPlan with
+                                            | Resolved tp -> Api.UpdateOrderPlan (tp, Some (cmd, ctx)) |> props.treatmentPlanCommand
+                                            | _ -> ()
                                     localizationTerms = props.localizationTerms
                                 |}
                             | Global.Pages.Formulary ->
@@ -266,7 +271,7 @@ module GenPres =
                                     orderContext = props.orderContext
                                     updateOrderContext = props.updateOrderContext
                                     treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = Api.UpdateOrderPlan >> props.treatmentPlanCommand
+                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
                                 |}
 

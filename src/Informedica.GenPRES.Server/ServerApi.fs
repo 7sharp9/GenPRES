@@ -815,122 +815,91 @@ module OrderContext =
         }
 
 
-    let evaluate logger provider cmd : Result<OrderContext,  string []> =
-        let eval ctx =
-            cmd
+    let evaluate logger provider (cmd: Api.OrderContextCommand) (ctx: OrderContext) : Result<OrderContext, string []> =
+        let map = mapToShared ctx >> updateIntake >> setDemoVersion
+
+        let pat =
+            ctx.Patient
+            |> mapFromSharedPatient
+            |> Patient.calcPMAge
+
+        let toServerCmd serverCtx =
+            match cmd with
+            | Api.UpdateOrderContext -> serverCtx |> OrderContext.UpdateOrderContext
+            | Api.SelectOrderScenario -> serverCtx |> OrderContext.SelectOrderScenario
+            | Api.UpdateOrderScenario -> serverCtx |> OrderContext.UpdateOrderScenario
+            | Api.ResetOrderScenario -> serverCtx |> OrderContext.ResetOrderScenario
+            | Api.ReloadResources -> serverCtx |> OrderContext.ReloadResources
+            // Frequency property commands
+            | Api.DecreaseScheduleFrequencyProperty -> serverCtx |> OrderContext.DecreaseScheduleFrequencyProperty
+            | Api.IncreaseScheduleFrequencyProperty -> serverCtx |> OrderContext.IncreaseScheduleFrequencyProperty
+            | Api.SetMinScheduleFrequencyProperty -> serverCtx |> OrderContext.SetMinScheduleFrequencyProperty
+            | Api.SetMaxScheduleFrequencyProperty -> serverCtx |> OrderContext.SetMaxScheduleFrequencyProperty
+            | Api.SetMedianScheduleFrequencyProperty -> serverCtx |> OrderContext.SetMedianScheduleFrequencyProperty
+            // DoseQuantity property commands
+            | Api.DecreaseOrderableDoseQuantityProperty ntimes -> OrderContext.DecreaseOrderableDoseQuantityProperty (serverCtx, ntimes)
+            | Api.IncreaseOrderableDoseQuantityProperty ntimes -> OrderContext.IncreaseOrderableDoseQuantityProperty (serverCtx, ntimes)
+            | Api.SetMinOrderableDoseQuantityProperty -> OrderContext.SetMinOrderableDoseQuantityProperty serverCtx
+            | Api.SetMaxOrderableDoseQuantityProperty -> OrderContext.SetMaxOrderableDoseQuantityProperty serverCtx
+            | Api.SetMedianOrderableDoseQuantityProperty -> OrderContext.SetMedianOrderableDoseQuantityProperty serverCtx
+            // DoseRate property commands
+            | Api.DecreaseOrderableDoseRateProperty ntimes -> OrderContext.DecreaseOrderableDoseRateProperty (serverCtx, ntimes)
+            | Api.IncreaseOrderableDoseRateProperty ntimes -> OrderContext.IncreaseOrderableDoseRateProperty (serverCtx, ntimes)
+            | Api.SetMinOrderableDoseRateProperty -> serverCtx |> OrderContext.SetMinOrderableDoseRateProperty
+            | Api.SetMaxOrderableDoseRateProperty -> serverCtx |> OrderContext.SetMaxOrderableDoseRateProperty
+            | Api.SetMedianOrderableDoseRateProperty -> serverCtx |> OrderContext.SetMedianOrderableDoseRateProperty
+            // Component Quantity property commands
+            | Api.DecreaseComponentOrderableQuantityProperty (cmp, ntimes) -> OrderContext.DecreaseComponentQuantityProperty (serverCtx, cmp, ntimes)
+            | Api.IncreaseComponentOrderableQuantityProperty (cmp, ntimes) -> OrderContext.IncreaseComponentQuantityProperty (serverCtx, cmp, ntimes)
+            | Api.SetMinComponentOrderableQuantityProperty cmp -> OrderContext.SetMinComponentQuantityProperty (serverCtx, cmp)
+            | Api.SetMaxComponentOrderableQuantityProperty cmp -> OrderContext.SetMaxComponentQuantityProperty (serverCtx, cmp)
+            | Api.SetMedianComponentOrderableQuantityProperty cmp -> OrderContext.SetMedianComponentQuantityProperty (serverCtx, cmp)
+
+        try
+            ctx
+            |> mapFromShared logger provider pat
+            |> fun serverCtx ->
+                serverCtx
+                |> toServerCmd
+                |> OrderContext.logOrderContext logger "start eval"
+                |> OrderContext.evaluate logger provider
+                |> ValidatedResult.get
+                |> OrderContext.logOrderContext logger "finish eval"
             |> function
-                | Api.UpdateOrderContext _ -> ctx |> OrderContext.UpdateOrderContext
-                | Api.SelectOrderScenario _ -> ctx |> OrderContext.SelectOrderScenario
-                | Api.UpdateOrderScenario _ -> ctx |> OrderContext.UpdateOrderScenario
-                | Api.ResetOrderScenario _ -> ctx |> OrderContext.ResetOrderScenario
-                | Api.ReloadResources _ -> ctx |> OrderContext.ReloadResources
+                | OrderContext.UpdateOrderContext newCtx -> newCtx |> map
+                | OrderContext.SelectOrderScenario newCtx -> newCtx |> map
+                | OrderContext.UpdateOrderScenario newCtx -> newCtx |> map
+                | OrderContext.ResetOrderScenario newCtx -> newCtx |> map
+                | OrderContext.ReloadResources newCtx -> newCtx |> map
                 // Frequency property commands
-                | Api.DecreaseScheduleFrequencyProperty _ -> ctx |> OrderContext.DecreaseScheduleFrequencyProperty
-                | Api.IncreaseScheduleFrequencyProperty _ -> ctx |> OrderContext.IncreaseScheduleFrequencyProperty
-                | Api.SetMinScheduleFrequencyProperty _ -> ctx |> OrderContext.SetMinScheduleFrequencyProperty
-                | Api.SetMaxScheduleFrequencyProperty _ -> ctx |> OrderContext.SetMaxScheduleFrequencyProperty
-                | Api.SetMedianScheduleFrequencyProperty _ -> ctx |> OrderContext.SetMedianScheduleFrequencyProperty
+                | OrderContext.DecreaseScheduleFrequencyProperty newCtx -> newCtx |> map
+                | OrderContext.IncreaseScheduleFrequencyProperty newCtx -> newCtx |> map
+                | OrderContext.SetMinScheduleFrequencyProperty newCtx -> newCtx |> map
+                | OrderContext.SetMaxScheduleFrequencyProperty newCtx -> newCtx |> map
+                | OrderContext.SetMedianScheduleFrequencyProperty newCtx -> newCtx |> map
                 // DoseQuantity property commands
-                | Api.DecreaseOrderableDoseQuantityProperty (_, ntimes) -> OrderContext.DecreaseOrderableDoseQuantityProperty (ctx, ntimes)
-                | Api.IncreaseOrderableDoseQuantityProperty (_, ntimes) -> OrderContext.IncreaseOrderableDoseQuantityProperty (ctx, ntimes)
-                | Api.SetMinOrderableDoseQuantityProperty _ -> OrderContext.SetMinOrderableDoseQuantityProperty ctx
-                | Api.SetMaxOrderableDoseQuantityProperty _ -> OrderContext.SetMaxOrderableDoseQuantityProperty ctx
-                | Api.SetMedianOrderableDoseQuantityProperty _ -> OrderContext.SetMedianOrderableDoseQuantityProperty ctx
+                | OrderContext.DecreaseOrderableDoseQuantityProperty (newCtx, _) -> newCtx |> map
+                | OrderContext.IncreaseOrderableDoseQuantityProperty (newCtx, _) -> newCtx |> map
+                | OrderContext.SetMinOrderableDoseQuantityProperty newCtx -> newCtx |> map
+                | OrderContext.SetMaxOrderableDoseQuantityProperty newCtx -> newCtx |> map
+                | OrderContext.SetMedianOrderableDoseQuantityProperty newCtx -> newCtx |> map
                 // DoseRate property commands
-                | Api.DecreaseOrderableDoseRateProperty (_, ntimes) -> OrderContext.DecreaseOrderableDoseRateProperty (ctx, ntimes)
-                | Api.IncreaseOrderableDoseRateProperty (_, ntimes) -> OrderContext.IncreaseOrderableDoseRateProperty (ctx, ntimes)
-                | Api.SetMinOrderableDoseRateProperty _ -> ctx |> OrderContext.SetMinOrderableDoseRateProperty
-                | Api.SetMaxOrderableDoseRateProperty _ -> ctx |> OrderContext.SetMaxOrderableDoseRateProperty
-                | Api.SetMedianOrderableDoseRateProperty _ -> ctx |> OrderContext.SetMedianOrderableDoseRateProperty
+                | OrderContext.DecreaseOrderableDoseRateProperty (newCtx, _) -> newCtx |> map
+                | OrderContext.IncreaseOrderableDoseRateProperty (newCtx, _) -> newCtx |> map
+                | OrderContext.SetMinOrderableDoseRateProperty newCtx -> newCtx |> map
+                | OrderContext.SetMaxOrderableDoseRateProperty newCtx -> newCtx |> map
+                | OrderContext.SetMedianOrderableDoseRateProperty newCtx -> newCtx |> map
                 // Component Quantity property commands
-                | Api.DecreaseComponentOrderableQuantityProperty (_, cmp, ntimes) -> OrderContext.DecreaseComponentQuantityProperty (ctx, cmp, ntimes)
-                | Api.IncreaseComponentOrderableQuantityProperty (_, cmp, ntimes) -> OrderContext.IncreaseComponentQuantityProperty (ctx, cmp, ntimes)
-                | Api.SetMinComponentOrderableQuantityProperty (_, cmp) -> OrderContext.SetMinComponentQuantityProperty (ctx, cmp)
-                | Api.SetMaxComponentOrderableQuantityProperty (_, cmp) -> OrderContext.SetMaxComponentQuantityProperty (ctx, cmp)
-                | Api.SetMedianComponentOrderableQuantityProperty (_, cmp) -> OrderContext.SetMedianComponentQuantityProperty (ctx, cmp)
-
-            |> OrderContext.logOrderContext logger "start eval"
-            |> OrderContext.evaluate logger provider
-            |> ValidatedResult.get
-            |> OrderContext.logOrderContext logger "finish eval"
-
-        match cmd with
-        | Api.UpdateOrderContext ctx
-        | Api.SelectOrderScenario ctx
-        | Api.UpdateOrderScenario ctx
-        | Api.ResetOrderScenario ctx
-        | Api.ReloadResources ctx
-        // Frequency property commands
-        | Api.DecreaseScheduleFrequencyProperty ctx
-        | Api.IncreaseScheduleFrequencyProperty ctx
-        | Api.SetMinScheduleFrequencyProperty ctx
-        | Api.SetMaxScheduleFrequencyProperty ctx
-        | Api.SetMedianScheduleFrequencyProperty ctx
-        // DoseQuantity property commands
-        | Api.DecreaseOrderableDoseQuantityProperty (ctx, _)
-        | Api.IncreaseOrderableDoseQuantityProperty (ctx, _)
-        | Api.SetMinOrderableDoseQuantityProperty ctx
-        | Api.SetMaxOrderableDoseQuantityProperty ctx
-        | Api.SetMedianOrderableDoseQuantityProperty ctx
-        // DoseRate property commands
-        | Api.DecreaseOrderableDoseRateProperty (ctx, _)
-        | Api.IncreaseOrderableDoseRateProperty (ctx, _)
-        | Api.SetMinOrderableDoseRateProperty ctx
-        | Api.SetMaxOrderableDoseRateProperty ctx
-        | Api.SetMedianOrderableDoseRateProperty ctx
-        // Component Quantity property commands
-        | Api.DecreaseComponentOrderableQuantityProperty (ctx, _, _)
-        | Api.IncreaseComponentOrderableQuantityProperty (ctx, _, _)
-        | Api.SetMinComponentOrderableQuantityProperty (ctx, _)
-        | Api.SetMaxComponentOrderableQuantityProperty (ctx, _)
-        | Api.SetMedianComponentOrderableQuantityProperty (ctx, _)
-         ->
-            let map = mapToShared ctx >> updateIntake >> setDemoVersion
-
-            let pat =
-                ctx.Patient
-                |> mapFromSharedPatient
-                |> Patient.calcPMAge
-
-            try
-                ctx
-                |> mapFromShared logger provider pat
-                |> eval
-                |> function
-                    | OrderContext.UpdateOrderContext newCtx -> newCtx |> map
-                    | OrderContext.SelectOrderScenario newCtx -> newCtx |> map
-                    | OrderContext.UpdateOrderScenario newCtx -> newCtx |> map
-                    | OrderContext.ResetOrderScenario newCtx -> newCtx |> map
-                    | OrderContext.ReloadResources newCtx -> newCtx |> map
-                    // Frequency property commands
-                    | OrderContext.DecreaseScheduleFrequencyProperty newCtx -> newCtx |> map
-                    | OrderContext.IncreaseScheduleFrequencyProperty newCtx -> newCtx |> map
-                    | OrderContext.SetMinScheduleFrequencyProperty newCtx -> newCtx |> map
-                    | OrderContext.SetMaxScheduleFrequencyProperty newCtx -> newCtx |> map
-                    | OrderContext.SetMedianScheduleFrequencyProperty newCtx -> newCtx |> map
-                    // DoseQuantity property commands
-                    | OrderContext.DecreaseOrderableDoseQuantityProperty (newCtx, _) -> newCtx |> map
-                    | OrderContext.IncreaseOrderableDoseQuantityProperty (newCtx, _) -> newCtx |> map
-                    | OrderContext.SetMinOrderableDoseQuantityProperty newCtx -> newCtx |> map
-                    | OrderContext.SetMaxOrderableDoseQuantityProperty newCtx -> newCtx |> map
-                    | OrderContext.SetMedianOrderableDoseQuantityProperty newCtx -> newCtx |> map
-                    // DoseRate property commands
-                    | OrderContext.DecreaseOrderableDoseRateProperty (newCtx, _) -> newCtx |> map
-                    | OrderContext.IncreaseOrderableDoseRateProperty (newCtx, _) -> newCtx |> map
-                    | OrderContext.SetMinOrderableDoseRateProperty newCtx -> newCtx |> map
-                    | OrderContext.SetMaxOrderableDoseRateProperty newCtx -> newCtx |> map
-                    | OrderContext.SetMedianOrderableDoseRateProperty newCtx -> newCtx |> map
-                    // Component Quantity property commands
-                    | OrderContext.DecreaseComponentQuantityProperty (newCtx, _, _) -> newCtx |> map
-                    | OrderContext.IncreaseComponentQuantityProperty (newCtx, _, _) -> newCtx |> map
-                    | OrderContext.SetMinComponentQuantityProperty (newCtx, _) -> newCtx |> map
-                    | OrderContext.SetMaxComponentQuantityProperty (newCtx, _) -> newCtx |> map
-                    | OrderContext.SetMedianComponentQuantityProperty (newCtx, _) -> newCtx |> map
-                |> Ok
-            with
-            | e ->
-                writeErrorMessage $"errored:\n{e}"
-                raise e
+                | OrderContext.DecreaseComponentQuantityProperty (newCtx, _, _) -> newCtx |> map
+                | OrderContext.IncreaseComponentQuantityProperty (newCtx, _, _) -> newCtx |> map
+                | OrderContext.SetMinComponentQuantityProperty (newCtx, _) -> newCtx |> map
+                | OrderContext.SetMaxComponentQuantityProperty (newCtx, _) -> newCtx |> map
+                | OrderContext.SetMedianComponentQuantityProperty (newCtx, _) -> newCtx |> map
+            |> Ok
+        with
+        | e ->
+            writeErrorMessage $"errored:\n{e}"
+            raise e
 
 
 module OrderPlan =
@@ -941,15 +910,14 @@ module OrderPlan =
     module OrderLogger = Informedica.GenOrder.Lib.OrderLogging
 
 
-    let updateOrderPlan logger provider (tp : OrderPlan) =
-        match tp.Selected with
-        | Some os ->
-            os
-            |> Models.OrderContext.fromOrderScenario tp.Patient
-            |> Api.UpdateOrderScenario
-            |> OrderContext.evaluate logger provider
-            |> Result.map (fun ctx ->
-                let newOsc = ctx.Scenarios |> Array.tryExactlyOne
+    let updateOrderPlan logger provider (tp : OrderPlan) (cmdOpt: (Api.OrderContextCommand * OrderContext) option) =
+        match cmdOpt with
+        | None -> tp
+        | Some (cmd, ctx) ->
+            ctx
+            |> OrderContext.evaluate logger provider cmd
+            |> Result.map (fun newCtx ->
+                let newOsc = newCtx.Scenarios |> Array.tryExactlyOne
 
                 { tp with
                     Selected = newOsc
@@ -965,7 +933,6 @@ module OrderPlan =
                 }
             )
             |> Result.defaultValue tp
-        | None -> tp
 
 
     let calculateTotals (tp : OrderPlan) =
@@ -1000,24 +967,23 @@ module Command =
                 (Some agent, agent.Logger)
 
         match cmd with
-        | OrderContextCmd ctxCmd ->
+        | OrderContextCmd (ctxCmd, ctx) ->
             async {
                 if agent.IsSome then
                     do! agent.Value |> Logging.setComponentName (Some "OrderContext")
 
                 return
-                    ctxCmd
-                    |> OrderContext.evaluate logger provider
+                    ctx
+                    |> OrderContext.evaluate logger provider ctxCmd
                     |> Result.map (OrderContextUpdated >> OrderContextResp)
             }
 
-        | OrderPlanCmd (UpdateOrderPlan tp) ->
+        | OrderPlanCmd (UpdateOrderPlan (tp, cmdOpt)) ->
             async {
                 if agent.IsSome then
                     do! agent.Value |> Logging.setComponentName (Some "TreatmentPlan")
                 return
-                    tp
-                    |> OrderPlan.updateOrderPlan logger provider
+                    OrderPlan.updateOrderPlan logger provider tp cmdOpt
                     |> OrderPlan.calculateTotals
                     |> OrderPlanUpdated
                     |> OrderPlanResp
