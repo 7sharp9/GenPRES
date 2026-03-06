@@ -206,9 +206,9 @@ module Product =
         formUnit
         unitMapping
         =
-        let conc =
-            conc
-            |> Option.bind (fun q ->
+        match conc with
+        | Some br when br > 0N ->
+            let conc =
                 unit
                 |> Mapping.mapUnit unitMapping
                 |> function
@@ -222,19 +222,19 @@ module Product =
                             u
                             |> Units.per formUnit
 
-                        (isMolar, q |> ValueUnit.singleWithUnit u)
+                        (isMolar, br |> ValueUnit.singleWithUnit u)
                         |> Some
-            )
-
-        {
-            Name = name
-            Concentration = conc |> Option.map snd
-            MolarConcentration =
-                conc
-                |> Option.bind (fun (isMolar, vu) ->
-                    if isMolar then vu |> Some else None
-                )
-        }
+            {
+                Name = name
+                Concentration = conc |> Option.map snd
+                MolarConcentration =
+                    conc
+                    |> Option.bind (fun (isMolar, vu) ->
+                        if isMolar then vu |> Some else None
+                    )
+            }
+            |> Some
+        | _ -> None
 
 
     module Enteral =
@@ -270,7 +270,7 @@ module Product =
                 Divisible = Some 10N
                 Substances =
                     substs
-                    |> List.map (fun (s, q) ->
+                    |> List.choose (fun (s, q) ->
                         let n, u =
                             match s |> String.split " " with
                             | [n; u] -> n |> String.trim, u |> String.trim
@@ -336,7 +336,7 @@ module Product =
                 Divisible = Some 10N
                 Substances =
                     substs
-                    |> List.map (fun (s, q) ->
+                    |> List.choose (fun (s, q) ->
                         let n, u =
                             match s |> String.split " " with
                             | [n; u] -> n |> String.trim, u |> String.trim
@@ -502,7 +502,7 @@ module Product =
                 let fpAdditional =
                     fp
                     |> getAdditionalSubstances
-                    |> List.map (fun (s, q) ->
+                    |> List.choose (fun (s, q) ->
                         let n, u =
                             match s |> String.split " " with
                             | [n; u] -> n |> String.trim, u |> String.trim
