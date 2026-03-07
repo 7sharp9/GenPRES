@@ -16,7 +16,7 @@ module TreatmentPlan =
         treatmentPlan: Deferred<OrderPlan>
         updateTreatmentPlan: OrderPlan -> unit
         filterTreatmentPlan: OrderPlan -> unit
-        navigateOrderPlan: Api.OrderContextCommand * OrderContext -> unit
+        orderContextMsg: Api.OrderContextCommand * OrderContext -> unit
         localizationTerms : Deferred<string [] []>
         |}) =
 
@@ -243,10 +243,10 @@ module TreatmentPlan =
                 | _ -> ()
 
         let updateOrderScenario (ctx : OrderContext) =
-            props.navigateOrderPlan (Api.UpdateOrderScenario, ctx)
+            props.orderContextMsg (Api.UpdateOrderScenario, ctx)
 
         let refreshOrderScenario (ctx : OrderContext) =
-            props.navigateOrderPlan (Api.ResetOrderScenario, ctx)
+            props.orderContextMsg (Api.ResetOrderScenario, ctx)
 
         let deleteBtn =
             match props.treatmentPlan with
@@ -302,29 +302,29 @@ module TreatmentPlan =
                             updateOrderScenario = updateOrderScenario
                             navigateOrderScenario = {|
                                 // Frequency
-                                setMinFrequency = fun ctx -> props.navigateOrderPlan (Api.SetMinScheduleFrequencyProperty, ctx)
-                                decrFrequency = fun ctx -> props.navigateOrderPlan (Api.DecreaseScheduleFrequencyProperty, ctx)
-                                setMedianFrequency = fun ctx -> props.navigateOrderPlan (Api.SetMedianScheduleFrequencyProperty, ctx)
-                                incrFrequency = fun ctx -> props.navigateOrderPlan (Api.IncreaseScheduleFrequencyProperty, ctx)
-                                setMaxFrequency = fun ctx -> props.navigateOrderPlan (Api.SetMaxScheduleFrequencyProperty, ctx)
+                                setMinFrequency = fun ctx -> props.orderContextMsg (Api.SetMinScheduleFrequencyProperty, ctx)
+                                decrFrequency = fun ctx -> props.orderContextMsg (Api.DecreaseScheduleFrequencyProperty, ctx)
+                                setMedianFrequency = fun ctx -> props.orderContextMsg (Api.SetMedianScheduleFrequencyProperty, ctx)
+                                incrFrequency = fun ctx -> props.orderContextMsg (Api.IncreaseScheduleFrequencyProperty, ctx)
+                                setMaxFrequency = fun ctx -> props.orderContextMsg (Api.SetMaxScheduleFrequencyProperty, ctx)
                                 // Rate
-                                setMinRate = fun ctx -> props.navigateOrderPlan (Api.SetMinOrderableDoseRateProperty, ctx)
-                                decrRate = fun (ctx, n) -> props.navigateOrderPlan (Api.DecreaseOrderableDoseRateProperty n, ctx)
-                                setMedianRate = fun ctx -> props.navigateOrderPlan (Api.SetMedianOrderableDoseRateProperty, ctx)
-                                incrRate = fun (ctx, n) -> props.navigateOrderPlan (Api.IncreaseOrderableDoseRateProperty n, ctx)
-                                setMaxRate = fun ctx -> props.navigateOrderPlan (Api.SetMaxOrderableDoseRateProperty, ctx)
+                                setMinRate = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseRateProperty, ctx)
+                                decrRate = fun (ctx, n) -> props.orderContextMsg (Api.DecreaseOrderableDoseRateProperty n, ctx)
+                                setMedianRate = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseRateProperty, ctx)
+                                incrRate = fun (ctx, n) -> props.orderContextMsg (Api.IncreaseOrderableDoseRateProperty n, ctx)
+                                setMaxRate = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseRateProperty, ctx)
                                 // Dose Quantity
-                                setMinDoseQty = fun ctx -> props.navigateOrderPlan (Api.SetMinOrderableDoseQuantityProperty, ctx)
-                                decrDoseQty = fun (ctx, n) -> props.navigateOrderPlan (Api.DecreaseOrderableDoseQuantityProperty n, ctx)
-                                setMedianDoseQty = fun ctx -> props.navigateOrderPlan (Api.SetMedianOrderableDoseQuantityProperty, ctx)
-                                incrDoseQty = fun (ctx, n) -> props.navigateOrderPlan (Api.IncreaseOrderableDoseQuantityProperty n, ctx)
-                                setMaxDoseQty = fun ctx -> props.navigateOrderPlan (Api.SetMaxOrderableDoseQuantityProperty, ctx)
+                                setMinDoseQty = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseQuantityProperty, ctx)
+                                decrDoseQty = fun (ctx, n) -> props.orderContextMsg (Api.DecreaseOrderableDoseQuantityProperty n, ctx)
+                                setMedianDoseQty = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseQuantityProperty, ctx)
+                                incrDoseQty = fun (ctx, n) -> props.orderContextMsg (Api.IncreaseOrderableDoseQuantityProperty n, ctx)
+                                setMaxDoseQty = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseQuantityProperty, ctx)
                                 // Component Quantity
-                                setMinComponentQty = fun (ctx, cmp) -> props.navigateOrderPlan (Api.SetMinComponentOrderableQuantityProperty cmp, ctx)
-                                decrComponentQty = fun (ctx, cmp, n) -> props.navigateOrderPlan (Api.DecreaseComponentOrderableQuantityProperty (cmp, n), ctx)
-                                setMedianComponentQty = fun (ctx, cmp) -> props.navigateOrderPlan (Api.SetMedianComponentOrderableQuantityProperty cmp, ctx)
-                                incrComponentQty = fun (ctx, cmp, n) -> props.navigateOrderPlan (Api.IncreaseComponentOrderableQuantityProperty (cmp, n), ctx)
-                                setMaxComponentQty = fun (ctx, cmp) -> props.navigateOrderPlan (Api.SetMaxComponentOrderableQuantityProperty cmp, ctx)
+                                setMinComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMinComponentOrderableQuantityProperty cmp, ctx)
+                                decrComponentQty = fun (ctx, cmp, n) -> props.orderContextMsg (Api.DecreaseComponentOrderableQuantityProperty (cmp, n), ctx)
+                                setMedianComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMedianComponentOrderableQuantityProperty cmp, ctx)
+                                incrComponentQty = fun (ctx, cmp, n) -> props.orderContextMsg (Api.IncreaseComponentOrderableQuantityProperty (cmp, n), ctx)
+                                setMaxComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMaxComponentOrderableQuantityProperty cmp, ctx)
                             |}
                             refreshOrderScenario = refreshOrderScenario
                             closeOrder = handleModalClose

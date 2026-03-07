@@ -1015,7 +1015,7 @@ module Command =
                     par
                     |> Parenteralia.get provider
                     |> Result.mapError Array.singleton
-                    |> Result.map ParentaraliaResp
+                    |> Result.map ParenteraliaResp
             }
 
 

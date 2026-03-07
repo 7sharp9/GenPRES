@@ -120,7 +120,7 @@ module GenPres =
             onSelectContinuousMedicationItem: string -> unit
             products: Deferred<Product list>
             orderContext: Deferred<OrderContext>
-            updateOrderContext : (Api.OrderContextCommand * OrderContext) -> unit
+            orderContextMsg : (Api.OrderContextCommand * OrderContext) -> unit
             treatmentPlan: Deferred<OrderPlan>
             treatmentPlanCommand: Api.OrderPlanCommand -> unit
             formulary: Deferred<Formulary>
@@ -235,7 +235,7 @@ module GenPres =
                             | Global.Pages.Prescribe ->
                                 Views.Prescribe.View {|
                                     orderContext = props.orderContext
-                                    updateOrderContext = props.updateOrderContext
+                                    orderContextMsg = props.orderContextMsg
                                     treatmentPlan = props.treatmentPlan
                                     updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
@@ -248,7 +248,7 @@ module GenPres =
                                     treatmentPlan = props.treatmentPlan
                                     updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     filterTreatmentPlan = Api.FilterOrderPlan >> props.treatmentPlanCommand
-                                    navigateOrderPlan =
+                                    orderContextMsg =
                                         fun (cmd, ctx) ->
                                             match props.treatmentPlan with
                                             | Resolved tp -> Api.UpdateOrderPlan (tp, Some (cmd, ctx)) |> props.treatmentPlanCommand
@@ -269,7 +269,7 @@ module GenPres =
                             | Global.Pages.Settings ->
                                 Views.Prescribe.View {|
                                     orderContext = props.orderContext
-                                    updateOrderContext = props.updateOrderContext
+                                    orderContextMsg = props.orderContextMsg
                                     treatmentPlan = props.treatmentPlan
                                     updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms

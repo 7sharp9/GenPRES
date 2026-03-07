@@ -39,9 +39,10 @@ For the canonical list of supported versions, see the **Toolchain Requirements**
 **IMPORTANT:** This repository contains multiple projects. Always specify the solution file:
 
 ```bash
-# CORRECT - specify the solution
-dotnet build GenPRES.sln
-dotnet test GenPRES.sln
+# CORRECT - build the entire solution
+dotnet run build
+# CORRECT - run the server tests
+dotnet run servertests
 
 # INCORRECT - will fail with "more than one project" error
 dotnet build

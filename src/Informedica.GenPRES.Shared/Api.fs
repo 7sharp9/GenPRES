@@ -52,7 +52,7 @@ module Api =
         | OrderContextResp of OrderContextResponse
         | OrderPlanResp of OrderPlanResponse
         | FormularyResp of Formulary
-        | ParentaraliaResp of Parenteralia
+        | ParenteraliaResp of Parenteralia
 
     and OrderContextResponse =
         | OrderContextResult of OrderContext

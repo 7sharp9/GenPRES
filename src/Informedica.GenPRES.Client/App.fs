@@ -55,7 +55,7 @@ module private Elmish =
         | LoadProducts of AsyncOperationStatus<Result<Product list, string>>
         | OnSelectContinuousMedicationItem of string
 
-        | OrderContextCommand of Api.OrderContextCommand * OrderContext
+        | OrderContextMsg of Api.OrderContextCommand * OrderContext
         | LoadResourcesReloaded of ApiResponse
         | LoadUpdatedOrderContext of ApiResponse
         | LoadSelectedOrderScenario of ApiResponse
@@ -63,7 +63,7 @@ module private Elmish =
         | LoadRefreshedOrderScenario of ApiResponse
         | LoadOrderContextPropertyChange of Api.OrderContextCommand * ApiResponse
 
-        | TreatmentPlanCommand of Api.OrderPlanCommand
+        | TreatmentPlanMsg of Api.OrderPlanCommand
         | LoadUpdatedTreatmentPlan of ApiResponse
         | LoadFilteredTreatmentPlan of ApiResponse
 
@@ -112,7 +112,7 @@ module private Elmish =
             { state with
                 Formulary = Resolved form
             }, Cmd.none
-        | Api.ParentaraliaResp par ->
+        | Api.ParenteraliaResp par ->
             { state with
                 Parenteralia = Resolved par
             }, Cmd.none
@@ -682,7 +682,7 @@ module private Elmish =
                     { state with
                         Page = Prescribe
                         OrderContext = ctx |> Resolved
-                    }, Cmd.ofMsg (OrderContextCommand (Api.UpdateOrderContext, ctx))
+                    }, Cmd.ofMsg (OrderContextMsg (Api.UpdateOrderContext, ctx))
             | _ -> state, Cmd.none
 
         | LoadProducts Started ->
@@ -700,7 +700,7 @@ module private Elmish =
             Logging.error "cannot load products" s
             state, Cmd.none
 
-        | OrderContextCommand (ctxCmd, ctx) ->
+        | OrderContextMsg (ctxCmd, ctx) ->
             match ctxCmd with
             | Api.UpdateOrderContext -> ctx |> CommandHandlers.updateOrderContext state
             | Api.SelectOrderScenario -> ctx |> CommandHandlers.selectOrderScenario state
@@ -826,7 +826,7 @@ module private Elmish =
             |> processError err
 
 
-        | TreatmentPlanCommand tpCmd ->
+        | TreatmentPlanMsg tpCmd ->
             match tpCmd with
             | Api.UpdateOrderPlan (tp, Some (ctxCmd, ctx)) ->
                 { state with TreatmentPlan = InProgress },
@@ -843,7 +843,7 @@ module private Elmish =
                         if onlySetOrderContext then Cmd.none else Cmd.ofMsg (LoadUpdatedTreatmentPlan Started)
                     else
                         Cmd.batch [
-                            Cmd.ofMsg (OrderContextCommand (Api.UpdateOrderContext, OrderContext.empty))
+                            Cmd.ofMsg (OrderContextMsg (Api.UpdateOrderContext, OrderContext.empty))
                             Cmd.ofMsg (LoadUpdatedTreatmentPlan Started)
                         ]
 
@@ -1135,9 +1135,9 @@ let View () =
                         onSelectContinuousMedicationItem = OnSelectContinuousMedicationItem >> dispatch
                         products = state.Products
                         orderContext = state.OrderContext
-                        updateOrderContext = fun (cmd, ctx) -> OrderContextCommand (cmd, ctx) |> dispatch
+                        orderContextMsg = fun (cmd, ctx) -> OrderContextMsg (cmd, ctx) |> dispatch
                         treatmentPlan = state.TreatmentPlan
-                        treatmentPlanCommand = TreatmentPlanCommand >> dispatch
+                        treatmentPlanCommand = TreatmentPlanMsg >> dispatch
                         formulary = state.Formulary
                         updateFormulary = UpdateFormulary >> dispatch
                         parenteralia = state.Parenteralia
