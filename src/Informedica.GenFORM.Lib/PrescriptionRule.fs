@@ -110,7 +110,7 @@ module PrescriptionRule =
         solutionRules
         renalRules
         routeMapping
-        (filter : DoseFilter) : GenFormResult<_> =
+        (filter : DoseFilter) : Result<PrescriptionRule array, Message list> =
 
         let warns = ResizeArray<string>()
         let pat = filter.Patient
@@ -248,13 +248,7 @@ module PrescriptionRule =
                     }
                 )
         )
-        |> fun prs ->
-            warns
-            |> Seq.distinct
-            |> Seq.sort
-            |> Seq.toList
-            |> List.map Warning
-            |> GenFormResult.createOk prs
+        |> Ok
 
 
     /// Get all matching PrescriptionRules for a given Patient.

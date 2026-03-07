@@ -892,7 +892,7 @@ module OrderContext =
             |> toServerCmd
             |> OrderContext.logOrderContext logger "start eval"
             |> OrderContext.evaluate logger provider
-            |> ValidatedResult.get
+            |> Result.get
             |> OrderContext.logOrderContext logger "finish eval"
             |> extractServerCtx
             |> map

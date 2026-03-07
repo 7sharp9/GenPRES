@@ -723,7 +723,3 @@ module Types =
         | ErrorMsg of (string * exn option)
         interface IMessage
 
-
-    [<Obsolete("use regular result type")>]
-    type GenFormResult<'T> =
-        ValidatedResult<'T, Message>

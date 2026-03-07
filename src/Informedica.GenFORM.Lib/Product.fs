@@ -80,7 +80,7 @@ module Product =
                     )
                     // filter out dummy
                     |> Array.filter (fun fp -> fp.GPK = "0" |> not)
-                Ok (products, [])
+                Ok products
             )
             |> Result.mapError (fun err -> [ err |> Warning ])
         with
@@ -175,7 +175,7 @@ module Product =
                                 |> Array.map String.trim
                         }
                     )
-                |> GenFormResult.createOkNoMsgs
+                |> Ok
             with
             | exn -> GenFormResult.createError "Reconstiution.get" exn
 

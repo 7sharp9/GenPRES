@@ -15,7 +15,7 @@ module DoseRule =
     open Informedica.GenCore.Lib.Ranges
 
     open Utils
-    open GenFormResult
+    open Utils.GenFormResult
 
 
     module Print =
@@ -449,7 +449,7 @@ module DoseRule =
             ("mapToDoseRule", Some exn) |> ErrorMsg |> Error
 
 
-    let getData dataUrlId : GenFormResult<_> =
+    let getData dataUrlId : Result<_, Message list> =
         try
             Web.getDataFromSheet dataUrlId "DoseRules"
             |> fun data ->
@@ -529,7 +529,7 @@ module DoseRule =
                     }
                 )
             |> Array.distinct
-            |> createOkNoMsgs
+            |> Ok
         with
         | exn ->
              createError "getDataResult" exn
@@ -630,7 +630,7 @@ module DoseRule =
         isValid
 
 
-    let processDoseRuleData prods routeMapping (data, msgs) : GenFormResult<_> =
+    let processDoseRuleData prods routeMapping data : Result<_, Message list> =
         let warnings = System.Collections.Concurrent.ConcurrentDictionary<_, _>()
 
         let grouped =
@@ -755,12 +755,7 @@ module DoseRule =
             |> Async.RunSynchronously
             |> Array.collect id
 
-        let msgs =
-            warnings.Values |> Seq.toList
-            |> List.map Warning
-            |> List.append msgs
-
-        (data, msgs)
+        data
         |> Ok
 
 
@@ -987,15 +982,15 @@ module DoseRule =
         routeMapping
         formRoutes
         prods
-        : GenFormResult<_>
+        : Result<_, Message list>
         =
         let addDoseLimits = addDoseLimits routeMapping formRoutes
 
         let map data =
             result {
-                let! data, msgs =
+                let! data =
                     fun () -> data |> processDoseRuleData prods routeMapping
-                    |> StopWatch.clockFunc $"process data {data |> fst |> Array.length}"
+                    |> StopWatch.clockFunc $"process data {data |> Array.length}"
                 // split in ok and error results
                 let rules, errs =
                     fun () ->
@@ -1003,30 +998,9 @@ module DoseRule =
                         |> Array.map (fun d -> d, d |> mapToDoseRule)
                         |> Array.partition (snd >> Result.isOk)
                     |> StopWatch.clockFunc $"map to dose rules {data |> Array.length}"
-                // collect all messages
-                let msgs =
-                    errs
-                    |> Array.collect (fun (_, r) ->
-                        match r with
-                        | Ok _ ->  [||]
-                        | Error msg -> [| msg |]
-                    )
-                    |> Array.toList
-                    |> List.append msgs
                 // process ok results
                 let rules =
                     fun () ->
-                        (*
-                        rules
-                        |> Array.map (fun (d, r) ->
-                            r |> Result.get, d
-                        )
-                        |> Array.groupBy fst
-                        |> Array.map (fun (dr, rs) ->
-                            dr |> addDoseLimits (rs |> Array.map snd)
-                        )
-                        *)
-
                         let chunkBySize = Parallel.totalWorders
 
                         let grouped =
@@ -1054,7 +1028,7 @@ module DoseRule =
 
                     |> StopWatch.clockFunc $"add dose limits {rules |> Array.length}"
 
-                return! Ok (rules, msgs)
+                return rules
             }
 
         dataUrl
@@ -1268,8 +1242,7 @@ module DoseRule =
                 |> Result.toOption
                 |> function
                     | None -> [||]
-                    | Some (data, _) ->
-                        data
+                    | Some data -> data
                 |> Array.groupBy (mapToDoseRule >> Result.toOption)
                 |> Array.filter (fst >> Option.isSome)
                 |> Array.map (fun (dr, details) -> dr.Value, details)

@@ -6,33 +6,19 @@ module Filters =
     open Informedica.GenForm.Lib.Resources
     open Informedica.Logging.Lib
 
-    let private logGenFormMessages (logger: Logger) (res: GenFormResult<_>) =
-        let msgs = Informedica.Utils.Lib.ValidatedResult.getMessages res
-        msgs |> List.iter (fun m ->
-            match m with
-            | Info _ -> Logging.logInfo logger m
-            | Warning _ -> Logging.logWarning logger m
-            | ErrorMsg _ -> Logging.logError logger m
-        )
-        res
-
     // Logger-injected variant
     let getPrescriptionRules (logger: Logger) (provider: IResourceProvider) =
         Api.getPrescriptionRules provider
-        >> fun res ->
-            res
-            |> logGenFormMessages logger
-            |> function
-                | Ok (rules, _) -> rules
-                | Error _ -> [||]
+        >> function
+            | Ok rules -> rules
+            | Error _ -> [||]
 
 
     // Logger-injected variant
     let filterPrescriptionRules (logger: Logger) (provider: IResourceProvider) filter =
         Api.filterPrescriptionRules provider filter
-        |> logGenFormMessages logger
         |> function
-            | Ok (rules, _) -> rules
+            | Ok rules -> rules
             | Error _ -> [||]
 
 
@@ -629,10 +615,10 @@ module OrderContext =
                     DoseType = dst
                 }
                 |> Api.filterPrescriptionRules provider
-            | _ -> GenFormResult.createOkNoMsgs [||]
+            | _ -> Ok [||]
         | _ ->
             ctx.Patient |> create logger provider
-            , GenFormResult.createOkNoMsgs [||]
+            , Ok [||]
 
 
 
@@ -882,10 +868,10 @@ Scenarios: {scenarios}
     let getScenarios logger provider ctx =
         let ctx, result = ctx |> getRules logger provider
 
-        let prs, msgs =
+        let prs =
             match result with
-            | Ok (prs, msgs) -> prs, msgs
-            | Error msgs -> [||], msgs
+            | Ok prs -> prs
+            | Error _ -> [||]
 
         if prs |> Array.isEmpty then ctx
         else
@@ -908,7 +894,7 @@ Scenarios: {scenarios}
                     |> filterScenariosByPreparation
             }
         |> updateFilterIfOneScenario
-        |> GenFormResult.createOkWithMsgs msgs
+        |> Ok
 
 
     let reloadResources logger provider ctx =
@@ -926,18 +912,18 @@ Scenarios: {scenarios}
                 ctx
                 |> processScenarioOrder logger (fun o -> ChangeProperty (o, propCmd))
                 |> wrapResult
-                |> ValidatedResult.createOkNoMsgs
+                |> Ok
             | None ->
                 // No single scenario, return ctx unchanged
-                wrapResult ctx |> ValidatedResult.createOkNoMsgs
+                wrapResult ctx |> Ok
 
         match cmd with
-        | UpdateOrderContext ctx -> ctx |> getScenarios logger provider    |> ValidatedResult.map UpdateOrderContext
-        | ReloadResources ctx    -> ctx |> reloadResources logger provider |> ValidatedResult.map ReloadResources
+        | UpdateOrderContext ctx -> ctx |> getScenarios logger provider    |> Result.map UpdateOrderContext
+        | ReloadResources ctx    -> ctx |> reloadResources logger provider |> Result.map ReloadResources
         // TODO: need to implement validation
-        | SelectOrderScenario ctx -> ctx |> processScenarioOrder logger CalcValues   |> SelectOrderScenario  |> ValidatedResult.createOkNoMsgs
-        | UpdateOrderScenario ctx -> ctx |> processScenarioOrder logger SolveOrder   |> UpdateOrderScenario  |> ValidatedResult.createOkNoMsgs
-        | ResetOrderScenario ctx  -> ctx |> processScenarioOrder logger ReCalcValues |> ResetOrderScenario   |> ValidatedResult.createOkNoMsgs
+        | SelectOrderScenario ctx -> ctx |> processScenarioOrder logger CalcValues   |> SelectOrderScenario  |> Ok
+        | UpdateOrderScenario ctx -> ctx |> processScenarioOrder logger SolveOrder   |> UpdateOrderScenario  |> Ok
+        | ResetOrderScenario ctx  -> ctx |> processScenarioOrder logger ReCalcValues |> ResetOrderScenario   |> Ok
         // Frequency property commands
         | DecreaseScheduleFrequencyProperty ctx -> processPropertyCmd ctx DecreaseScheduleFrequency
                                                        DecreaseScheduleFrequencyProperty

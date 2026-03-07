@@ -80,7 +80,7 @@ module SolutionRule =
                         MaxConc = get "MaxConc" |> toBrOpt
                     }
                 )
-            |> GenFormResult.createOkNoMsgs
+            |> Ok
         with
         | exn -> GenFormResult.createError "Error in SolutionRule.getResult: " exn
 
@@ -89,7 +89,7 @@ module SolutionRule =
         routeMapping
         (parenteral : Product[])
         products
-        data : GenFormResult<_> =
+        data : Result<_, Message list> =
         data
         |> Array.groupBy (fun r ->
             let du = r.Unit |> Units.fromString
@@ -219,7 +219,7 @@ module SolutionRule =
 
             }
         )
-        |> GenFormResult.createOkNoMsgs
+        |> Ok
 
 
     let get
@@ -227,12 +227,12 @@ module SolutionRule =
         routeMapping
         (parenteral : Product[])
         products
-        : GenFormResult<_>
+        : Result<_, Message list>
         =
         try
             dataUrlId
             |> getData
-            |> GenFormResult.bind (map routeMapping parenteral products)
+            |> Result.bind (map routeMapping parenteral products)
         with
         | exn ->
             GenFormResult.createError "Error in SolutionRule.getResult: " exn
