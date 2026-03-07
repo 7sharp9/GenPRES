@@ -384,13 +384,7 @@ module Patient =
                     update props.updatePatient,
                     depArr)
 
-        let getTerm defVal term =
-            props.localizationTerms
-            |> Deferred.map (fun terms ->
-                Localization.getTerm terms lang term
-                |> Option.defaultValue defVal
-            )
-            |> Deferred.defaultValue defVal
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let handleChange = fun _ -> 
             if props.patient |> canCalculate |> not then true |> setExpanded

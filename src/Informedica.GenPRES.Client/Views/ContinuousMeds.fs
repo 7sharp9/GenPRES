@@ -16,13 +16,7 @@ module ContinuousMeds =
         let lang = context.Localization
         let hosp = context.Hospital
 
-        let getTerm defVal term =
-            props.localizationTerms
-            |> Deferred.map (fun terms ->
-                Localization.getTerm terms lang term
-                |> Option.defaultValue defVal
-            )
-            |> Deferred.defaultValue defVal
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let renderQuantityCell =
             fun (pars: obj) ->

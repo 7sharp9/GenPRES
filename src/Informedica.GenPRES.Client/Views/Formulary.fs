@@ -188,13 +188,7 @@ module Formulary =
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
-        let getTerm defVal term =
-            props.localizationTerms
-            |> Deferred.map (fun terms ->
-                Localization.getTerm terms lang term
-                |> Option.defaultValue defVal
-            )
-            |> Deferred.defaultValue defVal
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let state, dispatch =
             React.useElmish (
@@ -205,41 +199,11 @@ module Formulary =
                 |]
             )
 
-        let select isLoading lbl selected dispatch xs =
-            Components.SimpleSelect.View({|
-                updateSelected = dispatch
-                label = lbl
-                selected = selected
-                values = xs
-                isLoading = isLoading
-                hasClear = true
-                navigate = None
-                warning = None
-            |})
+        let select = ViewHelpers.simpleSelect
+        let autoComplete = ViewHelpers.autoComplete
 
 
-        let autoComplete isLoading lbl selected dispatch xs =
-            Components.Autocomplete.View({|
-                updateSelected = dispatch
-                label = lbl
-                selected = selected
-                values = xs
-                isLoading = isLoading
-            |})
-
-
-        let progress =
-            match props.formulary with
-            | Resolved _ -> JSX.jsx $"<></>"
-            | _ ->
-                JSX.jsx
-                    $"""
-                import CircularProgress from '@mui/material/CircularProgress';
-
-                <Box sx={ {| mt = 5; display = "flex"; p = 20 |} }>
-                    <CircularProgress />
-                </Box>
-                """
+        let progress = ViewHelpers.progressOrEmpty props.formulary
 
         let stackDirection =
             if  Mui.Hooks.useMediaQuery "(max-width:900px)" then "column" else "row"

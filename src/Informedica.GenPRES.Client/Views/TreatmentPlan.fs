@@ -33,13 +33,7 @@ module TreatmentPlan =
                 | _ -> ()
                 setModalOpen false
 
-        let getTerm defVal term =
-            props.localizationTerms
-            |> Deferred.map (fun terms ->
-                Localization.getTerm terms lang term
-                |> Option.defaultValue defVal
-            )
-            |> Deferred.defaultValue defVal
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let columns = [|
             {|  field = "id"; headerName = "id"; width = 0; filterable = false; sortable = false |} |> box
@@ -171,17 +165,7 @@ module TreatmentPlan =
             |}
             |> box
 
-        let modalStyle =
-            {|
-                position="absolute"
-                top= "50%"
-                left= "50%"
-                transform= "translate(-50%, -50%)"
-                width= 400
-                bgcolor= "background.paper"
-                boxShadow= 24
-                borderRadius = "16px"
-            |}
+        let modalStyle = ViewHelpers.modalStyle
 
         let selectOrder id =
             match props.treatmentPlan with

@@ -27,7 +27,6 @@ module private Elmish =
             Products: Deferred<Product list>
             OrderContext: Deferred<OrderContext>
             TreatmentPlan: Deferred<OrderPlan>
-            NutritionPlan: Deferred<OrderPlan>
             Formulary: Deferred<Formulary>
             Parenteralia: Deferred<Parenteralia>
             Localization: Deferred<string [][]>
@@ -56,16 +55,10 @@ module private Elmish =
         | OnSelectContinuousMedicationItem of string
 
         | OrderContextMsg of Api.OrderContextCommand * OrderContext
-        | LoadResourcesReloaded of ApiResponse
-        | LoadUpdatedOrderContext of ApiResponse
-        | LoadSelectedOrderScenario of ApiResponse
-        | LoadUpdatedOrderScenario of ApiResponse
-        | LoadRefreshedOrderScenario of ApiResponse
-        | LoadOrderContextPropertyChange of Api.OrderContextCommand * ApiResponse
+        | LoadOrderContextResult of Api.OrderContextCommand * ApiResponse
 
         | TreatmentPlanMsg of Api.OrderPlanCommand
-        | LoadUpdatedTreatmentPlan of ApiResponse
-        | LoadFilteredTreatmentPlan of ApiResponse
+        | LoadOrderPlanResult of Api.OrderPlanCommand * ApiResponse
 
         | UpdateFormulary of Formulary
         | LoadFormulary of ApiResponse
@@ -149,6 +142,18 @@ module private Elmish =
     // * fr: form
     // * in: indication
     // * dt: dosetype
+    let private tryParseInt key paramsMap =
+        match Map.tryFind key paramsMap with
+        | Some (Route.Int v) -> Some v
+        | _ -> None
+
+    let private parsePatientParams paramsMap =
+        tryParseInt "wt" paramsMap,
+        tryParseInt "ht" paramsMap,
+        tryParseInt "gw" paramsMap,
+        tryParseInt "gd" paramsMap,
+        Map.tryFind "dp" paramsMap
+
     let parseUrl sl =
         match sl with
         | [] -> None, None, None, true, None
@@ -169,32 +174,12 @@ module private Elmish =
                         | Some (Route.Int days) -> days
                         | _ -> 1 // first day of the month is the default
 
-                    let weight =
-                        match Map.tryFind "wt" paramsMap with
-                        | Some (Route.Int weight) -> Some weight
-                        | _ -> None
-
-                    let height =
-                        match Map.tryFind "ht" paramsMap with
-                        | Some (Route.Int height) -> Some height
-                        | _ -> None
-
-                    let gaWeeks =
-                        match Map.tryFind "gw" paramsMap with
-                        | Some (Route.Int weeks) -> weeks |> Some
-                        | _ -> None
-
-                    let gaDays =
-                        match Map.tryFind "gd" paramsMap with
-                        | Some (Route.Int days) -> days |> Some
-                        | _ -> None
+                    let weight, height, gaWeeks, gaDays, dep = parsePatientParams paramsMap
 
                     let cvl =
                         match Map.tryFind "cv" paramsMap with
                         | Some s when s = "y" -> true
                         | _ -> false
-
-                    let dep =  Map.tryFind "dp"paramsMap
 
                     let age = Patient.Age.fromBirthDate DateTime.Now (DateTime(year, month, day))
 
@@ -216,32 +201,12 @@ module private Elmish =
                     Logging.log "parsed: " patient
                     patient
                 | _, Some (Route.Int days) ->
-                    let weight =
-                        match Map.tryFind "wt" paramsMap with
-                        | Some (Route.Int weight) -> Some weight
-                        | _ -> None
-
-                    let height =
-                        match Map.tryFind "ht" paramsMap with
-                        | Some (Route.Int height) -> Some height
-                        | _ -> None
-
-                    let gaWeeks =
-                        match Map.tryFind "gw" paramsMap with
-                        | Some (Route.Int weeks) -> weeks |> Some
-                        | _ -> None
-
-                    let gaDays =
-                        match Map.tryFind "gd" paramsMap with
-                        | Some (Route.Int days) -> days |> Some
-                        | _ -> None
+                    let weight, height, gaWeeks, gaDays, dep = parsePatientParams paramsMap
 
                     let cvl =
                         match Map.tryFind "cv" paramsMap with
                         | Some s when s = "y" -> [ CVL ]
                         | _ -> []
-
-                    let dep =  Map.tryFind "dp"paramsMap
 
                     let age = Patient.Age.fromDays days
 
@@ -333,10 +298,6 @@ module private Elmish =
                 match pat with
                 | None -> HasNotStartedYet
                 | Some p -> OrderPlan.create p [||] |> Resolved
-            NutritionPlan =
-                match pat with
-                | None -> HasNotStartedYet
-                | Some p -> OrderPlan.create p [||] |> Resolved
             Formulary = HasNotStartedYet
             Parenteralia = HasNotStartedYet
             Localization = HasNotStartedYet
@@ -385,10 +346,48 @@ module private Elmish =
 
 
 
+    let syncFilterToFormulary (filter: Filter) (form: Formulary) =
+        { form with
+            Indication = filter.Indication; Generic = filter.Generic
+            Route = filter.Route; Form = filter.Form; DoseType = filter.DoseType }
+
+    let syncFilterToParenteralia (filter: Filter) (par: Parenteralia) =
+        { par with Generic = filter.Generic; Form = filter.Form; Route = filter.Route }
+
+    let syncFormularyToFilter (form: Formulary) (ctx: OrderContext) =
+        let unchanged =
+            form.Indication = ctx.Filter.Indication &&
+            form.Generic = ctx.Filter.Generic &&
+            form.Route = ctx.Filter.Route &&
+            form.Form = ctx.Filter.Form
+        { ctx with
+            Filter =
+                { ctx.Filter with
+                    Indication = form.Indication; Generic = form.Generic
+                    Form = form.Form; Route = form.Route; DoseType = form.DoseType
+                    Diluent = if unchanged then ctx.Filter.Diluent else None
+                    SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||] }
+            Scenarios = [||] }
+
+    let syncParenteraliaToFilter (par: Parenteralia) (ctx: OrderContext) =
+        let unchanged =
+            par.Generic = ctx.Filter.Generic &&
+            par.Route = ctx.Filter.Route &&
+            par.Form = ctx.Filter.Form
+        { ctx with
+            Filter =
+                { ctx.Filter with
+                    Indication = None; Generic = par.Generic
+                    Form = par.Form; Route = par.Route; DoseType = None
+                    Diluent = if unchanged then ctx.Filter.Diluent else None
+                    SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||] }
+            Scenarios = [||] }
+
+
     module CommandHandlers =
 
 
-        let updateOrderContext state (ctx : OrderContext) =
+        let handleOrderContext state cmd (ctx : OrderContext) =
                 let ctx =
                     { ctx with
                         Patient =
@@ -396,60 +395,26 @@ module private Elmish =
                             |> Option.defaultValue ctx.Patient
                     }
 
-                { state with
-                    OrderContext = Resolved ctx
-                    Formulary =
-                        state.Formulary
-                        |> Deferred.map (fun form ->
-                            { form with
-                                Indication = ctx.Filter.Indication
-                                Generic = ctx.Filter.Generic
-                                Route = ctx.Filter.Route
-                                Form = ctx.Filter.Form
-                                DoseType = ctx.Filter.DoseType
-                            }
-                        )
-                    Parenteralia =
-                        state.Parenteralia
-                        |> Deferred.map (fun par ->
-                            { par with
-                                Generic = ctx.Filter.Generic
-                                Form = ctx.Filter.Form
-                                Route = ctx.Filter.Route
-                            }
-                        )
-                },
-                Cmd.batch [
-                    Cmd.ofMsg (LoadUpdatedOrderContext Started)
-                    Cmd.ofMsg (LoadFormulary Started)
-                    Cmd.ofMsg (LoadParenteralia Started)
-                ]
+                let base' = { state with OrderContext = Resolved ctx }
 
-        let selectOrderScenario state (ctx : OrderContext) =
-                { state with
-                    OrderContext = Resolved ctx
-                },
-                Cmd.batch [
-                    Cmd.ofMsg (LoadSelectedOrderScenario Started)
-                ]
-
-
-        let updateOrderScenario state (ctx : OrderContext) =
-                { state with
-                    OrderContext = Resolved ctx
-                },
-                Cmd.batch [
-                    Cmd.ofMsg (LoadUpdatedOrderScenario Started)
-                ]
-
-
-        let refreshOrderScenario state (ctx : OrderContext) =
-                { state with
-                    OrderContext = Resolved ctx
-                },
-                Cmd.batch [
-                    Cmd.ofMsg (LoadRefreshedOrderScenario Started)
-                ]
+                match cmd with
+                | Api.UpdateOrderContext | Api.ReloadResources ->
+                    { base' with
+                        Formulary =
+                            base'.Formulary
+                            |> Deferred.map (syncFilterToFormulary ctx.Filter)
+                        Parenteralia =
+                            base'.Parenteralia
+                            |> Deferred.map (syncFilterToParenteralia ctx.Filter)
+                    },
+                    Cmd.batch [
+                        Cmd.ofMsg (LoadOrderContextResult (cmd, Started))
+                        Cmd.ofMsg (LoadFormulary Started)
+                        Cmd.ofMsg (LoadParenteralia Started)
+                    ]
+                | _ ->
+                    base',
+                    Cmd.ofMsg (LoadOrderContextResult (cmd, Started))
 
 
 
@@ -499,13 +464,13 @@ module private Elmish =
                 { state with
                     Page = page
                     OrderContext = HasNotStartedYet
-                }, Cmd.ofMsg (LoadUpdatedOrderContext Started)
+                }, Cmd.ofMsg (LoadOrderContextResult (Api.UpdateOrderContext, Started))
             else
                 if page = Settings then
                     { state with
                         OrderContext = OrderContext.empty |> Resolved
                     }
-                    , Cmd.ofMsg (LoadResourcesReloaded Started)
+                    , Cmd.ofMsg (LoadOrderContextResult (Api.ReloadResources, Started))
                 else
                     { state with
                         Page = page
@@ -544,8 +509,8 @@ module private Elmish =
                     |> Resolved
             },
             Cmd.batch [
-                Cmd.ofMsg (LoadUpdatedOrderContext Started)
-                Cmd.ofMsg (LoadUpdatedTreatmentPlan Started)
+                Cmd.ofMsg (LoadOrderContextResult (Api.UpdateOrderContext, Started))
+                Cmd.ofMsg (LoadOrderPlanResult (Api.UpdateOrderPlan (OrderPlan.create Patient.empty [||], None), Started))
                 Cmd.ofMsg (LoadFormulary Started)
                 Cmd.ofMsg (LoadParenteralia Started)
             ]
@@ -701,128 +666,34 @@ module private Elmish =
             state, Cmd.none
 
         | OrderContextMsg (ctxCmd, ctx) ->
-            match ctxCmd with
-            | Api.UpdateOrderContext -> ctx |> CommandHandlers.updateOrderContext state
-            | Api.SelectOrderScenario -> ctx |> CommandHandlers.selectOrderScenario state
-            | Api.UpdateOrderScenario -> ctx |> CommandHandlers.updateOrderScenario state
-            | Api.ResetOrderScenario -> ctx |> CommandHandlers.refreshOrderScenario state
-            | Api.ReloadResources -> ctx |> CommandHandlers.updateOrderContext state
-            | propertyCmd ->
-                { state with OrderContext = Resolved ctx },
-                Cmd.ofMsg (LoadOrderContextPropertyChange (propertyCmd, Started))
+            ctx |> CommandHandlers.handleOrderContext state ctxCmd
 
-        | LoadResourcesReloaded Started ->
+        | LoadOrderContextResult (cmd, Started) ->
             match state.Patient with
             | None ->
-                { state with OrderContext = HasNotStartedYet },
-                (Api.ReloadResources, OrderContext.empty)
-                |> loadOrderContext LoadResourcesReloaded
+                match cmd with
+                | Api.ReloadResources ->
+                    { state with OrderContext = HasNotStartedYet },
+                    (Api.ReloadResources, OrderContext.empty)
+                    |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
+                | _ ->
+                    { state with OrderContext = HasNotStartedYet }, Cmd.none
             | Some pat ->
                 match state.OrderContext with
-                | HasNotStartedYet ->
-                        { state with OrderContext = InProgress },
-                        (Api.ReloadResources, OrderContext.empty |> OrderContext.setPatient pat)
-                        |> loadOrderContext LoadResourcesReloaded
                 | InProgress -> state, Cmd.none
-                | Resolved ctx ->
-                    let ctx = { ctx with Patient = pat }
-
-                    { state with OrderContext = InProgress },
-                    (Api.ReloadResources, ctx)
-                    |> loadOrderContext LoadResourcesReloaded
-
-        | LoadResourcesReloaded (Finished (Ok msg)) -> msg |> processOk
-        | LoadResourcesReloaded (Finished (Error err)) ->
-            (state, Cmd.none)
-            |> processError err
-
-        | LoadUpdatedOrderContext Started ->
-            match state.Patient with
-            | None -> { state with OrderContext = HasNotStartedYet }, Cmd.none
-            | Some pat ->
-                match state.OrderContext with
                 | HasNotStartedYet ->
-                        { state with OrderContext = InProgress },
-                        (Api.UpdateOrderContext, OrderContext.empty |> OrderContext.setPatient pat)
-                        |> loadOrderContext LoadUpdatedOrderContext
-                | InProgress -> state, Cmd.none
-                | Resolved ctx ->
-                    let ctx = { ctx with Patient = pat }
-
                     { state with OrderContext = InProgress },
-                    (Api.UpdateOrderContext, ctx)
-                    |> loadOrderContext LoadUpdatedOrderContext
+                    (cmd, OrderContext.empty |> OrderContext.setPatient pat)
+                    |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
+                | Resolved ctx ->
+                    { state with OrderContext = InProgress },
+                    (cmd, { ctx with Patient = pat })
+                    |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
 
-        | LoadUpdatedOrderContext (Finished (Ok msg)) -> msg |> processOk
-        | LoadUpdatedOrderContext (Finished (Error err)) ->
-            Logging.error "error in LoadUpdatedOrderContext" err
+        | LoadOrderContextResult (_, Finished (Ok msg)) -> msg |> processOk
+        | LoadOrderContextResult (_, Finished (Error err)) ->
             ({ state with OrderContext = HasNotStartedYet },
-            LoadUpdatedOrderContext Started |> Cmd.ofMsg)
-            |> processError err
-
-        | LoadSelectedOrderScenario Started ->
-            match state.OrderContext with
-            | HasNotStartedYet ->
-                Logging.error "select order scenario doesn't match state" state
-                state, Cmd.none
-            | InProgress -> state, Cmd.none
-            | Resolved ctx ->
-                { state with OrderContext = InProgress },
-                (Api.SelectOrderScenario, ctx)
-                |> loadOrderContext LoadSelectedOrderScenario
-
-        | LoadSelectedOrderScenario (Finished (Ok msg)) -> msg |> processOk
-        | LoadSelectedOrderScenario (Finished (Error err)) ->
-            ({ state with OrderContext = HasNotStartedYet },
-            LoadUpdatedOrderContext Started |> Cmd.ofMsg)
-            |> processError err
-
-        | LoadUpdatedOrderScenario Started ->
-            match state.OrderContext with
-            | HasNotStartedYet ->
-                Logging.error "select order scenario doesn't match state" state
-                state, Cmd.none
-            | InProgress -> state, Cmd.none
-            | Resolved ctx ->
-                { state with OrderContext = InProgress },
-                (Api.UpdateOrderScenario, ctx)
-                |> loadOrderContext LoadUpdatedOrderScenario
-
-        | LoadUpdatedOrderScenario (Finished (Ok msg)) -> msg |> processOk
-        | LoadUpdatedOrderScenario (Finished (Error err)) ->
-            ({ state with OrderContext = HasNotStartedYet },
-            LoadUpdatedOrderContext Started |> Cmd.ofMsg)
-            |> processError err
-
-        | LoadRefreshedOrderScenario Started ->
-            match state.OrderContext with
-            | HasNotStartedYet ->
-                state, Cmd.none
-            | InProgress -> state, Cmd.none
-            | Resolved ctx ->
-                { state with OrderContext = InProgress },
-                (Api.ResetOrderScenario, ctx)
-                |> loadOrderContext LoadRefreshedOrderScenario
-
-        | LoadRefreshedOrderScenario (Finished (Ok msg)) -> msg |> processOk
-        | LoadRefreshedOrderScenario (Finished (Error err)) ->
-            ({ state with OrderContext = HasNotStartedYet },
-            LoadUpdatedOrderContext Started |> Cmd.ofMsg)
-            |> processError err
-
-        | LoadOrderContextPropertyChange (cmd, Started) ->
-            match state.OrderContext with
-            | HasNotStartedYet | InProgress -> state, Cmd.none
-            | Resolved ctx ->
-                { state with OrderContext = InProgress },
-                (cmd, ctx)
-                |> loadOrderContext (fun resp -> LoadOrderContextPropertyChange (cmd, resp))
-
-        | LoadOrderContextPropertyChange (_, Finished (Ok msg)) -> msg |> processOk
-
-        | LoadOrderContextPropertyChange (_, Finished (Error err)) ->
-            ({ state with OrderContext = HasNotStartedYet },
-            LoadUpdatedOrderContext Started |> Cmd.ofMsg)
+            LoadOrderContextResult (Api.UpdateOrderContext, Started) |> Cmd.ofMsg)
             |> processError err
 
 
@@ -831,7 +702,7 @@ module private Elmish =
             | Api.UpdateOrderPlan (tp, Some (ctxCmd, ctx)) ->
                 { state with TreatmentPlan = InProgress },
                 Api.OrderPlanCmd (Api.UpdateOrderPlan (tp, Some (ctxCmd, ctx)))
-                |> createApiMsg LoadUpdatedTreatmentPlan
+                |> createApiMsg (fun resp -> LoadOrderPlanResult (tpCmd, resp))
             | Api.UpdateOrderPlan (tp, None) ->
                 let onlySetOrderContext =
                     state.TreatmentPlan
@@ -840,11 +711,11 @@ module private Elmish =
 
                 let cmd =
                     if state.Page = TreatmentPlan then
-                        if onlySetOrderContext then Cmd.none else Cmd.ofMsg (LoadUpdatedTreatmentPlan Started)
+                        if onlySetOrderContext then Cmd.none else Cmd.ofMsg (LoadOrderPlanResult (tpCmd, Started))
                     else
                         Cmd.batch [
                             Cmd.ofMsg (OrderContextMsg (Api.UpdateOrderContext, OrderContext.empty))
-                            Cmd.ofMsg (LoadUpdatedTreatmentPlan Started)
+                            Cmd.ofMsg (LoadOrderPlanResult (tpCmd, Started))
                         ]
 
                 { state with
@@ -854,48 +725,33 @@ module private Elmish =
             | Api.FilterOrderPlan tp ->
                 { state with
                     TreatmentPlan = Resolved tp
-                }, Cmd.ofMsg (LoadFilteredTreatmentPlan Started)
+                }, Cmd.ofMsg (LoadOrderPlanResult (tpCmd, Started))
 
-        | LoadUpdatedTreatmentPlan Started ->
+        | LoadOrderPlanResult (cmd, Started) ->
             match state.Patient with
             | None -> { state with TreatmentPlan = HasNotStartedYet }, Cmd.none
             | Some pat ->
                 match state.TreatmentPlan with
-                | HasNotStartedYet ->
-                    { state with TreatmentPlan = InProgress },
-                    Api.UpdateOrderPlan (OrderPlan.create pat [||], None)
-                    |> loadTreatmentPlan LoadUpdatedTreatmentPlan
                 | InProgress -> state, Cmd.none
-                | Resolved tp ->
-                    { state with TreatmentPlan = InProgress },
-                    Api.UpdateOrderPlan (tp, None)
-                    |> loadTreatmentPlan LoadUpdatedTreatmentPlan
-
-        | LoadUpdatedTreatmentPlan (Finished (Ok msg)) -> msg |> processOk
-        | LoadUpdatedTreatmentPlan (Finished (Error err)) ->
-            ({ state with TreatmentPlan = HasNotStartedYet },
-            LoadUpdatedTreatmentPlan Started |> Cmd.ofMsg)
-            |> processError err
-
-        | LoadFilteredTreatmentPlan Started ->
-            match state.Patient with
-            | None -> { state with TreatmentPlan = HasNotStartedYet }, Cmd.none
-            | Some pat ->
-                match state.TreatmentPlan with
                 | HasNotStartedYet ->
+                    let apiCmd =
+                        match cmd with
+                        | Api.FilterOrderPlan _ -> Api.FilterOrderPlan (OrderPlan.create pat [||])
+                        | Api.UpdateOrderPlan (_, ctxOpt) -> Api.UpdateOrderPlan (OrderPlan.create pat [||], ctxOpt)
                     { state with TreatmentPlan = InProgress },
-                    Api.FilterOrderPlan (OrderPlan.create pat [||])
-                    |> loadTreatmentPlan LoadFilteredTreatmentPlan
-                | InProgress -> state, Cmd.none
+                    apiCmd |> loadTreatmentPlan (fun resp -> LoadOrderPlanResult (cmd, resp))
                 | Resolved tp ->
+                    let apiCmd =
+                        match cmd with
+                        | Api.FilterOrderPlan _ -> Api.FilterOrderPlan tp
+                        | Api.UpdateOrderPlan (_, ctxOpt) -> Api.UpdateOrderPlan (tp, ctxOpt)
                     { state with TreatmentPlan = InProgress },
-                    Api.FilterOrderPlan tp
-                    |> loadTreatmentPlan LoadFilteredTreatmentPlan
+                    apiCmd |> loadTreatmentPlan (fun resp -> LoadOrderPlanResult (cmd, resp))
 
-        | LoadFilteredTreatmentPlan (Finished (Ok msg)) -> msg |> processOk
-        | LoadFilteredTreatmentPlan (Finished (Error err)) ->
+        | LoadOrderPlanResult (_, Finished (Ok msg)) -> msg |> processOk
+        | LoadOrderPlanResult (_, Finished (Error err)) ->
             ({ state with TreatmentPlan = HasNotStartedYet },
-            LoadUpdatedTreatmentPlan Started |> Cmd.ofMsg)
+            LoadOrderPlanResult (Api.UpdateOrderPlan (OrderPlan.create Patient.empty [||], None), Started) |> Cmd.ofMsg)
             |> processError err
 
         | LoadFormulary Started ->
@@ -925,32 +781,7 @@ module private Elmish =
                     Formulary = Resolved form
                     OrderContext =
                         state.OrderContext
-                        |> Deferred.map (fun ctx ->
-                            { ctx with
-                                Filter =
-                                    { ctx.Filter with
-                                        Indication = form.Indication
-                                        Generic = form.Generic
-                                        Form = form.Form
-                                        Route = form.Route
-                                        DoseType = form.DoseType
-                                        Diluent =
-                                            if form.Indication = ctx.Filter.Indication &&
-                                               form.Generic = ctx.Filter.Generic &&
-                                               form.Route = ctx.Filter.Route &&
-                                               form.Form = ctx.Filter.Form then ctx.Filter.Diluent
-                                            else None
-                                        SelectedComponents =
-                                            if form.Indication = ctx.Filter.Indication &&
-                                               form.Generic = ctx.Filter.Generic &&
-                                               form.Route = ctx.Filter.Route &&
-                                               form.Form = ctx.Filter.Form then ctx.Filter.SelectedComponents
-                                            else [||]
-
-                                    }
-                                Scenarios = [||]
-                            }
-                        )
+                        |> Deferred.map (syncFormularyToFilter form)
                     Parenteralia =
                         state.Parenteralia
                         |> Deferred.map (fun par ->
@@ -964,7 +795,7 @@ module private Elmish =
             state,
             Cmd.batch [
                 Cmd.ofMsg (LoadFormulary Started)
-                Cmd.ofMsg (LoadUpdatedOrderContext Started)
+                Cmd.ofMsg (LoadOrderContextResult (Api.UpdateOrderContext, Started))
                 Cmd.ofMsg (LoadParenteralia Started)
             ]
 
@@ -1000,36 +831,12 @@ module private Elmish =
                         )
                     OrderContext =
                         state.OrderContext
-                        |> Deferred.map (fun ctx ->
-                            { ctx with
-                                Filter =
-                                    { ctx.Filter with
-                                        Indication = None
-                                        Generic = par.Generic
-                                        Form = par.Form
-                                        Route = par.Route
-                                        DoseType = None
-                                        Diluent =
-                                            if par.Generic = ctx.Filter.Generic &&
-                                               par.Route = ctx.Filter.Route &&
-                                               par.Form = ctx.Filter.Form then ctx.Filter.Diluent
-                                            else None
-                                        SelectedComponents =
-                                            if par.Generic = ctx.Filter.Generic &&
-                                               par.Route = ctx.Filter.Route &&
-                                               par.Form = ctx.Filter.Form then ctx.Filter.SelectedComponents
-                                            else [||]
-
-                                    }
-                                Scenarios = [||]
-                            }
-                        )
-
+                        |> Deferred.map (syncParenteraliaToFilter par)
                 }
             state,
             Cmd.batch [
                 Cmd.ofMsg (LoadFormulary Started)
-                Cmd.ofMsg (LoadUpdatedOrderContext Started)
+                Cmd.ofMsg (LoadOrderContextResult (Api.UpdateOrderContext, Started))
                 Cmd.ofMsg (LoadParenteralia Started)
             ]
 

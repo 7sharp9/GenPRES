@@ -761,13 +761,7 @@ module Order =
         let context = React.useContext Global.context
         let lang = context.Localization
 
-        let getTerm defVal term =
-            props.localizationTerms
-            |> Deferred.map (fun terms ->
-                Localization.getTerm terms lang term
-                |> Option.defaultValue defVal
-            )
-            |> Deferred.defaultValue defVal
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let useAdjust =
             match props.orderContext with
@@ -1161,18 +1155,7 @@ module Order =
                     
                 |})
 
-        let progress =
-            match props.orderContext with
-            | Resolved _ -> JSX.jsx $"<></>"
-            | _ ->
-                JSX.jsx
-                    $"""
-                import CircularProgress from '@mui/material/CircularProgress';
-
-                <Box sx={ {| mt = 5; display = "flex"; p = 20 |} }>
-                    <CircularProgress />
-                </Box>
-                """
+        let progress = ViewHelpers.progressOrEmpty props.orderContext
 
         let fixPrecision = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision
 

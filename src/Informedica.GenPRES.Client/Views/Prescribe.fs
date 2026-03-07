@@ -24,13 +24,7 @@ module Prescribe =
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:900px)"
 
-        let getTerm defVal term =
-            props.localizationTerms
-            |> Deferred.map (fun terms ->
-                Localization.getTerm terms lang term
-                |> Option.defaultValue defVal
-            )
-            |> Deferred.defaultValue defVal
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let updateOrderContext ctx = props.orderContextMsg (Api.UpdateOrderContext, ctx)
 
@@ -182,17 +176,7 @@ module Prescribe =
         let modalOpen, setModalOpen = React.useState false
         let handleModalClose = fun () -> setModalOpen false
 
-        let select isLoading lbl selected dispatch xs =
-            Components.SimpleSelect.View({|
-                updateSelected = dispatch
-                label = lbl
-                selected = selected
-                values = xs
-                isLoading = isLoading
-                hasClear = true
-                navigate = None
-                warning = None
-            |})
+        let select = ViewHelpers.simpleSelect
 
         let multiSelect isLoading lbl selected dispatch xs =
             Components.MultipleSelect.View({|
@@ -203,14 +187,7 @@ module Prescribe =
                 isLoading = isLoading
             |})
 
-        let autoComplete isLoading lbl selected dispatch xs =
-            Components.Autocomplete.View({|
-                updateSelected = dispatch
-                label = lbl
-                selected = selected
-                values = xs
-                isLoading = isLoading
-            |})
+        let autoComplete = ViewHelpers.autoComplete
 
         let progress =
             match props.orderContext with
@@ -604,17 +581,7 @@ module Prescribe =
             </React.Fragment>
             """
 
-        let modalStyle =
-            {|
-                position="absolute"
-                top= "50%"
-                left= "50%"
-                transform= "translate(-50%, -50%)"
-                width= 400
-                bgcolor= "background.paper"
-                boxShadow= 24
-                borderRadius = "16px"
-            |}
+        let modalStyle = ViewHelpers.modalStyle
 
         JSX.jsx
             $"""

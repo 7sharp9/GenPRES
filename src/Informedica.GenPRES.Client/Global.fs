@@ -15,15 +15,17 @@ type Pages =
     | Settings
 
 
+let getLocalizedTerm (localizationTerms: Deferred<string[][]>) (lang: Localization.Locales) defVal term =
+    localizationTerms
+    |> Deferred.map (fun terms ->
+        Localization.getTerm terms lang term
+        |> Option.defaultValue defVal
+    )
+    |> Deferred.defaultValue defVal
+
+
 let pageToString terms locale page =
-    let getTerm term =
-        terms
-        |> Deferred.map (fun terms ->
-            term
-            |> Localization.getTerm terms locale
-            |> Option.defaultValue $"{term}"
-        )
-        |> Deferred.defaultValue $"{term}"
+    let getTerm term = getLocalizedTerm terms locale $"{term}" term
 
     match page with
     | LifeSupport -> Terms.``Emergency List`` |> getTerm
