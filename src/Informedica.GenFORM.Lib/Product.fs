@@ -20,7 +20,7 @@ module Product =
 
     let getFormularyProducts dataUrlId =
         try
-            Web.GoogleSheets.getCsvDataFromSheetResultSync dataUrlId "Formulary"
+            Web.GoogleSheets.getCsvDataFromSheetSync dataUrlId "Formulary"
             |> Result.bind (fun data ->
                 let getColumn =
                     data

@@ -889,6 +889,7 @@ module Tests =
 
                 let scenarios sheet =
                     GoogleSheets.getCsvDataFromSheetSync urlId sheet
+                    |> Result.defaultValue [||]
                     |> Array.skip 1
                     |> Array.map (fun row -> row[0])
                     |> Array.toList

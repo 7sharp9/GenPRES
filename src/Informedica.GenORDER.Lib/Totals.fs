@@ -126,7 +126,7 @@ module Totals =
             Env.getItem Utils.Constants.GENPRES_URL_ID
             |> Option.defaultWith (fun () -> failwith $"No valid {Utils.Constants.GENPRES_URL_ID}")
 
-        Web.GoogleSheets.getCsvDataFromSheetResultSync
+        Web.GoogleSheets.getCsvDataFromSheetSync
             urlId
             "Totals"
         |> Result.defaultValue [||]

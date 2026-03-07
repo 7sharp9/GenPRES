@@ -71,7 +71,7 @@ module Utils =
         /// <returns>The data as a table of string array array</returns>
         let getDataFromSheet urlId sheet =
             fun () ->
-                Web.GoogleSheets.getCsvDataFromSheetResultSync urlId sheet
+                Web.GoogleSheets.getCsvDataFromSheetSync urlId sheet
                 |> Result.defaultValue [||]
             |> StopWatch.clockFunc $"loaded {sheet} from web sheet"
 
