@@ -149,6 +149,8 @@ When a specific order variable has a value that has transgressed the effective d
 - Stepping is gated on whether the order is fully solved — increment/decrement buttons are disabled until all relevant order variables have a single resolved value, preventing discrepancies with prior calculated options.
 - Clearing selectively resets only preparation variables that have gone out of bounds, using the calculated constraints as the reference, while leaving in-bound values untouched.
 
+**Single-variable change invariant:** The system operates on the premise that after each change of a single variable, the solver runs to reconcile all dependent variables. Only at the very beginning are defined constraints set simultaneously — if these are incompatible, the solver will return an error. This represents an incompatibility in user-defined constraints that the system cannot and should not try to fix.
+
 ---
 
 ## 5. Navigation States
@@ -302,20 +304,29 @@ Important:
 - During increment/decrement, the anchor value may transgress previous Calculated and/or Defined constraints.
 - Dependent variables reset to `NonZeroPositive` before re-solving and can also transgress the Calculated and/or Defined constraints.
 
+Implementation note — `useCalc` safety guard:
+
+- `useCalc = false` (first step, `n = 1`): allows the anchor to transgress **Calculated** constraints, per the spec above. Defined constraints remain visible to the user for violation feedback.
+- `useCalc = true` (subsequent steps, `n > 1`): constrains stepping to the Calculated domain as a safety guard against unbounded drift.
+- Note: The `n` parameter and exact stepping semantics are work in progress — the UI does not yet supply the exact `n` value.
+
 ---
 
 ## 10. Re-Anchoring Strategy
 
 Re-anchoring computes a new order state.
 
-Steps:
+**ValueRange consistency model:** After the first solve, every OrderVariable's ValueRange is consistent with every other's. The solver operates on ValueRanges (MinIncrMax, ValSet, etc.), not single values. This consistency determines whether dependent variables need resetting during re-anchoring:
 
-1. Create new order with updated anchor value.
-2. Reset dependent variables according to active navigation mode (Section 7, 8, or 9):
-    - Either use baseline Calculated constraints or
-    - Set dependent variables to a NonZeroPositive state
-3. Re-run solver.
-4. Return new order state.
+- **NAVIGABLE/SELECTABLE** (SetMin/Max/Median, value selection): The anchor stays within its current domain, so dependent ValueRanges remain valid. No explicit dependent reset is needed — the `calcMinMax` constraint propagation is sufficient.
+- **STEPABLE** (Increase/Decrease): The anchor may leave its current domain, so dependent ValueRanges must be widened to NonZeroPositive to allow the solver to find new feasible values.
+
+**Two-phase pipeline:** Re-anchoring is split across two pipeline dispatches:
+
+1. **ChangeProperty pipeline** (2 steps): sets the anchor value, resets dependents (STEPABLE only), then propagates min/max constraints via `calcMinMax`.
+2. **SolveOrder pipeline** (dispatched separately): performs a full solve to derive concrete values from the updated constraint system.
+
+This split separates constraint narrowing from value resolution.
 
 ---
 
@@ -406,3 +417,4 @@ Shows an order for editing.
 - Order variables with the same label specify that only one order variable at a time are visible in the order UI view.
 - All order variables could be, theoretically, Selectable. However, Component Orderable Quantity, Orderable Dose Quantity and Orderable Dose Rate are restricted to be only Navigable.
 - Schedule Frequency could be Navigable, only is restricted to be only Selectable and Stepable
+- The server provides SetMin/Max/MedianScheduleFrequency commands (NAVIGABLE) for Frequency for flexibility, but the UI should not expose them per the current spec. The server intentionally does not enforce navigation-state restrictions — the UI is the gatekeeper.

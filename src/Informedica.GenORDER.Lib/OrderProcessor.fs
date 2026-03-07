@@ -16,6 +16,13 @@ module OrderProcessor =
     module Increment = Informedica.GenSolver.Lib.Variable.ValueRange.Increment
 
 
+    // FrequencyCleared and ConcentrationCleared are defensive arms —
+    // these variables are not Clearable per the UI spec (Section 13.1),
+    // but the arms are kept as guards against unexpected UI behavior.
+    // NotCleared is a defensive catch-all that logs a warning. The system
+    // operates on the single-variable change invariant: only one variable
+    // is changed at a time, followed by a solver run. Multiple simultaneous
+    // clears are not an expected scenario.
     let (|FrequencyCleared|RateCleared|TimeCleared|ConcentrationCleared|DoseQuantityCleared|DosePerTimeCleared|NotCleared|) (ord: Order) =
         let frq = ord.Schedule |> Schedule.getFrequency
         let tme = ord.Schedule |> Schedule.getTime
@@ -222,6 +229,12 @@ module OrderProcessor =
         |> List.forall (OrderVariable.isWithinConstraints true)
 
 
+    // processClearedDose and processClearedRate use applyConstraints to reset
+    // out-of-bounds preparation variables to their Calculated constraints
+    // (the effective solver domain from Section 4). Defined constraints are
+    // preserved separately for user-facing violation feedback.
+    // isPrepWithinConstraints checks orderable and component quantities to
+    // determine whether preparation variables need resetting.
     let processClearedDose ord =
         ord
         |> OrderPropertyChange.proc
