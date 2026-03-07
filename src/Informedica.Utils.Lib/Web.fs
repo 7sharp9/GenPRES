@@ -78,8 +78,7 @@ module Web =
             }
 
 
-        let getCsvDataFromSheet =
-            getDataFromSheet Csv.parseCSV
+        let getCsvDataFromSheet = getDataFromSheet Csv.parseCSV
 
 
         let getCsvDataFromSheetSync dataUrlId sheet =

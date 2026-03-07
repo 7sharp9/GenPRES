@@ -6,6 +6,16 @@ module Models =
 
     open Types
 
+    /// Canonical patient business logic shared between Client (Fable/JS) and Server (.NET).
+    ///
+    /// Architecture:
+    /// - This module is the single source of truth for patient logic that runs on BOTH sides
+    /// - The Client UI uses these functions directly for the patient input form
+    /// - The Server uses helper functions (getAgeInDays, getWeight, etc.) in
+    ///   ServerApi.mapFromSharedPatient to convert to GenForm.Lib.Types.Patient
+    /// - Server-only logic (dose rules, eGFR formulas) lives in GenFORM/GenCORE
+    /// - Any new patient logic must decide: needed on client? → put here.
+    ///   Server-only? → put in GenFORM.Patient or GenCORE.Calculations
     module Patient =
 
         open System
@@ -452,7 +462,7 @@ module Models =
             | Some w, _, Some h, _
             | Some w, _, None, Some h
             | None, Some w, Some h, _
-            | None, Some w, None, Some h -> sqrt (float (w / 1000) * (h |> float) / 3600.) |> Math.fixPrecision 2 |> Some
+            | None, Some w, None, Some h -> 0.007184 * ((float w / 1000.) ** 0.425) * ((float h) ** 0.725) |> Math.fixPrecision 2 |> Some
 
 
         let applyNormalValues

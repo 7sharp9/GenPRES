@@ -1,3 +1,13 @@
+/// Rich patient domain model for reference and potential future use.
+///
+/// NOTE: These types (AgeValue, PatientAge, WeightValue, etc.) are NOT used
+/// in the production GenPRES pipeline. The production flow is:
+///   Shared.Types.Patient → GenForm.Lib.Types.Patient (via ServerApi.mapFromSharedPatient)
+///
+/// This module is retained for:
+/// - Domain modeling reference
+/// - Potential future EHR/FHIR integration
+/// - The Calculations module (BSA, Renal) IS used by GenFORM
 namespace Informedica.GenCore.Lib.Patients
 
 #nowarn "40"
@@ -1894,7 +1904,7 @@ module Patient =
             |> Option.defaultValue ""
 
             pat
-            |> BSA.calcMosteller
+            |> BSA.calcDuBois
             |> Option.map (fun v -> $"{v |> decimal |> Decimal.fixPrecision 2} m2")
             |> Option.defaultValue ""
         ]
