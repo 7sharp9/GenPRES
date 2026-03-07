@@ -55,10 +55,7 @@ module Api =
         | ParentaraliaResp of Parenteralia
 
     and OrderContextResponse =
-        | OrderContextSelected of OrderContext
-        | OrderContextUpdated of OrderContext
-        | OrderContextRefreshed of OrderContext
-        | ResourcesReloaded of OrderContext
+        | OrderContextResult of OrderContext
 
     and OrderPlanResponse =
         | OrderPlanFiltered of OrderPlan
