@@ -92,3 +92,20 @@ The script-only code policy in [AGENTS.md](AGENTS.md) applies. As a reminder:
 3. **Leave migration to the user** — They will review and move verified code to source files
 
 For the full workflow, module shadowing pattern, and testing in scripts, see the **Script-Based Development Workflow** section in [AGENTS.md](AGENTS.md).
+
+## Context Management
+
+Before any auto-compact or when context usage approaches 70%, write a 
+decisions log to `.claude/docs/session-decisions.md` containing:
+- Any architectural or design decisions made this session
+- Approaches explicitly rejected and why
+- Critical constraints discovered or confirmed
+- Specific values, types, or function signatures that matter
+
+Do this proactively without being asked.
+
+## Plan Execution Rules
+
+At the end of each plan step, append a brief summary of what was decided 
+or changed to `.claude/docs/session-log.md`. This ensures nothing critical 
+is lost if compaction occurs between steps.
