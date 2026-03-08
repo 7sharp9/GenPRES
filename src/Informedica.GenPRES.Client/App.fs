@@ -94,7 +94,7 @@ module private Elmish =
         |> Cmd.fromAsync
 
 
-    let processApiMsg state msg =
+    let processApiMsg (state: State) msg =
         match msg with
         | Api.OrderContextResp (Api.OrderContextResult ctx) ->
             { state with

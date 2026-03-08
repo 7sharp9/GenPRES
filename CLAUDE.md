@@ -30,7 +30,6 @@ At the start of each session, read these documents for full project context.
 ### Architecture and data
 
 @docs/mdr/design-history/architecture.md
-@docs/mdr/design-history/genpres_resource_requirements.md
 
 ## Session Startup
 
@@ -95,7 +94,7 @@ For the full workflow, module shadowing pattern, and testing in scripts, see the
 
 ## Context Management
 
-Before any auto-compact or when context usage approaches 70%, write a 
+Before any auto-compact or when context usage approaches 70%, write a
 decisions log to `.claude/docs/session-decisions.md` containing:
 - Any architectural or design decisions made this session
 - Approaches explicitly rejected and why
@@ -106,6 +105,6 @@ Do this proactively without being asked.
 
 ## Plan Execution Rules
 
-At the end of each plan step, append a brief summary of what was decided 
-or changed to `.claude/docs/session-log.md`. This ensures nothing critical 
+At the end of each plan step, append a brief summary of what was decided
+or changed to `.claude/docs/session-log.md`. This ensures nothing critical
 is lost if compaction occurs between steps.
