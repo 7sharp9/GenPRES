@@ -30,141 +30,39 @@ module Prescribe =
 
         let indicationChange s =
             match props.orderContext with
-            | Resolved pr ->
-                if s |> Option.isNone then
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Indications = [||]
-                                Indication = None
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-                else
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Indication = s
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.indicationChange s |> updateOrderContext
             | _ -> ()
 
         let medicationChange s =
             match props.orderContext with
-            | Resolved pr ->
-                if s |> Option.isNone then
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Generics = [||]
-                                Generic = None
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-
-                else
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Generic = s
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.medicationChange s |> updateOrderContext
             | _ -> ()
 
         let routeChange s =
             match props.orderContext with
-            | Resolved pr ->
-                if s |> Option.isNone then
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Routes = [||]
-                                Route = None
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-                else
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Route = s
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.routeChange s |> updateOrderContext
             | _ -> ()
 
         let formChange s =
             match props.orderContext with
-            | Resolved ctx ->
-                if s |> Option.isNone then
-                    { ctx with
-                        Filter =
-                            { ctx.Filter with
-                                Forms = [||]
-                                Form = None
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-                else
-                    { ctx with
-                        Filter =
-                            { ctx.Filter with
-                                Form = s
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved ctx -> ctx |> OrderContext.formChange s |> updateOrderContext
             | _ -> ()
 
         let diluentChange s =
             match props.orderContext with
-            | Resolved pr ->
-                { pr with
-                    Filter = { pr.Filter with Diluent = s }
-                }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.diluentChange s |> updateOrderContext
             | _ -> ()
 
         let componentsChange cs =
             Logging.log "componentsChange" cs
             match props.orderContext with
-            | Resolved prctx ->
-                { prctx with
-                    Filter = { prctx.Filter with SelectedComponents = cs }
-                }
-                |> updateOrderContext
+            | Resolved prctx -> prctx |> OrderContext.componentsChange cs |> updateOrderContext
             | _ -> ()
 
         let doseTypeChange s =
             let dt = s |> Option.map DoseType.doseTypeFromString
             match props.orderContext with
-            | Resolved pr ->
-                if dt |> Option.isNone then
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-                else
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                DoseType = dt
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.doseTypeChange dt |> updateOrderContext
             | _ -> ()
 
         let clear () =
@@ -275,31 +173,6 @@ module Prescribe =
                                 itms
                                 |> Array.append [| " " |> Normal |]
 
-                        // get the max alert level
-                        let maxTb (xs: TextBlock [][]) =
-                            if xs |> Array.isEmpty then Valid
-                            else
-                                xs
-                                |> Array.collect (fun tbs ->
-                                    if tbs |> Array.isEmpty then [| 0 |]
-                                    else
-                                        tbs
-                                        |> Array.map (fun tb ->
-                                            match tb with
-                                            | Valid _ -> 0
-                                            | Caution _ -> 1
-                                            | Warning _ -> 2
-                                            | Alert _ -> 3
-                                        )
-                                )
-                                |> Array.max
-                                |> function
-                                | 0 -> Valid
-                                | 1 -> Caution
-                                | 2 -> Warning
-                                | 3 -> Alert
-                                | i -> failwith $"not a valid textblock: {i}"
-
                         let sec =
                              if not isMobile then sec
                              else
@@ -320,7 +193,7 @@ module Prescribe =
                                 sec
                                 |> Array.map (Array.map getItems)
                                 |> add
-                                |> (sec |> maxTb)
+                                |> (sec |> TextBlock.maxTb)
                                 |> Array.singleton
                                 |> Array.singleton
 

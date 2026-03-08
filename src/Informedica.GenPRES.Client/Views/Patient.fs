@@ -4,7 +4,6 @@ namespace Views
 
 module Patient =
 
-    open System
     open Fable.Core
     open Fable.React
     open Feliz
@@ -41,252 +40,22 @@ module Patient =
             | ToggleET
 
 
-        let tryParse (s : string) = match Int32.TryParse(s) with | false, _ -> None | true, v -> v |> Some
-
-
         let init pat : State * Cmd<Msg> = pat, Cmd.none
-
-
-        let setYear s (p : Patient option) =
-            match p with
-            | None ->
-                Patient.create
-                    (s |> Option.bind tryParse)
-                    None None None None None None None UnknownGender [] None None
-            | Some p ->
-                Patient.create
-                    (s |> Option.bind tryParse)
-                    (p |> Patient.getAgeMonths)
-                    (p |> Patient.getAgeWeeks)
-                    (p |> Patient.getAgeDays)
-                    None
-                    None
-                    None
-                    None
-                    p.Gender
-                    p.Access
-                    p.RenalFunction
-                    p.Department
-
-
-        let setMonth s (p : Patient option) =
-            match p with
-            | None ->
-                Patient.create
-                    None
-                    (s |> Option.bind tryParse)
-                    None None None None None None UnknownGender [] None None
-            | Some p ->
-                Patient.create
-                    (p |> Patient.getAgeYears)
-                    (s |> Option.bind tryParse)
-                    (p |> Patient.getAgeWeeks)
-                    (p |> Patient.getAgeDays)
-                    None
-                    None
-                    None
-                    None
-                    p.Gender
-                    p.Access
-                    p.RenalFunction
-                    p.Department
-
-
-        let setWeek s (p : Patient option) =
-            match p with
-            | None ->
-                Patient.create
-                    None None
-                    (s |> Option.bind tryParse)
-                    None None None None None UnknownGender [] None None
-            | Some p ->
-                Patient.create
-                    (p |> Patient.getAgeYears)
-                    (p |> Patient.getAgeMonths)
-                    (s |> Option.bind tryParse)
-                    (p |> Patient.getAgeDays)
-                    None
-                    None
-                    (p |> Patient.getGAWeeks)
-                    (p |> Patient.getGADays)
-                    p.Gender
-                    p.Access
-                    p.RenalFunction
-                    p.Department
-
-
-        let setDay s (p : Patient option) =
-            match p with
-            | None ->
-                Patient.create
-                    None None None
-                    (s |> Option.bind tryParse)
-                    None None None None UnknownGender [] None None
-            | Some p ->
-                Patient.create
-                    (p |> Patient.getAgeYears)
-                    (p |> Patient.getAgeMonths)
-                    (p |> Patient.getAgeWeeks)
-                    (s |> Option.bind tryParse)
-                    None
-                    None
-                    (p |> Patient.getGAWeeks)
-                    (p |> Patient.getGADays)
-                    p.Gender
-                    p.Access
-                    p.RenalFunction
-                    p.Department
-
-
-        let setWeight s (p : Patient option) =
-            match p with
-            | None ->
-                Patient.create
-                    None None None None
-                    (s |> Option.bind tryParse)
-                    None None None UnknownGender [] None None
-            | Some p ->
-                Patient.create
-                    (p |> Patient.getAgeYears)
-                    (p |> Patient.getAgeMonths)
-                    (p |> Patient.getAgeWeeks)
-                    (p |> Patient.getAgeDays)
-                    (s |> Option.bind tryParse)
-                    (p |> Patient.getHeight |> Option.map int)
-                    (p |> Patient.getGAWeeks)
-                    (p |> Patient.getGADays)
-                    p.Gender
-                    p.Access
-                    p.RenalFunction
-                    p.Department
-
-
-        let setHeight s (p : Patient option) =
-            match p with
-            | None ->
-                Patient.create
-                    None None None None None
-                    (s |> Option.bind tryParse)
-                    None None UnknownGender [] None None
-            | Some p ->
-                Patient.create
-                    (p |> Patient.getAgeYears)
-                    (p |> Patient.getAgeMonths)
-                    (p |> Patient.getAgeWeeks)
-                    (p |> Patient.getAgeDays)
-                    (p |> Patient.getWeight |> Option.map int)
-                    (s |> Option.bind tryParse)
-                    (p |> Patient.getGAWeeks)
-                    (p |> Patient.getGADays)
-                    p.Gender
-                    p.Access
-                    p.RenalFunction
-                    p.Department
-
-
-        let setGAWeek s (p : Patient option) =
-            match p with
-            | None ->
-                Patient.create
-                    None None None None None None
-                    (s |> Option.bind tryParse |> Option.map int)
-                    None UnknownGender [] None None
-            | Some p ->
-                Patient.create
-                    (p |> Patient.getAgeYears)
-                    (p |> Patient.getAgeMonths)
-                    (p |> Patient.getAgeWeeks)
-                    (p |> Patient.getAgeDays)
-                    None None
-                    (s |> Option.bind tryParse |> Option.map int)
-                    (p |> Patient.getGADays)
-                    p.Gender
-                    p.Access
-                    p.RenalFunction
-                    p.Department
-
-
-        let setGADay s (p : Patient option) =
-            match p with
-            | None ->
-                Patient.create
-                    None None None None None None None
-                    (s |> Option.bind tryParse |> Option.map int)
-                    UnknownGender [] None None
-            | Some p ->
-                Patient.create
-                    (p |> Patient.getAgeYears)
-                    (p |> Patient.getAgeMonths)
-                    (p |> Patient.getAgeWeeks)
-                    (p |> Patient.getAgeDays)
-                    None None
-                    (p |> Patient.getGAWeeks)
-                    (s |> Option.bind tryParse |> Option.map int)
-                    p.Gender
-                    p.Access
-                    p.RenalFunction
-                    p.Department
-
-
-        let toggle item (p: Patient option) : Patient option =
-            p |> Option.map (fun p ->
-                { p with
-                    Access =
-                        if p.Access |> List.exists((=) item) then
-                            p.Access
-                            |> List.filter ((<>) item)
-                        else
-                            p.Access
-                            |> List.append [ item ]
-                }
-            )
-
-
-        let toggleCVL = toggle CVL
-
-
-        let togglePVL = toggle PVL
-
-
-        let toggleET = toggle EnteralTube
-
-
-        let setRenal (s: string option) (p: Patient option) : Patient option =
-            let set rf (p : Patient option) =
-                match p with
-                | None -> p
-                | Some p ->
-                    { p with
-                        RenalFunction = rf
-                    }
-                    |> Some
-
-            match s with
-            | None ->
-                p
-                |> set None
-            | Some s ->
-                let rf =
-                    s
-                    |> Patient.RenalFunction.optionToRenal
-                    |> Some
-                p
-                |> set rf
 
 
         let update dispatch msg (state : State) : State * Cmd<Msg> =
             let state =
                 match msg with
                 | Clear          -> None
-                | UpdateYear s   -> state |> setYear s
-                | UpdateMonth s  -> state |> setMonth s
-                | UpdateWeek s   -> state |> setWeek s
-                | UpdateDay s    -> state |> setDay s
-                | UpdateWeight s -> state |> setWeight s
-                | UpdateHeight s -> state |> setHeight s
-                | UpdateGAWeek s -> state |> setGAWeek s
-                | UpdateGADay s  -> state |> setGADay s
-                | UpdateRenal s  -> state |> setRenal s
+                | UpdateYear s   -> state |> Patient.setYear s
+                | UpdateMonth s  -> state |> Patient.setMonth s
+                | UpdateWeek s   -> state |> Patient.setWeek s
+                | UpdateDay s    -> state |> Patient.setDay s
+                | UpdateWeight s -> state |> Patient.setWeight s
+                | UpdateHeight s -> state |> Patient.setHeight s
+                | UpdateGAWeek s -> state |> Patient.setGAWeek s
+                | UpdateGADay s  -> state |> Patient.setGADay s
+                | UpdateRenal s  -> state |> Patient.setRenal s
                 | UpdateGender s ->
                     state
                     |> Option.defaultValue Patient.empty
@@ -306,9 +75,9 @@ module Patient =
                         }
                     )
                     |> Some
-                | ToggleCVL      -> state |> toggleCVL
-                | TogglePVL      -> state |> togglePVL
-                | ToggleET       -> state |> toggleET
+                | ToggleCVL      -> state |> Patient.toggleCVL
+                | TogglePVL      -> state |> Patient.togglePVL
+                | ToggleET       -> state |> Patient.toggleET
 
             state |> dispatch
             state, Cmd.none

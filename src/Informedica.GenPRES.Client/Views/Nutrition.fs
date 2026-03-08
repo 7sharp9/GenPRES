@@ -52,7 +52,7 @@ module Nutrion =
                         actions = None
                     |}
                 )
-            
+
             [|
                     {|
                         cells =

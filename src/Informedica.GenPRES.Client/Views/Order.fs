@@ -158,32 +158,7 @@ module Order =
             (msg: Msg)
             (state : State) : State * Cmd<Msg>
             =
-            let setVu s (vu : Types.ValueUnit option) =
-                match vu with
-                | Some vu ->
-                    { vu with
-                        Value =
-                            vu.Value
-                            |> Array.tryFind (fun (v, _) ->
-                                let b = v = (s |> Option.defaultValue "")
-                                if not b then Logging.warning "couldn't find" s
-                                b
-                            )
-                            |> Option.map Array.singleton
-                            |> Option.defaultValue vu.Value
-                    } |> Some
-                | None -> None
-
-            let setVar (s : string option) (var : Variable) =
-                { var with
-                    IsNonZeroPositive = s.IsNone
-                    Vals =
-                        if s.IsNone then None
-                        else var.Vals |> setVu s
-                }
-
-            let setOvar s (ovar: OrderVariable) =
-                { ovar with Variable = ovar.Variable |> setVar s }
+            let setOvar = OrderVariable.setOvar
 
             let handleNav nav =
                 match state.Order with

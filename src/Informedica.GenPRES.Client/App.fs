@@ -353,45 +353,6 @@ module private Elmish =
         | _ -> pat
 
 
-
-    let syncFilterToFormulary (filter: Filter) (form: Formulary) =
-        { form with
-            Indication = filter.Indication; Generic = filter.Generic
-            Route = filter.Route; Form = filter.Form; DoseType = filter.DoseType }
-
-    let syncFilterToParenteralia (filter: Filter) (par: Parenteralia) =
-        { par with Generic = filter.Generic; Form = filter.Form; Route = filter.Route }
-
-    let syncFormularyToFilter (form: Formulary) (ctx: OrderContext) =
-        let unchanged =
-            form.Indication = ctx.Filter.Indication &&
-            form.Generic = ctx.Filter.Generic &&
-            form.Route = ctx.Filter.Route &&
-            form.Form = ctx.Filter.Form
-        { ctx with
-            Filter =
-                { ctx.Filter with
-                    Indication = form.Indication; Generic = form.Generic
-                    Form = form.Form; Route = form.Route; DoseType = form.DoseType
-                    Diluent = if unchanged then ctx.Filter.Diluent else None
-                    SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||] }
-            Scenarios = [||] }
-
-    let syncParenteraliaToFilter (par: Parenteralia) (ctx: OrderContext) =
-        let unchanged =
-            par.Generic = ctx.Filter.Generic &&
-            par.Route = ctx.Filter.Route &&
-            par.Form = ctx.Filter.Form
-        { ctx with
-            Filter =
-                { ctx.Filter with
-                    Indication = None; Generic = par.Generic
-                    Form = par.Form; Route = par.Route; DoseType = None
-                    Diluent = if unchanged then ctx.Filter.Diluent else None
-                    SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||] }
-            Scenarios = [||] }
-
-
     module CommandHandlers =
 
 
@@ -410,10 +371,10 @@ module private Elmish =
                     { base' with
                         Formulary =
                             base'.Formulary
-                            |> Deferred.map (syncFilterToFormulary ctx.Filter)
+                            |> Deferred.map (OrderContext.syncFilterToFormulary ctx.Filter)
                         Parenteralia =
                             base'.Parenteralia
-                            |> Deferred.map (syncFilterToParenteralia ctx.Filter)
+                            |> Deferred.map (OrderContext.syncFilterToParenteralia ctx.Filter)
                     },
                     Cmd.batch [
                         Cmd.ofMsg (LoadOrderContextResult (cmd, Started))
@@ -801,7 +762,7 @@ module private Elmish =
                     Formulary = Resolved form
                     OrderContext =
                         state.OrderContext
-                        |> Deferred.map (syncFormularyToFilter form)
+                        |> Deferred.map (OrderContext.syncFormularyToFilter form)
                     Parenteralia =
                         state.Parenteralia
                         |> Deferred.map (fun par ->
@@ -851,7 +812,7 @@ module private Elmish =
                         )
                     OrderContext =
                         state.OrderContext
-                        |> Deferred.map (syncParenteraliaToFilter par)
+                        |> Deferred.map (OrderContext.syncParenteraliaToFilter par)
                 }
             state,
             Cmd.batch [
