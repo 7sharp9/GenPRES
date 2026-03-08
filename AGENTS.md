@@ -331,10 +331,41 @@ open Informedica.GenSolver.Tests
 // Run existing test suites against your modified code
 ```
 
+### Using the FSI MCP Server
+
+The [fsi-mcp-server](https://github.com/halcwb/fsi-mcp-server) provides a persistent FSI session accessible via MCP tools. This enables AI-assisted interactive F# development without restarting FSI between queries.
+
+**Available MCP tools:**
+
+- `mcp__fsi-mcp__get_fsi_status` — Check if the server is running
+- `mcp__fsi-mcp__send_fsharp_code` — Execute F# code (end statements with `;;`)
+- `mcp__fsi-mcp__load_f_sharp_script` — Load and execute `.fsx` script files
+- `mcp__fsi-mcp__get_recent_fsi_events` — View recent FSI output and errors
+
+**Path resolution strategy:**
+
+FSI's `#load` directive resolves relative paths from its *include path*, **not** from `System.IO.Directory.GetCurrentDirectory()`. When loading scripts via MCP, always start by adding the script's directory to FSI's include path using `#I`:
+
+```fsharp
+// Step 1: Set the include path to the script's directory
+#I "/absolute/path/to/script/directory";;
+
+// Step 2: Now relative #load paths resolve correctly
+#load "../Types.fs";;
+#load "../Utils.fs";;
+#load "load.fsx";;
+```
+
+**Important:**
+- `System.IO.Directory.SetCurrentDirectory()` does **not** affect `#load` path resolution — you must use `#I`
+- The MCP `load_f_sharp_script` tool sends script statements to FSI individually, so `#load` directives inside scripts also resolve from FSI's include path. Set `#I` before calling `load_f_sharp_script`
+- Scripts should include `#I __SOURCE_DIRECTORY__` at the top so they work both when run via `dotnet fsi` (where `__SOURCE_DIRECTORY__` is the script's directory) and when loaded after manually setting `#I` via MCP
+- The FSI session is persistent — types loaded multiple times create conflicts (e.g., `FSI_0005.Types.gram` vs `FSI_0010.Types.gram`). Load dependencies once per session. If conflicts occur, the FSI server must be restarted
+
 ### Tips
 
 - **Partial evaluation** — Select part of a script and send it to FSI to validate small functions without reloading everything.
-- **Keep FSI sessions alive** — Build up state interactively rather than restarting FSI each time. Tools like the [fsi-mcp-server](https://github.com/halcwb/fsi-mcp-server) enable AI-assisted interactive sessions over MCP.
+- **Keep FSI sessions alive** — Build up state interactively rather than restarting FSI each time.
 - **Modularize scripts** — Break scripts into logical regions (helpers, refactored code, tests) with comments for easier navigation.
 - **Rebuild before scripting** — Run `dotnet build GenPRES.sln` first so `load.fsx` can find the compiled DLLs.
 
