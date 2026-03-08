@@ -1388,7 +1388,12 @@ module Order =
                                 cmp
                                 |> Option.bind _.OrderableQuantity.Variable.Vals
                                 |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                                |> Option.defaultValue [||]
+                                |> Option.defaultValue (
+                                    cmp
+                                    |> Option.map (_.OrderableQuantity.Variable >> Variable.renderValue 3)
+                                    |> Option.defaultValue ""
+                                    |> function | "" -> [||] | s -> [| "range", s |]
+                                )
 
                             let navigate =
                                 let c = vals |> Array.length
@@ -1616,7 +1621,11 @@ module Order =
 
                             ord.Orderable.Dose.Quantity.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                            |> Option.defaultValue [||]
+                            |> Option.defaultValue (
+                                match Variable.renderValue 3 ord.Orderable.Dose.Quantity.Variable with
+                                | "" -> [||]
+                                | s -> [| "range", s |]
+                            )
                             |> select false "toedien hoeveelheid" None (ChangeOrderableDoseQuantity >> dispatch) navigate false warning
                         | _ ->
                             [||]
@@ -1643,7 +1652,11 @@ module Order =
 
                             ord.Orderable.Dose.Rate.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                            |> Option.defaultValue [||]
+                            |> Option.defaultValue (
+                                match Variable.renderValue 3 ord.Orderable.Dose.Rate.Variable with
+                                | "" -> [||]
+                                | s -> [| "range", s |]
+                            )
                             |> select false (Terms.``Order Drip rate`` |> getTerm "inloop snelheid") None (ChangeOrderableDoseRate >> dispatch) navigate false warning
                         | _ ->
                             [||]
