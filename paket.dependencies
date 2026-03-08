@@ -32,7 +32,7 @@ nuget HtmlAgilityPack 1.12.3
 nuget FParsec
 nuget FsToolkit.ErrorHandling 5.1.0
 nuget MathNet.Numerics.FSharp
-nuget Microsoft.Net.Test.Sdk 18.0.0
+nuget Microsoft.Net.Test.Sdk 18.3.0
 nuget Validus
 nuget YoloDev.Expecto.TestSdk 0.15.5
 nuget Markdig 0.42.0
