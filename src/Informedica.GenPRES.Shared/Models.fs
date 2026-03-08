@@ -1877,9 +1877,9 @@ module Models =
             | "chloride"    -> intake.Chloride
             | "calcium"     -> intake.Calcium
             | "magnesium"   -> intake.Magnesium
-            | "phosphaat"   -> intake.Phosphate
+            | "phosphaat" | "fosfaat" -> intake.Phosphate
             | "ijzer"       -> intake.Iron
-            | "vitamine D"  -> intake.VitaminD
+            | "vitamine D" | "vit D" -> intake.VitaminD
             | "ethanol"     -> intake.Ethanol
             | "propyleenglycol" -> intake.Propyleenglycol
             | "boorzuur"    -> intake.BoricAcid
