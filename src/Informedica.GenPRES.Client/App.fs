@@ -27,6 +27,7 @@ module private Elmish =
             Products: Deferred<Product list>
             OrderContext: Deferred<OrderContext>
             TreatmentPlan: Deferred<OrderPlan>
+            NutritionPlan: Deferred<NutritionPlan>
             Formulary: Deferred<Formulary>
             Parenteralia: Deferred<Parenteralia>
             Localization: Deferred<string [][]>
@@ -59,6 +60,9 @@ module private Elmish =
 
         | TreatmentPlanMsg of Api.OrderPlanCommand
         | LoadOrderPlanResult of Api.OrderPlanCommand * ApiResponse
+
+        | NutritionPlanMsg of Api.NutritionPlanCommand
+        | LoadNutritionPlanResult of Api.NutritionPlanCommand * ApiResponse
 
         | UpdateFormulary of Formulary
         | LoadFormulary of ApiResponse
@@ -109,6 +113,9 @@ module private Elmish =
             { state with
                 Parenteralia = Resolved par
             }, Cmd.none
+        | Api.NutritionPlanResp (Api.NutritionPlanInitialised plan)
+        | Api.NutritionPlanResp (Api.NutritionPlanUpdated plan) ->
+            { state with NutritionPlan = Resolved plan }, Cmd.none
 
 
     let loadOrderContext resp = Api.OrderContextCmd >> createApiMsg resp
@@ -298,6 +305,7 @@ module private Elmish =
                 match pat with
                 | None -> HasNotStartedYet
                 | Some p -> OrderPlan.create p [||] |> Resolved
+            NutritionPlan = HasNotStartedYet
             Formulary = HasNotStartedYet
             Parenteralia = HasNotStartedYet
             Localization = HasNotStartedYet
@@ -501,6 +509,7 @@ module private Elmish =
                         )
                         |> Deferred.defaultValue tp
                         |> Resolved
+                NutritionPlan = HasNotStartedYet
                 Formulary =
                     { Formulary.empty with Patient = pat }
                     |> Resolved
@@ -754,6 +763,17 @@ module private Elmish =
             LoadOrderPlanResult (Api.UpdateOrderPlan (OrderPlan.create Patient.empty [||], None), Started) |> Cmd.ofMsg)
             |> processError err
 
+        | NutritionPlanMsg npCmd ->
+            { state with NutritionPlan = InProgress },
+            Api.NutritionPlanCmd npCmd
+            |> createApiMsg (fun resp -> LoadNutritionPlanResult (npCmd, resp))
+
+        | LoadNutritionPlanResult (_, Started) -> state, Cmd.none
+        | LoadNutritionPlanResult (_, Finished (Ok msg)) -> msg |> processOk
+        | LoadNutritionPlanResult (_, Finished (Error err)) ->
+            ({ state with NutritionPlan = HasNotStartedYet }, Cmd.none)
+            |> processError err
+
         | LoadFormulary Started ->
             let form =
                 match state.Formulary with
@@ -945,6 +965,8 @@ let View () =
                         orderContextMsg = fun (cmd, ctx) -> OrderContextMsg (cmd, ctx) |> dispatch
                         treatmentPlan = state.TreatmentPlan
                         treatmentPlanCommand = TreatmentPlanMsg >> dispatch
+                        nutritionPlan = state.NutritionPlan
+                        nutritionPlanMsg = NutritionPlanMsg >> dispatch
                         formulary = state.Formulary
                         updateFormulary = UpdateFormulary >> dispatch
                         parenteralia = state.Parenteralia

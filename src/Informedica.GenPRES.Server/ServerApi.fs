@@ -954,6 +954,106 @@ module OrderPlan =
         }
 
 
+module NutritionPlan =
+
+    open Shared
+    open Shared.Types
+
+    type NutritionDoseRuleSet = {
+        Label: string
+        Indication: string
+        Generics: string []
+        DoseType: DoseType option
+    }
+
+    let nutritionDoseRuleSets = [|
+        { Label = "Standaard Totale Parenterale Voeding"
+          Indication = "Standaard Totale Parenterale Voeding"
+          Generics = [||]
+          DoseType = None }
+        { Label = "Neonatale Parenterale Voeding"
+          Indication = "Neonatale Parenterale Voeding"
+          Generics = [||]
+          DoseType = None }
+        { Label = "Totale Parenterale Voeding"
+          Indication = "Totale Parenterale Voeding"
+          Generics = [||]
+          DoseType = None }
+        { Label = "Variabele Totale Parenterale Voeding"
+          Indication = "Variabele Totale Parenterale Voeding"
+          Generics = [||]
+          DoseType = None }
+    |]
+
+
+    let calculateNutritionTotals (plan: NutritionPlan) =
+        { plan with
+            Totals =
+                let w = plan.Patient |> Models.Patient.getWeight |> Option.map int
+                let a = plan.Patient |> Models.Patient.getAgeInDays |> Option.map int
+                plan.NutritionContexts
+                |> Array.collect (fun nc -> nc.OrderContext.Scenarios |> Array.map _.Order)
+                |> Order.getTotals a w
+        }
+
+
+    let initNutritionPlan logger provider (patient: Patient) : Result<NutritionPlan, string[]> =
+        let contexts =
+            nutritionDoseRuleSets
+            |> Array.choose (fun drs ->
+                let ctx =
+                    Models.OrderContext.empty
+                    |> Models.OrderContext.setPatient patient
+                    |> fun c ->
+                        { c with
+                            Filter =
+                                { c.Filter with
+                                    Indication = Some drs.Indication
+                                    DoseType = drs.DoseType
+                                }
+                        }
+                match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
+                | Ok resolved when resolved.Scenarios |> Array.isEmpty |> not ->
+                    Some (Models.NutritionContext.create drs.Label resolved)
+                | _ -> None
+            )
+        Models.NutritionPlan.create patient contexts
+        |> calculateNutritionTotals
+        |> Ok
+
+
+    let updateNutritionOrderContext logger provider (plan: NutritionPlan, ctx: OrderContext) : Result<NutritionPlan, string[]> =
+        match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
+        | Ok resolved ->
+            let updatedContexts =
+                plan.NutritionContexts
+                |> Array.map (fun nc ->
+                    if nc.OrderContext.Filter.Indication = ctx.Filter.Indication then
+                        { nc with OrderContext = resolved }
+                    else nc
+                )
+            { plan with NutritionContexts = updatedContexts }
+            |> calculateNutritionTotals
+            |> Ok
+        | Error errs -> Error errs
+
+
+    let selectNutritionOrderScenario logger provider (plan: NutritionPlan, ctx: OrderContext) : Result<NutritionPlan, string[]> =
+        match OrderContext.evaluate logger provider Api.SelectOrderScenario ctx with
+        | Ok resolved ->
+            let updatedContexts =
+                plan.NutritionContexts
+                |> Array.map (fun nc ->
+                    if nc.OrderContext.Filter.Indication = ctx.Filter.Indication then
+                        { nc with OrderContext = resolved }
+                    else nc
+                )
+            { plan with NutritionContexts = updatedContexts }
+            |> calculateNutritionTotals
+            |> Ok
+        | Error errs -> Error errs
+
+
 module Command =
 
     open Shared.Api
@@ -1016,6 +1116,27 @@ module Command =
                     |> Parenteralia.get provider
                     |> Result.mapError Array.singleton
                     |> Result.map ParenteraliaResp
+            }
+
+        | NutritionPlanCmd (InitNutritionPlan patient) ->
+            async {
+                return
+                    NutritionPlan.initNutritionPlan logger provider patient
+                    |> Result.map (NutritionPlanInitialised >> NutritionPlanResp)
+            }
+
+        | NutritionPlanCmd (UpdateNutritionOrderContext (plan, ctx)) ->
+            async {
+                return
+                    NutritionPlan.updateNutritionOrderContext logger provider (plan, ctx)
+                    |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
+            }
+
+        | NutritionPlanCmd (SelectNutritionOrderScenario (plan, ctx)) ->
+            async {
+                return
+                    NutritionPlan.selectNutritionOrderScenario logger provider (plan, ctx)
+                    |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
             }
 
 

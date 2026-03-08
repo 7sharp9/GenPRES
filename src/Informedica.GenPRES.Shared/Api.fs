@@ -12,6 +12,7 @@ module Api =
         | OrderPlanCmd of OrderPlanCommand
         | FormularyCmd of Formulary
         | ParenteraliaCmd of Parenteralia
+        | NutritionPlanCmd of NutritionPlanCommand
 
     and OrderContextCommand =
         | UpdateOrderContext
@@ -48,11 +49,17 @@ module Api =
         | UpdateOrderPlan of OrderPlan * (OrderContextCommand * OrderContext) option
         | FilterOrderPlan of OrderPlan
 
+    and NutritionPlanCommand =
+        | InitNutritionPlan of Patient
+        | UpdateNutritionOrderContext of NutritionPlan * OrderContext
+        | SelectNutritionOrderScenario of NutritionPlan * OrderContext
+
     type Response =
         | OrderContextResp of OrderContextResponse
         | OrderPlanResp of OrderPlanResponse
         | FormularyResp of Formulary
         | ParenteraliaResp of Parenteralia
+        | NutritionPlanResp of NutritionPlanResponse
 
     and OrderContextResponse =
         | OrderContextResult of OrderContext
@@ -60,6 +67,10 @@ module Api =
     and OrderPlanResponse =
         | OrderPlanFiltered of OrderPlan
         | OrderPlanUpdated of OrderPlan
+
+    and NutritionPlanResponse =
+        | NutritionPlanInitialised of NutritionPlan
+        | NutritionPlanUpdated of NutritionPlan
 
 
     module Command =
@@ -95,6 +106,9 @@ module Api =
             | OrderPlanCmd (FilterOrderPlan _) -> "FilterOrderPlan"
             | FormularyCmd _ -> "FormularyCmd"
             | ParenteraliaCmd _ -> "ParenteraliaCmd"
+            | NutritionPlanCmd (InitNutritionPlan _) -> "InitNutritionPlan"
+            | NutritionPlanCmd (UpdateNutritionOrderContext _) -> "UpdateNutritionOrderContext"
+            | NutritionPlanCmd (SelectNutritionOrderScenario _) -> "SelectNutritionOrderScenario"
 
 
     /// Defines how routes are generated on server and mapped from the client

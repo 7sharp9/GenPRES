@@ -1363,6 +1363,22 @@ module Models =
                 }
 
 
+            let renderValue prec (var: Variable) =
+                match var.Min, var.Max, var.Vals with
+                | _, _, Some vals when vals.Value.Length = 1 ->
+                    let v = vals.Value |> Array.head |> snd |> Decimal.fixPrecision prec
+                    $"{v} {vals.Unit}"
+                | _, _, Some vals when vals.Value.Length > 1 ->
+                    let minVal = vals.Value |> Array.minBy snd |> snd |> Decimal.fixPrecision prec
+                    let maxVal = vals.Value |> Array.maxBy snd |> snd |> Decimal.fixPrecision prec
+                    $"{minVal} - {maxVal} {vals.Unit}"
+                | Some min, Some max, _ ->
+                    let minVal = min.Value |> Array.minBy snd |> snd |> Decimal.fixPrecision prec
+                    let maxVal = max.Value |> Array.maxBy snd |> snd |> Decimal.fixPrecision prec
+                    $"{minVal} - {maxVal} {min.Unit}"
+                | _ -> ""
+
+
         module OrderVariable =
 
             let create nme cst cal var level =
@@ -1722,6 +1738,26 @@ module Models =
                 Scenarios = srs
                 Totals = Totals.empty
             }
+
+
+    module NutritionContext =
+
+        let create label ctx : NutritionContext = { Label = label; OrderContext = ctx }
+
+
+    module NutritionPlan =
+
+        let empty : NutritionPlan = {
+            Patient = Patient.empty
+            NutritionContexts = [||]
+            Totals = Totals.empty
+        }
+
+        let create patient contexts : NutritionPlan = {
+            Patient = patient
+            NutritionContexts = contexts
+            Totals = Totals.empty
+        }
 
 
     module Formulary =

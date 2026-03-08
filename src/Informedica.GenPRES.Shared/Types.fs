@@ -474,6 +474,19 @@ module Types =
         }
 
 
+    type NutritionContext = {
+        Label: string
+        OrderContext: OrderContext
+    }
+
+
+    type NutritionPlan = {
+        Patient: Patient
+        NutritionContexts: NutritionContext []
+        Totals: Totals
+    }
+
+
     type Formulary =
         {
             Generics: string []
