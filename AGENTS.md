@@ -361,6 +361,7 @@ FSI's `#load` directive resolves relative paths from its *include path*, **not**
 - The MCP `load_f_sharp_script` tool sends script statements to FSI individually, so `#load` directives inside scripts also resolve from FSI's include path. Set `#I` before calling `load_f_sharp_script`
 - Scripts should include `#I __SOURCE_DIRECTORY__` at the top so they work both when run via `dotnet fsi` (where `__SOURCE_DIRECTORY__` is the script's directory) and when loaded after manually setting `#I` via MCP
 - The FSI session is persistent — types loaded multiple times create conflicts (e.g., `FSI_0005.Types.gram` vs `FSI_0010.Types.gram`). Load dependencies once per session. If conflicts occur, the FSI server must be restarted
+- **DLL reference changes require a manual restart.** Once a DLL is loaded via `#r`, the .NET runtime cannot unload it. If you rebuild a referenced DLL (e.g., after `dotnet run build`), the FSI session will still use the old version. Reloading source files via `#load` does not have this problem — they are recompiled each time. **Agent action:** After any build that changes referenced DLLs, prompt the user to manually restart the FSI MCP server before continuing with FSI work
 
 ### Tips
 
