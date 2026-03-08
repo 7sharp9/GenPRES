@@ -4,6 +4,34 @@ Read and follow the instructions in [AGENTS.md](AGENTS.md).
 
 This file contains additional guidance specific to Claude Code (claude.ai/claude-code).
 
+## Required Reading List
+
+At the start of each session, read these documents for full project context.
+
+### Project governance and workflow
+
+@AGENTS.md
+@DEVELOPMENT.md
+@CONTRIBUTING.md
+
+### Coding standards
+
+@.github/instructions/fsharp-coding.instructions.md
+@.github/instructions/fsharp-code-formatting.instructions.md
+@.github/instructions/commit-message.instructions.md
+
+### Domain documentation
+
+@docs/domain/core-domain.md
+@docs/domain/genform-free-text-to-operational-rules.md
+@docs/domain/genorder-operational-rules-to-orders.md
+@docs/domain/gensolver-from-orders-to-quantitative-solutions.md
+
+### Architecture and data
+
+@docs/mdr/design-history/architecture.md
+@docs/mdr/design-history/genpres_resource_requirements.md
+
 ## Session Startup
 
 **At the start of each session**, automatically check the FSI MCP server status:
