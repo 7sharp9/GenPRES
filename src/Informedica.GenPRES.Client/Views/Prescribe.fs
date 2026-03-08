@@ -14,9 +14,9 @@ module Prescribe =
     let View (props:
         {|
             orderContext: Deferred<OrderContext>
-            updateOrderContext: Api.OrderContextCommand -> unit
-            treatmentPlan : Deferred<TreatmentPlan>
-            updateTreatmentPlan : TreatmentPlan -> unit
+            orderContextMsg: Api.OrderContextCommand * OrderContext -> unit
+            treatmentPlan : Deferred<OrderPlan>
+            updateTreatmentPlan : OrderPlan -> unit
             localizationTerms : Deferred<string [] []>
         |}) =
 
@@ -24,153 +24,45 @@ module Prescribe =
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:900px)"
 
-        let getTerm defVal term =
-            props.localizationTerms
-            |> Deferred.map (fun terms ->
-                Localization.getTerm terms lang term
-                |> Option.defaultValue defVal
-            )
-            |> Deferred.defaultValue defVal
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
-        let updateOrderContext = Api.UpdateOrderContext >> props.updateOrderContext
+        let updateOrderContext ctx = props.orderContextMsg (Api.UpdateOrderContext, ctx)
 
         let indicationChange s =
             match props.orderContext with
-            | Resolved pr ->
-                if s |> Option.isNone then
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Indications = [||]
-                                Indication = None
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-                else
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Indication = s
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.indicationChange s |> updateOrderContext
             | _ -> ()
 
         let medicationChange s =
             match props.orderContext with
-            | Resolved pr ->
-                if s |> Option.isNone then
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Generics = [||]
-                                Generic = None
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-
-                else
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Generic = s
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.medicationChange s |> updateOrderContext
             | _ -> ()
 
         let routeChange s =
             match props.orderContext with
-            | Resolved pr ->
-                if s |> Option.isNone then
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Routes = [||]
-                                Route = None
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-                else
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                Route = s
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.routeChange s |> updateOrderContext
             | _ -> ()
 
         let formChange s =
             match props.orderContext with
-            | Resolved ctx ->
-                if s |> Option.isNone then
-                    { ctx with
-                        Filter =
-                            { ctx.Filter with
-                                Forms = [||]
-                                Form = None
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-                else
-                    { ctx with
-                        Filter =
-                            { ctx.Filter with
-                                Form = s
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved ctx -> ctx |> OrderContext.formChange s |> updateOrderContext
             | _ -> ()
 
         let diluentChange s =
             match props.orderContext with
-            | Resolved pr ->
-                { pr with
-                    Filter = { pr.Filter with Diluent = s }
-                }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.diluentChange s |> updateOrderContext
             | _ -> ()
 
         let componentsChange cs =
             Logging.log "componentsChange" cs
             match props.orderContext with
-            | Resolved prctx ->
-                { prctx with
-                    Filter = { prctx.Filter with SelectedComponents = cs }
-                }
-                |> updateOrderContext
+            | Resolved prctx -> prctx |> OrderContext.componentsChange cs |> updateOrderContext
             | _ -> ()
 
         let doseTypeChange s =
             let dt = s |> Option.map DoseType.doseTypeFromString
             match props.orderContext with
-            | Resolved pr ->
-                if dt |> Option.isNone then
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                DoseTypes = [||]
-                                DoseType = None
-                            }
-                        Scenarios = [||]
-                    }
-                else
-                    { pr with
-                        Filter =
-                            { pr.Filter with
-                                DoseType = dt
-                            }
-                    }
-                |> updateOrderContext
+            | Resolved pr -> pr |> OrderContext.doseTypeChange dt |> updateOrderContext
             | _ -> ()
 
         let clear () =
@@ -182,17 +74,7 @@ module Prescribe =
         let modalOpen, setModalOpen = React.useState false
         let handleModalClose = fun () -> setModalOpen false
 
-        let select isLoading lbl selected dispatch xs =
-            Components.SimpleSelect.View({|
-                updateSelected = dispatch
-                label = lbl
-                selected = selected
-                values = xs
-                isLoading = isLoading
-                hasClear = true
-                navigate = None
-                warning = None
-            |})
+        let select = ViewHelpers.simpleSelect
 
         let multiSelect isLoading lbl selected dispatch xs =
             Components.MultipleSelect.View({|
@@ -203,18 +85,11 @@ module Prescribe =
                 isLoading = isLoading
             |})
 
-        let autoComplete isLoading lbl selected dispatch xs =
-            Components.Autocomplete.View({|
-                updateSelected = dispatch
-                label = lbl
-                selected = selected
-                values = xs
-                isLoading = isLoading
-            |})
+        let autoComplete = ViewHelpers.autoComplete
 
         let progress =
             match props.orderContext with
-            | Resolved _ -> JSX.jsx $"<></>"
+            | Resolved _ -> ViewHelpers.empty
             | HasNotStartedYet -> JSX.jsx $"<>Voer eerst patient gegevens in</>"
             | _ ->
                 JSX.jsx
@@ -249,7 +124,7 @@ module Prescribe =
 
 
         let displayScenario (pr : OrderContext) med (sc : OrderScenario) =
-            if med |> Option.isNone then JSX.jsx $"""<></>"""
+            if med |> Option.isNone then ViewHelpers.empty
             else
                 let caption =
                     let renal =
@@ -261,12 +136,10 @@ module Prescribe =
                     $"{sc.Form}{renal}"
 
                 let onClick (sc : OrderScenario) =
-                    { pr with
-                        Filter = { pr.Filter with Form = Some sc.Form }
-                        Scenarios = [| sc |]
-                    }
-                    |> Api.SelectOrderScenario
-                    |> props.updateOrderContext
+                    let ctx = { pr with
+                                    Filter = { pr.Filter with Form = Some sc.Form }
+                                    Scenarios = [| sc |] }
+                    props.orderContextMsg (Api.SelectOrderScenario, ctx)
 
                 let updateTreatmentPlan () =
                     match props.treatmentPlan with
@@ -300,31 +173,6 @@ module Prescribe =
                                 itms
                                 |> Array.append [| " " |> Normal |]
 
-                        // get the max alert level
-                        let maxTb (xs: TextBlock [][]) =
-                            if xs |> Array.isEmpty then Valid
-                            else
-                                xs
-                                |> Array.collect (fun tbs ->
-                                    if tbs |> Array.isEmpty then [| 0 |]
-                                    else
-                                        tbs
-                                        |> Array.map (fun tb ->
-                                            match tb with
-                                            | Valid _ -> 0
-                                            | Caution _ -> 1
-                                            | Warning _ -> 2
-                                            | Alert _ -> 3
-                                        )
-                                )
-                                |> Array.max
-                                |> function
-                                | 0 -> Valid
-                                | 1 -> Caution
-                                | 2 -> Warning
-                                | 3 -> Alert
-                                | i -> failwith $"not a valid textblock: {i}"
-
                         let sec =
                              if not isMobile then sec
                              else
@@ -345,7 +193,7 @@ module Prescribe =
                                 sec
                                 |> Array.map (Array.map getItems)
                                 |> add
-                                |> (sec |> maxTb)
+                                |> (sec |> TextBlock.maxTb)
                                 |> Array.singleton
                                 |> Array.singleton
 
@@ -519,7 +367,7 @@ module Prescribe =
                             |> fun (isLoading, sel, items) ->
                                 let lbl = "Vorm"
 
-                                if items |> Array.isEmpty then JSX.jsx $"<></>"
+                                if items |> Array.isEmpty then ViewHelpers.empty
                                 else
                                     if isMobile then
                                         items
@@ -547,7 +395,7 @@ module Prescribe =
                                     |> Array.map (fun s -> s, s)
                                     |> select false lbl sel diluentChange
 
-                            | _ -> JSX.jsx $"<></>"
+                            | _ -> ViewHelpers.empty
                         }
                         {
                             match props.orderContext with
@@ -567,7 +415,7 @@ module Prescribe =
                                     |> Array.map (fun s -> s, s)
                                     |> multiSelect false lbl sel componentsChange
 
-                            | _ -> JSX.jsx $"<></>"
+                            | _ -> ViewHelpers.empty
                         }
                         {
                             match props.orderContext with
@@ -583,7 +431,7 @@ module Prescribe =
                                     |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
                                     |> select isLoading lbl sel doseTypeChange
 
-                            | _ -> JSX.jsx $"<></>"
+                            | _ -> ViewHelpers.empty
                         }
                     </Stack>
                     <Box sx={ {| mt=2 |} }>
@@ -606,17 +454,7 @@ module Prescribe =
             </React.Fragment>
             """
 
-        let modalStyle =
-            {|
-                position="absolute"
-                top= "50%"
-                left= "50%"
-                transform= "translate(-50%, -50%)"
-                width= 400
-                bgcolor= "background.paper"
-                boxShadow= 24
-                borderRadius = "16px"
-            |}
+        let modalStyle = ViewHelpers.modalStyle
 
         JSX.jsx
             $"""
@@ -633,34 +471,34 @@ module Prescribe =
                     {
                         Order.View {|
                             orderContext = props.orderContext
-                            updateOrderScenario = Api.UpdateOrderScenario >> props.updateOrderContext
+                            updateOrderScenario = fun ctx -> props.orderContextMsg (Api.UpdateOrderScenario, ctx)
                             navigateOrderScenario = {|
                                 // Frequency
-                                setMinFrequency = Api.SetMinScheduleFrequencyProperty >> props.updateOrderContext
-                                decrFrequency = Api.DecreaseScheduleFrequencyProperty >> props.updateOrderContext
-                                setMedianFrequency = Api.SetMedianScheduleFrequencyProperty >> props.updateOrderContext
-                                incrFrequency = Api.IncreaseScheduleFrequencyProperty >> props.updateOrderContext
-                                setMaxFrequency = Api.SetMaxScheduleFrequencyProperty >> props.updateOrderContext
+                                setMinFrequency = fun ctx -> props.orderContextMsg (Api.SetMinScheduleFrequencyProperty, ctx)
+                                decrFrequency = fun ctx -> props.orderContextMsg (Api.DecreaseScheduleFrequencyProperty, ctx)
+                                setMedianFrequency = fun ctx -> props.orderContextMsg (Api.SetMedianScheduleFrequencyProperty, ctx)
+                                incrFrequency = fun ctx -> props.orderContextMsg (Api.IncreaseScheduleFrequencyProperty, ctx)
+                                setMaxFrequency = fun ctx -> props.orderContextMsg (Api.SetMaxScheduleFrequencyProperty, ctx)
                                 // Rate
-                                setMinRate = Api.SetMinOrderableDoseRateProperty >> props.updateOrderContext
-                                decrRate = Api.DecreaseOrderableDoseRateProperty >> props.updateOrderContext
-                                setMedianRate = Api.SetMedianOrderableDoseRateProperty >> props.updateOrderContext
-                                incrRate = Api.IncreaseOrderableDoseRateProperty >> props.updateOrderContext
-                                setMaxRate = Api.SetMaxOrderableDoseRateProperty >> props.updateOrderContext
+                                setMinRate = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseRateProperty, ctx)
+                                decrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseRateProperty (n, uc), ctx)
+                                setMedianRate = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseRateProperty, ctx)
+                                incrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseRateProperty (n, uc), ctx)
+                                setMaxRate = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseRateProperty, ctx)
                                 // Dose Quantity
-                                setMinDoseQty = Api.SetMinOrderableDoseQuantityProperty >> props.updateOrderContext
-                                decrDoseQty = Api.DecreaseOrderableDoseQuantityProperty >> props.updateOrderContext
-                                setMedianDoseQty = Api.SetMedianOrderableDoseQuantityProperty >> props.updateOrderContext
-                                incrDoseQty = Api.IncreaseOrderableDoseQuantityProperty >> props.updateOrderContext
-                                setMaxDoseQty = Api.SetMaxOrderableDoseQuantityProperty >> props.updateOrderContext
+                                setMinDoseQty = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseQuantityProperty, ctx)
+                                decrDoseQty = fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseQuantityProperty (n, uc), ctx)
+                                setMedianDoseQty = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseQuantityProperty, ctx)
+                                incrDoseQty = fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseQuantityProperty (n, uc), ctx)
+                                setMaxDoseQty = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseQuantityProperty, ctx)
                                 // Component Quantity
-                                setMinComponentQty = Api.SetMinComponentOrderableQuantityProperty >> props.updateOrderContext
-                                decrComponentQty = Api.DecreaseComponentOrderableQuantityProperty >> props.updateOrderContext
-                                setMedianComponentQty = Api.SetMedianComponentOrderableQuantityProperty >> props.updateOrderContext
-                                incrComponentQty = Api.IncreaseComponentOrderableQuantityProperty >> props.updateOrderContext
-                                setMaxComponentQty = Api.SetMaxComponentOrderableQuantityProperty >> props.updateOrderContext
+                                setMinComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMinComponentOrderableQuantityProperty cmp, ctx)
+                                decrComponentQty = fun (ctx, cmp, n, uc) -> props.orderContextMsg (Api.DecreaseComponentOrderableQuantityProperty (cmp, n, uc), ctx)
+                                setMedianComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMedianComponentOrderableQuantityProperty cmp, ctx)
+                                incrComponentQty = fun (ctx, cmp, n, uc) -> props.orderContextMsg (Api.IncreaseComponentOrderableQuantityProperty (cmp, n, uc), ctx)
+                                setMaxComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMaxComponentOrderableQuantityProperty cmp, ctx)
                             |}
-                            refreshOrderScenario = Api.ResetOrderScenario >> props.updateOrderContext
+                            refreshOrderScenario = fun ctx -> props.orderContextMsg (Api.ResetOrderScenario, ctx)
                             closeOrder = handleModalClose
                             localizationTerms = props.localizationTerms
                         |}

@@ -295,19 +295,19 @@ module Types =
         | SetMinScheduleFrequency
         | SetMaxScheduleFrequency
         | SetMedianScheduleFrequency
-        | DecreaseOrderableDoseQuantity of ntimes: int
-        | IncreaseOrderableDoseQuantity of ntimes: int
+        | DecreaseOrderableDoseQuantity of ntimes: int * useCalc: bool
+        | IncreaseOrderableDoseQuantity of ntimes: int * useCalc: bool
         | SetOrderableDoseQuantityPerc of perc: int
         | SetMinOrderableDoseQuantity
         | SetMaxOrderableDoseQuantity
         | SetMedianOrderableDoseQuantity
-        | DecreaseOrderableDoseRate of ntimes: int
-        | IncreaseOrderableDoseRate of ntimes: int
+        | DecreaseOrderableDoseRate of ntimes: int * useCalc: bool
+        | IncreaseOrderableDoseRate of ntimes: int * useCalc: bool
         | SetMinOrderableDoseRate
         | SetMaxOrderableDoseRate
         | SetMedianOrderableDoseRate
-        | DecreaseComponentOrderableQuantity of cmp: string * ntimes: int
-        | IncreaseComponentOrderableQuantity of cmp: string * ntimes: int
+        | DecreaseComponentOrderableQuantity of cmp: string * ntimes: int * useCalc: bool
+        | IncreaseComponentOrderableQuantity of cmp: string * ntimes: int * useCalc: bool
         | SetMinComponentOrderableQuantity of cmp: string
         | SetMaxComponentOrderableQuantity of cmp: string
         | SetMedianComponentOrderableQuantity of cmp: string

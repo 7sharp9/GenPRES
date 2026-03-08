@@ -84,7 +84,7 @@ module RenalRule =
         }
 
 
-    let getData dataUrlId : GenFormResult<_> =
+    let getData dataUrlId : Result<_, Message list> =
         try
             Web.getDataFromSheet dataUrlId "RenalRules"
             |> fun data ->
@@ -140,7 +140,7 @@ module RenalRule =
                         MaxRateAdj = get "MaxRateAdj" |> toBrOpt
                     }
                 )
-            |> GenFormResult.createOkNoMsgs
+            |> Ok
         with
         | exn ->
             GenFormResult.createError "Error in RenalRule.getDetails: " exn
@@ -177,7 +177,7 @@ module RenalRule =
             |> EGFR |> Some
 
 
-    let map (data: RenalRuleData[], _) : GenFormResult<_> =
+    let map (data: RenalRuleData[]) : Result<_, Message list> =
         data
         |> Array.filter (fun r ->
             r.Generic <> "" &&
@@ -320,10 +320,10 @@ module RenalRule =
                 rf
                 limits
         )
-        |> GenFormResult.createOkNoMsgs
+        |> Ok
 
 
-    let get dataUrlId : GenFormResult<_> =
+    let get dataUrlId : Result<_, Message list> =
         getData dataUrlId
         |> Result.bind map
 

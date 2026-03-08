@@ -16,6 +16,13 @@ module OrderProcessor =
     module Increment = Informedica.GenSolver.Lib.Variable.ValueRange.Increment
 
 
+    // FrequencyCleared and ConcentrationCleared are defensive arms —
+    // these variables are not Clearable per the UI spec (Section 13.1),
+    // but the arms are kept as guards against unexpected UI behavior.
+    // NotCleared is a defensive catch-all that logs a warning. The system
+    // operates on the single-variable change invariant: only one variable
+    // is changed at a time, followed by a solver run. Multiple simultaneous
+    // clears are not an expected scenario.
     let (|FrequencyCleared|RateCleared|TimeCleared|ConcentrationCleared|DoseQuantityCleared|DosePerTimeCleared|NotCleared|) (ord: Order) =
         let frq = ord.Schedule |> Schedule.getFrequency
         let tme = ord.Schedule |> Schedule.getTime
@@ -167,33 +174,27 @@ module OrderProcessor =
         | SetMedianScheduleFrequency -> ord |> setFreq Frequency.setMedianValue
         | SetMaxScheduleFrequency -> ord |> setFreq Frequency.setMaxValue
         // Dose Quantity
-        | DecreaseOrderableDoseQuantity n ->
-            let useCalc = n > 1
-            ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.decreaseQuantity useCalc 1)
-        | IncreaseOrderableDoseQuantity n ->
-            let useCalc = n > 1
-            ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.increaseQuantity useCalc 1)
+        | DecreaseOrderableDoseQuantity (n, useCalc) ->
+            ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.decreaseQuantity useCalc n)
+        | IncreaseOrderableDoseQuantity (n, useCalc) ->
+            ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.increaseQuantity useCalc n)
         | SetMinOrderableDoseQuantity -> ord |> setDose (Dose.setMinDose ord.Schedule false)
         | SetMaxOrderableDoseQuantity -> ord |> setDose (Dose.setMaxDose ord.Schedule false)
         | SetMedianOrderableDoseQuantity -> ord |> setDose (Dose.setMedianDose ord.Schedule false)
         | SetOrderableDoseQuantityPerc n -> ord |> setDose (Dose.setPercValue n ord.Schedule false)
         // Dose Rate
-        | DecreaseOrderableDoseRate n ->
-            let useCalc = n > 1
+        | DecreaseOrderableDoseRate (n, useCalc) ->
             ord |> orderPropertyIncrOrDecrDoseRate (Dose.decreaseRate useCalc n)
-        | IncreaseOrderableDoseRate n ->
-            let useCalc = n > 1
+        | IncreaseOrderableDoseRate (n, useCalc) ->
             ord |> orderPropertyIncrOrDecrDoseRate (Dose.increaseRate useCalc n)
         | SetMinOrderableDoseRate -> ord |> setDose (Dose.setMinDose ord.Schedule true)
         | SetMaxOrderableDoseRate -> ord |> setDose (Dose.setMaxDose ord.Schedule true)
         | SetMedianOrderableDoseRate -> ord |> setDose (Dose.setMedianDose ord.Schedule true)
         // Component Quantity
-        | DecreaseComponentOrderableQuantity (cmp, n) ->
-            let useCalc = n > 1
-            ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.decrease useCalc 1) cmp
-        | IncreaseComponentOrderableQuantity (cmp, n) ->
-            let useCalc = n > 1
-            ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.increase useCalc 1) cmp
+        | DecreaseComponentOrderableQuantity (cmp, n, useCalc) ->
+            ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.decrease useCalc n) cmp
+        | IncreaseComponentOrderableQuantity (cmp, n, useCalc) ->
+            ord |> orderPropertyIncrOrDecrComponentQuantity (Quantity.increase useCalc n) cmp
         | SetMinComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMinValue
         | SetMaxComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMaxValue
         | SetMedianComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMedianValue
@@ -222,6 +223,12 @@ module OrderProcessor =
         |> List.forall (OrderVariable.isWithinConstraints true)
 
 
+    // processClearedDose and processClearedRate use applyConstraints to reset
+    // out-of-bounds preparation variables to their Calculated constraints
+    // (the effective solver domain from Section 4). Defined constraints are
+    // preserved separately for user-facing violation feedback.
+    // isPrepWithinConstraints checks orderable and component quantities to
+    // determine whether preparation variables need resetting.
     let processClearedDose ord =
         ord
         |> OrderPropertyChange.proc

@@ -46,7 +46,7 @@ module Mapping =
 
                         f getString getFloat
                     )
-                    |> GenFormResult.createOkNoMsgs
+                    |> Ok
         with
         | exn -> GenFormResult.createError "getData" exn
 
@@ -61,6 +61,7 @@ module Mapping =
         |> GenFormResult.mapErrorSource "getRouteMapping"
 
 
+
     let getUnitMapping dataUrlId =
         fun get _ ->
             {
@@ -71,6 +72,7 @@ module Mapping =
             }
         |> getData dataUrlId Constants.unitsSheet
         |> GenFormResult.mapErrorSource "getUnitMapping"
+
 
 
     let mapUnit (mapping : UnitMapping array) s =

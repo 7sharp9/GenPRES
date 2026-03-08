@@ -17,6 +17,7 @@
     <Compile Include="./Components/Slider.fs" />
     <Compile Include="./Components/ElmishSelect.fs" />
     <Compile Include="./Components/StateSelect.fs" />
+    <Compile Include="./Components/ClickCountingButton.fs" />
     <Compile Include="./Components/SimpleSelect.fs" />
     <Compile Include="./Components/MultipleSelect.fs" />
     <Compile Include="./Components/SelectableList.fs" />
@@ -25,6 +26,7 @@
     <Compile Include="./Components/BottomDrawer.fs" />
     <Compile Include="./Components/BasicTable.fs" />
     <Compile Include="./Components/ResponsiveTable.fs" />
+    <Compile Include="./Views/ViewHelpers.fs" />
     <Compile Include="./Views/Disclaimer.fs" />
     <Compile Include="./Views/Patient.fs" />
     <Compile Include="./Views/Order.fs" />

@@ -30,26 +30,10 @@ module Utils =
     module GenFormResult =
 
 
-        let inline map f r : GenFormResult<_> =
-            match r with
-            | Ok (x, msgs) -> (x |> f, msgs) |> Ok
-            | Error msgs -> msgs |> Error
+        let createError source exn : Result<_, Message list> = [ Message.createExnMsg source exn ] |> Error
 
 
-        let inline bind (f : 'a -> GenFormResult<'b>) (r : GenFormResult<'a>) : GenFormResult<'b> =
-            match r with
-            | Ok (x, msgs1) ->
-                match x |> f with
-                | Ok (x, msgs2) -> Ok (x, msgs1 @ msgs2)
-                | Error msgs2 -> Error (msgs1 @ msgs2)
-            | Error msgs -> msgs |> Error
-
-
-
-        let createError source exn : GenFormResult<_> = [ Message.createExnMsg source exn ] |> Error
-
-
-        let mapErrorSource s r : GenFormResult<_> =
+        let mapErrorSource s r : Result<_, Message list> =
             r
             |> Result.mapError (fun msgs ->
                 msgs
@@ -62,37 +46,19 @@ module Utils =
             )
 
 
-        let createOk x msgs : GenFormResult<_> = (x, msgs) |> Ok
-
-
-        let createOkWithMsgs msgs x = createOk x msgs
-
-
-        let createOkNoMsgs x  = createOk x []
-
-
-        /// <summary>
-        /// Fold an array of GenFormResults into a single GenFormResult with accumulated arrays and messages.
-        /// </summary>
-        /// <param name="results">Array of GenFormResults to fold</param>
-        /// <returns>A single GenFormResult containing all accumulated values and messages</returns>
-        /// <remarks>
-        /// If all results are Ok, returns Ok with concatenated arrays and all messages.
-        /// If any result is Error, returns Error with all accumulated messages.
-        /// </remarks>
-        let foldResults (results: GenFormResult<'T array> array) : GenFormResult<'T array> =
+        let foldResults (results: Result<'T array, Message list> array) : Result<'T array, Message list> =
             results
             |> Array.fold (fun acc result ->
                 match acc, result with
-                | Ok (accValues, accMsgs), Ok (values, msgs) ->
-                    Ok (Array.append accValues values, accMsgs @ msgs)
-                | Ok (_, accMsgs), Error msgs ->
-                    Error (accMsgs @ msgs)
-                | Error accMsgs, Ok (_, msgs) ->
-                    Error (accMsgs @ msgs)
+                | Ok accValues, Ok values ->
+                    Ok (Array.append accValues values)
+                | Ok _, Error msgs ->
+                    Error msgs
+                | Error accMsgs, Ok _ ->
+                    Error accMsgs
                 | Error accMsgs, Error msgs ->
                     Error (accMsgs @ msgs)
-            ) (Ok ([||], []))
+            ) (Ok [||])
 
 
     module Web =
@@ -105,7 +71,7 @@ module Utils =
         /// <returns>The data as a table of string array array</returns>
         let getDataFromSheet urlId sheet =
             fun () ->
-                Web.GoogleSheets.getCsvDataFromSheetResultSync urlId sheet
+                Web.GoogleSheets.getCsvDataFromSheetSync urlId sheet
                 |> Result.defaultValue [||]
             |> StopWatch.clockFunc $"loaded {sheet} from web sheet"
 

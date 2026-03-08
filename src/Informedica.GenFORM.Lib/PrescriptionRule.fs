@@ -110,7 +110,7 @@ module PrescriptionRule =
         solutionRules
         renalRules
         routeMapping
-        (filter : DoseFilter) : GenFormResult<_> =
+        (filter : DoseFilter) : Result<PrescriptionRule array, Message list> =
 
         let warns = ResizeArray<string>()
         let pat = filter.Patient
@@ -248,13 +248,7 @@ module PrescriptionRule =
                     }
                 )
         )
-        |> fun prs ->
-            warns
-            |> Seq.distinct
-            |> Seq.sort
-            |> Seq.toList
-            |> List.map Warning
-            |> GenFormResult.createOk prs
+        |> Ok
 
 
     /// Get all matching PrescriptionRules for a given Patient.
@@ -269,6 +263,11 @@ module PrescriptionRule =
     let filterProducts
         (cmpItems: ComponentItem list)
         (pr : PrescriptionRule) =
+        let eqs vu1 vu2 =
+            if vu1 |> ValueUnit.eqsGroup vu2 |> not then false
+            else
+                vu1 |> ValueUnit.eqs vu2
+
         { pr with
             DoseRule =
                 { pr.DoseRule with
@@ -291,14 +290,14 @@ module PrescriptionRule =
                                         |> Array.forall (fun subst ->
                                             cmpItems
                                             |> List.exists(fun itm ->
-                                                itm.ItemName |> String.equalsCapInsens subst.Name &&
-                                                (subst.Concentration
-                                                |> Option.map (ValueUnit.eqs itm.ItemConcentration)
-                                                |> Option.defaultValue false ||
-                                                subst.MolarConcentration
-                                                |> Option.map (ValueUnit.eqs itm.ItemConcentration)
-                                                |> Option.defaultValue false)
-
+                                                if itm.ItemName |> String.equalsCapInsens subst.Name |> not then false
+                                                else
+                                                    (subst.Concentration
+                                                    |> Option.map (eqs itm.ItemConcentration)
+                                                    |> Option.defaultValue false ||
+                                                    subst.MolarConcentration
+                                                    |> Option.map (eqs itm.ItemConcentration)
+                                                    |> Option.defaultValue false)
                                             )
                                         )
                                     )

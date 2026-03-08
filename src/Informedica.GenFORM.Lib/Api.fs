@@ -128,14 +128,14 @@ module Resources =
 
     type ResourceConfig =
         {
-            GetUnitMappings: unit -> GenFormResult<UnitMapping []>
-            GetRouteMappings: unit -> GenFormResult<RouteMapping []>
-            GetValidForms: unit -> GenFormResult<string []>
-            GetFormRoutes: UnitMapping [] -> GenFormResult<FormRoute []>
-            GetFormularyProducts: unit -> GenFormResult<FormularyProduct []>
-            GetReconstitution: unit -> GenFormResult<Reconstitution []>
-            GetParenteralMeds: UnitMapping[] -> GenFormResult<Product []>
-            GetEnteralFeeding: UnitMapping[] -> GenFormResult<Product []>
+            GetUnitMappings: unit -> Result<UnitMapping[], Message list>
+            GetRouteMappings: unit -> Result<RouteMapping [], Message list>
+            GetValidForms: unit -> Result<string [], Message list>
+            GetFormRoutes: UnitMapping [] -> Result<FormRoute [], Message list>
+            GetFormularyProducts: unit -> Result<FormularyProduct [], Message list>
+            GetReconstitution: unit -> Result<Reconstitution [], Message list>
+            GetParenteralMeds: UnitMapping[] -> Result<Product [], Message list>
+            GetEnteralFeeding: UnitMapping[] -> Result<Product [], Message list>
             GetProducts:
                 UnitMapping[] ->
                 RouteMapping[] ->
@@ -150,13 +150,13 @@ module Resources =
                 RouteMapping[] ->
                 FormRoute[] ->
                 Product[] ->
-                GenFormResult<DoseRule []>
+                Result<DoseRule [], Message list>
             GetSolutionRules:
                 RouteMapping[] ->
                 Product[] ->
                 Product[] ->
-                GenFormResult<SolutionRule []>
-            GetRenalRules: unit -> GenFormResult<RenalRule []>
+                Result<SolutionRule [], Message list>
+            GetRenalRules: unit -> Result<RenalRule [], Message list>
         }
 
 
@@ -165,15 +165,29 @@ module Resources =
 
     /// Default resource configuration using the standard get functions
     let defaultResourceConfig dataUrlId =
+        let unitMapping = Mapping.getUnitMapping dataUrlId
+        let formProds = Product.getFormularyProducts dataUrlId
         {
-            GetUnitMappings = Mapping.getUnitMapping dataUrlId |> delay
+            GetUnitMappings = fun () -> unitMapping
             GetRouteMappings = Mapping.getRouteMapping dataUrlId |> delay
             GetValidForms = Mapping.getValidForms dataUrlId |> delay
             GetFormRoutes = Mapping.getFormRoutes dataUrlId
-            GetFormularyProducts = fun () -> Product.getFormularyProducts dataUrlId
+            GetFormularyProducts = fun () -> formProds
             GetReconstitution = Product.Reconstitution.get dataUrlId |> delay
-            GetParenteralMeds = Product.Parenteral.get dataUrlId
-            GetEnteralFeeding = Product.Enteral.get dataUrlId
+            GetParenteralMeds =
+                fun mapping ->
+                    formProds
+                    |> Result.map (fun prods ->
+                        prods
+                        |> Product.Parenteral.get mapping
+                    )
+            GetEnteralFeeding =
+                fun mapping ->
+                    formProds
+                    |> Result.map (fun prods ->
+                        prods
+                        |> Product.Enteral.get mapping
+                    )
             GetProducts = Product.get
             GetDoseRules = DoseRule.get dataUrlId
             GetSolutionRules = SolutionRule.get dataUrlId
@@ -185,14 +199,14 @@ module Resources =
     let loadAllResourcesWithConfig (config: ResourceConfig)  =
         try
             result {
-                let! unitMappings, unitMsgs = config.GetUnitMappings()
-                let! routeMappings, routeMsgs = config.GetRouteMappings()
-                let! validForms, formMsgs = config.GetValidForms()
-                let! formRoutes, formRouteMsgs = config.GetFormRoutes unitMappings
-                let! formularyProducts, formularyMsgs = config.GetFormularyProducts()
-                let! reconstitution, reconstitutionMsgs = config.GetReconstitution ()
-                let! parenteralMeds, parenteralMsgs = config.GetParenteralMeds unitMappings
-                let! enteralFeeding, enteralMsgs = config.GetEnteralFeeding unitMappings
+                let! unitMappings = config.GetUnitMappings()
+                let! routeMappings = config.GetRouteMappings()
+                let! validForms = config.GetValidForms()
+                let! formRoutes = config.GetFormRoutes unitMappings
+                let! formularyProducts = config.GetFormularyProducts()
+                let! reconstitution = config.GetReconstitution ()
+                let! parenteralMeds = config.GetParenteralMeds unitMappings
+                let! enteralFeeding = config.GetEnteralFeeding unitMappings
                 let products =
                     config.GetProducts
                         unitMappings
@@ -203,17 +217,17 @@ module Resources =
                         parenteralMeds
                         enteralFeeding
                         formularyProducts
-                let! doseRules, doseRuleMsgs =
+                let! doseRules =
                     config.GetDoseRules
                         routeMappings
                         formRoutes
                         products
-                let! solutionRules, solutionMsgs =
+                let! solutionRules =
                     config.GetSolutionRules
                         routeMappings
                         parenteralMeds
                         products
-                let! renalRules, renalMsgs = config.GetRenalRules ()
+                let! renalRules = config.GetRenalRules ()
 
                 return
                     {
@@ -229,20 +243,7 @@ module Resources =
                         DoseRules = doseRules
                         SolutionRules = solutionRules
                         RenalRules = renalRules
-                        Messages =
-                            [|
-                                yield! unitMsgs
-                                yield! routeMsgs
-                                yield! formMsgs
-                                yield! formRouteMsgs
-                                yield! formularyMsgs
-                                yield! reconstitutionMsgs
-                                yield! parenteralMsgs
-                                yield! enteralMsgs
-                                yield! doseRuleMsgs
-                                yield! solutionMsgs
-                                yield! renalMsgs
-                            |]
+                        Messages = [||]
                         LastReloaded = DateTime.UtcNow
                         IsLoaded = true
                     }
@@ -419,7 +420,7 @@ module Api =
         PrescriptionRule.getForPatient doseRules solutionRules renalRules routeMappings
 
 
-    let filterPrescriptionRules (provider: IResourceProvider) filter : GenFormResult<PrescriptionRule array> =
+    let filterPrescriptionRules (provider: IResourceProvider) filter : Result<PrescriptionRule array, Message list> =
         let doseRules = getDoseRules provider
         let solutionRules = getSolutionRules provider
         let routeMappings = getRouteMapping provider

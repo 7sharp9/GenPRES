@@ -456,14 +456,13 @@ module Types =
         {
             DemoVersion: bool
             Filter: Filter
-            // NOTE: Maybe not Patient but PatientInfo as things can change, i.e., age, weight, length
             Patient: Patient
             Scenarios: OrderScenario []
             Intake: Totals
         }
 
 
-    type TreatmentPlan =
+    type OrderPlan =
         {
             Patient: Patient
             Selected : OrderScenario option
@@ -473,6 +472,19 @@ module Types =
             Scenarios: OrderScenario []
             Totals: Totals
         }
+
+
+    type NutritionContext = {
+        Label: string
+        OrderContext: OrderContext
+    }
+
+
+    type NutritionPlan = {
+        Patient: Patient
+        NutritionContexts: NutritionContext []
+        Totals: Totals
+    }
 
 
     type Formulary =

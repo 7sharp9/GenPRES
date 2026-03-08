@@ -31,8 +31,9 @@ module Check =
             | Some vu, _
             | _, Some vu ->
                 match vu |> ValueUnit.getUnit |> ValueUnit.getUnits with
-                | [_; adj ]
-                | [_; adj; _ ] when
+                | [ _; adj ]
+                | [ _; adj; _ ] 
+                | [ _; _; adj ] when
                     adj = Units.Weight.kiloGram ||
                     adj = Units.Weight.gram ||
                     adj = Units.BSA.m2 -> Some adj
@@ -363,7 +364,33 @@ module Check =
                         |> Array.collect _.SubstanceLimits
                         |> Array.map (fun dl ->
                             {|
-                                genForm = dl
+                                genForm = 
+                                    { dl with
+                                        Types.DoseLimit.PerTimeAdjust =
+                                            if dl.PerTimeAdjust |> MinMax.isEmpty &&
+                                               dl.QuantityAdjust |> MinMax.isEmpty |> not then 
+                                                match r.doseRule.Frequencies with
+                                                | None -> dl.PerTimeAdjust
+                                                | Some fr ->
+                                                    match fr |> ValueUnit.minValue,
+                                                          fr |> ValueUnit.maxValue with
+                                                    | Some minFreq, Some maxFreq ->
+                                                        let maxPerTimeAdj = 
+                                                            dl.QuantityAdjust.Max 
+                                                            |> Option.map Limit.getValueUnit
+                                                            |> Option.map (fun vu -> vu * maxFreq)
+                                                        let minPerTimeAdj = 
+                                                            dl.QuantityAdjust.Min 
+                                                            |> Option.map Limit.getValueUnit
+                                                            |> Option.map (fun vu -> vu * minFreq)
+                                                        match minPerTimeAdj, maxPerTimeAdj with
+                                                        | Some min, Some max -> 
+                                                            MinMax.createInclIncl min max
+                                                        | _ -> dl.PerTimeAdjust
+                                                    | _ -> dl.PerTimeAdjust
+                                            else dl.PerTimeAdjust
+
+                                    }
                                 gstand =
                                     r.zindex.dosages
                                     |> List.tryFind (fun g ->

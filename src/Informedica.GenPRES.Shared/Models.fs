@@ -6,6 +6,16 @@ module Models =
 
     open Types
 
+    /// Canonical patient business logic shared between Client (Fable/JS) and Server (.NET).
+    ///
+    /// Architecture:
+    /// - This module is the single source of truth for patient logic that runs on BOTH sides
+    /// - The Client UI uses these functions directly for the patient input form
+    /// - The Server uses helper functions (getAgeInDays, getWeight, etc.) in
+    ///   ServerApi.mapFromSharedPatient to convert to GenForm.Lib.Types.Patient
+    /// - Server-only logic (dose rules, eGFR formulas) lives in GenFORM/GenCORE
+    /// - Any new patient logic must decide: needed on client? → put here.
+    ///   Server-only? → put in GenFORM.Patient or GenCORE.Calculations
     module Patient =
 
         open System
@@ -301,6 +311,58 @@ module Models =
             p.RenalFunction |> Option.map RenalFunction.renalToOption
 
 
+        let tryParse (s : string) =
+            match System.Int32.TryParse(s) with
+            | false, _ -> None
+            | true, v -> v |> Some
+
+
+        let toggle item (p: Patient option) : Patient option =
+            p |> Option.map (fun p ->
+                { p with
+                    Access =
+                        if p.Access |> List.exists((=) item) then
+                            p.Access
+                            |> List.filter ((<>) item)
+                        else
+                            p.Access
+                            |> List.append [ item ]
+                }
+            )
+
+
+        let toggleCVL = toggle CVL
+
+
+        let togglePVL = toggle PVL
+
+
+        let toggleET = toggle EnteralTube
+
+
+        let setRenal (s: string option) (p: Patient option) : Patient option =
+            let set rf (p : Patient option) =
+                match p with
+                | None -> p
+                | Some p ->
+                    { p with
+                        RenalFunction = rf
+                    }
+                    |> Some
+
+            match s with
+            | None ->
+                p
+                |> set None
+            | Some s ->
+                let rf =
+                    s
+                    |> RenalFunction.optionToRenal
+                    |> Some
+                p
+                |> set rf
+
+
         let create years months weeks days weight height gw gd gend cvl gfr dep : Patient option =
             let a =
                 if [ years; months; weeks; days ] |> List.forall Option.isNone then
@@ -452,7 +514,7 @@ module Models =
             | Some w, _, Some h, _
             | Some w, _, None, Some h
             | None, Some w, Some h, _
-            | None, Some w, None, Some h -> sqrt (float (w / 1000) * (h |> float) / 3600.) |> Math.fixPrecision 2 |> Some
+            | None, Some w, None, Some h -> 0.007184 * ((float w / 1000.) ** 0.425) * ((float h) ** 0.725) |> Math.fixPrecision 2 |> Some
 
 
         let applyNormalValues
@@ -595,6 +657,187 @@ module Models =
                         Measured = pat.Height.Measured |> Option.orElse (eh |> Option.map (fun (_, m, _) -> m))
                     }
             }
+
+
+        let setYear s (p : Patient option) =
+            match p with
+            | None ->
+                create
+                    (s |> Option.bind tryParse)
+                    None None None None None None None UnknownGender [] None None
+            | Some p ->
+                create
+                    (s |> Option.bind tryParse)
+                    (p |> getAgeMonths)
+                    (p |> getAgeWeeks)
+                    (p |> getAgeDays)
+                    None
+                    None
+                    None
+                    None
+                    p.Gender
+                    p.Access
+                    p.RenalFunction
+                    p.Department
+
+
+        let setMonth s (p : Patient option) =
+            match p with
+            | None ->
+                create
+                    None
+                    (s |> Option.bind tryParse)
+                    None None None None None None UnknownGender [] None None
+            | Some p ->
+                create
+                    (p |> getAgeYears)
+                    (s |> Option.bind tryParse)
+                    (p |> getAgeWeeks)
+                    (p |> getAgeDays)
+                    None
+                    None
+                    None
+                    None
+                    p.Gender
+                    p.Access
+                    p.RenalFunction
+                    p.Department
+
+
+        let setWeek s (p : Patient option) =
+            match p with
+            | None ->
+                create
+                    None None
+                    (s |> Option.bind tryParse)
+                    None None None None None UnknownGender [] None None
+            | Some p ->
+                create
+                    (p |> getAgeYears)
+                    (p |> getAgeMonths)
+                    (s |> Option.bind tryParse)
+                    (p |> getAgeDays)
+                    None
+                    None
+                    (p |> getGAWeeks)
+                    (p |> getGADays)
+                    p.Gender
+                    p.Access
+                    p.RenalFunction
+                    p.Department
+
+
+        let setDay s (p : Patient option) =
+            match p with
+            | None ->
+                create
+                    None None None
+                    (s |> Option.bind tryParse)
+                    None None None None UnknownGender [] None None
+            | Some p ->
+                create
+                    (p |> getAgeYears)
+                    (p |> getAgeMonths)
+                    (p |> getAgeWeeks)
+                    (s |> Option.bind tryParse)
+                    None
+                    None
+                    (p |> getGAWeeks)
+                    (p |> getGADays)
+                    p.Gender
+                    p.Access
+                    p.RenalFunction
+                    p.Department
+
+
+        let setWeight s (p : Patient option) =
+            match p with
+            | None ->
+                create
+                    None None None None
+                    (s |> Option.bind tryParse)
+                    None None None UnknownGender [] None None
+            | Some p ->
+                create
+                    (p |> getAgeYears)
+                    (p |> getAgeMonths)
+                    (p |> getAgeWeeks)
+                    (p |> getAgeDays)
+                    (s |> Option.bind tryParse)
+                    (p |> getHeight |> Option.map int)
+                    (p |> getGAWeeks)
+                    (p |> getGADays)
+                    p.Gender
+                    p.Access
+                    p.RenalFunction
+                    p.Department
+
+
+        let setHeight s (p : Patient option) =
+            match p with
+            | None ->
+                create
+                    None None None None None
+                    (s |> Option.bind tryParse)
+                    None None UnknownGender [] None None
+            | Some p ->
+                create
+                    (p |> getAgeYears)
+                    (p |> getAgeMonths)
+                    (p |> getAgeWeeks)
+                    (p |> getAgeDays)
+                    (p |> getWeight |> Option.map int)
+                    (s |> Option.bind tryParse)
+                    (p |> getGAWeeks)
+                    (p |> getGADays)
+                    p.Gender
+                    p.Access
+                    p.RenalFunction
+                    p.Department
+
+
+        let setGAWeek s (p : Patient option) =
+            match p with
+            | None ->
+                create
+                    None None None None None None
+                    (s |> Option.bind tryParse |> Option.map int)
+                    None UnknownGender [] None None
+            | Some p ->
+                create
+                    (p |> getAgeYears)
+                    (p |> getAgeMonths)
+                    (p |> getAgeWeeks)
+                    (p |> getAgeDays)
+                    None None
+                    (s |> Option.bind tryParse |> Option.map int)
+                    (p |> getGADays)
+                    p.Gender
+                    p.Access
+                    p.RenalFunction
+                    p.Department
+
+
+        let setGADay s (p : Patient option) =
+            match p with
+            | None ->
+                create
+                    None None None None None None None
+                    (s |> Option.bind tryParse |> Option.map int)
+                    UnknownGender [] None None
+            | Some p ->
+                create
+                    (p |> getAgeYears)
+                    (p |> getAgeMonths)
+                    (p |> getAgeWeeks)
+                    (p |> getAgeDays)
+                    None None
+                    (p |> getGAWeeks)
+                    (s |> Option.bind tryParse |> Option.map int)
+                    p.Gender
+                    p.Access
+                    p.RenalFunction
+                    p.Department
 
 
         let toString terms lang markDown (pat: Patient) =
@@ -1353,6 +1596,22 @@ module Models =
                 }
 
 
+            let renderValue prec (var: Variable) =
+                match var.Min, var.Max, var.Vals with
+                | _, _, Some vals when vals.Value.Length = 1 ->
+                    let v = vals.Value |> Array.head |> snd |> Decimal.fixPrecision prec
+                    $"{v} {vals.Unit}"
+                | _, _, Some vals when vals.Value.Length > 1 ->
+                    let minVal = vals.Value |> Array.minBy snd |> snd |> Decimal.fixPrecision prec
+                    let maxVal = vals.Value |> Array.maxBy snd |> snd |> Decimal.fixPrecision prec
+                    $"{minVal} - {maxVal} {vals.Unit}"
+                | Some min, Some max, _ ->
+                    let minVal = min.Value |> Array.minBy snd |> snd |> Decimal.fixPrecision prec
+                    let maxVal = max.Value |> Array.maxBy snd |> snd |> Decimal.fixPrecision prec
+                    $"{minVal} - {maxVal} {min.Unit}"
+                | _ -> ""
+
+
         module OrderVariable =
 
             let create nme cst cal var level =
@@ -1397,6 +1656,33 @@ module Models =
                 elif def.Incr.IsSome && var.Min.IsSome && var.Max.IsSome then Navigable
                 else NonNavigable
 
+
+            let setVu s (vu : Types.ValueUnit option) =
+                match vu with
+                | Some vu ->
+                    { vu with
+                        Value =
+                            vu.Value
+                            |> Array.tryFind (fun (v, _) ->
+                                v = (s |> Option.defaultValue "")
+                            )
+                            |> Option.map Array.singleton
+                            |> Option.defaultValue vu.Value
+                    } |> Some
+                | None -> None
+
+
+            let setVar (s : string option) (var : Variable) =
+                { var with
+                    IsNonZeroPositive = s.IsNone
+                    Vals =
+                        if s.IsNone then None
+                        else var.Vals |> setVu s
+                }
+
+
+            let setOvar s (ovar: OrderVariable) =
+                { ovar with Variable = ovar.Variable |> setVar s }
 
 
         module Prescription =
@@ -1546,6 +1832,59 @@ module Models =
                 BoricAcid = [||]
                 BenzylAlcohol = [||]
             }
+
+
+        // Intake substance row definitions
+        let intakeRows1 = [|
+            [| "volume"; ""; "ml/kg/dag" |]
+            [| "energie"; ""; "kCal/kg/dag" |]
+            [| "koolhydraat"; ""; "mg/kg/min" |]
+            [| "eiwit"; ""; "g/kg/dag" |]
+            [| "vet"; ""; "g/kg/dag" |]
+        |]
+
+        let intakeRows2 = [|
+            [| "natrium"; ""; "mmol/kg/dag" |]
+            [| "kalium"; ""; "mmol/kg/dag" |]
+            [| "chloride"; ""; "mmol/kg/dag" |]
+            [| "calcium"; ""; "mmol/kg/dag" |]
+            [| "magnesium"; ""; "mmol/kg/dag" |]
+        |]
+
+        let intakeRows3 = [|
+            [| "fosfaat"; ""; "mmol/kg/dag" |]
+            [| "ijzer"; ""; "mmol/kg/dag" |]
+            [| "vit D"; ""; "mmol/kg/dag" |]
+            [| "ethanol"; ""; "mg/kg/dag" |]
+            [| "propyleenglycol"; ""; "mg/kg/dag" |]
+        |]
+
+        let intakeRows4 = [|
+            [| "boorzuur"; ""; "mmol/kg/dag" |]
+            [| "benzylalcohol"; ""; "mmol/kg/dag" |]
+        |]
+
+
+        // Map a substance name to the corresponding Totals field
+        let substanceToField (intake: Totals) = function
+            | "volume"      -> intake.Volume
+            | "energie"     -> intake.Energy
+            | "koolhydraat" -> intake.Carbohydrate
+            | "eiwit"       -> intake.Protein
+            | "vet"         -> intake.Fat
+            | "natrium"     -> intake.Sodium
+            | "kalium"      -> intake.Potassium
+            | "chloride"    -> intake.Chloride
+            | "calcium"     -> intake.Calcium
+            | "magnesium"   -> intake.Magnesium
+            | "phosphaat" | "fosfaat" -> intake.Phosphate
+            | "ijzer"       -> intake.Iron
+            | "vitamine D" | "vit D" -> intake.VitaminD
+            | "ethanol"     -> intake.Ethanol
+            | "propyleenglycol" -> intake.Propyleenglycol
+            | "boorzuur"    -> intake.BoricAcid
+            | "benzylalcohol" -> intake.BenzylAlcohol
+            | _             -> [||]
 
 
     module OrderScenario =
@@ -1702,7 +2041,190 @@ module Models =
             }
 
 
-    module TreatmentPlan =
+        let indicationChange s (ctx : OrderContext) : OrderContext =
+            if s |> Option.isNone then
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            Indications = [||]
+                            Indication = None
+                            DoseTypes = [||]
+                            DoseType = None
+                        }
+                    Scenarios = [||]
+                }
+            else
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            Indication = s
+                        }
+                }
+
+
+        let medicationChange s (ctx : OrderContext) : OrderContext =
+            if s |> Option.isNone then
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            Generics = [||]
+                            Generic = None
+                            DoseTypes = [||]
+                            DoseType = None
+                        }
+                    Scenarios = [||]
+                }
+            else
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            Generic = s
+                        }
+                }
+
+
+        let routeChange s (ctx : OrderContext) : OrderContext =
+            if s |> Option.isNone then
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            Routes = [||]
+                            Route = None
+                            DoseTypes = [||]
+                            DoseType = None
+                        }
+                    Scenarios = [||]
+                }
+            else
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            Route = s
+                        }
+                }
+
+
+        let formChange s (ctx : OrderContext) : OrderContext =
+            if s |> Option.isNone then
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            Forms = [||]
+                            Form = None
+                            DoseTypes = [||]
+                            DoseType = None
+                        }
+                    Scenarios = [||]
+                }
+            else
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            Form = s
+                        }
+                }
+
+
+        let diluentChange s (ctx : OrderContext) : OrderContext =
+            { ctx with
+                Filter = { ctx.Filter with Diluent = s }
+            }
+
+
+        let componentsChange cs (ctx : OrderContext) : OrderContext =
+            { ctx with
+                Filter = { ctx.Filter with SelectedComponents = cs }
+            }
+
+
+        let doseTypeChange (dt : DoseType option) (ctx : OrderContext) : OrderContext =
+            if dt |> Option.isNone then
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            DoseTypes = [||]
+                            DoseType = None
+                        }
+                    Scenarios = [||]
+                }
+            else
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            DoseType = dt
+                        }
+                }
+
+
+        let syncFilterToFormulary (filter: Filter) (form: Formulary) : Formulary =
+            { form with
+                Indication = filter.Indication; Generic = filter.Generic
+                Route = filter.Route; Form = filter.Form; DoseType = filter.DoseType }
+
+
+        let syncFilterToParenteralia (filter: Filter) (par: Parenteralia) : Parenteralia =
+            { par with Generic = filter.Generic; Form = filter.Form; Route = filter.Route }
+
+
+        let syncFormularyToFilter (form: Formulary) (ctx: OrderContext) : OrderContext =
+            let unchanged =
+                form.Indication = ctx.Filter.Indication &&
+                form.Generic = ctx.Filter.Generic &&
+                form.Route = ctx.Filter.Route &&
+                form.Form = ctx.Filter.Form
+            { ctx with
+                Filter =
+                    { ctx.Filter with
+                        Indication = form.Indication; Generic = form.Generic
+                        Form = form.Form; Route = form.Route; DoseType = form.DoseType
+                        Diluent = if unchanged then ctx.Filter.Diluent else None
+                        SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||] }
+                Scenarios = [||] }
+
+
+        let syncParenteraliaToFilter (par: Parenteralia) (ctx: OrderContext) : OrderContext =
+            let unchanged =
+                par.Generic = ctx.Filter.Generic &&
+                par.Route = ctx.Filter.Route &&
+                par.Form = ctx.Filter.Form
+            { ctx with
+                Filter =
+                    { ctx.Filter with
+                        Indication = None; Generic = par.Generic
+                        Form = par.Form; Route = par.Route; DoseType = None
+                        Diluent = if unchanged then ctx.Filter.Diluent else None
+                        SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||] }
+                Scenarios = [||] }
+
+
+    module TextBlock =
+
+        let maxTb (xs: TextBlock [][]) =
+            if xs |> Array.isEmpty then Valid
+            else
+                xs
+                |> Array.collect (fun tbs ->
+                    if tbs |> Array.isEmpty then [| 0 |]
+                    else
+                        tbs
+                        |> Array.map (fun tb ->
+                            match tb with
+                            | Valid _ -> 0
+                            | Caution _ -> 1
+                            | Warning _ -> 2
+                            | Alert _ -> 3
+                        )
+                )
+                |> Array.max
+                |> function
+                | 0 -> Valid
+                | 1 -> Caution
+                | 2 -> Warning
+                | 3 -> Alert
+                | i -> failwith $"not a valid textblock: {i}"
+
+
+    module OrderPlan =
 
         let create pat srs =
             {
@@ -1712,6 +2234,26 @@ module Models =
                 Scenarios = srs
                 Totals = Totals.empty
             }
+
+
+    module NutritionContext =
+
+        let create label ctx : NutritionContext = { Label = label; OrderContext = ctx }
+
+
+    module NutritionPlan =
+
+        let empty : NutritionPlan = {
+            Patient = Patient.empty
+            NutritionContexts = [||]
+            Totals = Totals.empty
+        }
+
+        let create patient contexts : NutritionPlan = {
+            Patient = patient
+            NutritionContexts = contexts
+            Totals = Totals.empty
+        }
 
 
     module Formulary =

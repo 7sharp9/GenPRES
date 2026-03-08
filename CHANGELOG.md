@@ -11,23 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **GenOrder**: Pick nearest higher (else lower) component quantity when component orderable quantity is set
 - **GitHub**: PR sub-template for documentation and non-code changes
+- **GenForm**: New formulary product type defined (implementation pending)
+- **GenForm**: Better support for different types of formulary products and additional substances
+- **Server**: New command type for nutrition
 
 ### Changed
 
 - **GenOrder**: Improved printing of component quantity
 - **GenOrder**: Print dose adjust only when it has defined constraints; otherwise show dose per time (or dose adjust per time)
 - **AGENTS.md / CLAUDE.md / CONTRIBUTING.md**: Stricter rules for AI/LLM use — script-only policy clarified and expanded
+- **AGENTS.md**: Clarified module shadowing pattern documentation for FSI script-based development
+- **GenForm**: Pretty print invalid dose rule data to console for improved debugging
+- **Utils**: Improved web download with `Result` type for explicit error handling and propagation
+- **Dependencies**: Bump `immutable` npm package to 5.1.5
 
 ### Deprecated
 
 ### Removed
 
 - Outdated FSI script files updated to match latest source code signatures
+- Unused `.fs` source files removed from repository
 
 ### Fixed
 
 - Fix npm build warnings caused by conflicting glob package versions (Mocha compatibility)
 - Update all FSI script files to latest source code signatures
+- Proper error handling and propagation for Google Sheet data retrieval
+- Remove all hard-coded Google Sheet URL ID references from source files
+- **GenForm**: Prevent comparing incompatible value units in product filtering
+- **GenForm**: Fix race condition using a non-concurrent collection in an async context
 
 ### Security
 

@@ -23,17 +23,6 @@ module Web =
 
 
 
-        [<Obsolete("Use downloadResult")>]
-        /// Download a sheet from a google spreadsheet
-        let download url =
-            async {
-                use! resp = client.GetAsync(Uri(url)) |> Async.AwaitTask
-                use! stream = resp.Content.ReadAsStreamAsync() |> Async.AwaitTask
-                use reader = new StreamReader(stream)
-                return reader.ReadToEnd()
-            }
-
-
         /// Download a sheet from a Google spreadsheet, returning an error string
         /// if the HTTP response is not successful (e.g. 404, 403, or redirect to
         /// Google sign-in when the spreadsheet is private or the ID is stale).
@@ -63,16 +52,8 @@ module Web =
             }
 
 
-        [<Obsolete("Use getDataFromSheetResult")>]
-        let getDataFromSheet parser dataUrlId sheet =
-            async {
-                let! data = createUrl sheet dataUrlId |> download
-                return parser data
-            }
-
-
         /// Load a sheet and parse it, returning a descriptive error when loading fails.
-        let getDataFromSheetResult parser dataUrlId sheet : Async<Result<'T, string>> =
+        let getDataFromSheet parser dataUrlId sheet : Async<Result<'T, string>> =
             async {
                 let url = createUrl sheet dataUrlId
 
@@ -97,26 +78,11 @@ module Web =
             }
 
 
-        [<Obsolete("Use getCsvDataFromSheetResult")>]
-        let getCsvDataFromSheet =
-            getDataFromSheet Csv.parseCSV
+        let getCsvDataFromSheet = getDataFromSheet Csv.parseCSV
 
 
-        let getCsvDataFromSheetResult =
-            getDataFromSheetResult Csv.parseCSV
-
-
-        /// Get the data from a sheet in a google spreadsheet
-        /// Return the data as a array of string arrays where
-        /// each array represents a row in the sheet
-        [<Obsolete("Use getCsvDataFromSheetResultSync")>]
         let getCsvDataFromSheetSync dataUrlId sheet =
             getCsvDataFromSheet dataUrlId sheet
-            |> Async.RunSynchronously
-
-
-        let getCsvDataFromSheetResultSync dataUrlId sheet =
-            getCsvDataFromSheetResult dataUrlId sheet
             |> Async.RunSynchronously
             |> function
                 | Ok result -> result |> Ok

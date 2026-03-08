@@ -34,13 +34,7 @@ This application has not been certified as a medical device and is not intended 
         let context = React.useContext(Global.context)
         let lang = context.Localization
 
-        let getTerm defVal term =
-            props.localizationTerms
-            |> Deferred.map (fun terms ->
-                Localization.getTerm terms lang term
-                |> Option.defaultValue defVal
-            )
-            |> Deferred.defaultValue defVal
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let langBtn =
             Components.Localization.View {|

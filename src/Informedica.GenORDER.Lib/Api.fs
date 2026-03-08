@@ -6,33 +6,19 @@ module Filters =
     open Informedica.GenForm.Lib.Resources
     open Informedica.Logging.Lib
 
-    let private logGenFormMessages (logger: Logger) (res: GenFormResult<_>) =
-        let msgs = Informedica.Utils.Lib.ValidatedResult.getMessages res
-        msgs |> List.iter (fun m ->
-            match m with
-            | Info _ -> Logging.logInfo logger m
-            | Warning _ -> Logging.logWarning logger m
-            | ErrorMsg _ -> Logging.logError logger m
-        )
-        res
-
     // Logger-injected variant
     let getPrescriptionRules (logger: Logger) (provider: IResourceProvider) =
         Api.getPrescriptionRules provider
-        >> fun res ->
-            res
-            |> logGenFormMessages logger
-            |> function
-                | Ok (rules, _) -> rules
-                | Error _ -> [||]
+        >> function
+            | Ok rules -> rules
+            | Error _ -> [||]
 
 
     // Logger-injected variant
     let filterPrescriptionRules (logger: Logger) (provider: IResourceProvider) filter =
         Api.filterPrescriptionRules provider filter
-        |> logGenFormMessages logger
         |> function
-            | Ok (rules, _) -> rules
+            | Ok rules -> rules
             | Error _ -> [||]
 
 
@@ -236,21 +222,21 @@ module OrderContext =
         | SetMinScheduleFrequencyProperty of OrderContext
         | SetMaxScheduleFrequencyProperty of OrderContext
         | SetMedianScheduleFrequencyProperty of OrderContext
-        // DoseQuantity property commands (ntimes = number of times to adjust)
-        | DecreaseOrderableDoseQuantityProperty of OrderContext * ntimes: int
-        | IncreaseOrderableDoseQuantityProperty of OrderContext * ntimes: int
+        // DoseQuantity property commands (ntimes = number of times to adjust, useCalc = use calculated increment)
+        | DecreaseOrderableDoseQuantityProperty of OrderContext * ntimes: int * useCalc: bool
+        | IncreaseOrderableDoseQuantityProperty of OrderContext * ntimes: int * useCalc: bool
         | SetMinOrderableDoseQuantityProperty of OrderContext
         | SetMaxOrderableDoseQuantityProperty of OrderContext
         | SetMedianOrderableDoseQuantityProperty of OrderContext
-        // DoseRate property commands (ntimes = number of times to adjust)
-        | DecreaseOrderableDoseRateProperty of OrderContext * ntimes: int
-        | IncreaseOrderableDoseRateProperty of OrderContext * ntimes: int
+        // DoseRate property commands (ntimes = number of times to adjust, useCalc = use calculated increment)
+        | DecreaseOrderableDoseRateProperty of OrderContext * ntimes: int * useCalc: bool
+        | IncreaseOrderableDoseRateProperty of OrderContext * ntimes: int * useCalc: bool
         | SetMinOrderableDoseRateProperty of OrderContext
         | SetMaxOrderableDoseRateProperty of OrderContext
         | SetMedianOrderableDoseRateProperty of OrderContext
-        // Component Quantity property commands (cmp = component, ntimes = number of times to adjust)
-        | DecreaseComponentQuantityProperty of OrderContext * cmp: string * ntimes: int
-        | IncreaseComponentQuantityProperty of OrderContext * cmp: string * ntimes: int
+        // Component Quantity property commands (cmp = component, ntimes = number of times to adjust, useCalc = use calculated increment)
+        | DecreaseComponentQuantityProperty of OrderContext * cmp: string * ntimes: int * useCalc: bool
+        | IncreaseComponentQuantityProperty of OrderContext * cmp: string * ntimes: int * useCalc: bool
         | SetMinComponentQuantityProperty of OrderContext * cmp: string
         | SetMaxComponentQuantityProperty of OrderContext * cmp: string
         | SetMedianComponentQuantityProperty of OrderContext * cmp: string
@@ -271,20 +257,20 @@ module OrderContext =
             | SetMaxScheduleFrequencyProperty ctx -> ctx
             | SetMedianScheduleFrequencyProperty ctx -> ctx
             // DoseQuantity property commands
-            | DecreaseOrderableDoseQuantityProperty (ctx, _) -> ctx
-            | IncreaseOrderableDoseQuantityProperty (ctx, _) -> ctx
+            | DecreaseOrderableDoseQuantityProperty (ctx, _, _) -> ctx
+            | IncreaseOrderableDoseQuantityProperty (ctx, _, _) -> ctx
             | SetMinOrderableDoseQuantityProperty ctx -> ctx
             | SetMaxOrderableDoseQuantityProperty ctx -> ctx
             | SetMedianOrderableDoseQuantityProperty ctx -> ctx
             // DoseRate property commands
-            | DecreaseOrderableDoseRateProperty (ctx, _) -> ctx
-            | IncreaseOrderableDoseRateProperty (ctx, _) -> ctx
+            | DecreaseOrderableDoseRateProperty (ctx, _, _) -> ctx
+            | IncreaseOrderableDoseRateProperty (ctx, _, _) -> ctx
             | SetMinOrderableDoseRateProperty ctx -> ctx
             | SetMaxOrderableDoseRateProperty ctx -> ctx
             | SetMedianOrderableDoseRateProperty ctx -> ctx
             // Component Quantity property commands
-            | DecreaseComponentQuantityProperty (ctx, _, _) -> ctx
-            | IncreaseComponentQuantityProperty (ctx, _, _) -> ctx
+            | DecreaseComponentQuantityProperty (ctx, _, _, _) -> ctx
+            | IncreaseComponentQuantityProperty (ctx, _, _, _) -> ctx
             | SetMinComponentQuantityProperty (ctx, _) -> ctx
             | SetMaxComponentQuantityProperty (ctx, _) -> ctx
             | SetMedianComponentQuantityProperty (ctx, _) -> ctx
@@ -302,18 +288,18 @@ module OrderContext =
             | SetMinScheduleFrequencyProperty _ -> "SetMinScheduleFrequencyProperty"
             | SetMaxScheduleFrequencyProperty _ -> "SetMaxScheduleFrequencyProperty"
             | SetMedianScheduleFrequencyProperty _ -> "SetMedianScheduleFrequencyProperty"
-            | DecreaseOrderableDoseQuantityProperty (_, ntimes) -> $"DecreaseOrderableDoseQuantityProperty ntimes={ntimes}"
-            | IncreaseOrderableDoseQuantityProperty (_, ntimes) -> $"IncreaseOrderableDoseQuantityProperty ntimes={ntimes}"
+            | DecreaseOrderableDoseQuantityProperty (_, ntimes, useCalc) -> $"DecreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
+            | IncreaseOrderableDoseQuantityProperty (_, ntimes, useCalc) -> $"IncreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
             | SetMinOrderableDoseQuantityProperty _ -> "SetMinOrderableDoseQuantityProperty"
             | SetMaxOrderableDoseQuantityProperty _ -> "SetMaxOrderableDoseQuantityProperty"
             | SetMedianOrderableDoseQuantityProperty _ -> "SetMedianOrderableDoseQuantityProperty"
-            | DecreaseOrderableDoseRateProperty (_, ntimes) -> $"DecreaseOrderableDoseRateProperty ntimes={ntimes}"
-            | IncreaseOrderableDoseRateProperty (_, ntimes) -> $"IncreaseOrderableDoseRateProperty ntimes={ntimes}"
+            | DecreaseOrderableDoseRateProperty (_, ntimes, useCalc) -> $"DecreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
+            | IncreaseOrderableDoseRateProperty (_, ntimes, useCalc) -> $"IncreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
             | SetMinOrderableDoseRateProperty _ -> "SetMinOrderableDoseRateProperty"
             | SetMaxOrderableDoseRateProperty _ -> "SetMaxOrderableDoseRateProperty"
             | SetMedianOrderableDoseRateProperty _ -> "SetMedianOrderableDoseRateProperty"
-            | DecreaseComponentQuantityProperty (_, cmp, ntimes) -> $"DecreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes}"
-            | IncreaseComponentQuantityProperty (_, cmp, ntimes) -> $"IncreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes}"
+            | DecreaseComponentQuantityProperty (_, cmp, ntimes, useCalc) -> $"DecreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
+            | IncreaseComponentQuantityProperty (_, cmp, ntimes, useCalc) -> $"IncreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
             | SetMinComponentQuantityProperty (_, cmp) -> $"SetMinComponentQuantityProperty cmp={cmp}"
             | SetMaxComponentQuantityProperty (_, cmp) -> $"SetMaxComponentQuantityProperty cmp={cmp}"
             | SetMedianComponentQuantityProperty (_, cmp) -> $"SetMedianComponentQuantityProperty cmp={cmp}"
@@ -629,10 +615,10 @@ module OrderContext =
                     DoseType = dst
                 }
                 |> Api.filterPrescriptionRules provider
-            | _ -> GenFormResult.createOkNoMsgs [||]
+            | _ -> Ok [||]
         | _ ->
             ctx.Patient |> create logger provider
-            , GenFormResult.createOkNoMsgs [||]
+            , Ok [||]
 
 
 
@@ -882,10 +868,10 @@ Scenarios: {scenarios}
     let getScenarios logger provider ctx =
         let ctx, result = ctx |> getRules logger provider
 
-        let prs, msgs =
+        let prs =
             match result with
-            | Ok (prs, msgs) -> prs, msgs
-            | Error msgs -> [||], msgs
+            | Ok prs -> prs
+            | Error _ -> [||]
 
         if prs |> Array.isEmpty then ctx
         else
@@ -908,7 +894,7 @@ Scenarios: {scenarios}
                     |> filterScenariosByPreparation
             }
         |> updateFilterIfOneScenario
-        |> GenFormResult.createOkWithMsgs msgs
+        |> Ok
 
 
     let reloadResources logger provider ctx =
@@ -926,18 +912,18 @@ Scenarios: {scenarios}
                 ctx
                 |> processScenarioOrder logger (fun o -> ChangeProperty (o, propCmd))
                 |> wrapResult
-                |> ValidatedResult.createOkNoMsgs
+                |> Ok
             | None ->
                 // No single scenario, return ctx unchanged
-                wrapResult ctx |> ValidatedResult.createOkNoMsgs
+                wrapResult ctx |> Ok
 
         match cmd with
-        | UpdateOrderContext ctx -> ctx |> getScenarios logger provider    |> ValidatedResult.map UpdateOrderContext
-        | ReloadResources ctx    -> ctx |> reloadResources logger provider |> ValidatedResult.map ReloadResources
+        | UpdateOrderContext ctx -> ctx |> getScenarios logger provider    |> Result.map UpdateOrderContext
+        | ReloadResources ctx    -> ctx |> reloadResources logger provider |> Result.map ReloadResources
         // TODO: need to implement validation
-        | SelectOrderScenario ctx -> ctx |> processScenarioOrder logger CalcValues   |> SelectOrderScenario  |> ValidatedResult.createOkNoMsgs
-        | UpdateOrderScenario ctx -> ctx |> processScenarioOrder logger SolveOrder   |> UpdateOrderScenario  |> ValidatedResult.createOkNoMsgs
-        | ResetOrderScenario ctx  -> ctx |> processScenarioOrder logger ReCalcValues |> ResetOrderScenario   |> ValidatedResult.createOkNoMsgs
+        | SelectOrderScenario ctx -> ctx |> processScenarioOrder logger CalcValues   |> SelectOrderScenario  |> Ok
+        | UpdateOrderScenario ctx -> ctx |> processScenarioOrder logger SolveOrder   |> UpdateOrderScenario  |> Ok
+        | ResetOrderScenario ctx  -> ctx |> processScenarioOrder logger ReCalcValues |> ResetOrderScenario   |> Ok
         // Frequency property commands
         | DecreaseScheduleFrequencyProperty ctx -> processPropertyCmd ctx DecreaseScheduleFrequency
                                                        DecreaseScheduleFrequencyProperty
@@ -950,10 +936,10 @@ Scenarios: {scenarios}
         | SetMedianScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMedianScheduleFrequency
                                                         SetMedianScheduleFrequencyProperty
         // Dose Quantity property commands
-        | DecreaseOrderableDoseQuantityProperty (ctx, ntimes) -> processPropertyCmd ctx (DecreaseOrderableDoseQuantity
-                                                                                             ntimes) (fun ctx -> DecreaseOrderableDoseQuantityProperty (ctx, ntimes))
-        | IncreaseOrderableDoseQuantityProperty (ctx, ntimes) -> processPropertyCmd ctx (IncreaseOrderableDoseQuantity
-                                                                                             ntimes) (fun ctx -> IncreaseOrderableDoseQuantityProperty (ctx, ntimes))
+        | DecreaseOrderableDoseQuantityProperty (ctx, ntimes, useCalc) -> processPropertyCmd ctx (DecreaseOrderableDoseQuantity
+                                                                                             (ntimes, useCalc)) (fun ctx -> DecreaseOrderableDoseQuantityProperty (ctx, ntimes, useCalc))
+        | IncreaseOrderableDoseQuantityProperty (ctx, ntimes, useCalc) -> processPropertyCmd ctx (IncreaseOrderableDoseQuantity
+                                                                                             (ntimes, useCalc)) (fun ctx -> IncreaseOrderableDoseQuantityProperty (ctx, ntimes, useCalc))
         | SetMinOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMinOrderableDoseQuantity
                                                          SetMinOrderableDoseQuantityProperty
         | SetMaxOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMaxOrderableDoseQuantity
@@ -961,8 +947,8 @@ Scenarios: {scenarios}
         | SetMedianOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMedianOrderableDoseQuantity
                                                             SetMedianOrderableDoseQuantityProperty
         // Dose Rate property commands
-        | DecreaseOrderableDoseRateProperty (ctx, ntimes) -> processPropertyCmd ctx (DecreaseOrderableDoseRate ntimes) (fun ctx -> DecreaseOrderableDoseRateProperty (ctx, ntimes))
-        | IncreaseOrderableDoseRateProperty (ctx, ntimes) -> processPropertyCmd ctx (IncreaseOrderableDoseRate ntimes) (fun ctx -> IncreaseOrderableDoseRateProperty (ctx, ntimes))
+        | DecreaseOrderableDoseRateProperty (ctx, ntimes, useCalc) -> processPropertyCmd ctx (DecreaseOrderableDoseRate (ntimes, useCalc)) (fun ctx -> DecreaseOrderableDoseRateProperty (ctx, ntimes, useCalc))
+        | IncreaseOrderableDoseRateProperty (ctx, ntimes, useCalc) -> processPropertyCmd ctx (IncreaseOrderableDoseRate (ntimes, useCalc)) (fun ctx -> IncreaseOrderableDoseRateProperty (ctx, ntimes, useCalc))
         | SetMinOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMinOrderableDoseRate
                                                      SetMinOrderableDoseRateProperty
         | SetMaxOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMaxOrderableDoseRate
@@ -970,10 +956,10 @@ Scenarios: {scenarios}
         | SetMedianOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMedianOrderableDoseRate
                                                         SetMedianOrderableDoseRateProperty
         // Component Quantity property commands
-        | DecreaseComponentQuantityProperty (ctx, cmp, ntimes) -> processPropertyCmd ctx (
-                                                                      DecreaseComponentOrderableQuantity (cmp, ntimes)) (fun ctx -> DecreaseComponentQuantityProperty (ctx, cmp, ntimes))
-        | IncreaseComponentQuantityProperty (ctx, cmp, ntimes) -> processPropertyCmd ctx (
-                                                                      IncreaseComponentOrderableQuantity (cmp, ntimes)) (fun ctx -> IncreaseComponentQuantityProperty (ctx, cmp, ntimes))
+        | DecreaseComponentQuantityProperty (ctx, cmp, ntimes, useCalc) -> processPropertyCmd ctx (
+                                                                      DecreaseComponentOrderableQuantity (cmp, ntimes, useCalc)) (fun ctx -> DecreaseComponentQuantityProperty (ctx, cmp, ntimes, useCalc))
+        | IncreaseComponentQuantityProperty (ctx, cmp, ntimes, useCalc) -> processPropertyCmd ctx (
+                                                                      IncreaseComponentOrderableQuantity (cmp, ntimes, useCalc)) (fun ctx -> IncreaseComponentQuantityProperty (ctx, cmp, ntimes, useCalc))
         | SetMinComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMinComponentOrderableQuantity cmp) (fun ctx -> SetMinComponentQuantityProperty (ctx, cmp))
         | SetMaxComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMaxComponentOrderableQuantity cmp) (fun ctx -> SetMaxComponentQuantityProperty (ctx, cmp))
         | SetMedianComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMedianComponentOrderableQuantity

@@ -120,9 +120,11 @@ module GenPres =
             onSelectContinuousMedicationItem: string -> unit
             products: Deferred<Product list>
             orderContext: Deferred<OrderContext>
-            updateOrderContext : Api.OrderContextCommand -> unit
-            treatmentPlan: Deferred<TreatmentPlan>
-            treatmentPlanCommand: Api.TreatmentPlanCommand -> unit
+            orderContextMsg : (Api.OrderContextCommand * OrderContext) -> unit
+            treatmentPlan: Deferred<OrderPlan>
+            treatmentPlanCommand: Api.OrderPlanCommand -> unit
+            nutritionPlan: Deferred<NutritionPlan>
+            nutritionPlanMsg: Api.NutritionPlanCommand -> unit
             formulary: Deferred<Formulary>
             updateFormulary : Formulary -> unit
             parenteralia : Deferred<Parenteralia>
@@ -164,6 +166,7 @@ module GenPres =
                 overflowY =
                     match props.page with
                     | Global.Pages.Prescribe
+                    | Global.Pages.Nutrition
                     | Global.Pages.TreatmentPlan
                     | Global.Pages.Parenteralia
                     | Global.Pages.Formulary -> "auto"
@@ -235,19 +238,30 @@ module GenPres =
                             | Global.Pages.Prescribe ->
                                 Views.Prescribe.View {|
                                     orderContext = props.orderContext
-                                    updateOrderContext = props.updateOrderContext
+                                    orderContextMsg = props.orderContextMsg
                                     treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = Api.UpdateTreatmentPlan >> props.treatmentPlanCommand
+                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
                                 |}
                             | Global.Pages.Nutrition ->
-                                Views.Nutrion.View()
+                                Views.Nutrion.View {|
+                                    patient = props.patient
+                                    nutritionPlan = props.nutritionPlan
+                                    nutritionPlanMsg = props.nutritionPlanMsg
+                                    orderContextMsg = props.orderContextMsg
+                                    localizationTerms = props.localizationTerms
+                                |}
 
                             | Global.Pages.TreatmentPlan ->
                                 Views.TreatmentPlan.View {|
                                     treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = Api.UpdateTreatmentPlan >> props.treatmentPlanCommand
-                                    filterTreatmentPlan = Api.FilterTreatmentPlan >> props.treatmentPlanCommand
+                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
+                                    filterTreatmentPlan = Api.FilterOrderPlan >> props.treatmentPlanCommand
+                                    orderContextMsg =
+                                        fun (cmd, ctx) ->
+                                            match props.treatmentPlan with
+                                            | Resolved tp -> Api.UpdateOrderPlan (tp, Some (cmd, ctx)) |> props.treatmentPlanCommand
+                                            | _ -> ()
                                     localizationTerms = props.localizationTerms
                                 |}
                             | Global.Pages.Formulary ->
@@ -264,9 +278,9 @@ module GenPres =
                             | Global.Pages.Settings ->
                                 Views.Prescribe.View {|
                                     orderContext = props.orderContext
-                                    updateOrderContext = props.updateOrderContext
+                                    orderContextMsg = props.orderContextMsg
                                     treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = Api.UpdateTreatmentPlan >> props.treatmentPlanCommand
+                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
                                 |}
 
@@ -275,11 +289,15 @@ module GenPres =
                     <Box>
                         {
                             match props.page with
-                            | Global.Pages.Prescribe
-                            | Global.Pages.Nutrition ->
+                            | Global.Pages.Prescribe ->
                                 match props.orderContext with
                                 | Resolved pr ->
                                     Views.Intake.View {| intake = pr.Intake |}
+                                | _ -> JSX.jsx "<></>"
+                            | Global.Pages.Nutrition ->
+                                match props.nutritionPlan with
+                                | Resolved np ->
+                                    Views.Intake.View {| intake = np.Totals |}
                                 | _ -> JSX.jsx "<></>"
                             | Global.Pages.TreatmentPlan ->
                                 match props.treatmentPlan with

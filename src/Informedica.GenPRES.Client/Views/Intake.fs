@@ -9,35 +9,10 @@ module Intake =
     open Types
 
 
-    let private rows1 = [|
-        [| "volume"; ""; "ml/kg/dag" |]
-        [| "energie"; ""; "kCal/kg/dag" |]
-        [| "koolhydraat"; ""; "mg/kg/min" |]
-        [| "eiwit"; ""; "g/kg/dag" |]
-        [| "vet"; ""; "g/kg/dag" |]
-
-    |]
-
-    let private rows2 = [|
-        [| "natrium"; ""; "mmol/kg/dag" |]
-        [| "kalium"; ""; "mmol/kg/dag" |]
-        [| "chloride"; ""; "mmol/kg/dag" |]
-        [| "calcium"; ""; "mmol/kg/dag" |]
-        [| "magnesium"; ""; "mmol/kg/dag" |]
-    |]
-
-    let private rows3 = [|
-        [| "fosfaat"; ""; "mmol/kg/dag" |]
-        [| "ijzer"; ""; "mmol/kg/dag" |]
-        [| "vit D"; ""; "mmol/kg/dag" |]
-        [| "ethanol"; ""; "mg/kg/dag" |]
-        [| "propyleenglycol"; ""; "mg/kg/dag" |]
-    |]
-
-    let private rows4 = [|
-        [| "boorzuur"; ""; "mmol/kg/dag" |]
-        [| "benzylalcohol"; ""; "mmol/kg/dag" |]
-    |]
+    let private rows1 = Shared.Models.Totals.intakeRows1
+    let private rows2 = Shared.Models.Totals.intakeRows2
+    let private rows3 = Shared.Models.Totals.intakeRows3
+    let private rows4 = Shared.Models.Totals.intakeRows4
 
 
     let private typoGraphy (items : TextItem[]) =
@@ -98,25 +73,9 @@ module Intake =
 
             row
             |> Array.map (fun cells ->
-                match cells |> Array.head with
-                | "volume"      -> print "volume" intake.Volume
-                | "energie"     -> print "energie" intake.Energy
-                | "koolhydraat" -> print "koolhydraat" intake.Carbohydrate
-                | "eiwit"       -> print "eiwit" intake.Protein
-                | "vet"         -> print "vet" intake.Fat
-                | "natrium"     -> print "natrium" intake.Sodium
-                | "kalium"      -> print "kalium" intake.Potassium
-                | "chloride"    -> print "chloride" intake.Chloride
-                | "calcium"     -> print "calcium" intake.Calcium
-                | "magnesium"   -> print "magnesium" intake.Magnesium
-                | "phosphaat"   -> print "phosphaat" intake.Phosphate
-                | "ijzer"       -> print "ijzer" intake.Iron
-                | "vitamine D"  -> print "vitamine D" intake.VitaminD
-                | "ethanol"         -> print "ethanol" intake.Ethanol
-                | "propyleenglycol" -> print "propyleenglycol" intake.Propyleenglycol
-                | "boorzuur"        -> print "boorzuur" intake.BoricAcid
-                | "benzylalcohol"   -> print "benzylalcohol" intake.BenzylAlcohol
-                | _ -> [||] |> Array.map box
+                let name = cells |> Array.head
+                let items = Shared.Models.Totals.substanceToField intake name
+                print name items
             )
 
         let rows1, rows2, rows3, rows4 =

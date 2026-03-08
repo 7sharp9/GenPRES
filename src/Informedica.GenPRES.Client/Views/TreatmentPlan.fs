@@ -13,9 +13,10 @@ module TreatmentPlan =
 
     [<JSX.Component>]
     let View (props : {|
-        treatmentPlan: Deferred<TreatmentPlan>
-        updateTreatmentPlan: TreatmentPlan -> unit
-        filterTreatmentPlan: TreatmentPlan -> unit
+        treatmentPlan: Deferred<OrderPlan>
+        updateTreatmentPlan: OrderPlan -> unit
+        filterTreatmentPlan: OrderPlan -> unit
+        orderContextMsg: Api.OrderContextCommand * OrderContext -> unit
         localizationTerms : Deferred<string [] []>
         |}) =
 
@@ -32,13 +33,7 @@ module TreatmentPlan =
                 | _ -> ()
                 setModalOpen false
 
-        let getTerm defVal term =
-            props.localizationTerms
-            |> Deferred.map (fun terms ->
-                Localization.getTerm terms lang term
-                |> Option.defaultValue defVal
-            )
-            |> Deferred.defaultValue defVal
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let columns = [|
             {|  field = "id"; headerName = "id"; width = 0; filterable = false; sortable = false |} |> box
@@ -50,20 +45,10 @@ module TreatmentPlan =
             {|  field = "dose"; headerName = Terms.``Continuous Medication Dose`` |> getTerm "Dosering"; width = 200; filterable = false; sortable = false |} |> box //``type`` = "number"
         |]
 
-        let getVal (vals : ValueUnit option) =
-            match vals with
-            | Some v ->
-                match v.Value with
-                | [| (_, s) |] ->
-                    let s = s |> float |> Math.fixPrecision 3
-                    $"{s} {v.Unit}"
-                | _ -> ""
-            | None -> ""
-
         let rows =
-            let parseVals vals =
-                vals
-                |> Array.map getVal
+            let parseVals vars =
+                vars
+                |> Array.map (Order.Variable.renderValue 3)
                 |> Array.map (String.split " ")
                 |> Array.groupBy Array.tryLast
                 |> Array.map (fun (k, v) ->
@@ -87,9 +72,9 @@ module TreatmentPlan =
                 |> Array.mapi (fun i o ->
                     let freq =
                         if o.Schedule.IsDiscontinuous || o.Schedule.IsTimed then
-                            o.Schedule.Frequency.Variable.Vals |> getVal
+                            o.Schedule.Frequency.Variable |> Order.Variable.renderValue 3
                         else if o.Schedule.IsContinuous then
-                            o.Orderable.Dose.Rate.Variable.Vals |> getVal
+                            o.Orderable.Dose.Rate.Variable |> Order.Variable.renderValue 3
                         else ""
 
                     let itms =
@@ -105,12 +90,12 @@ module TreatmentPlan =
                            o.Schedule.IsOnce ||
                            o.Schedule.IsOnceTimed then
                             itms
-                            |> Array.map _.Dose.Quantity.Variable.Vals
+                            |> Array.map _.Dose.Quantity.Variable
                             |> parseVals
                         else if o.Schedule.IsContinuous then
                             itms
                             |> Array.tryHead
-                            |> Option.map (fun i -> i.OrderableQuantity.Variable.Vals |> getVal)
+                            |> Option.map (fun i -> i.OrderableQuantity.Variable |> Order.Variable.renderValue 3)
                             |> Option.defaultValue ""
                         else ""
 
@@ -120,25 +105,25 @@ module TreatmentPlan =
                            o.Schedule.IsOnce ||
                            o.Schedule.IsOnceTimed
                             then
-                            o.Orderable.Dose.Quantity.Variable.Vals |> getVal
+                            o.Orderable.Dose.Quantity.Variable |> Order.Variable.renderValue 3
                         else if o.Schedule.IsContinuous then
-                            o.Orderable.OrderableQuantity.Variable.Vals |> getVal
+                            o.Orderable.OrderableQuantity.Variable |> Order.Variable.renderValue 3
                         else ""
 
                     let dose =
                         if o.Schedule.IsDiscontinuous || o.Schedule.IsTimed then
                             itms
-                            |> Array.map _.Dose.PerTimeAdjust.Variable.Vals
+                            |> Array.map _.Dose.PerTimeAdjust.Variable
                             |> parseVals
                         else if o.Schedule.IsContinuous then
                             itms
                             |> Array.tryHead
-                            |> Option.map (fun i -> i.Dose.RateAdjust.Variable.Vals |> getVal)
+                            |> Option.map (fun i -> i.Dose.RateAdjust.Variable |> Order.Variable.renderValue 3)
                             |> Option.defaultValue ""
 
                         else if o.Schedule.IsOnce || o.Schedule.IsOnceTimed then
                             itms
-                            |> Array.map _.Dose.QuantityAdjust.Variable.Vals
+                            |> Array.map _.Dose.QuantityAdjust.Variable
                             |> parseVals
                         else ""
 
@@ -170,17 +155,7 @@ module TreatmentPlan =
             |}
             |> box
 
-        let modalStyle =
-            {|
-                position="absolute"
-                top= "50%"
-                left= "50%"
-                transform= "translate(-50%, -50%)"
-                width= 400
-                bgcolor= "background.paper"
-                boxShadow= 24
-                borderRadius = "16px"
-            |}
+        let modalStyle = ViewHelpers.modalStyle
 
         let selectOrder id =
             match props.treatmentPlan with
@@ -242,40 +217,10 @@ module TreatmentPlan =
                 | _ -> ()
 
         let updateOrderScenario (ctx : OrderContext) =
-            match props.treatmentPlan with
-            | Resolved tp ->
-                match ctx.Scenarios |> Array.tryExactlyOne with
-                | None -> ()
-                | Some os ->
-                    { tp with
-                        Selected = Some os
-                        Scenarios =
-                            tp.Scenarios
-                            |> Array.map (fun sc ->
-                                if sc |> OrderScenario.eqs os then os else sc
-                            )
-
-                    }
-                    |> props.updateTreatmentPlan
-            | _ -> ()
+            props.orderContextMsg (Api.UpdateOrderScenario, ctx)
 
         let refreshOrderScenario (ctx : OrderContext) =
-            match props.treatmentPlan with
-            | Resolved tp ->
-                match ctx.Scenarios |> Array.tryExactlyOne with
-                | None -> ()
-                | Some os ->
-                    { tp with
-                        Selected = Some os
-                        Scenarios =
-                            tp.Scenarios
-                            |> Array.map (fun sc ->
-                                if sc |> OrderScenario.eqs os then os else sc
-                            )
-
-                    }
-                    |> props.updateTreatmentPlan
-            | _ -> ()
+            props.orderContextMsg (Api.ResetOrderScenario, ctx)
 
         let deleteBtn =
             match props.treatmentPlan with
@@ -289,7 +234,7 @@ module TreatmentPlan =
                     </Button>
                 </Box>
                 """
-            | _ -> JSX.jsx $"<></>"
+            | _ -> ViewHelpers.empty
 
 
         JSX.jsx
@@ -330,30 +275,30 @@ module TreatmentPlan =
                                 | _ -> HasNotStartedYet
                             updateOrderScenario = updateOrderScenario
                             navigateOrderScenario = {|
-                                setMinFrequency = ignore // Api.SetMinOrderFrequencyProperty >> props.updateOrderContext
-                                decrFrequency = ignore
-                                setMedianFrequency = ignore //Api.SetMedianOrderFrequencyProperty >> props.updateOrderContext
-                                incrFrequency = ignore
-                                setMaxFrequency = ignore //Api.SetMinOrderFrequencyProperty >> props.updateOrderContext
+                                // Frequency
+                                setMinFrequency = fun ctx -> props.orderContextMsg (Api.SetMinScheduleFrequencyProperty, ctx)
+                                decrFrequency = fun ctx -> props.orderContextMsg (Api.DecreaseScheduleFrequencyProperty, ctx)
+                                setMedianFrequency = fun ctx -> props.orderContextMsg (Api.SetMedianScheduleFrequencyProperty, ctx)
+                                incrFrequency = fun ctx -> props.orderContextMsg (Api.IncreaseScheduleFrequencyProperty, ctx)
+                                setMaxFrequency = fun ctx -> props.orderContextMsg (Api.SetMaxScheduleFrequencyProperty, ctx)
                                 // Rate
-                                setMinRate = ignore //Api.SetMinOrderDoseRateProperty >> props.updateOrderContext
-                                decrRate = ignore // (fun ctx -> (ctx, 1) |> Api.DecreaseOrderDoseRateProperty |> props.updateOrderContext)
-                                setMedianRate = ignore // Api.SetMedianOrderDoseRateProperty >> props.updateOrderContext
-                                incrRate = ignore // (fun ctx -> (ctx, 1) |> Api.IncreaseOrderDoseRateProperty |> props.updateOrderContext)
-                                setMaxRate = ignore //Api.SetMaxOrderDoseRateProperty >> props.updateOrderContext
+                                setMinRate = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseRateProperty, ctx)
+                                decrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseRateProperty (n, uc), ctx)
+                                setMedianRate = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseRateProperty, ctx)
+                                incrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseRateProperty (n, uc), ctx)
+                                setMaxRate = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseRateProperty, ctx)
                                 // Dose Quantity
-                                setMinDoseQty = ignore //Api.SetMinOrderDoseQuantityProperty >> props.updateOrderContext
-                                decrDoseQty = ignore //Api.DecreaseOrderDoseQuantityProperty >> props.updateOrderContext
-                                setMedianDoseQty = ignore //Api.SetMedianOrderDoseQuantityProperty >> props.updateOrderContext
-                                incrDoseQty = ignore //Api.IncreaseOrderDoseQuantityProperty >> props.updateOrderContext
-                                setMaxDoseQty = ignore //Api.SetMaxOrderDoseQuantityProperty >> props.updateOrderContext
+                                setMinDoseQty = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseQuantityProperty, ctx)
+                                decrDoseQty = fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseQuantityProperty (n, uc), ctx)
+                                setMedianDoseQty = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseQuantityProperty, ctx)
+                                incrDoseQty = fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseQuantityProperty (n, uc), ctx)
+                                setMaxDoseQty = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseQuantityProperty, ctx)
                                 // Component Quantity
-                                setMinComponentQty = ignore //Api.SetMinComponentQuantityProperty >> props.updateOrderContext
-                                decrComponentQty = ignore //Api.DecreaseComponentQuantityProperty >> props.updateOrderContext
-                                setMedianComponentQty = ignore //Api.SetMedianComponentQuantityProperty >> props.updateOrderContext
-                                incrComponentQty = ignore //Api.IncreaseComponentQuantityProperty >> props.updateOrderContext
-                                setMaxComponentQty = ignore //Api.SetMaxComponentQuantityProperty >> props.updateOrderContext
-
+                                setMinComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMinComponentOrderableQuantityProperty cmp, ctx)
+                                decrComponentQty = fun (ctx, cmp, n, uc) -> props.orderContextMsg (Api.DecreaseComponentOrderableQuantityProperty (cmp, n, uc), ctx)
+                                setMedianComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMedianComponentOrderableQuantityProperty cmp, ctx)
+                                incrComponentQty = fun (ctx, cmp, n, uc) -> props.orderContextMsg (Api.IncreaseComponentOrderableQuantityProperty (cmp, n, uc), ctx)
+                                setMaxComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMaxComponentOrderableQuantityProperty cmp, ctx)
                             |}
                             refreshOrderScenario = refreshOrderScenario
                             closeOrder = handleModalClose

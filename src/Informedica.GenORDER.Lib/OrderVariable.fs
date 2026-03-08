@@ -2037,18 +2037,20 @@ module OrderVariable =
                 let n =
                     if not useCalc then n
                     else
-                        match
-                            qty
-                            |> toOrdVar
-                            |> _.CalculatedConstraints
-                            |> _.Incr with
-                        | Some incr ->
-                            let vu = incr |> Increment.toValueUnit
-                            let ml =
-                                Units.Volume.milliLiter
-                                |> ValueUnit.singleWithValue (1N / 10N)
-                            if vu = ml then 10 else 1
-                        | None -> 1
+                        let mult =
+                            match
+                                qty
+                                |> toOrdVar
+                                |> _.CalculatedConstraints
+                                |> _.Incr with
+                            | Some incr ->
+                                let vu = incr |> Increment.toValueUnit
+                                let ml =
+                                    Units.Volume.milliLiter
+                                    |> ValueUnit.singleWithValue (1N / 10N)
+                                if vu = ml then 10 else 1
+                            | None -> 1
+                        n * mult
 
                 qty |> toOrdVar |> step useCalc n |> Quantity
 
