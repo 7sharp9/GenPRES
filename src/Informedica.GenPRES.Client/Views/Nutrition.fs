@@ -10,37 +10,6 @@ module Nutrion =
     open Shared.Models
 
 
-    let private getVal (vals : ValueUnit option) =
-        match vals with
-        | Some v ->
-            match v.Value with
-            | [| (_, s) |] ->
-                let s = s |> float |> Math.fixPrecision 3
-                $"{s} {v.Unit}"
-            | _ -> ""
-        | None -> ""
-
-
-    let private parseVals vals =
-        vals
-        |> Array.map getVal
-        |> Array.map (String.split " ")
-        |> Array.groupBy Array.tryLast
-        |> Array.map (fun (k, v) ->
-            match k with
-            | Some u ->
-                v
-                |> Array.collect id
-                |> Array.map (String.replace u "")
-                |> Array.map _.Trim()
-                |> Array.filter (String.isNullOrWhiteSpace >> not)
-                |> String.concat "/"
-                |> fun s -> $"{s} {u}"
-            | None -> ""
-        )
-        |> String.concat ""
-
-
     let private columns = [|
         {| field = "id"; headerName = "id"; width = 0; filterable = false; sortable = false |} |> box
         {| field = "substance"; headerName = "Component"; width = 200; filterable = true; sortable = true |} |> box

@@ -45,20 +45,10 @@ module TreatmentPlan =
             {|  field = "dose"; headerName = Terms.``Continuous Medication Dose`` |> getTerm "Dosering"; width = 200; filterable = false; sortable = false |} |> box //``type`` = "number"
         |]
 
-        let getVal (vals : ValueUnit option) =
-            match vals with
-            | Some v ->
-                match v.Value with
-                | [| (_, s) |] ->
-                    let s = s |> float |> Math.fixPrecision 3
-                    $"{s} {v.Unit}"
-                | _ -> ""
-            | None -> ""
-
         let rows =
-            let parseVals vals =
-                vals
-                |> Array.map getVal
+            let parseVals vars =
+                vars
+                |> Array.map (Order.Variable.renderValue 3)
                 |> Array.map (String.split " ")
                 |> Array.groupBy Array.tryLast
                 |> Array.map (fun (k, v) ->
@@ -82,9 +72,9 @@ module TreatmentPlan =
                 |> Array.mapi (fun i o ->
                     let freq =
                         if o.Schedule.IsDiscontinuous || o.Schedule.IsTimed then
-                            o.Schedule.Frequency.Variable.Vals |> getVal
+                            o.Schedule.Frequency.Variable |> Order.Variable.renderValue 3
                         else if o.Schedule.IsContinuous then
-                            o.Orderable.Dose.Rate.Variable.Vals |> getVal
+                            o.Orderable.Dose.Rate.Variable |> Order.Variable.renderValue 3
                         else ""
 
                     let itms =
@@ -100,12 +90,12 @@ module TreatmentPlan =
                            o.Schedule.IsOnce ||
                            o.Schedule.IsOnceTimed then
                             itms
-                            |> Array.map _.Dose.Quantity.Variable.Vals
+                            |> Array.map _.Dose.Quantity.Variable
                             |> parseVals
                         else if o.Schedule.IsContinuous then
                             itms
                             |> Array.tryHead
-                            |> Option.map (fun i -> i.OrderableQuantity.Variable.Vals |> getVal)
+                            |> Option.map (fun i -> i.OrderableQuantity.Variable |> Order.Variable.renderValue 3)
                             |> Option.defaultValue ""
                         else ""
 
@@ -115,25 +105,25 @@ module TreatmentPlan =
                            o.Schedule.IsOnce ||
                            o.Schedule.IsOnceTimed
                             then
-                            o.Orderable.Dose.Quantity.Variable.Vals |> getVal
+                            o.Orderable.Dose.Quantity.Variable |> Order.Variable.renderValue 3
                         else if o.Schedule.IsContinuous then
-                            o.Orderable.OrderableQuantity.Variable.Vals |> getVal
+                            o.Orderable.OrderableQuantity.Variable |> Order.Variable.renderValue 3
                         else ""
 
                     let dose =
                         if o.Schedule.IsDiscontinuous || o.Schedule.IsTimed then
                             itms
-                            |> Array.map _.Dose.PerTimeAdjust.Variable.Vals
+                            |> Array.map _.Dose.PerTimeAdjust.Variable
                             |> parseVals
                         else if o.Schedule.IsContinuous then
                             itms
                             |> Array.tryHead
-                            |> Option.map (fun i -> i.Dose.RateAdjust.Variable.Vals |> getVal)
+                            |> Option.map (fun i -> i.Dose.RateAdjust.Variable |> Order.Variable.renderValue 3)
                             |> Option.defaultValue ""
 
                         else if o.Schedule.IsOnce || o.Schedule.IsOnceTimed then
                             itms
-                            |> Array.map _.Dose.QuantityAdjust.Variable.Vals
+                            |> Array.map _.Dose.QuantityAdjust.Variable
                             |> parseVals
                         else ""
 
