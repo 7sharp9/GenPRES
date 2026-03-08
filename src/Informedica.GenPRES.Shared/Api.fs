@@ -53,6 +53,7 @@ module Api =
         | InitNutritionPlan of Patient
         | UpdateNutritionOrderContext of NutritionPlan * OrderContext
         | SelectNutritionOrderScenario of NutritionPlan * OrderContext
+        | NavigateNutritionOrderContext of NutritionPlan * OrderContextCommand * OrderContext
 
     type Response =
         | OrderContextResp of OrderContextResponse
@@ -109,6 +110,7 @@ module Api =
             | NutritionPlanCmd (InitNutritionPlan _) -> "InitNutritionPlan"
             | NutritionPlanCmd (UpdateNutritionOrderContext _) -> "UpdateNutritionOrderContext"
             | NutritionPlanCmd (SelectNutritionOrderScenario _) -> "SelectNutritionOrderScenario"
+            | NutritionPlanCmd (NavigateNutritionOrderContext _) -> "NavigateNutritionOrderContext"
 
 
     /// Defines how routes are generated on server and mapped from the client

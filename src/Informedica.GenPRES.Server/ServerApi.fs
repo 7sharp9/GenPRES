@@ -1038,6 +1038,22 @@ module NutritionPlan =
         | Error errs -> Error errs
 
 
+    let navigateNutritionOrderContext logger provider (plan: NutritionPlan, ctxCmd: Api.OrderContextCommand, ctx: OrderContext) : Result<NutritionPlan, string[]> =
+        match OrderContext.evaluate logger provider ctxCmd ctx with
+        | Ok resolved ->
+            let updatedContexts =
+                plan.NutritionContexts
+                |> Array.map (fun nc ->
+                    if nc.OrderContext.Filter.Indication = ctx.Filter.Indication then
+                        { nc with OrderContext = resolved }
+                    else nc
+                )
+            { plan with NutritionContexts = updatedContexts }
+            |> calculateNutritionTotals
+            |> Ok
+        | Error errs -> Error errs
+
+
     let selectNutritionOrderScenario logger provider (plan: NutritionPlan, ctx: OrderContext) : Result<NutritionPlan, string[]> =
         match OrderContext.evaluate logger provider Api.SelectOrderScenario ctx with
         | Ok resolved ->
@@ -1136,6 +1152,13 @@ module Command =
             async {
                 return
                     NutritionPlan.selectNutritionOrderScenario logger provider (plan, ctx)
+                    |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
+            }
+
+        | NutritionPlanCmd (NavigateNutritionOrderContext (plan, ctxCmd, ctx)) ->
+            async {
+                return
+                    NutritionPlan.navigateNutritionOrderContext logger provider (plan, ctxCmd, ctx)
                     |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
             }
 
