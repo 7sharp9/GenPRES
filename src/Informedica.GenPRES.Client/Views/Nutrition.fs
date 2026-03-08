@@ -32,14 +32,14 @@ module Nutrion =
             | UpdateOrderScenario of Order
             | ResetOrderScenario
             // Rate navigation
-            | DecreaseDoseRateProperty of ntimes: int
-            | IncreaseDoseRateProperty of ntimes: int
+            | DecreaseDoseRateProperty of ntimes: int * useCalc: bool
+            | IncreaseDoseRateProperty of ntimes: int * useCalc: bool
             | SetMinDoseRateProperty
             | SetMaxDoseRateProperty
             | SetMedianDoseRateProperty
             // Component Quantity navigation (carries component name)
-            | DecreaseComponentQuantityProperty of cmp: string * ntimes: int
-            | IncreaseComponentQuantityProperty of cmp: string * ntimes: int
+            | DecreaseComponentQuantityProperty of cmp: string * ntimes: int * useCalc: bool
+            | IncreaseComponentQuantityProperty of cmp: string * ntimes: int * useCalc: bool
             | SetMinComponentQuantityProperty of cmp: string
             | SetMaxComponentQuantityProperty of cmp: string
             | SetMedianComponentQuantityProperty of cmp: string
@@ -71,15 +71,15 @@ module Nutrion =
             (navigate :
                 {|
                     setRateMin : OrderLoader -> unit
-                    setRateDec : int -> OrderLoader -> unit
+                    setRateDec : int * bool -> OrderLoader -> unit
                     setRateMed : OrderLoader -> unit
-                    setRateInc : int -> OrderLoader -> unit
+                    setRateInc : int * bool -> OrderLoader -> unit
                     setRateMax : OrderLoader -> unit
 
                     setComponentQtyMin : OrderLoader -> unit
-                    setComponentQtyDec : int -> OrderLoader -> unit
+                    setComponentQtyDec : int * bool -> OrderLoader -> unit
                     setComponentQtyMed : OrderLoader -> unit
-                    setComponentQtyInc : int -> OrderLoader  -> unit
+                    setComponentQtyInc : int * bool -> OrderLoader  -> unit
                     setComponentQtyMax : OrderLoader -> unit
                 |})
             (msg: Msg)
@@ -201,16 +201,16 @@ module Nutrion =
 
             // Rate navigation
             | SetMinDoseRateProperty -> handleNav navigate.setRateMin
-            | DecreaseDoseRateProperty n -> handleNav (navigate.setRateDec n)
+            | DecreaseDoseRateProperty (n, uc) -> handleNav (navigate.setRateDec (n, uc))
             | SetMedianDoseRateProperty -> handleNav navigate.setRateMed
-            | IncreaseDoseRateProperty n -> handleNav (navigate.setRateInc n)
+            | IncreaseDoseRateProperty (n, uc) -> handleNav (navigate.setRateInc (n, uc))
             | SetMaxDoseRateProperty -> handleNav navigate.setRateMax
 
             // Component Quantity navigation
             | SetMinComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMin
-            | DecreaseComponentQuantityProperty (cmp, n) -> handleNavWithCmp cmp (navigate.setComponentQtyDec n)
+            | DecreaseComponentQuantityProperty (cmp, n, uc) -> handleNavWithCmp cmp (navigate.setComponentQtyDec (n, uc))
             | SetMedianComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMed
-            | IncreaseComponentQuantityProperty (cmp, n) -> handleNavWithCmp cmp (navigate.setComponentQtyInc n)
+            | IncreaseComponentQuantityProperty (cmp, n, uc) -> handleNavWithCmp cmp (navigate.setComponentQtyInc (n, uc))
             | SetMaxComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMax
 
 
@@ -275,7 +275,7 @@ module Nutrion =
                     nav updCtx
 
             let createWithN nav =
-                fun n (ol : OrderLoader) ->
+                fun (n, uc) (ol : OrderLoader) ->
                     let updCtx =
                         { ctx with
                             Scenarios =
@@ -291,7 +291,7 @@ module Nutrion =
                                         }
                                 )
                         }
-                    nav (updCtx, n)
+                    nav (updCtx, n, uc)
 
             let createWithCmp nav =
                 fun (ol : OrderLoader) ->
@@ -316,7 +316,7 @@ module Nutrion =
                         nav (updCtx, cmp)
 
             let createWithCmpN nav =
-                fun n (ol : OrderLoader) ->
+                fun (n, uc) (ol : OrderLoader) ->
                     match ol.Component with
                     | None -> ()
                     | Some cmp ->
@@ -335,12 +335,12 @@ module Nutrion =
                                             }
                                     )
                             }
-                        nav (updCtx, cmp, n)
+                        nav (updCtx, cmp, n, uc)
 
             let navRate cmd = fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, cmd, updCtx) |> props.nutritionPlanMsg
-            let navRateN cmd = fun (updCtx, n) -> Api.NavigateNutritionOrderContext(props.plan, cmd n, updCtx) |> props.nutritionPlanMsg
+            let navRateN cmd = fun (updCtx, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, cmd (n, uc), updCtx) |> props.nutritionPlanMsg
             let navCmpQty cmd = fun (updCtx, cmp) -> Api.NavigateNutritionOrderContext(props.plan, cmd cmp, updCtx) |> props.nutritionPlanMsg
-            let navCmpQtyN cmd = fun (updCtx, cmp, n) -> Api.NavigateNutritionOrderContext(props.plan, cmd (cmp, n), updCtx) |> props.nutritionPlanMsg
+            let navCmpQtyN cmd = fun (updCtx, cmp, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, cmd (cmp, n, uc), updCtx) |> props.nutritionPlanMsg
 
             {|
                 // Dose Rate
@@ -396,9 +396,9 @@ module Nutrion =
                             let cmpName = cmp.Name
                             ViewHelpers.createNav dispatch navigable solved
                                 (SetMinComponentQuantityProperty cmpName)
-                                (fun n -> DecreaseComponentQuantityProperty (cmpName, n))
+                                (fun (n, uc) -> DecreaseComponentQuantityProperty (cmpName, n, uc))
                                 (SetMedianComponentQuantityProperty cmpName)
-                                (fun n -> IncreaseComponentQuantityProperty (cmpName, n))
+                                (fun (n, uc) -> IncreaseComponentQuantityProperty (cmpName, n, uc))
                                 (SetMaxComponentQuantityProperty cmpName)
 
                     let qtyWarning = cmp.OrderableQuantity.Level |> getWarning
@@ -409,7 +409,7 @@ module Nutrion =
                         |> Option.defaultValue cmp.Name
 
                     let qtyControl =
-                        select isLoading qtyLabel None (fun s -> ChangeComponentOrderableQuantity (cmp.Name, s) |> dispatch) nav false qtyWarning qtyVals
+                        select isLoading qtyLabel None (fun s -> ChangeComponentOrderableQuantity (cmp.Name, s) |> dispatch) nav false qtyWarning (Some 400) qtyVals
 
                     // Dose display (dosering) - always show with label
                     let doseLabel =
@@ -425,7 +425,7 @@ module Nutrion =
                         |> Option.defaultValue [||]
 
                     let doseDisplay =
-                        select false doseLabel None ignore None true doseWarning doseVals
+                        select false doseLabel None ignore None true doseWarning (Some 400) doseVals
 
                     let halfSize = {| xs = 12; md = 6 |}
                     let cellSx = {| minWidth = 350 |}
@@ -448,7 +448,7 @@ module Nutrion =
                     """
                 )
             | None ->
-                [| select true "" None ignore None false None [||] |]
+                [| ViewHelpers.empty |]
 
         let totalDoseRow =
             match state.Order with
@@ -464,9 +464,9 @@ module Nutrion =
                     |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                     |> Option.defaultValue [||]
 
-                select false label None ignore None true warning vals
+                select false label None ignore None true warning (Some 400) vals
             | None ->
-                select true "" None ignore None false None [||]
+                ViewHelpers.empty
 
         let rateControl =
             match state.Order with
@@ -496,9 +496,9 @@ module Nutrion =
                     | "" -> [||]
                     | s -> [| "range", s |]
                 )
-                |> select isLoading label None (ChangeOrderableDoseRate >> dispatch) nav false warning
+                |> select isLoading label None (ChangeOrderableDoseRate >> dispatch) nav false warning (Some 400)
             | None ->
-                select true "" None ignore None false None [||]
+                ViewHelpers.empty
 
         let totalVolumeDisplay =
             match state.Order with
@@ -512,9 +512,9 @@ module Nutrion =
                 ord.Orderable.OrderableQuantity.Variable.Vals
                 |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                 |> Option.defaultValue [||]
-                |> select false label None ignore None true warning
+                |> select false label None ignore None true warning (Some 400)
             | None ->
-                select true "" None ignore None false None [||]
+                ViewHelpers.empty
 
         let onClickReset =
             fun () -> ResetOrderScenario |> dispatch
@@ -651,7 +651,7 @@ module Nutrion =
                     }
                 </Stack>
                 """
-            | _ -> JSX.jsx $"<></>"
+            | _ -> ViewHelpers.empty
 
         JSX.jsx
             $"""

@@ -835,12 +835,12 @@ module OrderContext =
         | OrderContext.SetMinOrderableDoseRateProperty ctx
         | OrderContext.SetMaxOrderableDoseRateProperty ctx
         | OrderContext.SetMedianOrderableDoseRateProperty ctx -> ctx
-        | OrderContext.DecreaseOrderableDoseQuantityProperty (ctx, _)
-        | OrderContext.IncreaseOrderableDoseQuantityProperty (ctx, _)
-        | OrderContext.DecreaseOrderableDoseRateProperty (ctx, _)
-        | OrderContext.IncreaseOrderableDoseRateProperty (ctx, _) -> ctx
-        | OrderContext.DecreaseComponentQuantityProperty (ctx, _, _)
-        | OrderContext.IncreaseComponentQuantityProperty (ctx, _, _) -> ctx
+        | OrderContext.DecreaseOrderableDoseQuantityProperty (ctx, _, _)
+        | OrderContext.IncreaseOrderableDoseQuantityProperty (ctx, _, _)
+        | OrderContext.DecreaseOrderableDoseRateProperty (ctx, _, _)
+        | OrderContext.IncreaseOrderableDoseRateProperty (ctx, _, _) -> ctx
+        | OrderContext.DecreaseComponentQuantityProperty (ctx, _, _, _)
+        | OrderContext.IncreaseComponentQuantityProperty (ctx, _, _, _) -> ctx
         | OrderContext.SetMinComponentQuantityProperty (ctx, _)
         | OrderContext.SetMaxComponentQuantityProperty (ctx, _)
         | OrderContext.SetMedianComponentQuantityProperty (ctx, _) -> ctx
@@ -868,20 +868,20 @@ module OrderContext =
             | Api.SetMaxScheduleFrequencyProperty -> serverCtx |> OrderContext.SetMaxScheduleFrequencyProperty
             | Api.SetMedianScheduleFrequencyProperty -> serverCtx |> OrderContext.SetMedianScheduleFrequencyProperty
             // DoseQuantity property commands
-            | Api.DecreaseOrderableDoseQuantityProperty ntimes -> OrderContext.DecreaseOrderableDoseQuantityProperty (serverCtx, ntimes)
-            | Api.IncreaseOrderableDoseQuantityProperty ntimes -> OrderContext.IncreaseOrderableDoseQuantityProperty (serverCtx, ntimes)
+            | Api.DecreaseOrderableDoseQuantityProperty (ntimes, useCalc) -> OrderContext.DecreaseOrderableDoseQuantityProperty (serverCtx, ntimes, useCalc)
+            | Api.IncreaseOrderableDoseQuantityProperty (ntimes, useCalc) -> OrderContext.IncreaseOrderableDoseQuantityProperty (serverCtx, ntimes, useCalc)
             | Api.SetMinOrderableDoseQuantityProperty -> OrderContext.SetMinOrderableDoseQuantityProperty serverCtx
             | Api.SetMaxOrderableDoseQuantityProperty -> OrderContext.SetMaxOrderableDoseQuantityProperty serverCtx
             | Api.SetMedianOrderableDoseQuantityProperty -> OrderContext.SetMedianOrderableDoseQuantityProperty serverCtx
             // DoseRate property commands
-            | Api.DecreaseOrderableDoseRateProperty ntimes -> OrderContext.DecreaseOrderableDoseRateProperty (serverCtx, ntimes)
-            | Api.IncreaseOrderableDoseRateProperty ntimes -> OrderContext.IncreaseOrderableDoseRateProperty (serverCtx, ntimes)
+            | Api.DecreaseOrderableDoseRateProperty (ntimes, useCalc) -> OrderContext.DecreaseOrderableDoseRateProperty (serverCtx, ntimes, useCalc)
+            | Api.IncreaseOrderableDoseRateProperty (ntimes, useCalc) -> OrderContext.IncreaseOrderableDoseRateProperty (serverCtx, ntimes, useCalc)
             | Api.SetMinOrderableDoseRateProperty -> serverCtx |> OrderContext.SetMinOrderableDoseRateProperty
             | Api.SetMaxOrderableDoseRateProperty -> serverCtx |> OrderContext.SetMaxOrderableDoseRateProperty
             | Api.SetMedianOrderableDoseRateProperty -> serverCtx |> OrderContext.SetMedianOrderableDoseRateProperty
             // Component Quantity property commands
-            | Api.DecreaseComponentOrderableQuantityProperty (cmp, ntimes) -> OrderContext.DecreaseComponentQuantityProperty (serverCtx, cmp, ntimes)
-            | Api.IncreaseComponentOrderableQuantityProperty (cmp, ntimes) -> OrderContext.IncreaseComponentQuantityProperty (serverCtx, cmp, ntimes)
+            | Api.DecreaseComponentOrderableQuantityProperty (cmp, ntimes, useCalc) -> OrderContext.DecreaseComponentQuantityProperty (serverCtx, cmp, ntimes, useCalc)
+            | Api.IncreaseComponentOrderableQuantityProperty (cmp, ntimes, useCalc) -> OrderContext.IncreaseComponentQuantityProperty (serverCtx, cmp, ntimes, useCalc)
             | Api.SetMinComponentOrderableQuantityProperty cmp -> OrderContext.SetMinComponentQuantityProperty (serverCtx, cmp)
             | Api.SetMaxComponentOrderableQuantityProperty cmp -> OrderContext.SetMaxComponentQuantityProperty (serverCtx, cmp)
             | Api.SetMedianComponentOrderableQuantityProperty cmp -> OrderContext.SetMedianComponentQuantityProperty (serverCtx, cmp)
@@ -1023,7 +1023,7 @@ module NutritionPlan =
 
 
     let updateNutritionOrderContext logger provider (plan: NutritionPlan, ctx: OrderContext) : Result<NutritionPlan, string[]> =
-        match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
+        match OrderContext.evaluate logger provider Api.UpdateOrderScenario ctx with
         | Ok resolved ->
             let updatedContexts =
                 plan.NutritionContexts

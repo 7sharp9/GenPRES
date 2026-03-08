@@ -89,7 +89,7 @@ module Prescribe =
 
         let progress =
             match props.orderContext with
-            | Resolved _ -> JSX.jsx $"<></>"
+            | Resolved _ -> ViewHelpers.empty
             | HasNotStartedYet -> JSX.jsx $"<>Voer eerst patient gegevens in</>"
             | _ ->
                 JSX.jsx
@@ -124,7 +124,7 @@ module Prescribe =
 
 
         let displayScenario (pr : OrderContext) med (sc : OrderScenario) =
-            if med |> Option.isNone then JSX.jsx $"""<></>"""
+            if med |> Option.isNone then ViewHelpers.empty
             else
                 let caption =
                     let renal =
@@ -367,7 +367,7 @@ module Prescribe =
                             |> fun (isLoading, sel, items) ->
                                 let lbl = "Vorm"
 
-                                if items |> Array.isEmpty then JSX.jsx $"<></>"
+                                if items |> Array.isEmpty then ViewHelpers.empty
                                 else
                                     if isMobile then
                                         items
@@ -395,7 +395,7 @@ module Prescribe =
                                     |> Array.map (fun s -> s, s)
                                     |> select false lbl sel diluentChange
 
-                            | _ -> JSX.jsx $"<></>"
+                            | _ -> ViewHelpers.empty
                         }
                         {
                             match props.orderContext with
@@ -415,7 +415,7 @@ module Prescribe =
                                     |> Array.map (fun s -> s, s)
                                     |> multiSelect false lbl sel componentsChange
 
-                            | _ -> JSX.jsx $"<></>"
+                            | _ -> ViewHelpers.empty
                         }
                         {
                             match props.orderContext with
@@ -431,7 +431,7 @@ module Prescribe =
                                     |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
                                     |> select isLoading lbl sel doseTypeChange
 
-                            | _ -> JSX.jsx $"<></>"
+                            | _ -> ViewHelpers.empty
                         }
                     </Stack>
                     <Box sx={ {| mt=2 |} }>
@@ -481,21 +481,21 @@ module Prescribe =
                                 setMaxFrequency = fun ctx -> props.orderContextMsg (Api.SetMaxScheduleFrequencyProperty, ctx)
                                 // Rate
                                 setMinRate = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseRateProperty, ctx)
-                                decrRate = fun (ctx, n) -> props.orderContextMsg (Api.DecreaseOrderableDoseRateProperty n, ctx)
+                                decrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseRateProperty (n, uc), ctx)
                                 setMedianRate = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseRateProperty, ctx)
-                                incrRate = fun (ctx, n) -> props.orderContextMsg (Api.IncreaseOrderableDoseRateProperty n, ctx)
+                                incrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseRateProperty (n, uc), ctx)
                                 setMaxRate = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseRateProperty, ctx)
                                 // Dose Quantity
                                 setMinDoseQty = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseQuantityProperty, ctx)
-                                decrDoseQty = fun (ctx, n) -> props.orderContextMsg (Api.DecreaseOrderableDoseQuantityProperty n, ctx)
+                                decrDoseQty = fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseQuantityProperty (n, uc), ctx)
                                 setMedianDoseQty = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseQuantityProperty, ctx)
-                                incrDoseQty = fun (ctx, n) -> props.orderContextMsg (Api.IncreaseOrderableDoseQuantityProperty n, ctx)
+                                incrDoseQty = fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseQuantityProperty (n, uc), ctx)
                                 setMaxDoseQty = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseQuantityProperty, ctx)
                                 // Component Quantity
                                 setMinComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMinComponentOrderableQuantityProperty cmp, ctx)
-                                decrComponentQty = fun (ctx, cmp, n) -> props.orderContextMsg (Api.DecreaseComponentOrderableQuantityProperty (cmp, n), ctx)
+                                decrComponentQty = fun (ctx, cmp, n, uc) -> props.orderContextMsg (Api.DecreaseComponentOrderableQuantityProperty (cmp, n, uc), ctx)
                                 setMedianComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMedianComponentOrderableQuantityProperty cmp, ctx)
-                                incrComponentQty = fun (ctx, cmp, n) -> props.orderContextMsg (Api.IncreaseComponentOrderableQuantityProperty (cmp, n), ctx)
+                                incrComponentQty = fun (ctx, cmp, n, uc) -> props.orderContextMsg (Api.IncreaseComponentOrderableQuantityProperty (cmp, n, uc), ctx)
                                 setMaxComponentQty = fun (ctx, cmp) -> props.orderContextMsg (Api.SetMaxComponentOrderableQuantityProperty cmp, ctx)
                             |}
                             refreshOrderScenario = fun ctx -> props.orderContextMsg (Api.ResetOrderScenario, ctx)

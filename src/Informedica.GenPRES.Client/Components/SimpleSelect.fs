@@ -16,16 +16,18 @@ module SimpleSelect =
                 selected : string option
                 values : (string * string) []
                 updateSelected : string option -> unit
-                navigate : {| 
-                    first : (unit -> unit) option
-                    decrease : (unit -> unit) option
-                    median : (unit -> unit) option 
-                    increase : (unit -> unit) option
-                    last : (unit -> unit) option
+                navigate : {|
+                    first : (int -> unit) option
+                    decrease : (int -> unit) option
+                    median : (unit -> unit) option
+                    increase : (int -> unit) option
+                    last : (int -> unit) option
+                    useDebounce : bool
                 |} option
                 isLoading : bool
                 hasClear : bool
                 warning : string option
+                minWidth : int option
             |}
         ) =
 
@@ -76,14 +78,80 @@ module SimpleSelect =
             alignItems = "center"
         |}
 
-        let navigation = 
+        let navigation =
             props.navigate
             |> Option.map (fun nav ->
                 let getNav prop =
                     match prop with
-                    | Some onClick -> false, onClick  
+                    | Some onClick -> false, onClick
                     | None -> true, fun () -> ()
-                    
+
+                let getNavN prop =
+                    match prop with
+                    | Some onClick -> false, onClick
+                    | None -> true, fun (_: int) -> ()
+
+                let firstDisabled, firstClick = nav.first |> getNavN
+                let decreaseDisabled, decreaseClick = nav.decrease |> getNavN
+                let increaseDisabled, increaseClick = nav.increase |> getNavN
+                let lastDisabled, lastClick = nav.last |> getNavN
+
+                let firstButton =
+                    if nav.useDebounce then
+                        ClickCountingButton.View({|
+                            disabled = firstDisabled
+                            onClick = firstClick
+                            icon = Mui.Icons.FirstPageIcon
+                        |})
+                    else
+                        JSX.jsx
+                            $"""
+                        import IconButton from "@mui/material/IconButton";
+                        <IconButton disabled={firstDisabled} onClick={fun _ -> firstClick 1} >{Mui.Icons.FirstPageIcon}</IconButton>
+                        """
+
+                let decreaseButton =
+                    if nav.useDebounce then
+                        ClickCountingButton.View({|
+                            disabled = decreaseDisabled
+                            onClick = decreaseClick
+                            icon = Mui.Icons.SkipPreviousIcon
+                        |})
+                    else
+                        JSX.jsx
+                            $"""
+                        import IconButton from "@mui/material/IconButton";
+                        <IconButton disabled={decreaseDisabled} onClick={fun _ -> decreaseClick 1} >{Mui.Icons.SkipPreviousIcon}</IconButton>
+                        """
+
+                let increaseButton =
+                    if nav.useDebounce then
+                        ClickCountingButton.View({|
+                            disabled = increaseDisabled
+                            onClick = increaseClick
+                            icon = Mui.Icons.SkipNextIcon
+                        |})
+                    else
+                        JSX.jsx
+                            $"""
+                        import IconButton from "@mui/material/IconButton";
+                        <IconButton disabled={increaseDisabled} onClick={fun _ -> increaseClick 1} >{Mui.Icons.SkipNextIcon}</IconButton>
+                        """
+
+                let lastButton =
+                    if nav.useDebounce then
+                        ClickCountingButton.View({|
+                            disabled = lastDisabled
+                            onClick = lastClick
+                            icon = Mui.Icons.LastPageIcon
+                        |})
+                    else
+                        JSX.jsx
+                            $"""
+                        import IconButton from "@mui/material/IconButton";
+                        <IconButton disabled={lastDisabled} onClick={fun _ -> lastClick 1} >{Mui.Icons.LastPageIcon}</IconButton>
+                        """
+
                 JSX.jsx
                     $"""
                 import IconButton from "@mui/material/IconButton";
@@ -93,13 +161,13 @@ module SimpleSelect =
                 sx={navigationSx}
                 >
                 <ButtonGroup variant="text" aria-label="navigation button group">
-                    <IconButton disabled={nav.first |> getNav |> fst} onClick={fun _ -> (nav.first |> getNav |> snd) ()} >{Mui.Icons.FirstPageIcon}</IconButton>
-                    <IconButton disabled={nav.decrease |> getNav |> fst} onClick={fun _ -> (nav.decrease |>getNav |> snd) () } >{Mui.Icons.SkipPreviousIcon}</IconButton>
+                    {firstButton}
+                    {decreaseButton}
                     <IconButton disabled={nav.median |> getNav |> fst} onClick={fun _ -> (nav.median |> getNav |> snd) ()} >{Mui.Icons.PauseIcon}</IconButton>
-                    <IconButton disabled={nav.increase |> getNav |> fst} onClick={fun _ -> (nav.increase |> getNav |> snd) ()} >{Mui.Icons.SkipNextIcon}</IconButton>
-                    <IconButton disabled={nav.last |> getNav |> fst} onClick={fun _ -> (nav.last |> getNav |> snd) ()} >{Mui.Icons.LastPageIcon}</IconButton>
+                    {increaseButton}
+                    {lastButton}
                 </ButtonGroup>
-                </Box>            
+                </Box>
                 """
             )
 
@@ -111,8 +179,11 @@ module SimpleSelect =
         let hasNavigation =
             props.navigate
             |> Option.map (fun nav ->
-                [nav.first; nav.decrease; nav.median; nav.increase; nav.last]
-                |> List.exists Option.isSome
+                nav.first.IsSome ||
+                nav.decrease.IsSome ||
+                nav.median.IsSome ||
+                nav.increase.IsSome ||
+                nav.last.IsSome
             )
             |> Option.defaultValue false
 
@@ -165,7 +236,7 @@ module SimpleSelect =
         import FormControl from '@mui/material/FormControl';
         import Select from '@mui/material/Select';
 
-        <FormControl variant="standard" sx={ {| minWidth = 400 |} }>
+        <FormControl variant="standard" sx={ {| minWidth = props.minWidth |> Option.defaultValue 150; maxWidth = 400 |} }>
             <InputLabel id={props.label}>{props.label}</InputLabel>
             <Select
             labelId={props.label}

@@ -484,18 +484,20 @@ module Order =
                 let n =
                     if not useCalc then n
                     else
-                        match
-                            dos.Rate
-                            |> Rate.toOrdVar
-                            |> _.CalculatedConstraints
-                            |> _.Incr with
-                        | Some incr ->
-                            let vu = incr |> Increment.toValueUnit
-                            let dr =
-                                Units.Volume.milliLiter |> Units.per Units.Time.hour
-                                |> ValueUnit.singleWithValue (1N / 10N)
-                            if vu = dr then 10 else 1
-                        | None -> 1
+                        let mult =
+                            match
+                                dos.Rate
+                                |> Rate.toOrdVar
+                                |> _.CalculatedConstraints
+                                |> _.Incr with
+                            | Some incr ->
+                                let vu = incr |> Increment.toValueUnit
+                                let dr =
+                                    Units.Volume.milliLiter |> Units.per Units.Time.hour
+                                    |> ValueUnit.singleWithValue (1N / 10N)
+                                if vu = dr then 10 else 1
+                            | None -> 1
+                        n * mult
 
                 { (dos |> inf) with
                     Rate = dos.Rate |> step useCalc n

@@ -170,6 +170,7 @@ module Patient =
                 isLoading = false
                 hasClear = true
                 warning = None
+                minWidth = None
             |})
 
         let wghts =

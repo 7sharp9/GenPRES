@@ -18,6 +18,7 @@ module ViewHelpers =
             hasClear = true
             navigate = None
             warning = None
+            minWidth = None
         |})
 
 
@@ -29,6 +30,9 @@ module ViewHelpers =
         | IsAlert -> Some Mui.Colors.Red.``700``
 
 
+    let empty = JSX.jsx $"<></>"
+
+
     let orderSelect
         isLoading
         lbl
@@ -37,10 +41,11 @@ module ViewHelpers =
         navigate
         hasClear
         warning
+        minWidth
         xs =
 
         if xs |> Array.isEmpty && navigate |> Option.isNone then
-            JSX.jsx $"<></>"
+            empty
         else
             Components.SimpleSelect.View({|
                 updateSelected = updateSelected
@@ -53,33 +58,35 @@ module ViewHelpers =
                 hasClear = hasClear
                 warning = warning
                 navigate = navigate
+                minWidth = minWidth
             |})
 
 
     let createNav dispatch navigable solved
         setMin
-        decr
+        (decr : int * bool -> 'Msg)
         setMed
-        incr
+        (incr : int * bool -> 'Msg)
         setMax =
         {|
             first =
-                if navigable then (fun () -> setMin |> dispatch) |> Some
-                elif solved then (fun () -> 2 |> decr |> dispatch) |> Some
+                if navigable then (fun (_: int) -> setMin |> dispatch) |> Some
+                elif solved then (fun n -> (n, true) |> decr |> dispatch) |> Some
                 else None
             decrease =
-                if solved then (fun () -> 1 |> decr |> dispatch) |> Some
+                if solved then (fun n -> (n, false) |> decr |> dispatch) |> Some
                 else None
             median =
                 if navigable then (fun () -> setMed |> dispatch) |> Some
                 else None
             increase =
-                if solved then (fun () -> 1 |> incr |> dispatch) |> Some
+                if solved then (fun n -> (n, false) |> incr |> dispatch) |> Some
                 else None
             last =
-                if navigable then (fun () -> setMax |> dispatch) |> Some
-                elif solved then (fun () -> 2 |> incr |> dispatch) |> Some
+                if navigable then (fun (_: int) -> setMax |> dispatch) |> Some
+                elif solved then (fun n -> (n, true) |> incr |> dispatch) |> Some
                 else None
+            useDebounce = not navigable && solved
         |}
         |> Some
 
@@ -107,7 +114,7 @@ module ViewHelpers =
 
     let progressOrEmpty (deferred: Deferred<'a>) =
         match deferred with
-        | Resolved _ -> JSX.jsx $"<></>"
+        | Resolved _ -> empty
         | _ -> circularProgress
 
 
@@ -117,7 +124,7 @@ module ViewHelpers =
             top= "50%"
             left= "50%"
             transform= "translate(-50%, -50%)"
-            width= 400
+            width= 500
             bgcolor= "background.paper"
             boxShadow= 24
             borderRadius = "16px"

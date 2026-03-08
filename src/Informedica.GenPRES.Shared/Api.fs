@@ -26,21 +26,21 @@ module Api =
         | SetMinScheduleFrequencyProperty
         | SetMaxScheduleFrequencyProperty
         | SetMedianScheduleFrequencyProperty
-        // DoseQuantity property commands (ntimes = number of times to adjust)
-        | DecreaseOrderableDoseQuantityProperty of ntimes: int
-        | IncreaseOrderableDoseQuantityProperty of ntimes: int
+        // DoseQuantity property commands (ntimes = number of times to adjust, useCalc = use calculated increment)
+        | DecreaseOrderableDoseQuantityProperty of ntimes: int * useCalc: bool
+        | IncreaseOrderableDoseQuantityProperty of ntimes: int * useCalc: bool
         | SetMinOrderableDoseQuantityProperty
         | SetMaxOrderableDoseQuantityProperty
         | SetMedianOrderableDoseQuantityProperty
-        // DoseRate property commands (ntimes = number of times to adjust)
-        | DecreaseOrderableDoseRateProperty of ntimes: int
-        | IncreaseOrderableDoseRateProperty of ntimes: int
+        // DoseRate property commands (ntimes = number of times to adjust, useCalc = use calculated increment)
+        | DecreaseOrderableDoseRateProperty of ntimes: int * useCalc: bool
+        | IncreaseOrderableDoseRateProperty of ntimes: int * useCalc: bool
         | SetMinOrderableDoseRateProperty
         | SetMaxOrderableDoseRateProperty
         | SetMedianOrderableDoseRateProperty
-        // Component Quantity property commands (cmp = component, ntimes = number of times to adjust)
-        | DecreaseComponentOrderableQuantityProperty of cmp: string * ntimes: int
-        | IncreaseComponentOrderableQuantityProperty of cmp: string * ntimes: int
+        // Component Quantity property commands (cmp = component, ntimes = number of times to adjust, useCalc = use calculated increment)
+        | DecreaseComponentOrderableQuantityProperty of cmp: string * ntimes: int * useCalc: bool
+        | IncreaseComponentOrderableQuantityProperty of cmp: string * ntimes: int * useCalc: bool
         | SetMinComponentOrderableQuantityProperty of cmp: string
         | SetMaxComponentOrderableQuantityProperty of cmp: string
         | SetMedianComponentOrderableQuantityProperty of cmp: string
@@ -87,18 +87,18 @@ module Api =
             | OrderContextCmd (SetMinScheduleFrequencyProperty, _) -> "SetMinScheduleFrequencyProperty"
             | OrderContextCmd (SetMaxScheduleFrequencyProperty, _) -> "SetMaxScheduleFrequencyProperty"
             | OrderContextCmd (SetMedianScheduleFrequencyProperty, _) -> "SetMedianScheduleFrequencyProperty"
-            | OrderContextCmd (DecreaseOrderableDoseQuantityProperty ntimes, _) -> $"DecreaseOrderableDoseQuantityProperty ntimes={ntimes}"
-            | OrderContextCmd (IncreaseOrderableDoseQuantityProperty ntimes, _) -> $"IncreaseOrderableDoseQuantityProperty ntimes={ntimes}"
+            | OrderContextCmd (DecreaseOrderableDoseQuantityProperty (ntimes, useCalc), _) -> $"DecreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
+            | OrderContextCmd (IncreaseOrderableDoseQuantityProperty (ntimes, useCalc), _) -> $"IncreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
             | OrderContextCmd (SetMinOrderableDoseQuantityProperty, _) -> "SetMinOrderableDoseQuantityProperty"
             | OrderContextCmd (SetMaxOrderableDoseQuantityProperty, _) -> "SetMaxOrderableDoseQuantityProperty"
             | OrderContextCmd (SetMedianOrderableDoseQuantityProperty, _) -> "SetMedianOrderableDoseQuantityProperty"
-            | OrderContextCmd (DecreaseOrderableDoseRateProperty ntimes, _) -> $"DecreaseOrderableDoseRateProperty ntimes={ntimes}"
-            | OrderContextCmd (IncreaseOrderableDoseRateProperty ntimes, _) -> $"IncreaseOrderableDoseRateProperty ntimes={ntimes}"
+            | OrderContextCmd (DecreaseOrderableDoseRateProperty (ntimes, useCalc), _) -> $"DecreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
+            | OrderContextCmd (IncreaseOrderableDoseRateProperty (ntimes, useCalc), _) -> $"IncreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
             | OrderContextCmd (SetMinOrderableDoseRateProperty, _) -> "SetMinOrderableDoseRateProperty"
             | OrderContextCmd (SetMaxOrderableDoseRateProperty, _) -> "SetMaxOrderableDoseRateProperty"
             | OrderContextCmd (SetMedianOrderableDoseRateProperty, _) -> "SetMedianOrderableDoseRateProperty"
-            | OrderContextCmd (DecreaseComponentOrderableQuantityProperty (cmp, ntimes), _) -> $"DecreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes}"
-            | OrderContextCmd (IncreaseComponentOrderableQuantityProperty (cmp, ntimes), _) -> $"IncreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes}"
+            | OrderContextCmd (DecreaseComponentOrderableQuantityProperty (cmp, ntimes, useCalc), _) -> $"DecreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
+            | OrderContextCmd (IncreaseComponentOrderableQuantityProperty (cmp, ntimes, useCalc), _) -> $"IncreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
             | OrderContextCmd (SetMinComponentOrderableQuantityProperty cmp, _) -> $"SetMinComponentQuantityProperty cmp={cmp}"
             | OrderContextCmd (SetMaxComponentOrderableQuantityProperty cmp, _) -> $"SetMaxComponentQuantityProperty cmp={cmp}"
             | OrderContextCmd (SetMedianComponentOrderableQuantityProperty cmp, _) -> $"SetMedianComponentQuantityProperty cmp={cmp}"

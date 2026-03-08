@@ -292,7 +292,7 @@ module Formulary =
                                         |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
                                         |> select isLoading lbl sel (DoseTypeChange >> dispatch)
 
-                            | _ -> JSX.jsx $"<></>"
+                            | _ -> ViewHelpers.empty
 
                         }
                     </Stack>
