@@ -1,6 +1,6 @@
 namespace Views
 
-module Intake =
+module Totals =
 
 
     open Fable.Core

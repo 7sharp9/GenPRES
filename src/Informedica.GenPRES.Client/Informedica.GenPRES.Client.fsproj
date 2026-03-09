@@ -32,7 +32,7 @@
     <Compile Include="./Views/Order.fs" />
     <Compile Include="./Views/EmergencyList.fs" />
     <Compile Include="./Views/ContinuousMeds.fs" />
-    <Compile Include="./Views/Intake.fs" />
+    <Compile Include="./Views/Totals.fs" />
     <Compile Include="./Views/Prescribe.fs" />
     <Compile Include="./Views/Nutrition.fs" />
     <Compile Include="./Views/TreatmentPlan.fs" />

@@ -292,17 +292,17 @@ module GenPres =
                             | Global.Pages.Prescribe ->
                                 match props.orderContext with
                                 | Resolved pr ->
-                                    Views.Intake.View {| intake = pr.Intake |}
+                                    Views.Totals.View {| intake = pr.Intake |}
                                 | _ -> JSX.jsx "<></>"
                             | Global.Pages.Nutrition ->
                                 match props.nutritionPlan with
                                 | Resolved np ->
-                                    Views.Intake.View {| intake = np.Totals |}
+                                    Views.Totals.View {| intake = np.Totals |}
                                 | _ -> JSX.jsx "<></>"
                             | Global.Pages.TreatmentPlan ->
                                 match props.treatmentPlan with
                                 | Resolved tp ->
-                                    Views.Intake.View {| intake = tp.Totals |}
+                                    Views.Totals.View {| intake = tp.Totals |}
                                 | _ -> JSX.jsx "<></>"
                             | _ -> JSX.jsx "<></>"
                         }
