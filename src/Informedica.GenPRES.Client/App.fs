@@ -886,9 +886,9 @@ let View () =
     let sx =
         if isMobile
         then
-            {| height= "100vh"; overflowY = "hidden"; mb=5 |}
+            {| height= "100vh"; overflowY = "hidden"; mb=5; zoom = 0.8 |}
         else
-            {| height= "100vh"; overflowY = "hidden"; mb=0 |}
+            {| height= "100vh"; overflowY = "hidden"; mb=0; zoom = 0.8 |}
 
     let theme = if isMobile then mobile else theme
 
