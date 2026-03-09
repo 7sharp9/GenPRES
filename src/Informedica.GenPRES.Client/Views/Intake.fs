@@ -9,10 +9,21 @@ module Intake =
     open Types
 
 
-    let private rows1 = Shared.Models.Totals.intakeRows1
-    let private rows2 = Shared.Models.Totals.intakeRows2
-    let private rows3 = Shared.Models.Totals.intakeRows3
-    let private rows4 = Shared.Models.Totals.intakeRows4
+    let private rows = Shared.Models.Totals.intakeRows
+
+
+    let private splitIntoColumns maxCols (arr: 'a[]) =
+        let n = arr.Length
+        if n = 0 then [||]
+        else
+            let cols = min n maxCols
+            let colSize = (n + cols - 1) / cols
+            [|
+                for c in 0 .. cols - 1 do
+                    let start = c * colSize
+                    let stop = min (start + colSize - 1) (n - 1)
+                    if start < n then arr[start .. stop]
+            |]
 
 
     let private typoGraphy (items : TextItem[]) =
@@ -78,25 +89,21 @@ module Intake =
                 print name items
             )
 
-        let rows1, rows2, rows3, rows4 =
-            let map = mapRow props.intake
-            map rows1
-            ,
-            map rows2
-            ,
-            map rows3
-            ,
-            map rows4
+        let activeRows =
+            rows
+            |> Array.filter (fun cells ->
+                let name = cells |> Array.head
+                let items = Shared.Models.Totals.substanceToField props.intake name
+                items |> Array.length >= 2
+            )
 
-        let createTable n rows = $"table{n}", Components.BasicTable.View({| header = [||]; rows = rows |}) |> toReact
+        let columns = splitIntoColumns 3 activeRows
 
         let content =
-            [|
-                if rows1 |> Array.isEmpty |> not then createTable 1 rows1
-                if rows2 |> Array.isEmpty |> not then createTable 2 rows2
-                if rows3 |> Array.isEmpty |> not then createTable 3 rows3
-                if rows4 |> Array.isEmpty |> not then createTable 4 rows4
-            |]
+            columns
+            |> Array.mapi (fun i col ->
+                $"table{i + 1}", Components.BasicTable.View({| header = [||]; rows = mapRow props.intake col |}) |> toReact
+            )
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
