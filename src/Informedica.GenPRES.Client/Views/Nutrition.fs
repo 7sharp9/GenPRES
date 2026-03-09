@@ -37,6 +37,13 @@ module Nutrion =
             | SetMinDoseRateProperty
             | SetMaxDoseRateProperty
             | SetMedianDoseRateProperty
+            // Dose Quantity navigation
+            | ChangeOrderableDoseQuantity of string option
+            | DecreaseDoseQuantityProperty of ntimes: int * useCalc: bool
+            | IncreaseDoseQuantityProperty of ntimes: int * useCalc: bool
+            | SetMinDoseQuantityProperty
+            | SetMaxDoseQuantityProperty
+            | SetMedianDoseQuantityProperty
             // Component Quantity navigation (carries component name)
             | DecreaseComponentQuantityProperty of cmp: string * ntimes: int * useCalc: bool
             | IncreaseComponentQuantityProperty of cmp: string * ntimes: int * useCalc: bool
@@ -75,6 +82,12 @@ module Nutrion =
                     setRateMed : OrderLoader -> unit
                     setRateInc : int * bool -> OrderLoader -> unit
                     setRateMax : OrderLoader -> unit
+
+                    setDoseQtyMin : OrderLoader -> unit
+                    setDoseQtyDec : int * bool -> OrderLoader -> unit
+                    setDoseQtyMed : OrderLoader -> unit
+                    setDoseQtyInc : int * bool -> OrderLoader -> unit
+                    setDoseQtyMax : OrderLoader -> unit
 
                     setComponentQtyMin : OrderLoader -> unit
                     setComponentQtyDec : int * bool -> OrderLoader -> unit
@@ -199,12 +212,38 @@ module Nutrion =
                     { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
+            | ChangeOrderableDoseQuantity s ->
+                match state.Order with
+                | Some ord ->
+                    let msg =
+                        { ord with
+                            Orderable =
+                                { ord.Orderable with
+                                    Dose =
+                                        { ord.Orderable.Dose with
+                                            Quantity =
+                                                ord.Orderable.Dose.Quantity
+                                                |> setOvar s
+                                        }
+                                }
+                        }
+                        |> UpdateOrderScenario
+                    { state with Order = None }, Cmd.ofMsg msg
+                | _ -> state, Cmd.none
+
             // Rate navigation
             | SetMinDoseRateProperty -> handleNav navigate.setRateMin
             | DecreaseDoseRateProperty (n, uc) -> handleNav (navigate.setRateDec (n, uc))
             | SetMedianDoseRateProperty -> handleNav navigate.setRateMed
             | IncreaseDoseRateProperty (n, uc) -> handleNav (navigate.setRateInc (n, uc))
             | SetMaxDoseRateProperty -> handleNav navigate.setRateMax
+
+            // Dose Quantity navigation
+            | SetMinDoseQuantityProperty -> handleNav navigate.setDoseQtyMin
+            | DecreaseDoseQuantityProperty (n, uc) -> handleNav (navigate.setDoseQtyDec (n, uc))
+            | SetMedianDoseQuantityProperty -> handleNav navigate.setDoseQtyMed
+            | IncreaseDoseQuantityProperty (n, uc) -> handleNav (navigate.setDoseQtyInc (n, uc))
+            | SetMaxDoseQuantityProperty -> handleNav navigate.setDoseQtyMax
 
             // Component Quantity navigation
             | SetMinComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMin
@@ -349,6 +388,12 @@ module Nutrion =
                 setRateMed = create (navRate Api.SetMedianOrderableDoseRateProperty)
                 setRateInc = createWithN (navRateN Api.IncreaseOrderableDoseRateProperty)
                 setRateMax = create (navRate Api.SetMaxOrderableDoseRateProperty)
+                // Dose Quantity
+                setDoseQtyMin = create (navRate Api.SetMinOrderableDoseQuantityProperty)
+                setDoseQtyDec = createWithN (navRateN Api.DecreaseOrderableDoseQuantityProperty)
+                setDoseQtyMed = create (navRate Api.SetMedianOrderableDoseQuantityProperty)
+                setDoseQtyInc = createWithN (navRateN Api.IncreaseOrderableDoseQuantityProperty)
+                setDoseQtyMax = create (navRate Api.SetMaxOrderableDoseQuantityProperty)
                 // Component Quantity
                 setComponentQtyMin = createWithCmp (navCmpQty Api.SetMinComponentOrderableQuantityProperty)
                 setComponentQtyDec = createWithCmpN (navCmpQtyN Api.DecreaseComponentOrderableQuantityProperty)
@@ -462,10 +507,57 @@ module Nutrion =
                 let vals =
                     ord.Orderable.Dose.Quantity.Variable.Vals
                     |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                    |> Option.defaultValue [||]
+                    |> Option.defaultValue (
+                        match Order.Variable.renderValue 3 ord.Orderable.Dose.Quantity.Variable with
+                        | "" -> [||]
+                        | s -> [| "range", s |]
+                    )
+
+                let showNav =
+                    vals |> Array.length >= 1
+
+                let doseQtyNav =
+                    if not showNav then None
+                    else
+                        let canIncr =
+                            ord.Orderable.Components |> Array.length = 1 ||
+                            ord.Orderable.DoseCount.Variable.Vals
+                            |> Option.map (fun vu ->
+                                vu.Value
+                                |> Array.map snd
+                                |> Array.forall (fun v -> v > 1m)
+                            )
+                            |> Option.defaultValue false
+
+                        let solved = ord |> isSolved
+                        let navigable =
+                            ord.Orderable.Dose.Quantity
+                            |> OrderVariable.isNavigable
+
+                        {|
+                            first =
+                                if navigable then (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
+                                elif solved then (fun n -> (n, true) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            decrease =
+                                if solved then (fun n -> (n, false) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            median =
+                                if navigable then (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            increase =
+                                if solved && canIncr then (fun n -> (n, false) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            last =
+                                if navigable then (fun (_: int) -> SetMaxDoseQuantityProperty |> dispatch) |> Some
+                                elif solved && canIncr then (fun n -> (n, true) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            useDebounce = not navigable && solved
+                        |}
+                        |> Some
 
                 let qtyDisplay =
-                    select false label None ignore None true warning (Some 400) vals
+                    select isLoading label None (ChangeOrderableDoseQuantity >> dispatch) doseQtyNav false warning (Some 400) vals
 
                 let adjWarning = ord.Orderable.Dose.QuantityAdjust.Level |> getWarning
                 let adjLabel =
