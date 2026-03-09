@@ -23,8 +23,6 @@ At the start of each session, read these documents for full project context.
 ### Domain documentation
 
 @docs/domain/core-domain.md
-@docs/domain/genform-free-text-to-operational-rules.md
-@docs/domain/genorder-operational-rules-to-orders.md
 @docs/domain/gensolver-from-orders-to-quantitative-solutions.md
 
 ### Architecture and data

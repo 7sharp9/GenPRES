@@ -456,15 +456,50 @@ module Nutrion =
                 let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
                 let label =
                     ord.Orderable.Dose.Quantity.Variable.Vals
-                    |> Option.map (fun v -> $"totaal ({v.Unit})")
-                    |> Option.defaultValue "totaal"
+                    |> Option.map (fun v -> $"totaal dosering ({v.Unit})")
+                    |> Option.defaultValue "totaal dosering"
 
                 let vals =
                     ord.Orderable.Dose.Quantity.Variable.Vals
                     |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                     |> Option.defaultValue [||]
 
-                select false label None ignore None true warning (Some 400) vals
+                let qtyDisplay =
+                    select false label None ignore None true warning (Some 400) vals
+
+                let adjWarning = ord.Orderable.Dose.QuantityAdjust.Level |> getWarning
+                let adjLabel =
+                    ord.Orderable.Dose.QuantityAdjust.Variable.Vals
+                    |> Option.map (fun v -> $"totaal ({v.Unit})")
+                    |> Option.defaultValue "totaal"
+
+                let adjVals =
+                    ord.Orderable.Dose.QuantityAdjust.Variable.Vals
+                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
+                    |> Option.defaultValue [||]
+
+                let adjDisplay =
+                    select false adjLabel None ignore None true adjWarning (Some 400) adjVals
+
+                let halfSize = {| xs = 12; md = 6 |}
+                let cellSx = {| minWidth = 350 |}
+                JSX.jsx
+                    $"""
+                import Grid from '@mui/material/Grid';
+                import Box from '@mui/material/Box';
+                <Grid container spacing={{2}} alignItems="flex-end">
+                    <Grid size={halfSize}>
+                        <Box sx={cellSx}>
+                            {qtyDisplay}
+                        </Box>
+                    </Grid>
+                    <Grid size={halfSize}>
+                        <Box sx={cellSx}>
+                            {adjDisplay}
+                        </Box>
+                    </Grid>
+                </Grid>
+                """
             | None ->
                 ViewHelpers.empty
 
@@ -489,14 +524,49 @@ module Nutrion =
                     |> Option.map (fun v -> $"infuussnelheid ({v.Unit})")
                     |> Option.defaultValue "infuussnelheid"
 
-                ord.Orderable.Dose.Rate.Variable.Vals
-                |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                |> Option.defaultValue (
-                    match Order.Variable.renderValue 3 ord.Orderable.Dose.Rate.Variable with
-                    | "" -> [||]
-                    | s -> [| "range", s |]
-                )
-                |> select isLoading label None (ChangeOrderableDoseRate >> dispatch) nav false warning (Some 400)
+                let rateDisplay =
+                    ord.Orderable.Dose.Rate.Variable.Vals
+                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
+                    |> Option.defaultValue (
+                        match Order.Variable.renderValue 3 ord.Orderable.Dose.Rate.Variable with
+                        | "" -> [||]
+                        | s -> [| "range", s |]
+                    )
+                    |> select isLoading label None (ChangeOrderableDoseRate >> dispatch) nav false warning (Some 400)
+
+                let timeWarning = ord.Schedule.Time.Level |> getWarning
+                let timeLabel =
+                    ord.Schedule.Time.Variable.Vals
+                    |> Option.map (fun v -> $"looptijd ({v.Unit})")
+                    |> Option.defaultValue "looptijd"
+
+                let timeVals =
+                    ord.Schedule.Time.Variable.Vals
+                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
+                    |> Option.defaultValue [||]
+
+                let timeDisplay =
+                    select false timeLabel None ignore None true timeWarning (Some 400) timeVals
+
+                let halfSize = {| xs = 12; md = 6 |}
+                let cellSx = {| minWidth = 350 |}
+                JSX.jsx
+                    $"""
+                import Grid from '@mui/material/Grid';
+                import Box from '@mui/material/Box';
+                <Grid container spacing={{2}} alignItems="flex-end">
+                    <Grid size={halfSize}>
+                        <Box sx={cellSx}>
+                            {rateDisplay}
+                        </Box>
+                    </Grid>
+                    <Grid size={halfSize}>
+                        <Box sx={cellSx}>
+                            {timeDisplay}
+                        </Box>
+                    </Grid>
+                </Grid>
+                """
             | None ->
                 ViewHelpers.empty
 
@@ -554,10 +624,10 @@ module Nutrion =
                     |> React.fragment
                 }
                 <Divider />
-                {totalDoseRow}
-                {administrationDivider}
-                {rateControl}
                 {totalVolumeDisplay}
+                {administrationDivider}
+                {totalDoseRow}
+                {rateControl}
                 <Button
                     variant="outlined"
                     size="small"
