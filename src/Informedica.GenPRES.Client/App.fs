@@ -839,7 +839,18 @@ open Elmish
 
 [<Literal>]
 let private themeDef = """
-responsiveFontSizes(createTheme({ typography: { fontSize : 14, } }), { factor : 2 })
+responsiveFontSizes(createTheme({
+    typography: { fontSize: 12 },
+    spacing: 6,
+    components: {
+        MuiTable: { defaultProps: { size: 'medium' } },
+        MuiTextField: { defaultProps: { size: 'medium' } },
+        MuiButton: { defaultProps: { size: 'medium' } },
+        MuiIconButton: { defaultProps: { size: 'medium' } },
+        MuiToolbar: { defaultProps: { variant: 'dense' } },
+        MuiAutocomplete: { defaultProps: { size: 'medium' } },
+    }
+}), { factor: 2 })
 """
 
 
@@ -850,7 +861,18 @@ let private theme : obj = jsNative
 
 [<Literal>]
 let private mobileDef = """
-responsiveFontSizes(createTheme({ typography: { fontSize : 12, } }), { factor : 2 })
+responsiveFontSizes(createTheme({
+    typography: { fontSize: 10 },
+    spacing: 6,
+    components: {
+        MuiTable: { defaultProps: { size: 'small' } },
+        MuiTextField: { defaultProps: { size: 'small' } },
+        MuiButton: { defaultProps: { size: 'small' } },
+        MuiIconButton: { defaultProps: { size: 'small' } },
+        MuiToolbar: { defaultProps: { variant: 'dense' } },
+        MuiAutocomplete: { defaultProps: { size: 'small' } },
+    }
+}), { factor: 2 })
 """
 
 

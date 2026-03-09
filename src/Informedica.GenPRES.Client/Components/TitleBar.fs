@@ -100,7 +100,7 @@ module TitleBar =
                             { Mui.Icons.LocalHospital }
                         </IconButton>
                         <Menu
-                            sx={ {| mt="45px" |} }
+                            sx={ {| mt="40px" |} }
                             anchorEl={anchorElHosp}
                             anchorOrigin={ {| vertical="top"; horizontal="right" |} }
                             keepMounted
@@ -120,7 +120,7 @@ module TitleBar =
                             { Mui.Icons.Language }
                         </IconButton>
                         <Menu
-                            sx={ {| mt="45px" |} }
+                            sx={ {| mt="40px" |} }
                             anchorEl={anchorElLang}
                             anchorOrigin={ {| vertical="top"; horizontal="right" |} }
                             keepMounted
