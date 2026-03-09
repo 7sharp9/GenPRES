@@ -27,6 +27,7 @@ module Nutrion =
         type Msg =
             | ChangeComponent of string option
             | ChangeComponentOrderableQuantity of cmp: string * string option
+            | ChangeComponentDoseQuantityAdjust of cmp: string * string option
             | ChangeOrderableDoseRate of string option
             | ChangeOrderableQuantity of string option
             | UpdateOrderScenario of Order
@@ -167,6 +168,33 @@ module Nutrion =
                                                 { cmp with
                                                     OrderableQuantity =
                                                         cmp.OrderableQuantity |> setOvar s
+                                                }
+                                            else cmp
+                                        )
+                                }
+                        }
+                        |> UpdateOrderScenario
+
+                    { state with Order = None }, Cmd.ofMsg msg
+                | _ -> state, Cmd.none
+
+            | ChangeComponentDoseQuantityAdjust (cmpName, s) ->
+                match state.Order with
+                | Some ord ->
+                    let msg =
+                        { ord with
+                            Orderable =
+                                { ord.Orderable with
+                                    Components =
+                                        ord.Orderable.Components
+                                        |> Array.map (fun cmp ->
+                                            if cmp.Name = cmpName then
+                                                { cmp with
+                                                    Dose =
+                                                        { cmp.Dose with
+                                                            QuantityAdjust =
+                                                                cmp.Dose.QuantityAdjust |> setOvar s
+                                                        }
                                                 }
                                             else cmp
                                         )
@@ -470,7 +498,7 @@ module Nutrion =
                         |> Option.defaultValue [||]
 
                     let doseDisplay =
-                        select false doseLabel None ignore None true doseWarning (Some 400) doseVals
+                        select isLoading doseLabel None (fun s -> ChangeComponentDoseQuantityAdjust (cmp.Name, s) |> dispatch) None false doseWarning (Some 400) doseVals
 
                     let halfSize = {| xs = 12; md = 6 |}
                     let cellSx = {| minWidth = 350 |}
@@ -571,7 +599,7 @@ module Nutrion =
                     |> Option.defaultValue [||]
 
                 let adjDisplay =
-                    select false adjLabel None ignore None true adjWarning (Some 400) adjVals
+                    select false adjLabel None ignore None false adjWarning (Some 400) adjVals
 
                 let halfSize = {| xs = 12; md = 6 |}
                 let cellSx = {| minWidth = 350 |}
@@ -638,7 +666,7 @@ module Nutrion =
                     |> Option.defaultValue [||]
 
                 let timeDisplay =
-                    select false timeLabel None ignore None true timeWarning (Some 400) timeVals
+                    select false timeLabel None ignore None false timeWarning (Some 400) timeVals
 
                 let halfSize = {| xs = 12; md = 6 |}
                 let cellSx = {| minWidth = 350 |}
@@ -674,7 +702,7 @@ module Nutrion =
                 ord.Orderable.OrderableQuantity.Variable.Vals
                 |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                 |> Option.defaultValue [||]
-                |> select false label None ignore None true warning (Some 400)
+                |> select false label None ignore None false warning (Some 400)
             | None ->
                 ViewHelpers.empty
 
