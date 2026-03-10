@@ -997,31 +997,82 @@ module NutritionPlan =
         }
 
 
+    /// Discovers available generics and dose types for a given indication and patient.
+    /// Returns the generics (optionally intersected with configured generics) and all dose types.
+    let discoverFilterOptions logger provider (patient: Patient) indication configuredGenerics =
+        let ctx =
+            Models.OrderContext.empty
+            |> Models.OrderContext.setPatient patient
+            |> fun c ->
+                { c with
+                    Filter =
+                        { c.Filter with
+                            Indication = Some indication
+                        }
+                }
+
+        match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
+        | Ok resolved ->
+            let availableGenerics =
+                if configuredGenerics |> Array.isEmpty then
+                    resolved.Filter.Generics
+                else
+                    resolved.Filter.Generics
+                    |> Array.filter (fun g -> configuredGenerics |> Array.contains g)
+
+            let doseTypes = resolved.Filter.DoseTypes
+            Some (availableGenerics, doseTypes)
+        | Error _ -> None
+
+
+    /// Evaluates a single combination of indication + generic + doseType
+    /// and returns the resolved OrderContext if scenarios are produced.
+    let evaluateCombination logger provider (patient: Patient) indication generic doseType =
+        let ctx =
+            Models.OrderContext.empty
+            |> Models.OrderContext.setPatient patient
+            |> fun c ->
+                { c with
+                    Filter =
+                        { c.Filter with
+                            Indication = Some indication
+                            Generic = Some generic
+                            DoseType = Some doseType
+                        }
+                }
+
+        match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
+        | Ok resolved when resolved.Scenarios |> Array.isEmpty |> not ->
+            Some resolved
+        | _ -> None
+
+
     let initNutritionPlan logger provider (patient: Patient) : Result<NutritionPlan, string[]> =
         let contexts =
             nutritionDoseRuleSets
-            |> Array.choose (fun drs ->
-                let ctx =
-                    Models.OrderContext.empty
-                    |> Models.OrderContext.setPatient patient
-                    |> fun c ->
-                        { c with
-                            Filter =
-                                { c.Filter with
-                                    Indications = drs.Indications
-                                    DoseTypes =
-                                        drs.DoseTypes
-                                        |> Array.map (fun (t, s) ->
-                                            if System.String.IsNullOrWhiteSpace s then t
-                                            else $"{t} {s}"
-                                        )
-                                        |> Array.map Models.DoseType.doseTypeFromString
-                                }
-                        }
-                match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
-                | Ok resolved when resolved.Scenarios |> Array.isEmpty |> not ->
-                    Some (Models.NutritionContext.create drs.Label resolved)
-                | _ -> None
+            |> Array.collect (fun drs ->
+                let indication =
+                    drs.Indications |> Array.tryExactlyOne
+
+                match indication with
+                | None -> [||]
+                | Some ind ->
+                    match discoverFilterOptions logger provider patient ind drs.Generics with
+                    | None -> [||]
+                    | Some (generics, doseTypes) ->
+                        let defaultDst = doseTypes |> Array.tryHead
+
+                        match defaultDst with
+                        | None -> [||]
+                        | Some dst ->
+                            generics
+                            |> Array.choose (fun gen ->
+                                evaluateCombination logger provider patient ind gen dst
+                                |> Option.map (fun resolved ->
+                                    let label = $"{drs.Label} - {gen}"
+                                    Models.NutritionContext.create label resolved
+                                )
+                            )
             )
         Models.NutritionPlan.create patient contexts
         |> calculateNutritionTotals
