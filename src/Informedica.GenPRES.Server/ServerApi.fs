@@ -961,28 +961,28 @@ module NutritionPlan =
 
     type NutritionDoseRuleSet = {
         Label: string
-        Indication: string
+        Indications: string []
         Generics: string []
-        DoseType: DoseType option
+        DoseTypes: (string * string) []
     }
 
     let nutritionDoseRuleSets = [|
         { Label = "Standaard Totale Parenterale Voeding"
-          Indication = "Standaard Totale Parenterale Voeding"
+          Indications = [| "Standaard Totale Parenterale Voeding" |]
           Generics = [||]
-          DoseType = None }
+          DoseTypes = [||] }
         { Label = "Neonatale Parenterale Voeding"
-          Indication = "Neonatale Parenterale Voeding"
+          Indications = [| "Neonatale Parenterale Voeding" |]
           Generics = [||]
-          DoseType = None }
+          DoseTypes = [||] }
         { Label = "Totale Parenterale Voeding"
-          Indication = "Totale Parenterale Voeding"
+          Indications = [| "Totale Parenterale Voeding" |]
           Generics = [||]
-          DoseType = None }
+          DoseTypes = [||] }
         { Label = "Variabele Totale Parenterale Voeding"
-          Indication = "Variabele Totale Parenterale Voeding"
+          Indications = [| "Variabele Totale Parenterale Voeding" |]
           Generics = [||]
-          DoseType = None }
+          DoseTypes = [||] }
     |]
 
 
@@ -1008,8 +1008,14 @@ module NutritionPlan =
                         { c with
                             Filter =
                                 { c.Filter with
-                                    Indication = Some drs.Indication
-                                    DoseType = drs.DoseType
+                                    Indications = drs.Indications
+                                    DoseTypes =
+                                        drs.DoseTypes
+                                        |> Array.map (fun (t, s) ->
+                                            if System.String.IsNullOrWhiteSpace s then t
+                                            else $"{t} {s}"
+                                        )
+                                        |> Array.map Models.DoseType.doseTypeFromString
                                 }
                         }
                 match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
