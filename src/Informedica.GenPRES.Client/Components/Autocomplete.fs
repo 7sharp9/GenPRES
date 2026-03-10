@@ -34,14 +34,11 @@ module Autocomplete =
                 |> props.updateSelected
 
         let renderInput pars =
-        // this is a hack, avoiding an interpolated string but using 
-        // a normal string to work with fable 5 version: https://github.com/fable-compiler/Fable/issues/3999
-        // the original code uses
-        //    JSX.jsx $"""
-        //        <TextField {{...pars}} label={props.label} />
-        //    """
+            // Mutate the MUI-provided params to include the label before spreading,
+            // avoiding Fable 5 interpolation issue: https://github.com/fable-compiler/Fable/issues/3999
+            pars?label <- props.label
             JSX.jsx """
-                <TextField {...pars} label={$props.label} />
+                <TextField {...pars} />
             """
             
         JSX.jsx
