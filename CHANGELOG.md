@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Client (TPN)**: First working version of rendering a nutrition (TPN) order in the UI
+- **Client (TPN)**: Render min/max values when there is a navigation option for a variable
+- **Client**: Counting button with support for repeated clicks or holding the button
+- **Server**: Implement navigation and processing of TPN orders
+- **Server**: Improved variable value rendering — now prints min/max cases alongside main value
 - **GenOrder**: Pick nearest higher (else lower) component quantity when component orderable quantity is set
 - **GitHub**: PR sub-template for documentation and non-code changes
 - **GenForm**: New formulary product type defined (implementation pending)
@@ -17,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Client**: Centralize shared models — remove and consolidate duplicated code into shared models
+- **Client**: Rename message cases and simplify duplicated UI logic for cleaner code
+- **Client**: Shared patient business logic centralised between client and server
 - **GenOrder**: Improved printing of component quantity
 - **GenOrder**: Print dose adjust only when it has defined constraints; otherwise show dose per time (or dose adjust per time)
 - **AGENTS.md / CLAUDE.md / CONTRIBUTING.md**: Stricter rules for AI/LLM use — script-only policy clarified and expanded
@@ -24,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GenForm**: Pretty print invalid dose rule data to console for improved debugging
 - **Utils**: Improved web download with `Result` type for explicit error handling and propagation
 - **Dependencies**: Bump `immutable` npm package to 5.1.5
+- **Dependencies**: Update NuGet transitive dependencies; pin `Microsoft.Net.Test.Sdk` to 18.3.0
+- **Docs**: Improve FSI MCP server usage instructions, including auto-load Claude file guidance
 
 ### Deprecated
 
@@ -34,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Client (TPN)**: Fix Substance key mismatch — phosphate and vitamin D data was never rendered
+- **Client**: Add type annotation to prevent compiler warning
 - Fix npm build warnings caused by conflicting glob package versions (Mocha compatibility)
 - Update all FSI script files to latest source code signatures
 - Proper error handling and propagation for Google Sheet data retrieval
