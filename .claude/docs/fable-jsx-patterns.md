@@ -84,6 +84,16 @@ let drawerSx = {| ``& .MuiDrawer-paper`` = {| bgcolor = Mui.Colors.Grey.``100`` 
 <Drawer sx={drawerSx}>
 ```
 
+## Fable Hot Reload
+
+Client UI code (`.fs` files in `src/Informedica.GenPRES.Client/`) is automatically
+picked up by the Fable compiler when the dev server is running (`dotnet run`).
+No rebuild is needed after changing UI code — just save the file and the browser
+refreshes automatically via Vite HMR.
+
+This only applies to client-side code. Server-side `.fs` changes still require
+a rebuild (`dotnet run build`).
+
 ## Reference
 - Fable blog: https://fable.io/blog/2022/2022-10-12-react-jsx.html
 - Fable docs (anonymous records -> POJOs): https://fable.io/docs/javascript/features.html
