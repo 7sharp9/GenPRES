@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.1.0-alpha] - 2026-03-11
+
+> ⚠️ **Alpha release** — Early development stage. Major features are incomplete. **Not for clinical use.**
+
 ### Added
 
 - **GenOrder**: Pick nearest higher (else lower) component quantity when component orderable quantity is set
@@ -25,8 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Utils**: Improved web download with `Result` type for explicit error handling and propagation
 - **Dependencies**: Bump `immutable` npm package to 5.1.5
 
-### Deprecated
-
 ### Removed
 
 - Outdated FSI script files updated to match latest source code signatures
@@ -40,8 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove all hard-coded Google Sheet URL ID references from source files
 - **GenForm**: Prevent comparing incompatible value units in product filtering
 - **GenForm**: Fix race condition using a non-concurrent collection in an async context
-
-### Security
 
 ---
 
