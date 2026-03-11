@@ -242,7 +242,7 @@ module TreatmentPlan =
         import Box from '@mui/material/Box';
         import Modal from '@mui/material/Modal';
 
-        <Box sx={ {| height="100%" |} } >
+        <Box sx={ {| height="100%"; paddingBottom="120px" |} } >
             {deleteBtn}
             {
                 Components.ResponsiveTable.View({|

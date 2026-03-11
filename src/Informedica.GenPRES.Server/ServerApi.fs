@@ -967,21 +967,42 @@ module NutritionPlan =
     }
 
     let nutritionDoseRuleSets = [|
-        { Label = "Standaard Totale Parenterale Voeding"
+        { Label = "Totale Parenterale Voeding"
           Indications = [| "Standaard Totale Parenterale Voeding" |]
-          Generics = [||]
+          Generics = [|
+            "Samenstelling B"
+            "Samenstelling C"
+            "Samenstelling D"
+            "Samenstelling E"
+          |]
           DoseTypes = [||] }
         { Label = "Neonatale Parenterale Voeding"
           Indications = [| "Neonatale Parenterale Voeding" |]
-          Generics = [||]
+          Generics = [|
+            "Primene"
+            "NICU Mix"
+            "Samenstelling B"
+          |]
           DoseTypes = [||] }
         { Label = "Totale Parenterale Voeding"
           Indications = [| "Totale Parenterale Voeding" |]
-          Generics = [||]
+          Generics = [|
+            "Numeta G13%E 2CZ"
+            "Numeta G13%E 3CZ"
+            "Numeta G16%E 2CZ"
+            "Numeta G16%E 3CZ"
+            "Numeta G19%E 2CZ"
+            "Numeta G19%E 3CZ"          
+            |]
           DoseTypes = [||] }
-        { Label = "Variabele Totale Parenterale Voeding"
+        { Label = "Totale Parenterale Voeding"
           Indications = [| "Variabele Totale Parenterale Voeding" |]
-          Generics = [||]
+          Generics = [|
+            "Samenstelling B"
+            "Samenstelling C"
+            "Samenstelling D"
+            "Samenstelling E"
+          |]
           DoseTypes = [||] }
     |]
 

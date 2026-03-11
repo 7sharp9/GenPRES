@@ -849,8 +849,8 @@ module Nutrion =
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <React.Fragment>
+        <Box sx={{{{ pb: "120px" }}}}>
             {content}
             {progress}
-        </React.Fragment>
+        </Box>
         """
