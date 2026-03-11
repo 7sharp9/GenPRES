@@ -68,7 +68,7 @@ module ResponsiveTable =
                     import CardActions from '@mui/material/CardActions';
                     import CardContent from '@mui/material/CardContent';
 
-                    <Grid item width={500} sx={ {| mb = 1 |} } >
+                    <Grid item sx={ {| width="100%"; mb = 1 |} } >
                         <Card raised={true} >
                             <CardHeader>
                                 Header

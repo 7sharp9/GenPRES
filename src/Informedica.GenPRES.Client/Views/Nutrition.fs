@@ -796,6 +796,8 @@ module Nutrion =
         localizationTerms: Deferred<string[][]>
     |}) =
 
+        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
+
         React.useEffect(
             (fun () ->
                 match props.patient, props.nutritionPlan with
@@ -849,7 +851,7 @@ module Nutrion =
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <Box sx={{{{ pb: "120px" }}}}>
+        <Box sx={ {| paddingBottom=(if isMobile then "16px" else "120px") |} }>
             {content}
             {progress}
         </Box>

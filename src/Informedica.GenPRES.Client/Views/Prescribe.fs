@@ -218,7 +218,7 @@ module Prescribe =
                         <ListItemIcon>
                             {icon}
                         </ListItemIcon>
-                        <TableContainer sx={ {| width="max-content" |} } >
+                        <TableContainer sx={ {| width="100%"; overflowX="auto" |} } >
                             <Table padding="none" size="small" >
                                 <TableBody>
                                     <TableRow sx={ {| border=0; ``& td``={| borderBottom=0 |} |} } >
@@ -273,7 +273,7 @@ module Prescribe =
                 import Typography from '@mui/material/Typography';
 
                 <Box sx={ {| height="100%" |} } >
-                    <Card sx={ {| padding=0; minWidth = 275 |}  }>
+                    <Card sx={ {| padding=0 |}  }>
                         <CardContent sx={ {| padding=0 |} }>
                             {content}
                             {progress}
@@ -462,7 +462,7 @@ module Prescribe =
         import Modal from '@mui/material/Modal';
 
         <div>
-            <Box sx={ {| height="100%"; paddingBottom="120px" |} }>
+            <Box sx={ {| height="100%"; paddingBottom=(if isMobile then "16px" else "120px") |} }>
                 {cards}
                 {progress}
             </Box>

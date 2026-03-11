@@ -33,6 +33,8 @@ module TreatmentPlan =
                 | _ -> ()
                 setModalOpen false
 
+        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
+
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let columns = [|
@@ -242,7 +244,7 @@ module TreatmentPlan =
         import Box from '@mui/material/Box';
         import Modal from '@mui/material/Modal';
 
-        <Box sx={ {| height="100%"; paddingBottom="120px" |} } >
+        <Box sx={ {| height="100%"; paddingBottom=(if isMobile then "16px" else "120px") |} } >
             {deleteBtn}
             {
                 Components.ResponsiveTable.View({|
