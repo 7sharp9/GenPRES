@@ -292,11 +292,34 @@ module Nutrion =
         localizationTerms: Deferred<string [][]>
     |}) =
         let ctx = props.nutritionContext.OrderContext
+        let label = props.nutritionContext.Label
+
+        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         let fixPrecision = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision
 
         let getWarning = ViewHelpers.getWarning
         let select = ViewHelpers.orderSelect
+        let filterSelect = ViewHelpers.simpleSelect
+        let autoComplete = ViewHelpers.autoComplete
+
+        let genericChange s =
+            ctx
+            |> OrderContext.medicationChange s
+            |> OrderContext.indicationChange None
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
+            |> props.nutritionPlanMsg
+
+        let indicationChange s =
+            ctx |> OrderContext.indicationChange s
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
+            |> props.nutritionPlanMsg
+
+        let doseTypeChange s =
+            let dt = s |> Option.map DoseType.doseTypeFromString
+            ctx |> OrderContext.doseTypeChange dt
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
+            |> props.nutritionPlanMsg
 
         let updateOrderScenario (ol : OrderLoader) =
             { ctx with
@@ -313,12 +336,10 @@ module Nutrion =
                             }
                     )
             }
-            |> fun updCtx -> Api.UpdateNutritionOrderContext(props.plan, updCtx) |> props.nutritionPlanMsg
+            |> fun updCtx -> Api.UpdateNutritionOrderContext(props.plan, label, updCtx) |> props.nutritionPlanMsg
 
         let resetOrderScenario (_ol : OrderLoader) =
-            // Use ResetOrderScenario command which runs ReCalcValues pipeline
-            // (re-applies constraints and recalculates from scratch)
-            Api.NavigateNutritionOrderContext(props.plan, Api.ResetOrderScenario, ctx)
+            Api.NavigateNutritionOrderContext(props.plan, label, Api.ResetOrderScenario, ctx)
             |> props.nutritionPlanMsg
 
         let navigate =
@@ -404,10 +425,10 @@ module Nutrion =
                             }
                         nav (updCtx, cmp, n, uc)
 
-            let navRate cmd = fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, cmd, updCtx) |> props.nutritionPlanMsg
-            let navRateN cmd = fun (updCtx, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, cmd (n, uc), updCtx) |> props.nutritionPlanMsg
-            let navCmpQty cmd = fun (updCtx, cmp) -> Api.NavigateNutritionOrderContext(props.plan, cmd cmp, updCtx) |> props.nutritionPlanMsg
-            let navCmpQtyN cmd = fun (updCtx, cmp, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, cmd (cmp, n, uc), updCtx) |> props.nutritionPlanMsg
+            let navRate cmd = fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, cmd, updCtx) |> props.nutritionPlanMsg
+            let navRateN cmd = fun (updCtx, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, label, cmd (n, uc), updCtx) |> props.nutritionPlanMsg
+            let navCmpQty cmd = fun (updCtx, cmp) -> Api.NavigateNutritionOrderContext(props.plan, label, cmd cmp, updCtx) |> props.nutritionPlanMsg
+            let navCmpQtyN cmd = fun (updCtx, cmp, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, label, cmd (cmp, n, uc), updCtx) |> props.nutritionPlanMsg
 
             {|
                 // Dose Rate
@@ -758,6 +779,63 @@ module Nutrion =
             </Stack>
             """
 
+        let genericFilter =
+            if ctx.Filter.Generics |> Array.isEmpty then ViewHelpers.empty
+            else
+                let sel = ctx.Filter.Generic
+                let items = ctx.Filter.Generics
+                let lbl = "Samenstelling"
+
+                if isMobile then
+                    items
+                    |> Array.map (fun s -> s, s)
+                    |> filterSelect false lbl sel genericChange
+                else
+                    items
+                    |> autoComplete false lbl sel genericChange
+
+        let indicationFilter =
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Indications |> Array.isEmpty then ViewHelpers.empty
+            else
+                let sel = ctx.Filter.Indication
+                let items = ctx.Filter.Indications
+                let lbl = "Indicatie"
+
+                if isMobile then
+                    items
+                    |> Array.map (fun s -> s, s)
+                    |> filterSelect false lbl sel indicationChange
+                else
+                    items
+                    |> autoComplete false lbl sel indicationChange
+
+        let doseTypeFilter =
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Indication.IsNone || ctx.Filter.DoseTypes |> Array.isEmpty then ViewHelpers.empty
+            else
+                let sel = ctx.Filter.DoseType |> Option.map DoseType.doseTypeToString
+                let items = ctx.Filter.DoseTypes
+                let lbl = "Doseer type"
+
+                items
+                |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
+                |> filterSelect false lbl sel doseTypeChange
+
+        let filterSx = {| mb = 2 |}
+        let filterControls =
+            JSX.jsx
+                $"""
+            import Stack from '@mui/material/Stack';
+            <Stack direction="column" spacing={{2}} sx={filterSx}>
+                {genericFilter}
+                {indicationFilter}
+                {doseTypeFilter}
+            </Stack>
+            """
+
+        let orderDetails =
+            if state.Order.IsSome then details
+            else ViewHelpers.empty
+
         let expanded, setExpanded = React.useState true
 
         let handleAccordionChange =
@@ -781,7 +859,8 @@ module Nutrion =
             <Typography>{props.nutritionContext.Label}</Typography>
             </AccordionSummary>
             <AccordionDetails>
-                {details}
+                {filterControls}
+                {orderDetails}
             </AccordionDetails>
         </Accordion>
         """

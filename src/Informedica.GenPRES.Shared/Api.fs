@@ -51,9 +51,9 @@ module Api =
 
     and NutritionPlanCommand =
         | InitNutritionPlan of Patient
-        | UpdateNutritionOrderContext of NutritionPlan * OrderContext
-        | SelectNutritionOrderScenario of NutritionPlan * OrderContext
-        | NavigateNutritionOrderContext of NutritionPlan * OrderContextCommand * OrderContext
+        | UpdateNutritionOrderContext of NutritionPlan * string * OrderContext
+        | SelectNutritionOrderScenario of NutritionPlan * string * OrderContext
+        | NavigateNutritionOrderContext of NutritionPlan * string * OrderContextCommand * OrderContext
 
     type Response =
         | OrderContextResp of OrderContextResponse
