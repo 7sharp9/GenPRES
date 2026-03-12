@@ -735,6 +735,7 @@ module Order =
         |}) =
         let context = React.useContext Global.context
         let lang = context.Localization
+        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
@@ -1111,7 +1112,11 @@ module Order =
             fun () ->
                 ResetOrderScenario |> dispatch
 
-        let headerSx = {| backgroundColor = Mui.Styles.headerBgColor |}
+        let headerSx =
+            if isMobile then
+                {| backgroundColor = Mui.Styles.headerBgColor; paddingY = 0.5 |}
+            else
+                {| backgroundColor = Mui.Styles.headerBgColor; paddingY = 1 |}
 
         let preparationDivider =
             if showPrepDivider then
@@ -1148,8 +1153,8 @@ module Order =
                 title={state.Order |> showOrderName}
                 titleTypographyProps={ {| variant = "h6" |} }
             ></CardHeader>
-            <CardContent>
-                <Stack direction={"column"} spacing={3} >
+            <CardContent sx={ {| paddingX = (if isMobile then 1.5 else 2); paddingY = (if isMobile then 1 else 2) |} }>
+                <Stack direction={"column"} spacing={if isMobile then 1.5 else 3} >
                     {
                         // component name
                         match state.Order with

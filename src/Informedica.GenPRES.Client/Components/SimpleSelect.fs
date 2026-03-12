@@ -31,6 +31,14 @@ module SimpleSelect =
             |}
         ) =
 
+        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
+
+        let menuProps =
+            if isMobile then
+                {| PaperProps = {| style = {| maxHeight = 400 |} |} |} |> box |> Some
+            else
+                None
+
         let handleChange =
             fun ev ->
                 let value = ev?target?value
@@ -49,7 +57,7 @@ module SimpleSelect =
             |> Array.mapi (fun i (k, v) ->
                 JSX.jsx
                     $"""
-                <MenuItem key={i} value={k} sx = { {| maxWidth = 400 |} }>
+                <MenuItem key={i} value={k} sx = { {| maxWidth = 400; paddingY = (if isMobile then 0.25 else 0.75) |} } dense={isMobile} >
                     {v}
                 </MenuItem>
                 """
@@ -246,6 +254,7 @@ module SimpleSelect =
             label={props.label}
             endAdornment={endAdornment}
             sx={sx}
+            MenuProps={menuProps}
             >
                 {items}
             </Select>
