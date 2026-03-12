@@ -33,6 +33,8 @@ module TreatmentPlan =
                 | _ -> ()
                 setModalOpen false
 
+        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
+
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let columns = [|
@@ -228,7 +230,7 @@ module TreatmentPlan =
                 JSX.jsx $"""
                 import Button from '@mui/material/Button';
 
-                <Box sx={ {| mt=2 |} }>
+                <Box sx={ {| marginTop=2 |} }>
                     <Button variant="text" onClick={onDelete} fullWidth startIcon={Mui.Icons.Delete} >
                         Verwijder Geselecteerde Voorschriften
                     </Button>
@@ -242,7 +244,7 @@ module TreatmentPlan =
         import Box from '@mui/material/Box';
         import Modal from '@mui/material/Modal';
 
-        <Box sx={ {| height="100%" |} } >
+        <Box sx={ {| height="100%"; paddingBottom=(if isMobile then "16px" else "220px") |} } >
             {deleteBtn}
             {
                 Components.ResponsiveTable.View({|

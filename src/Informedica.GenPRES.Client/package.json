@@ -5,7 +5,7 @@
     "private": true,
     "type": "module",
     "engines": {
-        "node": "~18 || ~22 || ~23 || ~25",
+        "node": "~18 || ~22 || ~23 || ~24 || ~25",
         "npm": "~9 || ~10 || ~11"
     },
     "devDependencies": {
@@ -22,8 +22,8 @@
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@fontsource/roboto": "^5.2.8",
-        "@mui/icons-material": "^7.3.8",
-        "@mui/material": "^7.3.8",
+        "@mui/icons-material": "^7.3.9",
+        "@mui/material": "^7.3.9",
         "@mui/x-data-grid": "^8.27.3",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",

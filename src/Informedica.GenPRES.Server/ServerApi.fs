@@ -961,29 +961,36 @@ module NutritionPlan =
 
     type NutritionDoseRuleSet = {
         Label: string
-        Indication: string
+        Indications: string []
         Generics: string []
-        DoseType: DoseType option
+        DoseTypes: (string * string) []
     }
 
-    let nutritionDoseRuleSets = [|
-        { Label = "Standaard Totale Parenterale Voeding"
-          Indication = "Standaard Totale Parenterale Voeding"
-          Generics = [||]
-          DoseType = None }
-        { Label = "Neonatale Parenterale Voeding"
-          Indication = "Neonatale Parenterale Voeding"
-          Generics = [||]
-          DoseType = None }
-        { Label = "Totale Parenterale Voeding"
-          Indication = "Totale Parenterale Voeding"
-          Generics = [||]
-          DoseType = None }
-        { Label = "Variabele Totale Parenterale Voeding"
-          Indication = "Variabele Totale Parenterale Voeding"
-          Generics = [||]
-          DoseType = None }
-    |]
+    let tpnDoseRuleSet =
+        {
+            Label = "Totale Parenterale Voeding"
+            Indications = [|
+                "Standaard Totale Parenterale Voeding"
+                "Variabele Totale Parenterale Voeding"
+                "Neonatale Parenterale Voeding"
+                "Totale Parenterale Voeding"
+            |]
+            Generics = [|
+                "Primene"
+                "NICU Mix"
+                "Samenstelling B"
+                "Samenstelling C"
+                "Samenstelling D"
+                "Samenstelling E"
+                "Numeta G13%E 2CZ"
+                "Numeta G13%E 3CZ"
+                "Numeta G16%E 2CZ"
+                "Numeta G16%E 3CZ"
+                "Numeta G19%E 2CZ"
+                "Numeta G19%E 3CZ"
+            |]
+            DoseTypes = [||]
+        }
 
 
     let calculateNutritionTotals (plan: NutritionPlan) =
@@ -997,76 +1004,104 @@ module NutritionPlan =
         }
 
 
+    /// Discovers available filter options for a given OrderContext.
+    /// Evaluates the context and intersects the resolved options with the configured values.
+    let discoverFilterOptions logger provider ctx =
+        match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
+        | Ok resolved ->
+            { resolved with
+                Filter =
+                    { resolved.Filter with
+                        Indications =
+                            resolved.Filter.Indications
+                            |> Array.filter (fun i -> ctx.Filter.Indications |> Array.exists ((=) i))
+                        Generics =
+                            resolved.Filter.Generics
+                            |> Array.filter (fun g -> ctx.Filter.Generics |> Array.exists ((=) g))
+                        DoseTypes =
+                            resolved.Filter.DoseTypes
+                            |> Array.filter (fun dt -> ctx.Filter.DoseTypes |> Array.exists ((=) dt))
+                    }
+            }
+            |> Some
+        | Error _ -> None
+
+
     let initNutritionPlan logger provider (patient: Patient) : Result<NutritionPlan, string[]> =
-        let contexts =
-            nutritionDoseRuleSets
-            |> Array.choose (fun drs ->
-                let ctx =
-                    Models.OrderContext.empty
-                    |> Models.OrderContext.setPatient patient
-                    |> fun c ->
-                        { c with
-                            Filter =
-                                { c.Filter with
-                                    Indication = Some drs.Indication
-                                    DoseType = drs.DoseType
-                                }
+        [|
+            Models.OrderContext.empty
+            |> Models.OrderContext.setPatient patient
+            |> fun ctx ->
+                { ctx with
+                    Filter =
+                        { ctx.Filter with
+                            Indications = tpnDoseRuleSet.Indications
+                            Generics = tpnDoseRuleSet.Generics
                         }
-                match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
-                | Ok resolved when resolved.Scenarios |> Array.isEmpty |> not ->
-                    Some (Models.NutritionContext.create drs.Label resolved)
-                | _ -> None
+                }
+            |> discoverFilterOptions logger provider
+            |> Option.map (fun resolved ->
+                Models.NutritionContext.create tpnDoseRuleSet.Label resolved
             )
-        Models.NutritionPlan.create patient contexts
+        |]
+        |> Array.choose id
+        |> Models.NutritionPlan.create patient
         |> calculateNutritionTotals
         |> Ok
 
 
-    let updateNutritionOrderContext logger provider (plan: NutritionPlan, ctx: OrderContext) : Result<NutritionPlan, string[]> =
+    /// Filters a resolved OrderContext's filter arrays against the configured
+    /// tpnDoseRuleSet. If a configured array is non-empty, only matching values
+    /// are kept; if empty, no restriction is applied.
+    let filterByDoseRuleSet (resolved: OrderContext) =
+        { resolved with
+            Filter =
+                { resolved.Filter with
+                    Indications =
+                        if tpnDoseRuleSet.Indications |> Array.isEmpty then resolved.Filter.Indications
+                        else
+                            resolved.Filter.Indications
+                            |> Array.filter (fun i -> tpnDoseRuleSet.Indications |> Array.contains i)
+                    Generics =
+                        if tpnDoseRuleSet.Generics |> Array.isEmpty then resolved.Filter.Generics
+                        else
+                            resolved.Filter.Generics
+                            |> Array.filter (fun g -> tpnDoseRuleSet.Generics |> Array.contains g)
+                    DoseTypes = resolved.Filter.DoseTypes
+                }
+        }
+
+
+    let updateContext label resolved (plan: NutritionPlan) =
+        let updatedContexts =
+            plan.NutritionContexts
+            |> Array.map (fun nc ->
+                if nc.Label = label then
+                    { nc with OrderContext = resolved |> filterByDoseRuleSet }
+                else nc
+            )
+        { plan with NutritionContexts = updatedContexts }
+        |> calculateNutritionTotals
+
+
+    let updateNutritionOrderContext logger provider (plan: NutritionPlan, label: string, ctx: OrderContext) : Result<NutritionPlan, string[]> =
         match OrderContext.evaluate logger provider Api.UpdateOrderScenario ctx with
         | Ok resolved ->
-            let updatedContexts =
-                plan.NutritionContexts
-                |> Array.map (fun nc ->
-                    if nc.OrderContext.Filter.Indication = ctx.Filter.Indication then
-                        { nc with OrderContext = resolved }
-                    else nc
-                )
-            { plan with NutritionContexts = updatedContexts }
-            |> calculateNutritionTotals
-            |> Ok
+            plan |> updateContext label resolved |> Ok
         | Error errs -> Error errs
 
 
-    let navigateNutritionOrderContext logger provider (plan: NutritionPlan, ctxCmd: Api.OrderContextCommand, ctx: OrderContext) : Result<NutritionPlan, string[]> =
+    let navigateNutritionOrderContext logger provider (plan: NutritionPlan, label: string, ctxCmd: Api.OrderContextCommand, ctx: OrderContext) : Result<NutritionPlan, string[]> =
         match OrderContext.evaluate logger provider ctxCmd ctx with
         | Ok resolved ->
-            let updatedContexts =
-                plan.NutritionContexts
-                |> Array.map (fun nc ->
-                    if nc.OrderContext.Filter.Indication = ctx.Filter.Indication then
-                        { nc with OrderContext = resolved }
-                    else nc
-                )
-            { plan with NutritionContexts = updatedContexts }
-            |> calculateNutritionTotals
-            |> Ok
+            plan |> updateContext label resolved |> Ok
         | Error errs -> Error errs
 
 
-    let selectNutritionOrderScenario logger provider (plan: NutritionPlan, ctx: OrderContext) : Result<NutritionPlan, string[]> =
+    let selectNutritionOrderScenario logger provider (plan: NutritionPlan, label: string, ctx: OrderContext) : Result<NutritionPlan, string[]> =
         match OrderContext.evaluate logger provider Api.SelectOrderScenario ctx with
         | Ok resolved ->
-            let updatedContexts =
-                plan.NutritionContexts
-                |> Array.map (fun nc ->
-                    if nc.OrderContext.Filter.Indication = ctx.Filter.Indication then
-                        { nc with OrderContext = resolved }
-                    else nc
-                )
-            { plan with NutritionContexts = updatedContexts }
-            |> calculateNutritionTotals
-            |> Ok
+            plan |> updateContext label resolved |> Ok
         | Error errs -> Error errs
 
 
@@ -1141,24 +1176,24 @@ module Command =
                     |> Result.map (NutritionPlanInitialised >> NutritionPlanResp)
             }
 
-        | NutritionPlanCmd (UpdateNutritionOrderContext (plan, ctx)) ->
+        | NutritionPlanCmd (UpdateNutritionOrderContext (plan, label, ctx)) ->
             async {
                 return
-                    NutritionPlan.updateNutritionOrderContext logger provider (plan, ctx)
+                    NutritionPlan.updateNutritionOrderContext logger provider (plan, label, ctx)
                     |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
             }
 
-        | NutritionPlanCmd (SelectNutritionOrderScenario (plan, ctx)) ->
+        | NutritionPlanCmd (SelectNutritionOrderScenario (plan, label, ctx)) ->
             async {
                 return
-                    NutritionPlan.selectNutritionOrderScenario logger provider (plan, ctx)
+                    NutritionPlan.selectNutritionOrderScenario logger provider (plan, label, ctx)
                     |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
             }
 
-        | NutritionPlanCmd (NavigateNutritionOrderContext (plan, ctxCmd, ctx)) ->
+        | NutritionPlanCmd (NavigateNutritionOrderContext (plan, label, ctxCmd, ctx)) ->
             async {
                 return
-                    NutritionPlan.navigateNutritionOrderContext logger provider (plan, ctxCmd, ctx)
+                    NutritionPlan.navigateNutritionOrderContext logger provider (plan, label, ctxCmd, ctx)
                     |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
             }
 

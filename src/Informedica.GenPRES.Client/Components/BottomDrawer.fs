@@ -15,7 +15,8 @@ module BottomDrawer =
                 content : (string * ReactElement) []
             |}
         ) =
-        let sx = {| margin="auto" |}
+        let sx = {| margin="auto"; paddingTop=2; paddingBottom=2 |}
+        let drawerSx = {| ``& .MuiDrawer-paper`` = {| bgcolor = Mui.Colors.Grey.``100`` |} |}
         JSX.jsx
             $"""
         import Drawer from '@mui/material/Drawer';
@@ -24,6 +25,7 @@ module BottomDrawer =
             anchor="bottom"
             variant="persistent"
             open={props.isOpen}
+            sx={drawerSx}
         >
             <Stack sx={sx} direction="row" spacing={3} >
                 {props.content |> withKey}

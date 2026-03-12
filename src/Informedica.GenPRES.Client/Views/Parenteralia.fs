@@ -196,7 +196,7 @@ module Parenteralia =
 
                     }
 
-                    <Box sx={ {| mt=2 |} }>
+                    <Box sx={ {| marginTop=2 |} }>
                         <Button variant="text" onClick={fun _ -> Clear |> dispatch } fullWidth startIcon={Mui.Icons.Delete} >
                             {Terms.Delete |> getTerm "Verwijder"}
                         </Button>

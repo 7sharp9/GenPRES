@@ -129,6 +129,8 @@ module Patient =
         let context = React.useContext Global.context
         let lang = context.Localization
 
+        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
+
         let isExpanded, setExpanded = React.useState (props.patient |> canCalculate |> not)
 
         // Auto-close accordion after 5 seconds when expanded
@@ -383,21 +385,28 @@ module Patient =
         <React.Fragment>
             <Accordion expanded={isExpanded} onChange={handleChange}>
                 <AccordionSummary
-                sx={ {| bgcolor=Mui.Colors.Grey.``100`` |} }
+                sx={
+                    {|
+                        bgcolor=Mui.Styles.headerBgColor
+                        paddingTop=(if isMobile then 0 else 1)
+                        paddingBottom=(if isMobile then 0 else 1)
+                        ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0 |}
+                    |}
+                }
                 expandIcon={{ <ExpandMoreIcon /> }}
                 aria-controls="patient"
                 id="patient-details"
                 >
                 { pat |> show lang props.localizationTerms }
                 </AccordionSummary>
-                <AccordionDetails >
+                <AccordionDetails sx={ {| paddingTop=(if isMobile then 1 else 2) |} } >
                     <Grid container spacing={2}>
                         {React.fragment (items1 |> unbox)}
                     </Grid>
-                    <Grid container spacing={2} sx={ {| mt=2 |} } >
+                    <Grid container spacing={2} sx={ {| marginTop=2 |} } >
                         {React.fragment (items2 |> unbox)}
                     </Grid>
-                    <Box sx={ {| mt=2 |} }>
+                    <Box sx={ {| marginTop=2 |} }>
                         <Button variant="text" onClick={fun _ -> Clear |> dispatch} fullWidth startIcon={Mui.Icons.Delete} >
                             {Terms.Delete |> getTerm "Verwijder"}
                         </Button>

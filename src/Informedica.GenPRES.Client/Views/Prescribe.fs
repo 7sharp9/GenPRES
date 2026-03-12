@@ -98,7 +98,7 @@ module Prescribe =
                 import Backdrop from '@mui/material/Backdrop';
 
                 <Backdrop open={true} sx={ {| color= Mui.Colors.Grey.``200`` |} } >
-                    <Box sx={ {| position = "relative"; display= "inline-flex"; p = 20 |} }>
+                    <Box sx={ {| position = "relative"; display= "inline-flex"; padding = 20 |} }>
                         <CircularProgress color="primary" size={260} thickness={1} disableShrink={true} />
                         <Box
                             sx={ {|
@@ -158,7 +158,7 @@ module Prescribe =
                             row
                             |> Array.mapi (fun i cell ->
                                     JSX.jsx $"""
-                                    <TableCell key={i} sx = { {| pt=1; pr=2 |} }>
+                                    <TableCell key={i} sx = { {| paddingTop=1; paddingRight=2 |} }>
                                         {cell |> Mui.TypoGraphy.fromTextBlock}
                                     </TableCell>
                                     """
@@ -218,8 +218,8 @@ module Prescribe =
                         <ListItemIcon>
                             {icon}
                         </ListItemIcon>
-                        <TableContainer sx={ {| width="max-content" |} } >
-                            <Table padding="none" size="small" >
+                        <TableContainer sx={ {| overflowX="auto" |} } >
+                            <Table padding="none" size="small" sx={ {| tableLayout="auto"; width="auto" |} } >
                                 <TableBody>
                                     <TableRow sx={ {| border=0; ``& td``={| borderBottom=0 |} |} } >
                                         <TableCell >
@@ -237,7 +237,7 @@ module Prescribe =
                     JSX.jsx
                         $"""
                     <React.Fragment>
-                        <Typography variant="h6" >
+                        <Typography variant="h6" sx={ {| backgroundColor=Mui.Styles.headerBgColor; padding=1; borderRadius=1 |} } >
                             {caption}
                         </Typography>
                         <List sx={ {| width="100%"; maxWidth=1200; bgcolor=Mui.Colors.Grey.``50`` |} }>
@@ -273,7 +273,7 @@ module Prescribe =
                 import Typography from '@mui/material/Typography';
 
                 <Box sx={ {| height="100%" |} } >
-                    <Card sx={ {| padding=0; minWidth = 275 |}  }>
+                    <Card sx={ {| padding=0 |}  }>
                         <CardContent sx={ {| padding=0 |} }>
                             {content}
                             {progress}
@@ -305,7 +305,7 @@ module Prescribe =
             import Stack from '@mui/material/Stack';
 
             <React.Fragment>
-                <Stack direction="column" spacing={3}>
+                <Stack direction="column" spacing={if isMobile then 1 else 3}>
                     <Typography sx={ {| fontSize=14 |} } color="text.secondary" >
                         {Terms.``Prescribe Scenarios`` |> getTerm "Medicatie scenario's"}
                     </Typography>
@@ -324,7 +324,7 @@ module Prescribe =
                                 items
                                 |> autoComplete isLoading lbl sel indicationChange
                     }
-                    <Stack direction={stackDirection} spacing={3} >
+                    <Stack direction={stackDirection} spacing={if isMobile then 1 else 3} >
                         {
                             match props.orderContext with
                             | Resolved pr -> false, pr.Filter.Generic, pr.Filter.Generics
@@ -434,12 +434,12 @@ module Prescribe =
                             | _ -> ViewHelpers.empty
                         }
                     </Stack>
-                    <Box sx={ {| mt=2 |} }>
+                    <Box sx={ {| marginTop=2 |} }>
                         <Button variant="text" onClick={clear} fullWidth startIcon={Mui.Icons.Delete} >
                             {Delete |> getTerm "Verwijder"}
                         </Button>
                     </Box>
-                    <Stack direction="column" >
+                    <Stack direction="column" spacing={1} >
                         {
                             match props.orderContext with
                             | Resolved pr ->
@@ -462,7 +462,7 @@ module Prescribe =
         import Modal from '@mui/material/Modal';
 
         <div>
-            <Box sx={ {| height="100%" |} }>
+            <Box sx={ {| height="100%"; paddingBottom=(if isMobile then "16px" else "220px") |} }>
                 {cards}
                 {progress}
             </Box>

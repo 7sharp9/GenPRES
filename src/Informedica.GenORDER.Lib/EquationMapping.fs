@@ -39,12 +39,15 @@ module EquationMapping =
 
     // Get the equations from a Google spreadsheet
     let private getEquations_ indx =
-        Web.getDataFromGenPres "Equations"
-        |> Array.skip 1
-        // only pick those equations that are marked with an 'x'
-        |> Array.filter (fun xs -> xs[indx] = "x")
-        |> Array.map (Array.item 1)
-        |> Array.toList
+        let data = Web.getDataFromGenPres "Equations"
+        if data.Length <= 1 then []
+        else
+            data
+            |> Array.skip 1
+            // only pick those equations that are marked with an 'x'
+            |> Array.filter (fun xs -> xs[indx] = "x")
+            |> Array.map (Array.item 1)
+            |> Array.toList
 
 
     /// <summary>

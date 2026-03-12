@@ -18,22 +18,47 @@ module ResponsiveTable =
                 columns : {|  field : string; headerName : string; width : int; filterable : bool; sortable : bool |}[]
                 rows : {| cells : {| field: string; value: string |} []; actions : ReactElement option |} []
                 filter : ReactElement option
+                onRowClick : string -> unit
             |}) =
 
             let cards =
                 props.rows
                 |> Array.map (fun row ->
+                    let rowId =
+                        row.cells
+                        |> Array.tryFind (fun c -> c.field = "id")
+                        |> Option.map (fun c -> c.value)
+                        |> Option.defaultValue ""
+
+                    let handleClick = fun _ -> props.onRowClick rowId
+
                     let content =
                         row.cells
-                        |> Array.map (fun cell ->
-                            if cell.field = "id" || String.IsNullOrWhiteSpace(cell.value) then JSX.jsx "<></>"
-                            else
-                                let b, s =
-                                    match cell.value with
-                                    | _ when cell.value.Contains("**") -> Mui.Colors.Blue.``900``, cell.value.Replace("**", "")
-                                    | _ when cell.value.Contains("*") -> Mui.Colors.Blue.``900``, cell.value.Replace("*", "")
-                                    | _ -> Mui.Colors.Grey.``700``, cell.value
+                        |> Array.choose (fun cell ->
+                            if cell.field = "id" || String.IsNullOrWhiteSpace(cell.value) then None
+                            else Some cell
+                        )
+                        |> Array.mapi (fun i cell ->
+                            let b, s =
+                                match cell.value with
+                                | _ when cell.value.Contains("**") -> Mui.Colors.Blue.``900``, cell.value.Replace("**", "")
+                                | _ when cell.value.Contains("*") -> Mui.Colors.Blue.``900``, cell.value.Replace("*", "")
+                                | _ -> Mui.Colors.Grey.``700``, cell.value
 
+                            if i = 0 then
+                                JSX.jsx
+                                    $"""
+                                import Typography from '@mui/material/Typography';
+                                import Box from '@mui/material/Box';
+
+                                <Box sx={ {| paddingY = 0.5; backgroundColor = Mui.Styles.headerBgColor; marginX = -1.5; paddingX = 1.5 |} } >
+                                    <Typography variant="subtitle2" color={b} sx={ {| fontWeight = 600; lineHeight = 1.4 |} } >
+                                        {s}
+                                    </Typography>
+                                </Box>
+                                """
+                                |> toReact
+                            else
                                 let h =
                                     props.columns
                                     |> Array.tryFind (fun c -> c.field = cell.field)
@@ -43,45 +68,60 @@ module ResponsiveTable =
 
                                 JSX.jsx
                                     $"""
-                                import React from 'react';
                                 import Stack from '@mui/material/Stack';
-                                import Divider from '@mui/material/Divider';
                                 import Typography from '@mui/material/Typography';
 
-                                <React.Fragment>
-                                        <Stack direction="row" spacing={3} >
-                                            <Typography minHeight={40} minWidth={80} variant="body2" color={Mui.Colors.Grey.``900``} >
-                                                {h}
-                                            </Typography>
-                                            <Typography minHeight={40} color={b} variant="body2" >
-                                                {s}
-                                            </Typography>
-                                        </Stack>
-                                </React.Fragment>
+                                <Stack direction="row" spacing={1} sx={ {| paddingY = 0.5 |} } >
+                                    <Typography minWidth={80} variant="body2" color={Mui.Colors.Grey.``900``} sx={  {| lineHeight = 1.4 |}  } >
+                                        {h}
+                                    </Typography>
+                                    <Typography color={b} variant="body2" sx={  {| lineHeight = 1.4 |}  } >
+                                        {s}
+                                    </Typography>
+                                </Stack>
                                 """
+                                |> toReact
                         )
+
+                    let hasActions = row.actions |> Option.isSome
+
+                    let actions =
+                        match row.actions with
+                        | Some act ->
+                            JSX.jsx
+                                $"""
+                            import CardActions from '@mui/material/CardActions';
+                            <CardActions sx={ {| paddingTop = 0; paddingBottom = 0.5; paddingX = 1 |} } >
+                                {act}
+                            </CardActions>
+                            """
+                            |> toReact
+                        | None -> JSX.jsx "<></>" |> toReact
+
+                    let divider =
+                        JSX.jsx
+                            $"""
+                        import Divider from '@mui/material/Divider';
+                        <Divider sx={ {| borderColor = Mui.Colors.Grey.``300`` |} } />
+                        """
+                        |> toReact
+
+                    let bottomPad = if hasActions then 0.5 else 1
 
                     JSX.jsx
                         $"""
                     import Card from '@mui/material/Card';
-                    import CardHeader from '@mui/material/CardHeader';
-                    import CardActions from '@mui/material/CardActions';
                     import CardContent from '@mui/material/CardContent';
+                    import Stack from '@mui/material/Stack';
 
-                    <Grid item width={500} sx={ {| mb = 1 |} } >
-                        <Card raised={true} >
-                            <CardHeader>
-                                Header
-                            </CardHeader>
-                            <CardContent>
-                                {React.fragment (content |> unbox)}
+                    <Grid item sx={ {| width="100%"; mb = 0.5 |} } >
+                        <Card raised={true} onClick={handleClick} sx={ {| cursor = "pointer" |} } >
+                            <CardContent sx={ {| paddingTop = 1; paddingBottom = bottomPad; paddingX = 1.5; ``&:last-child`` = {| paddingBottom = bottomPad |} |} } >
+                                <Stack spacing={0} divider={divider} >
+                                    {content}
+                                </Stack>
                             </CardContent>
-                            <CardActions>
-                                {
-                                    match row.actions with
-                                    | _ -> JSX.jsx "<></>" |> toReact
-                                }
-                            </CardActions>
+                            {actions}
                         </Card>
                     </Grid>
                     """
@@ -94,7 +134,7 @@ module ResponsiveTable =
             import Stack from '@mui/material/Stack';
 
             <Stack id="responsive-card-table" >
-                <Box sx={ {| mb=3 |} }>
+                <Box sx={ {| marginBottom=1.5 |} }>
                     {props.filter |> Option.defaultValue (JSX.jsx "<></>" |> toReact)}
                 </Box>
                 <Grid container rowSpacing={1} columnSpacing={ {| xs=1; sm=2; md=3 |} } >
@@ -201,13 +241,13 @@ module ResponsiveTable =
                 "& .MuiDataGrid-row.even:hover"
                 ==> createObj [
                     "backgroundColor" ==> Mui.Colors.Grey.``100``
-                    "borderLeft" ==> "4px solid #1976d2"
+                    "borderLeft" ==> $"4px solid {Mui.Colors.Blue.``700``}"
                 ]
 
                 "& .MuiDataGrid-row.odd:hover"
                 ==> createObj [
                     "backgroundColor" ==> "white"
-                    "borderLeft" ==> "4px solid #1976d2"
+                    "borderLeft" ==> $"4px solid {Mui.Colors.Blue.``700``}"
                 ]
                 
                 "& .MuiDataGrid-cell"
@@ -217,6 +257,8 @@ module ResponsiveTable =
                     "lineHeight" ==> "1.5"
                     "paddingTop" ==> "8px"
                     "paddingBottom" ==> "8px"
+                    "display" ==> "flex"
+                    "alignItems" ==> "center"
                 ]
             ]
 
@@ -237,7 +279,7 @@ module ResponsiveTable =
             let typedColumns =
                 props.columns
                 |> Array.map unbox<{| field: string; headerName: string; width: int; filterable: bool; sortable: bool |}>
-            {| columns = typedColumns; rows = rows; filter = Some filter |}
+            {| columns = typedColumns; rows = rows; filter = Some filter; onRowClick = props.onRowClick |}
             |> CardTable
         else
             let rows =
@@ -274,7 +316,7 @@ module ResponsiveTable =
             import {{ DataGrid }} from '@mui/x-data-grid';
 
             <Box>
-                <Box sx={ {| mb=3 |} }>
+                <Box sx={ {| marginBottom=3 |} }>
                     {filter}
                 </Box>
                 <div style={ {| height =props.height; width = "100%" |} }>

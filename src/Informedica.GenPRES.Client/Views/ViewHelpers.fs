@@ -106,7 +106,7 @@ module ViewHelpers =
             $"""
         import CircularProgress from '@mui/material/CircularProgress';
         import Box from '@mui/material/Box';
-        <Box sx={ {| mt = 5; display = "flex"; p = 20 |} }>
+        <Box sx={ {| marginTop = 5; display = "flex"; padding = 20 |} }>
             <CircularProgress />
         </Box>
         """
@@ -124,7 +124,11 @@ module ViewHelpers =
             top= "50%"
             left= "50%"
             transform= "translate(-50%, -50%)"
-            width= 500
+            width= "90vw"
+            maxWidth= 500
+            maxHeight= "90vh"
+            overflowY= "auto"
+            overflowX= "hidden"
             bgcolor= "background.paper"
             boxShadow= 24
             borderRadius = "16px"

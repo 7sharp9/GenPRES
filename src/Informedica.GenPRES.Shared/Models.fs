@@ -1835,31 +1835,22 @@ module Models =
 
 
         // Intake substance row definitions
-        let intakeRows1 = [|
+        let intakeRows = [|
             [| "volume"; ""; "ml/kg/dag" |]
             [| "energie"; ""; "kCal/kg/dag" |]
             [| "koolhydraat"; ""; "mg/kg/min" |]
             [| "eiwit"; ""; "g/kg/dag" |]
             [| "vet"; ""; "g/kg/dag" |]
-        |]
-
-        let intakeRows2 = [|
             [| "natrium"; ""; "mmol/kg/dag" |]
             [| "kalium"; ""; "mmol/kg/dag" |]
             [| "chloride"; ""; "mmol/kg/dag" |]
             [| "calcium"; ""; "mmol/kg/dag" |]
             [| "magnesium"; ""; "mmol/kg/dag" |]
-        |]
-
-        let intakeRows3 = [|
             [| "fosfaat"; ""; "mmol/kg/dag" |]
             [| "ijzer"; ""; "mmol/kg/dag" |]
             [| "vit D"; ""; "mmol/kg/dag" |]
             [| "ethanol"; ""; "mg/kg/dag" |]
             [| "propyleenglycol"; ""; "mg/kg/dag" |]
-        |]
-
-        let intakeRows4 = [|
             [| "boorzuur"; ""; "mmol/kg/dag" |]
             [| "benzylalcohol"; ""; "mmol/kg/dag" |]
         |]

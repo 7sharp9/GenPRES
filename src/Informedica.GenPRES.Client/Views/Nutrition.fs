@@ -27,6 +27,7 @@ module Nutrion =
         type Msg =
             | ChangeComponent of string option
             | ChangeComponentOrderableQuantity of cmp: string * string option
+            | ChangeComponentDoseQuantityAdjust of cmp: string * string option
             | ChangeOrderableDoseRate of string option
             | ChangeOrderableQuantity of string option
             | UpdateOrderScenario of Order
@@ -37,6 +38,13 @@ module Nutrion =
             | SetMinDoseRateProperty
             | SetMaxDoseRateProperty
             | SetMedianDoseRateProperty
+            // Dose Quantity navigation
+            | ChangeOrderableDoseQuantity of string option
+            | DecreaseDoseQuantityProperty of ntimes: int * useCalc: bool
+            | IncreaseDoseQuantityProperty of ntimes: int * useCalc: bool
+            | SetMinDoseQuantityProperty
+            | SetMaxDoseQuantityProperty
+            | SetMedianDoseQuantityProperty
             // Component Quantity navigation (carries component name)
             | DecreaseComponentQuantityProperty of cmp: string * ntimes: int * useCalc: bool
             | IncreaseComponentQuantityProperty of cmp: string * ntimes: int * useCalc: bool
@@ -75,6 +83,12 @@ module Nutrion =
                     setRateMed : OrderLoader -> unit
                     setRateInc : int * bool -> OrderLoader -> unit
                     setRateMax : OrderLoader -> unit
+
+                    setDoseQtyMin : OrderLoader -> unit
+                    setDoseQtyDec : int * bool -> OrderLoader -> unit
+                    setDoseQtyMed : OrderLoader -> unit
+                    setDoseQtyInc : int * bool -> OrderLoader -> unit
+                    setDoseQtyMax : OrderLoader -> unit
 
                     setComponentQtyMin : OrderLoader -> unit
                     setComponentQtyDec : int * bool -> OrderLoader -> unit
@@ -164,6 +178,33 @@ module Nutrion =
                     { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
+            | ChangeComponentDoseQuantityAdjust (cmpName, s) ->
+                match state.Order with
+                | Some ord ->
+                    let msg =
+                        { ord with
+                            Orderable =
+                                { ord.Orderable with
+                                    Components =
+                                        ord.Orderable.Components
+                                        |> Array.map (fun cmp ->
+                                            if cmp.Name = cmpName then
+                                                { cmp with
+                                                    Dose =
+                                                        { cmp.Dose with
+                                                            QuantityAdjust =
+                                                                cmp.Dose.QuantityAdjust |> setOvar s
+                                                        }
+                                                }
+                                            else cmp
+                                        )
+                                }
+                        }
+                        |> UpdateOrderScenario
+
+                    { state with Order = None }, Cmd.ofMsg msg
+                | _ -> state, Cmd.none
+
             | ChangeOrderableDoseRate s ->
                 match state.Order with
                 | Some ord ->
@@ -199,12 +240,38 @@ module Nutrion =
                     { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
+            | ChangeOrderableDoseQuantity s ->
+                match state.Order with
+                | Some ord ->
+                    let msg =
+                        { ord with
+                            Orderable =
+                                { ord.Orderable with
+                                    Dose =
+                                        { ord.Orderable.Dose with
+                                            Quantity =
+                                                ord.Orderable.Dose.Quantity
+                                                |> setOvar s
+                                        }
+                                }
+                        }
+                        |> UpdateOrderScenario
+                    { state with Order = None }, Cmd.ofMsg msg
+                | _ -> state, Cmd.none
+
             // Rate navigation
             | SetMinDoseRateProperty -> handleNav navigate.setRateMin
             | DecreaseDoseRateProperty (n, uc) -> handleNav (navigate.setRateDec (n, uc))
             | SetMedianDoseRateProperty -> handleNav navigate.setRateMed
             | IncreaseDoseRateProperty (n, uc) -> handleNav (navigate.setRateInc (n, uc))
             | SetMaxDoseRateProperty -> handleNav navigate.setRateMax
+
+            // Dose Quantity navigation
+            | SetMinDoseQuantityProperty -> handleNav navigate.setDoseQtyMin
+            | DecreaseDoseQuantityProperty (n, uc) -> handleNav (navigate.setDoseQtyDec (n, uc))
+            | SetMedianDoseQuantityProperty -> handleNav navigate.setDoseQtyMed
+            | IncreaseDoseQuantityProperty (n, uc) -> handleNav (navigate.setDoseQtyInc (n, uc))
+            | SetMaxDoseQuantityProperty -> handleNav navigate.setDoseQtyMax
 
             // Component Quantity navigation
             | SetMinComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMin
@@ -225,11 +292,42 @@ module Nutrion =
         localizationTerms: Deferred<string [][]>
     |}) =
         let ctx = props.nutritionContext.OrderContext
+        let label = props.nutritionContext.Label
+
+        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         let fixPrecision = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision
 
         let getWarning = ViewHelpers.getWarning
         let select = ViewHelpers.orderSelect
+        let filterSelect = ViewHelpers.simpleSelect
+        let autoComplete = ViewHelpers.autoComplete
+
+        let genericChange s =
+            ctx
+            |> OrderContext.medicationChange s
+            |> fun updCtx ->
+                // In Nutrition, Generic is upstream of Indication.
+                // Clear Indication selection (but NOT the Indications list — server repopulates it).
+                { updCtx with
+                    Filter =
+                        { updCtx.Filter with
+                            Indication = None
+                        }
+                }
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
+            |> props.nutritionPlanMsg
+
+        let indicationChange s =
+            ctx |> OrderContext.indicationChange s
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
+            |> props.nutritionPlanMsg
+
+        let doseTypeChange s =
+            let dt = s |> Option.map DoseType.doseTypeFromString
+            ctx |> OrderContext.doseTypeChange dt
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
+            |> props.nutritionPlanMsg
 
         let updateOrderScenario (ol : OrderLoader) =
             { ctx with
@@ -246,12 +344,10 @@ module Nutrion =
                             }
                     )
             }
-            |> fun updCtx -> Api.UpdateNutritionOrderContext(props.plan, updCtx) |> props.nutritionPlanMsg
+            |> fun updCtx -> Api.UpdateNutritionOrderContext(props.plan, label, updCtx) |> props.nutritionPlanMsg
 
         let resetOrderScenario (_ol : OrderLoader) =
-            // Use ResetOrderScenario command which runs ReCalcValues pipeline
-            // (re-applies constraints and recalculates from scratch)
-            Api.NavigateNutritionOrderContext(props.plan, Api.ResetOrderScenario, ctx)
+            Api.NavigateNutritionOrderContext(props.plan, label, Api.ResetOrderScenario, ctx)
             |> props.nutritionPlanMsg
 
         let navigate =
@@ -337,10 +433,10 @@ module Nutrion =
                             }
                         nav (updCtx, cmp, n, uc)
 
-            let navRate cmd = fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, cmd, updCtx) |> props.nutritionPlanMsg
-            let navRateN cmd = fun (updCtx, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, cmd (n, uc), updCtx) |> props.nutritionPlanMsg
-            let navCmpQty cmd = fun (updCtx, cmp) -> Api.NavigateNutritionOrderContext(props.plan, cmd cmp, updCtx) |> props.nutritionPlanMsg
-            let navCmpQtyN cmd = fun (updCtx, cmp, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, cmd (cmp, n, uc), updCtx) |> props.nutritionPlanMsg
+            let navRate cmd = fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, cmd, updCtx) |> props.nutritionPlanMsg
+            let navRateN cmd = fun (updCtx, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, label, cmd (n, uc), updCtx) |> props.nutritionPlanMsg
+            let navCmpQty cmd = fun (updCtx, cmp) -> Api.NavigateNutritionOrderContext(props.plan, label, cmd cmp, updCtx) |> props.nutritionPlanMsg
+            let navCmpQtyN cmd = fun (updCtx, cmp, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, label, cmd (cmp, n, uc), updCtx) |> props.nutritionPlanMsg
 
             {|
                 // Dose Rate
@@ -349,6 +445,12 @@ module Nutrion =
                 setRateMed = create (navRate Api.SetMedianOrderableDoseRateProperty)
                 setRateInc = createWithN (navRateN Api.IncreaseOrderableDoseRateProperty)
                 setRateMax = create (navRate Api.SetMaxOrderableDoseRateProperty)
+                // Dose Quantity
+                setDoseQtyMin = create (navRate Api.SetMinOrderableDoseQuantityProperty)
+                setDoseQtyDec = createWithN (navRateN Api.DecreaseOrderableDoseQuantityProperty)
+                setDoseQtyMed = create (navRate Api.SetMedianOrderableDoseQuantityProperty)
+                setDoseQtyInc = createWithN (navRateN Api.IncreaseOrderableDoseQuantityProperty)
+                setDoseQtyMax = create (navRate Api.SetMaxOrderableDoseQuantityProperty)
                 // Component Quantity
                 setComponentQtyMin = createWithCmp (navCmpQty Api.SetMinComponentOrderableQuantityProperty)
                 setComponentQtyDec = createWithCmpN (navCmpQtyN Api.DecreaseComponentOrderableQuantityProperty)
@@ -425,7 +527,7 @@ module Nutrion =
                         |> Option.defaultValue [||]
 
                     let doseDisplay =
-                        select false doseLabel None ignore None true doseWarning (Some 400) doseVals
+                        select isLoading doseLabel None (fun s -> ChangeComponentDoseQuantityAdjust (cmp.Name, s) |> dispatch) None false doseWarning (Some 400) doseVals
 
                     let halfSize = {| xs = 12; md = 6 |}
                     let cellSx = {| minWidth = 350 |}
@@ -456,15 +558,104 @@ module Nutrion =
                 let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
                 let label =
                     ord.Orderable.Dose.Quantity.Variable.Vals
-                    |> Option.map (fun v -> $"totaal ({v.Unit})")
-                    |> Option.defaultValue "totaal"
+                    |> Option.map (fun v -> $"totaal dosering ({v.Unit})")
+                    |> Option.defaultValue "totaal dosering"
 
                 let vals =
                     ord.Orderable.Dose.Quantity.Variable.Vals
                     |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
+                    |> Option.defaultValue (
+                        match Order.Variable.renderValue 3 ord.Orderable.Dose.Quantity.Variable with
+                        | "" -> [||]
+                        | s -> [| "range", s |]
+                    )
+
+                let showNav =
+                    ord.Orderable.Components
+                    |> Array.forall (fun cmp ->
+                        cmp.OrderableQuantity.Variable.Vals
+                        |> Option.map (fun vu ->
+                            vu.Value |> Array.length = 1
+                        )
+                        |> Option.defaultValue false
+                    )
+
+                let doseQtyNav =
+                    if not showNav then None
+                    else
+                        let canIncr =
+                            ord.Orderable.Components |> Array.length = 1 ||
+                            ord.Orderable.DoseCount.Variable.Vals
+                            |> Option.map (fun vu ->
+                                vu.Value
+                                |> Array.map snd
+                                |> Array.forall (fun v -> v > 1m)
+                            )
+                            |> Option.defaultValue false
+
+                        let solved = ord |> isSolved
+                        let navigable =
+                            ord.Orderable.Dose.Quantity
+                            |> OrderVariable.isNavigable
+
+                        {|
+                            first =
+                                if navigable then (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
+                                elif solved then (fun n -> (n, true) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            decrease =
+                                if solved then (fun n -> (n, false) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            median =
+                                if navigable then (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            increase =
+                                if solved && canIncr then (fun n -> (n, false) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            last =
+                                if navigable then (fun (_: int) -> SetMaxDoseQuantityProperty |> dispatch) |> Some
+                                elif solved && canIncr then (fun n -> (n, true) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                else None
+                            useDebounce = not navigable && solved
+                        |}
+                        |> Some
+
+                let qtyDisplay =
+                    select isLoading label None (ChangeOrderableDoseQuantity >> dispatch) doseQtyNav false warning (Some 400) vals
+
+                let adjWarning = ord.Orderable.Dose.QuantityAdjust.Level |> getWarning
+                let adjLabel =
+                    ord.Orderable.Dose.QuantityAdjust.Variable.Vals
+                    |> Option.map (fun v -> $"totaal ({v.Unit})")
+                    |> Option.defaultValue "totaal"
+
+                let adjVals =
+                    ord.Orderable.Dose.QuantityAdjust.Variable.Vals
+                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                     |> Option.defaultValue [||]
 
-                select false label None ignore None true warning (Some 400) vals
+                let adjDisplay =
+                    select false adjLabel None ignore None false adjWarning (Some 400) adjVals
+
+                let halfSize = {| xs = 12; md = 6 |}
+                let cellSx = {| minWidth = 350 |}
+                JSX.jsx
+                    $"""
+                import Grid from '@mui/material/Grid';
+                import Box from '@mui/material/Box';
+                <Grid container spacing={{2}} alignItems="flex-end">
+                    <Grid size={halfSize}>
+                        <Box sx={cellSx}>
+                            {qtyDisplay}
+                        </Box>
+                    </Grid>
+                    <Grid size={halfSize}>
+                        <Box sx={cellSx}>
+                            {adjDisplay}
+                        </Box>
+                    </Grid>
+                </Grid>
+                """
             | None ->
                 ViewHelpers.empty
 
@@ -489,14 +680,49 @@ module Nutrion =
                     |> Option.map (fun v -> $"infuussnelheid ({v.Unit})")
                     |> Option.defaultValue "infuussnelheid"
 
-                ord.Orderable.Dose.Rate.Variable.Vals
-                |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                |> Option.defaultValue (
-                    match Order.Variable.renderValue 3 ord.Orderable.Dose.Rate.Variable with
-                    | "" -> [||]
-                    | s -> [| "range", s |]
-                )
-                |> select isLoading label None (ChangeOrderableDoseRate >> dispatch) nav false warning (Some 400)
+                let rateDisplay =
+                    ord.Orderable.Dose.Rate.Variable.Vals
+                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
+                    |> Option.defaultValue (
+                        match Order.Variable.renderValue 3 ord.Orderable.Dose.Rate.Variable with
+                        | "" -> [||]
+                        | s -> [| "range", s |]
+                    )
+                    |> select isLoading label None (ChangeOrderableDoseRate >> dispatch) nav false warning (Some 400)
+
+                let timeWarning = ord.Schedule.Time.Level |> getWarning
+                let timeLabel =
+                    ord.Schedule.Time.Variable.Vals
+                    |> Option.map (fun v -> $"looptijd ({v.Unit})")
+                    |> Option.defaultValue "looptijd"
+
+                let timeVals =
+                    ord.Schedule.Time.Variable.Vals
+                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
+                    |> Option.defaultValue [||]
+
+                let timeDisplay =
+                    select false timeLabel None ignore None false timeWarning (Some 400) timeVals
+
+                let halfSize = {| xs = 12; md = 6 |}
+                let cellSx = {| minWidth = 350 |}
+                JSX.jsx
+                    $"""
+                import Grid from '@mui/material/Grid';
+                import Box from '@mui/material/Box';
+                <Grid container spacing={{2}} alignItems="flex-end">
+                    <Grid size={halfSize}>
+                        <Box sx={cellSx}>
+                            {rateDisplay}
+                        </Box>
+                    </Grid>
+                    <Grid size={halfSize}>
+                        <Box sx={cellSx}>
+                            {timeDisplay}
+                        </Box>
+                    </Grid>
+                </Grid>
+                """
             | None ->
                 ViewHelpers.empty
 
@@ -512,7 +738,7 @@ module Nutrion =
                 ord.Orderable.OrderableQuantity.Variable.Vals
                 |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                 |> Option.defaultValue [||]
-                |> select false label None ignore None true warning (Some 400)
+                |> select false label None ignore None false warning (Some 400)
             | None ->
                 ViewHelpers.empty
 
@@ -554,10 +780,10 @@ module Nutrion =
                     |> React.fragment
                 }
                 <Divider />
-                {totalDoseRow}
-                {administrationDivider}
-                {rateControl}
                 {totalVolumeDisplay}
+                {administrationDivider}
+                {totalDoseRow}
+                {rateControl}
                 <Button
                     variant="outlined"
                     size="small"
@@ -568,10 +794,67 @@ module Nutrion =
             </Stack>
             """
 
+        let genericFilter =
+            if ctx.Filter.Generics |> Array.isEmpty then ViewHelpers.empty
+            else
+                let sel = ctx.Filter.Generic
+                let items = ctx.Filter.Generics
+                let lbl = "Samenstelling"
+
+                if isMobile then
+                    items
+                    |> Array.map (fun s -> s, s)
+                    |> filterSelect false lbl sel genericChange
+                else
+                    items
+                    |> autoComplete false lbl sel genericChange
+
+        let indicationFilter =
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Indications |> Array.isEmpty then ViewHelpers.empty
+            else
+                let sel = ctx.Filter.Indication
+                let items = ctx.Filter.Indications
+                let lbl = "Indicatie"
+
+                if isMobile then
+                    items
+                    |> Array.map (fun s -> s, s)
+                    |> filterSelect false lbl sel indicationChange
+                else
+                    items
+                    |> autoComplete false lbl sel indicationChange
+
+        let doseTypeFilter =
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Indication.IsNone || ctx.Filter.DoseTypes |> Array.isEmpty then ViewHelpers.empty
+            else
+                let sel = ctx.Filter.DoseType |> Option.map DoseType.doseTypeToString
+                let items = ctx.Filter.DoseTypes
+                let lbl = "Doseer type"
+
+                items
+                |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
+                |> filterSelect false lbl sel doseTypeChange
+
+        let filterSx = {| marginBottom = 2 |}
+        let filterControls =
+            JSX.jsx
+                $"""
+            import Stack from '@mui/material/Stack';
+            <Stack direction="column" spacing={2} sx={filterSx}>
+                {genericFilter}
+                {indicationFilter}
+                {doseTypeFilter}
+            </Stack>
+            """
+
+        let orderDetails =
+            if state.Order.IsSome then details
+            else ViewHelpers.empty
+
         let expanded, setExpanded = React.useState true
 
         let handleAccordionChange =
-            fun _ _ -> setExpanded (not expanded)
+            fun _ -> setExpanded (not expanded)
 
         JSX.jsx
             $"""
@@ -585,13 +868,21 @@ module Nutrion =
 
         <Accordion expanded={expanded} onChange={handleAccordionChange}>
             <AccordionSummary
-            sx={ {| bgcolor=Mui.Colors.Grey.``100`` |} }
+            sx={
+                {|
+                    bgcolor=Mui.Styles.headerBgColor
+                    paddingTop=(if isMobile then 0 else 1)
+                    paddingBottom=(if isMobile then 0 else 1)
+                    ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0 |}
+                |}
+            }
             expandIcon={{ <ExpandMoreIcon /> }}
             >
             <Typography>{props.nutritionContext.Label}</Typography>
             </AccordionSummary>
-            <AccordionDetails>
-                {details}
+            <AccordionDetails sx={ {| paddingTop=(if isMobile then 1 else 4) |} }>
+                {filterControls}
+                {orderDetails}
             </AccordionDetails>
         </Accordion>
         """
@@ -605,6 +896,8 @@ module Nutrion =
         orderContextMsg: (Api.OrderContextCommand * OrderContext) -> unit
         localizationTerms: Deferred<string[][]>
     |}) =
+
+        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         React.useEffect(
             (fun () ->
@@ -659,8 +952,8 @@ module Nutrion =
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <React.Fragment>
+        <Box sx={ {| paddingBottom=(if isMobile then "16px" else "220px") |} }>
             {content}
             {progress}
-        </React.Fragment>
+        </Box>
         """

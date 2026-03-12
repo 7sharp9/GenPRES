@@ -68,6 +68,18 @@
 !/.github/ISSUE_TEMPLATE/
 !/.github/PULL_REQUEST_TEMPLATE/
 
+# Add Claude Code shared config
+!/.claude/
+!/.claude/CLAUDE.md
+!/.claude/docs/
+!/.claude/docs/**
+!/.claude/commands/
+!/.claude/commands/**
+!/.claude/skills/
+!/.claude/skills/**
+!/.claude/agents/
+!/.claude/agents/**
+
 # Add devcontainer
 !/.devcontainer/
 !/.devcontainer/*

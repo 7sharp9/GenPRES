@@ -118,6 +118,7 @@ module GenPres =
             bolusMedication: Deferred<Intervention list>
             continuousMedication: Deferred<Intervention list>
             onSelectContinuousMedicationItem: string -> unit
+            onSelectEmergencyListItem: string -> unit
             products: Deferred<Product list>
             orderContext: Deferred<OrderContext>
             orderContextMsg : (Api.OrderContextCommand * OrderContext) -> unit
@@ -155,14 +156,16 @@ module GenPres =
                 top= "50%"
                 left= "50%"
                 transform= "translate(-50%, -50%)"
-                width= 400
+                width= "90vw"
+                maxWidth= 400
                 bgcolor= "background.paper"
                 boxShadow= 24
             |}
 
         let sxPageBox =
             {|
-                mt= 3
+                marginTop= 3
+                paddingRight= 1
                 overflowY =
                     match props.page with
                     | Global.Pages.Prescribe
@@ -210,7 +213,7 @@ module GenPres =
                     |})
                 }
             </React.Fragment>
-            <Container id="page-container" sx={ {| height="87%"; mt= 3 |} } >
+            <Container id="page-container" sx={ {| height="87%"; marginTop= 3 |} } >
                 <Stack sx={ {| height="100%" |} }>
                     <Box sx={ {| flexBasis=1 |} } >
                         {
@@ -228,6 +231,7 @@ module GenPres =
                                 Views.EmergencyList.View {|
                                     interventions = props.bolusMedication
                                     localizationTerms = props.localizationTerms
+                                    onSelectItem = props.onSelectEmergencyListItem
                                 |}
                             | Global.Pages.ContinuousMeds ->
                                 Views.ContinuousMeds.View {|
@@ -292,17 +296,17 @@ module GenPres =
                             | Global.Pages.Prescribe ->
                                 match props.orderContext with
                                 | Resolved pr ->
-                                    Views.Intake.View {| intake = pr.Intake |}
+                                    Views.Totals.View {| intake = pr.Intake |}
                                 | _ -> JSX.jsx "<></>"
                             | Global.Pages.Nutrition ->
                                 match props.nutritionPlan with
                                 | Resolved np ->
-                                    Views.Intake.View {| intake = np.Totals |}
+                                    Views.Totals.View {| intake = np.Totals |}
                                 | _ -> JSX.jsx "<></>"
                             | Global.Pages.TreatmentPlan ->
                                 match props.treatmentPlan with
                                 | Resolved tp ->
-                                    Views.Intake.View {| intake = tp.Totals |}
+                                    Views.Totals.View {| intake = tp.Totals |}
                                 | _ -> JSX.jsx "<></>"
                             | _ -> JSX.jsx "<></>"
                         }

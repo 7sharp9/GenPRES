@@ -967,3 +967,8 @@ type Hooks =
 
     static member inline useMediaQuery(getQuery: Theme -> string) : bool =
         HookImports.useMediaQuery_theme getQuery
+
+
+module Styles =
+
+    let headerBgColor = Colors.Blue.``50``
