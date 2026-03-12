@@ -394,10 +394,10 @@ module Patient =
                     <Grid container spacing={2}>
                         {React.fragment (items1 |> unbox)}
                     </Grid>
-                    <Grid container spacing={2} sx={ {| mt=2 |} } >
+                    <Grid container spacing={2} sx={ {| marginTop=2 |} } >
                         {React.fragment (items2 |> unbox)}
                     </Grid>
-                    <Box sx={ {| mt=2 |} }>
+                    <Box sx={ {| marginTop=2 |} }>
                         <Button variant="text" onClick={fun _ -> Clear |> dispatch} fullWidth startIcon={Mui.Icons.Delete} >
                             {Terms.Delete |> getTerm "Verwijder"}
                         </Button>

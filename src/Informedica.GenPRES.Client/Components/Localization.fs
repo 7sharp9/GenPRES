@@ -52,7 +52,7 @@ module Localization =
                 { Mui.Icons.Language }
             </IconButton>
             <Menu
-                sx={ {| mt="40px" |} }
+                sx={ {| marginTop="40px" |} }
                 anchorEl={anchorElLang}
                 anchorOrigin={ {| vertical="top"; horizontal="right" |} }
                 keepMounted

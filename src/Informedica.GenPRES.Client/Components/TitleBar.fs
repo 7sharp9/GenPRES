@@ -85,7 +85,7 @@ module TitleBar =
                         edge="start"
                         color="inherit"
                         aria-label="menu"
-                        sx={ {| mr = 2 |} }
+                        sx={ {| marginRight = 2 |} }
                         onClick={props.toggleSideMenu}
                         >
                         <MenuIcon />
@@ -100,7 +100,7 @@ module TitleBar =
                             { Mui.Icons.LocalHospital }
                         </IconButton>
                         <Menu
-                            sx={ {| mt="40px" |} }
+                            sx={ {| marginTop="40px" |} }
                             anchorEl={anchorElHosp}
                             anchorOrigin={ {| vertical="top"; horizontal="right" |} }
                             keepMounted
@@ -120,7 +120,7 @@ module TitleBar =
                             { Mui.Icons.Language }
                         </IconButton>
                         <Menu
-                            sx={ {| mt="40px" |} }
+                            sx={ {| marginTop="40px" |} }
                             anchorEl={anchorElLang}
                             anchorOrigin={ {| vertical="top"; horizontal="right" |} }
                             keepMounted

@@ -835,7 +835,7 @@ module Nutrion =
                 |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
                 |> filterSelect false lbl sel doseTypeChange
 
-        let filterSx = {| mb = 2 |}
+        let filterSx = {| marginBottom = 2 |}
         let filterControls =
             JSX.jsx
                 $"""

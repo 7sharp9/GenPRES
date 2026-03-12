@@ -98,7 +98,7 @@ module Prescribe =
                 import Backdrop from '@mui/material/Backdrop';
 
                 <Backdrop open={true} sx={ {| color= Mui.Colors.Grey.``200`` |} } >
-                    <Box sx={ {| position = "relative"; display= "inline-flex"; p = 20 |} }>
+                    <Box sx={ {| position = "relative"; display= "inline-flex"; padding = 20 |} }>
                         <CircularProgress color="primary" size={260} thickness={1} disableShrink={true} />
                         <Box
                             sx={ {|
@@ -434,7 +434,7 @@ module Prescribe =
                             | _ -> ViewHelpers.empty
                         }
                     </Stack>
-                    <Box sx={ {| mt=2 |} }>
+                    <Box sx={ {| marginTop=2 |} }>
                         <Button variant="text" onClick={clear} fullWidth startIcon={Mui.Icons.Delete} >
                             {Delete |> getTerm "Verwijder"}
                         </Button>

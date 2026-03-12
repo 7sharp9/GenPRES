@@ -297,7 +297,7 @@ module Formulary =
                         }
                     </Stack>
 
-                    <Box sx={ {| mt=2 |} }>
+                    <Box sx={ {| marginTop=2 |} }>
                         <Button variant="text" onClick={fun _ -> Clear |> dispatch } fullWidth startIcon={Mui.Icons.Delete} >
                             {Delete |> getTerm "Verwijder"}
                         </Button>

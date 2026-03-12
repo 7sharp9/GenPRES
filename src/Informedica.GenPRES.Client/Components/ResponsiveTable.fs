@@ -125,7 +125,7 @@ module ResponsiveTable =
             import Stack from '@mui/material/Stack';
 
             <Stack id="responsive-card-table" >
-                <Box sx={ {| mb=1.5 |} }>
+                <Box sx={ {| marginBottom=1.5 |} }>
                     {props.filter |> Option.defaultValue (JSX.jsx "<></>" |> toReact)}
                 </Box>
                 <Grid container rowSpacing={1} columnSpacing={ {| xs=1; sm=2; md=3 |} } >
@@ -305,7 +305,7 @@ module ResponsiveTable =
             import {{ DataGrid }} from '@mui/x-data-grid';
 
             <Box>
-                <Box sx={ {| mb=3 |} }>
+                <Box sx={ {| marginBottom=3 |} }>
                     {filter}
                 </Box>
                 <div style={ {| height =props.height; width = "100%" |} }>

@@ -230,7 +230,7 @@ module TreatmentPlan =
                 JSX.jsx $"""
                 import Button from '@mui/material/Button';
 
-                <Box sx={ {| mt=2 |} }>
+                <Box sx={ {| marginTop=2 |} }>
                     <Button variant="text" onClick={onDelete} fullWidth startIcon={Mui.Icons.Delete} >
                         Verwijder Geselecteerde Voorschriften
                     </Button>
