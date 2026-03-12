@@ -1053,7 +1053,7 @@ module NutritionPlan =
     /// Filters a resolved OrderContext's filter arrays against the configured
     /// tpnDoseRuleSet. If a configured array is non-empty, only matching values
     /// are kept; if empty, no restriction is applied.
-    let private filterByDoseRuleSet (resolved: OrderContext) =
+    let filterByDoseRuleSet (resolved: OrderContext) =
         { resolved with
             Filter =
                 { resolved.Filter with
@@ -1072,7 +1072,7 @@ module NutritionPlan =
         }
 
 
-    let private updateContext label resolved (plan: NutritionPlan) =
+    let updateContext label resolved (plan: NutritionPlan) =
         let updatedContexts =
             plan.NutritionContexts
             |> Array.map (fun nc ->

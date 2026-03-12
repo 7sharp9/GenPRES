@@ -306,7 +306,15 @@ module Nutrion =
         let genericChange s =
             ctx
             |> OrderContext.medicationChange s
-            |> OrderContext.indicationChange None
+            |> fun updCtx ->
+                // In Nutrition, Generic is upstream of Indication.
+                // Clear Indication selection (but NOT the Indications list — server repopulates it).
+                { updCtx with
+                    Filter =
+                        { updCtx.Filter with
+                            Indication = None
+                        }
+                }
             |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
             |> props.nutritionPlanMsg
 
@@ -563,7 +571,14 @@ module Nutrion =
                     )
 
                 let showNav =
-                    vals |> Array.length >= 1
+                    ord.Orderable.Components
+                    |> Array.forall (fun cmp ->
+                        cmp.OrderableQuantity.Variable.Vals
+                        |> Option.map (fun vu ->
+                            vu.Value |> Array.length = 1
+                        )
+                        |> Option.defaultValue false
+                    )
 
                 let doseQtyNav =
                     if not showNav then None

@@ -36,26 +36,44 @@ module EmergencyList =
                 |> Mui.TypoGraphy.fromTextBlock
 
         let columns = [|
-            {|  field = "id"; headerName = "id"; width = 0; filterable = false; sortable = false;  |} |> box
-            {|  field = "catagory"; headerName = Terms.``Emergency List Catagory`` |> getTerm "Category"; width = 140; filterable = true; sortable = true |} |> box
-            {|  field = "intervention"; headerName = Terms.``Emergency List Intervention`` |> getTerm "Interventie"; width = 300; filterable = true; sortable = true |} |> box
+            // id column: hidden via columnVisibilityModel
+            createObj [
+                "field" ==> "id"; "headerName" ==> "id"
+                "width" ==> 0; "filterable" ==> false; "sortable" ==> false
+            ]
+            // flex distributes available width proportionally; minWidth prevents collapse
+            createObj [
+                "field" ==> "catagory"
+                "headerName" ==> (Terms.``Emergency List Catagory`` |> getTerm "Category")
+                "width" ==> 140; "minWidth" ==> 100; "flex" ==> 0.5
+                "filterable" ==> true; "sortable" ==> true
+            ]
+            createObj [
+                "field" ==> "intervention"
+                "headerName" ==> (Terms.``Emergency List Intervention`` |> getTerm "Interventie")
+                "width" ==> 300; "minWidth" ==> 150; "flex" ==> 1
+                "filterable" ==> true; "sortable" ==> true
+            ]
             createObj [
                 "field" ==> "calculated"
                 "headerName" ==> (Terms.``Emergency List Calculated`` |> getTerm "Berekend")
-                "width" ==> 180
-                "filterable" ==> false
-                "sortable" ==> false
+                "width" ==> 180; "minWidth" ==> 120; "flex" ==> 0.8
+                "filterable" ==> false; "sortable" ==> false
                 "renderCell" ==> renderCalculatedCell
             ]
             createObj [
                 "field" ==> "preparation"
                 "headerName" ==> (Terms.``Emergency List Preparation`` |> getTerm "Bereiding")
-                "width" ==> 180
-                "filterable" ==> false
-                "sortable" ==> false
+                "width" ==> 180; "minWidth" ==> 120; "flex" ==> 0.8
+                "filterable" ==> false; "sortable" ==> false
                 "renderCell" ==> renderPreparationCell
             ]
-            {|  field = "advice"; headerName = Terms.``Emergency List Advice`` |> getTerm "Advies"; width = 300; filterable = false; sortable = false |} |> box
+            createObj [
+                "field" ==> "advice"
+                "headerName" ==> (Terms.``Emergency List Advice`` |> getTerm "Advies")
+                "width" ==> 300; "minWidth" ==> 150; "flex" ==> 1
+                "filterable" ==> false; "sortable" ==> false
+            ]
         |]
 
         let speakAct s =
@@ -66,7 +84,7 @@ module EmergencyList =
             import IconButton from '@mui/material/IconButton';
 
             <CardActions disableSpacing>
-                <IconButton onClick={speak}>
+                <IconButton onClick={speak} aria-label="Read aloud">
                     {Mui.Icons.CampaignIcon}
                 </IconButton>
             </CardActions>
@@ -111,7 +129,7 @@ module EmergencyList =
                                 {| field = "preparation"; value =  if b then "" else $"*{m.InterventionDoseText}*" |}
                                 {| field = "advice"; value = $"{m.Text}" |}
                             |]
-                        actions = sentence |> speakAct
+                        actions = None
                     |}
                 )
             | _ -> [||]
@@ -135,7 +153,7 @@ module EmergencyList =
             columns = columns
             rows = rows
             rowCreate = rowCreate
-            height = "70vh"
+            height = "calc(100vh - 200px)"
             onRowClick = ignore
             checkboxSelection = false
             selectedRows = [||]
