@@ -67,7 +67,7 @@ module StateSelect =
         import Select from '@mui/material/Select';
 
         <div>
-        <FormControl variant="standard" sx={ {| m = 1; minWidth = 120 |} }>
+        <FormControl variant="standard" sx={ {| margin = 1; minWidth = 120 |} }>
             <InputLabel id="demo-simple-select-standard-label">{props.label}</InputLabel>
             <Select
             labelId="demo-simple-select-standard-label"
