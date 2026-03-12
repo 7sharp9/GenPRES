@@ -158,7 +158,7 @@ module Prescribe =
                             row
                             |> Array.mapi (fun i cell ->
                                     JSX.jsx $"""
-                                    <TableCell key={i} sx = { {| pt=1; pr=2 |} }>
+                                    <TableCell key={i} sx = { {| paddingTop=1; paddingRight=2 |} }>
                                         {cell |> Mui.TypoGraphy.fromTextBlock}
                                     </TableCell>
                                     """
@@ -218,8 +218,8 @@ module Prescribe =
                         <ListItemIcon>
                             {icon}
                         </ListItemIcon>
-                        <TableContainer sx={ {| width="100%"; overflowX="auto" |} } >
-                            <Table padding="none" size="small" >
+                        <TableContainer sx={ {| overflowX="auto" |} } >
+                            <Table padding="none" size="small" sx={ {| tableLayout="auto"; width="auto" |} } >
                                 <TableBody>
                                     <TableRow sx={ {| border=0; ``& td``={| borderBottom=0 |} |} } >
                                         <TableCell >
@@ -462,7 +462,7 @@ module Prescribe =
         import Modal from '@mui/material/Modal';
 
         <div>
-            <Box sx={ {| height="100%"; paddingBottom=(if isMobile then "16px" else "120px") |} }>
+            <Box sx={ {| height="100%"; paddingBottom=(if isMobile then "16px" else "220px") |} }>
                 {cards}
                 {progress}
             </Box>

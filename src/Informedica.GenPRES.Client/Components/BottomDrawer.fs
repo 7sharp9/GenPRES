@@ -15,7 +15,7 @@ module BottomDrawer =
                 content : (string * ReactElement) []
             |}
         ) =
-        let sx = {| margin="auto" |}
+        let sx = {| margin="auto"; paddingTop=2; paddingBottom=2 |}
         let drawerSx = {| ``& .MuiDrawer-paper`` = {| bgcolor = Mui.Colors.Grey.``100`` |} |}
         JSX.jsx
             $"""

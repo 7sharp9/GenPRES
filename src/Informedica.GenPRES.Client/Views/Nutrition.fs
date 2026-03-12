@@ -840,7 +840,7 @@ module Nutrion =
             JSX.jsx
                 $"""
             import Stack from '@mui/material/Stack';
-            <Stack direction="column" spacing={{2}} sx={filterSx}>
+            <Stack direction="column" spacing={2} sx={filterSx}>
                 {genericFilter}
                 {indicationFilter}
                 {doseTypeFilter}
@@ -854,7 +854,7 @@ module Nutrion =
         let expanded, setExpanded = React.useState true
 
         let handleAccordionChange =
-            fun _ _ -> setExpanded (not expanded)
+            fun _ -> setExpanded (not expanded)
 
         JSX.jsx
             $"""
@@ -873,7 +873,7 @@ module Nutrion =
             >
             <Typography>{props.nutritionContext.Label}</Typography>
             </AccordionSummary>
-            <AccordionDetails>
+            <AccordionDetails sx={ {| paddingTop=4 |} }>
                 {filterControls}
                 {orderDetails}
             </AccordionDetails>
@@ -945,7 +945,7 @@ module Nutrion =
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <Box sx={ {| paddingBottom=(if isMobile then "16px" else "120px") |} }>
+        <Box sx={ {| paddingBottom=(if isMobile then "16px" else "220px") |} }>
             {content}
             {progress}
         </Box>

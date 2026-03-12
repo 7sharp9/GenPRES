@@ -244,7 +244,7 @@ module TreatmentPlan =
         import Box from '@mui/material/Box';
         import Modal from '@mui/material/Modal';
 
-        <Box sx={ {| height="100%"; paddingBottom=(if isMobile then "16px" else "120px") |} } >
+        <Box sx={ {| height="100%"; paddingBottom=(if isMobile then "16px" else "220px") |} } >
             {deleteBtn}
             {
                 Components.ResponsiveTable.View({|
