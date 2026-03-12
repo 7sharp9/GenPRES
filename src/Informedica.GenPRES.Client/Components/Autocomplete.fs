@@ -1,9 +1,6 @@
 namespace Components
 
 
-// Note: cannot set label on textfield in render function using the props.label
-// therefore hardcoded versions of autocomplete. Need to fix this.
-// Note: runs when building in development mode, but fails in production mode!
 module Autocomplete =
 
 
@@ -34,11 +31,12 @@ module Autocomplete =
                 |> props.updateSelected
 
         let renderInput pars =
-            // Mutate the MUI-provided params to include the label before spreading,
-            // avoiding Fable 5 interpolation issue: https://github.com/fable-compiler/Fable/issues/3999
-            pars?label <- props.label
+            // Copy the MUI-provided params before mutating to avoid React reuse issues,
+            // then add the label, avoiding Fable 5 interpolation issue: https://github.com/fable-compiler/Fable/issues/3999
+            let parsCopy = emitJsExpr pars "Object.assign({}, $0)"
+            parsCopy?label <- props.label
             JSX.jsx """
-                <TextField {...pars} />
+                <TextField {...parsCopy} />
             """
             
         JSX.jsx

@@ -149,7 +149,7 @@ type Patient = {
 
 ### Scoping and use of `private`
 
-Do not make types or functions private, unless explicitly mentionned in a comment or being told to.
+Do not make types or functions private, unless explicitly mentioned in a comment or being told to.
 
 ### Type and Module Shadowing Pattern
 - Create specific modules for each domain type that shadow the type name
