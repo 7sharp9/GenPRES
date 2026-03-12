@@ -248,6 +248,8 @@ module ResponsiveTable =
                     "lineHeight" ==> "1.5"
                     "paddingTop" ==> "8px"
                     "paddingBottom" ==> "8px"
+                    "display" ==> "flex"
+                    "alignItems" ==> "center"
                 ]
             ]
 
