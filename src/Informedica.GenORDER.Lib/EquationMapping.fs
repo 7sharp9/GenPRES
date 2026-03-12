@@ -45,7 +45,7 @@ module EquationMapping =
             data
             |> Array.skip 1
             // only pick those equations that are marked with an 'x'
-            |> Array.filter (fun xs -> xs[indx] = "x")
+            |> Array.filter (fun xs -> xs.Length > indx && xs[indx] = "x" && xs.Length > 1)
             |> Array.map (Array.item 1)
             |> Array.toList
 

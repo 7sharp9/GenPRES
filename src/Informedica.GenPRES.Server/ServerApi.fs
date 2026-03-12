@@ -1085,7 +1085,7 @@ module NutritionPlan =
 
 
     let updateNutritionOrderContext logger provider (plan: NutritionPlan, label: string, ctx: OrderContext) : Result<NutritionPlan, string[]> =
-        match OrderContext.evaluate logger provider Api.UpdateOrderScenario ctx with
+        match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
         | Ok resolved ->
             plan |> updateContext label resolved |> Ok
         | Error errs -> Error errs
