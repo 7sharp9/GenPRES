@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Client**: Add total dose adjust and rate schedule time display
+- **Client**: Add navigation to orderable dose quantity
+- **Client**: Even distribution of totals in bottom view
+- **Server**: Allow multiple nutrition scenarios
+- **Server**: Implement multiple order context filter settings for nutrition
 - **Client (TPN)**: First working version of rendering a nutrition (TPN) order in the UI
 - **Client (TPN)**: Render min/max values when there is a navigation option for a variable
 - **Client**: Counting button with support for repeated clicks or holding the button
@@ -28,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Client**: Set UI to 80% zoom level for better screen fit
+- **Client**: Use theme to size UI for desktop and mobile
+- **Client**: Rename "intake" to "totals" in nutrition view
+- **Client**: Move zoom level to document index
+- **Client**: Give bottom view a light background color
+- **Docs**: Prototype TypesSplit.fsx for ValueUnit type reorganisation (GenUnits)
 - **Client**: Centralize shared models — remove and consolidate duplicated code into shared models
 - **Client**: Rename message cases and simplify duplicated UI logic for cleaner code
 - **Client**: Shared patient business logic centralised between client and server
@@ -43,11 +54,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **Client**: Remove non-functioning clear buttons
 - Outdated FSI script files updated to match latest source code signatures
 - Unused `.fs` source files removed from repository
 
 ### Fixed
 
+- **Client**: Fix missing autocomplete label rendering due to Fable string interpolation issue
+- **GenOrder**: Fix silent swallowing of error in fetch equations
 - **Client (TPN)**: Fix Substance key mismatch — phosphate and vitamin D data was never rendered
 - **Client**: Add type annotation to prevent compiler warning
 - Fix npm build warnings caused by conflicting glob package versions (Mocha compatibility)
