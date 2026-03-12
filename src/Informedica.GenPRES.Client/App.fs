@@ -862,7 +862,7 @@ let private theme : obj = jsNative
 [<Literal>]
 let private mobileDef = """
 responsiveFontSizes(createTheme({
-    typography: { fontSize: 10 },
+    typography: { fontSize: 11 },
     spacing: 6,
     components: {
         MuiTable: { defaultProps: { size: 'small' } },
