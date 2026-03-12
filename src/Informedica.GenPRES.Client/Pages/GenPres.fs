@@ -118,6 +118,7 @@ module GenPres =
             bolusMedication: Deferred<Intervention list>
             continuousMedication: Deferred<Intervention list>
             onSelectContinuousMedicationItem: string -> unit
+            onSelectEmergencyListItem: string -> unit
             products: Deferred<Product list>
             orderContext: Deferred<OrderContext>
             orderContextMsg : (Api.OrderContextCommand * OrderContext) -> unit
@@ -230,6 +231,7 @@ module GenPres =
                                 Views.EmergencyList.View {|
                                     interventions = props.bolusMedication
                                     localizationTerms = props.localizationTerms
+                                    onSelectItem = props.onSelectEmergencyListItem
                                 |}
                             | Global.Pages.ContinuousMeds ->
                                 Views.ContinuousMeds.View {|

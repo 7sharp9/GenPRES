@@ -13,7 +13,7 @@ module EmergencyList =
 
 
     [<JSX.Component>]
-    let View (props : {| interventions: Deferred<Types.Intervention list>; localizationTerms : Deferred<string [] []> |}) =
+    let View (props : {| interventions: Deferred<Types.Intervention list>; localizationTerms : Deferred<string [] []>; onSelectItem: string -> unit |}) =
 
         let context = React.useContext(Global.context)
         let lang = context.Localization
@@ -122,7 +122,7 @@ module EmergencyList =
                     {|
                         cells =
                             [|
-                                {| field = "id"; value = $"{i + 1}" |}
+                                {| field = "id"; value = $"{i + 1}.{m.Name}" |}
                                 {| field = "catagory"; value = $"{m.Category}" |}
                                 {| field = "intervention"; value = $"**{m.Name}**" |}
                                 {| field = "calculated"; value = if b then $"*{m.SubstanceDoseText}*" else m.SubstanceDoseText  |}
@@ -154,7 +154,7 @@ module EmergencyList =
             rows = rows
             rowCreate = rowCreate
             height = "calc(100vh - 200px)"
-            onRowClick = ignore
+            onRowClick = props.onSelectItem
             checkboxSelection = false
             selectedRows = [||]
             onSelectChange = ignore

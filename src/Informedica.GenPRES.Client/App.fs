@@ -54,6 +54,7 @@ module private Elmish =
         | LoadContinuousMedication of AsyncOperationStatus<Result<ContinuousMedication list, string>>
         | LoadProducts of AsyncOperationStatus<Result<Product list, string>>
         | OnSelectContinuousMedicationItem of string
+        | OnSelectEmergencyListItem of string
 
         | OrderContextMsg of Api.OrderContextCommand * OrderContext
         | LoadOrderContextResult of Api.OrderContextCommand * ApiResponse
@@ -600,20 +601,41 @@ module private Elmish =
                     state, Cmd.none
                 | Some selected ->
                     let ctx =
-                        match state.OrderContext with
-                        | HasNotStartedYet -> OrderContext.empty
-                        | InProgress -> OrderContext.empty
-                        | Resolved ctx -> ctx
-                        |> fun ctx ->
-                            { ctx with
-                                OrderContext.Filter.Indication =
-                                    if selected.Indication = "" then None else Some selected.Indication
-                                OrderContext.Filter.Generic = Some selected.Generic
-                                OrderContext.Filter.Route = Some "INTRAVENEUS"
-                                OrderContext.Filter.DoseType =
-                                    if selected.DoseType = "" then None
-                                    else Some (DoseType.doseTypeFromString selected.DoseType)
-                            }
+                        { OrderContext.empty with
+                            Filter =
+                                { OrderContext.empty.Filter with
+                                    Indication =
+                                        if selected.Indication = "" then None
+                                        else Some selected.Indication
+                                    Generic = Some selected.Generic
+                                    Route = Some "INTRAVENEUS"
+                                    DoseType =
+                                        if selected.DoseType = "" then None
+                                        else Some (DoseType.doseTypeFromString selected.DoseType)
+                                }
+                        }
+                    { state with
+                        Page = Prescribe
+                        OrderContext = ctx |> Resolved
+                    }, Cmd.ofMsg (OrderContextMsg (Api.UpdateOrderContext, ctx))
+            | _ -> state, Cmd.none
+
+        | OnSelectEmergencyListItem item ->
+            Logging.log "selected emergency list item" item
+            match state.BolusMedication with
+            | Resolved meds ->
+                match meds |> List.tryFind (fun m -> item.Contains m.Generic) with
+                | None ->
+                    state, Cmd.none
+                | Some selected ->
+                    let ctx =
+                        { OrderContext.empty with
+                            Filter =
+                                { OrderContext.empty.Filter with
+                                    Generic = Some selected.Generic
+                                    Route = Some "INTRAVENEUS"
+                                }
+                        }
                     { state with
                         Page = Prescribe
                         OrderContext = ctx |> Resolved
@@ -943,6 +965,7 @@ let View () =
                         bolusMedication = bm
                         continuousMedication = cm
                         onSelectContinuousMedicationItem = OnSelectContinuousMedicationItem >> dispatch
+                        onSelectEmergencyListItem = OnSelectEmergencyListItem >> dispatch
                         products = state.Products
                         orderContext = state.OrderContext
                         orderContextMsg = fun (cmd, ctx) -> OrderContextMsg (cmd, ctx) |> dispatch
