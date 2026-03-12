@@ -1159,7 +1159,7 @@ module Order =
                                 ord.Orderable.Components
                                 |> Array.map _.Name
                                 |> Array.map (fun s -> s, s)
-                                |> select false "componenten" state.SelectedComponent (ChangeComponent >> dispatch) None false None (Some 400)
+                                |> select false "componenten" state.SelectedComponent (ChangeComponent >> dispatch) None false None None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1173,7 +1173,7 @@ module Order =
                                 itms
                                 |> Array.map _.Name
                                 |> Array.map (fun s -> s, s)
-                                |> select false "stoffen" state.SelectedItem (ChangeItem >> dispatch) None false None (Some 400)
+                                |> select false "stoffen" state.SelectedItem (ChangeItem >> dispatch) None false None None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1198,7 +1198,7 @@ module Order =
                             let warning = itms[i].Dose.Quantity.Level |> getWarning
 
                             vals
-                            |> select false label None (ChangeSubstanceDoseQuantity >> dispatch) None false warning (Some 400)
+                            |> select false label None (ChangeSubstanceDoseQuantity >> dispatch) None false warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1222,7 +1222,7 @@ module Order =
                             let warning = itms[i].Dose.QuantityAdjust.Level |> getWarning
 
                             vals
-                            |> select false label None (ChangeSubstanceDoseQuantityAdjust >> dispatch) None true warning (Some 400)
+                            |> select false label None (ChangeSubstanceDoseQuantityAdjust >> dispatch) None true warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1256,7 +1256,7 @@ module Order =
                                     itms[i].Dose.PerTime.Level |> getWarning
 
                             vals
-                            |> select false label None dispatch None true warning (Some 400)
+                            |> select false label None dispatch None true warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1285,7 +1285,7 @@ module Order =
                                 |> Array.distinctBy snd
                             )
                             |> Option.defaultValue [||]
-                            |> select false (Terms.``Order Adjusted dose`` |> getTerm "dosering") None dispatch navigate true warning (Some 400)
+                            |> select false (Terms.``Order Adjusted dose`` |> getTerm "dosering") None dispatch navigate true warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1341,7 +1341,7 @@ module Order =
                                 |> Option.bind (_.OrderableQuantity.Level >> getWarning)
 
                             vals
-                            |> select false "bereiding hoeveelheid" None (ChangeComponentOrderableQuantity >> dispatch) navigate false warning (Some 400)
+                            |> select false "bereiding hoeveelheid" None (ChangeComponentOrderableQuantity >> dispatch) navigate false warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1364,7 +1364,7 @@ module Order =
                                     itm.ComponentConcentration.Variable.Vals
                                     |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                                     |> Option.defaultValue [||]
-                                    |> select false "product sterkte" None (change >> dispatch) None false None (Some 400)
+                                    |> select false "product sterkte" None (change >> dispatch) None false None None
                                 else ViewHelpers.empty
                             | None ->
                                 match
@@ -1383,7 +1383,7 @@ module Order =
                                             itm.ComponentConcentration.Variable.Vals
                                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
                                             |> Option.defaultValue [||]
-                                            |> select false "product sterkte" None (change >> dispatch) None false None (Some 400)
+                                            |> select false "product sterkte" None (change >> dispatch) None false None None
                                         else ViewHelpers.empty
 
                                     | None -> ViewHelpers.empty
@@ -1404,7 +1404,7 @@ module Order =
                             itms[i].OrderableQuantity.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                             |> Option.defaultValue [||]
-                            |> select false $"{itms[i].Name} hoeveelheid" None (ChangeSubstanceOrderableQuantity >> dispatch) None false warning (Some 400)
+                            |> select false $"{itms[i].Name} hoeveelheid" None (ChangeSubstanceOrderableQuantity >> dispatch) None false warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1419,7 +1419,7 @@ module Order =
                             itms[i].OrderableConcentration.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                             |> Option.defaultValue [||]
-                            |> select false $"{itms[i].Name} concentratie" None (ChangeSubstanceOrderableConcentration >> dispatch) None false warning (Some 400)
+                            |> select false $"{itms[i].Name} concentratie" None (ChangeSubstanceOrderableConcentration >> dispatch) None false warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1432,7 +1432,7 @@ module Order =
                             ord.Orderable.OrderableQuantity.Variable.Vals
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
                             |> Option.defaultValue [||]
-                            |> select false "totale hoeveelheid" None (ChangeOrderableQuantity >> dispatch) None false warning (Some 400)
+                            |> select false "totale hoeveelheid" None (ChangeOrderableQuantity >> dispatch) None false warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1462,7 +1462,7 @@ module Order =
 
                             let warning = ord.Schedule.Frequency.Level |> getWarning
 
-                            select false (Terms.``Order Frequency`` |> getTerm "frequentie") None (ChangeFrequency >> dispatch) navigate false warning (Some 400) xs
+                            select false (Terms.``Order Frequency`` |> getTerm "frequentie") None (ChangeFrequency >> dispatch) navigate false warning None xs
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1531,7 +1531,7 @@ module Order =
                                 | "" -> [||]
                                 | s -> [| "range", s |]
                             )
-                            |> select false "toedien hoeveelheid" None (ChangeOrderableDoseQuantity >> dispatch) navigate false warning (Some 400)
+                            |> select false "toedien hoeveelheid" None (ChangeOrderableDoseQuantity >> dispatch) navigate false warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1561,7 +1561,7 @@ module Order =
                                 | "" -> [||]
                                 | s -> [| "range", s |]
                             )
-                            |> select false (Terms.``Order Drip rate`` |> getTerm "inloop snelheid") None (ChangeOrderableDoseRate >> dispatch) navigate false warning (Some 400)
+                            |> select false (Terms.``Order Drip rate`` |> getTerm "inloop snelheid") None (ChangeOrderableDoseRate >> dispatch) navigate false warning None
                         | _ ->
                             ViewHelpers.empty
                     }
@@ -1575,7 +1575,7 @@ module Order =
                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 2} {v.Unit}"))
                             |> Option.defaultValue [||]
                             |> Array.distinctBy snd
-                            |> select false (Terms.``Order Administration time`` |> getTerm "inloop tijd") None (ChangeTime >> dispatch) None true warning (Some 400)
+                            |> select false (Terms.``Order Administration time`` |> getTerm "inloop tijd") None (ChangeTime >> dispatch) None true warning None
                         | _ ->
                             ViewHelpers.empty
                     }
