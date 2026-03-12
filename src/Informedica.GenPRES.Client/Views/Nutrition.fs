@@ -868,12 +868,19 @@ module Nutrion =
 
         <Accordion expanded={expanded} onChange={handleAccordionChange}>
             <AccordionSummary
-            sx={ {| bgcolor=Mui.Colors.Grey.``100`` |} }
+            sx={
+                {|
+                    bgcolor=Mui.Colors.Grey.``100``
+                    paddingTop=(if isMobile then 0 else 1)
+                    paddingBottom=(if isMobile then 0 else 1)
+                    ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0 |}
+                |}
+            }
             expandIcon={{ <ExpandMoreIcon /> }}
             >
             <Typography>{props.nutritionContext.Label}</Typography>
             </AccordionSummary>
-            <AccordionDetails sx={ {| paddingTop=4 |} }>
+            <AccordionDetails sx={ {| paddingTop=(if isMobile then 1 else 4) |} }>
                 {filterControls}
                 {orderDetails}
             </AccordionDetails>
