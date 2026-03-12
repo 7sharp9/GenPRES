@@ -164,6 +164,7 @@ module GenPres =
         let sxPageBox =
             {|
                 marginTop= 3
+                paddingRight= 1
                 overflowY =
                     match props.page with
                     | Global.Pages.Prescribe

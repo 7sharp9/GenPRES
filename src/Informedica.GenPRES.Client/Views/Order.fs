@@ -1111,7 +1111,7 @@ module Order =
             fun () ->
                 ResetOrderScenario |> dispatch
 
-        let headerSx = {| backgroundColor = Mui.Colors.Blue.``50`` |}
+        let headerSx = {| backgroundColor = Mui.Styles.headerBgColor |}
 
         let preparationDivider =
             if showPrepDivider then

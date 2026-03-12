@@ -387,7 +387,7 @@ module Patient =
                 <AccordionSummary
                 sx={
                     {|
-                        bgcolor=Mui.Colors.Grey.``100``
+                        bgcolor=Mui.Styles.headerBgColor
                         paddingTop=(if isMobile then 0 else 1)
                         paddingBottom=(if isMobile then 0 else 1)
                         ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0 |}

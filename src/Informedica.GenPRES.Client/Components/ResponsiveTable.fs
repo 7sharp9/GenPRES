@@ -42,7 +42,7 @@ module ResponsiveTable =
                                 import Typography from '@mui/material/Typography';
                                 import Box from '@mui/material/Box';
 
-                                <Box sx={ {| paddingY = 0.5; backgroundColor = Mui.Colors.Grey.``100``; marginX = -1.5; paddingX = 1.5 |} } >
+                                <Box sx={ {| paddingY = 0.5; backgroundColor = Mui.Styles.headerBgColor; marginX = -1.5; paddingX = 1.5 |} } >
                                     <Typography variant="subtitle2" color={b} sx={ {| fontWeight = 600; lineHeight = 1.4 |} } >
                                         {s}
                                     </Typography>

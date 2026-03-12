@@ -237,7 +237,7 @@ module Prescribe =
                     JSX.jsx
                         $"""
                     <React.Fragment>
-                        <Typography variant="h6" >
+                        <Typography variant="h6" sx={ {| backgroundColor=Mui.Styles.headerBgColor; padding=1; borderRadius=1 |} } >
                             {caption}
                         </Typography>
                         <List sx={ {| width="100%"; maxWidth=1200; bgcolor=Mui.Colors.Grey.``50`` |} }>
@@ -305,7 +305,7 @@ module Prescribe =
             import Stack from '@mui/material/Stack';
 
             <React.Fragment>
-                <Stack direction="column" spacing={3}>
+                <Stack direction="column" spacing={if isMobile then 1 else 3}>
                     <Typography sx={ {| fontSize=14 |} } color="text.secondary" >
                         {Terms.``Prescribe Scenarios`` |> getTerm "Medicatie scenario's"}
                     </Typography>
@@ -324,7 +324,7 @@ module Prescribe =
                                 items
                                 |> autoComplete isLoading lbl sel indicationChange
                     }
-                    <Stack direction={stackDirection} spacing={3} >
+                    <Stack direction={stackDirection} spacing={if isMobile then 1 else 3} >
                         {
                             match props.orderContext with
                             | Resolved pr -> false, pr.Filter.Generic, pr.Filter.Generics
@@ -439,7 +439,7 @@ module Prescribe =
                             {Delete |> getTerm "Verwijder"}
                         </Button>
                     </Box>
-                    <Stack direction="column" >
+                    <Stack direction="column" spacing={1} >
                         {
                             match props.orderContext with
                             | Resolved pr ->
