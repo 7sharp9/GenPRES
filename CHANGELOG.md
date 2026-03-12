@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.1.0-alpha] - 2026-03-11
+
+> ⚠️ **Alpha release** — Early development stage. Major features are incomplete. **Not for clinical use.**
+
 ### Added
 
 - **Client (TPN)**: First working version of rendering a nutrition (TPN) order in the UI
@@ -35,8 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependencies**: Update NuGet transitive dependencies; pin `Microsoft.Net.Test.Sdk` to 18.3.0
 - **Docs**: Improve FSI MCP server usage instructions, including auto-load Claude file guidance
 
-### Deprecated
-
 ### Removed
 
 - Outdated FSI script files updated to match latest source code signatures
@@ -52,8 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove all hard-coded Google Sheet URL ID references from source files
 - **GenForm**: Prevent comparing incompatible value units in product filtering
 - **GenForm**: Fix race condition using a non-concurrent collection in an async context
-
-### Security
 
 ---
 
