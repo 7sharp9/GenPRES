@@ -595,7 +595,7 @@ module private Elmish =
             Logging.log $"selected continuous medication item" item
             match state.ContinuousMedication with
             | Resolved meds ->
-                match meds |> List.tryFind (fun m -> item.Contains m.Medication) with
+                match meds |> List.tryFind (fun m -> item.EndsWith($".{m.Medication}")) with
                 | None ->
                     Logging.warning $"could not find continuous medication with item: {item}" item
                     state, Cmd.none
@@ -624,7 +624,7 @@ module private Elmish =
             Logging.log "selected emergency list item" item
             match state.BolusMedication with
             | Resolved meds ->
-                match meds |> List.tryFind (fun m -> item.Contains m.Generic) with
+                match meds |> List.tryFind (fun m -> item.EndsWith($".{m.Generic}")) with
                 | None ->
                     state, Cmd.none
                 | Some selected ->

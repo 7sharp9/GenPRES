@@ -18,11 +18,20 @@ module ResponsiveTable =
                 columns : {|  field : string; headerName : string; width : int; filterable : bool; sortable : bool |}[]
                 rows : {| cells : {| field: string; value: string |} []; actions : ReactElement option |} []
                 filter : ReactElement option
+                onRowClick : string -> unit
             |}) =
 
             let cards =
                 props.rows
                 |> Array.map (fun row ->
+                    let rowId =
+                        row.cells
+                        |> Array.tryFind (fun c -> c.field = "id")
+                        |> Option.map (fun c -> c.value)
+                        |> Option.defaultValue ""
+
+                    let handleClick = fun _ -> props.onRowClick rowId
+
                     let content =
                         row.cells
                         |> Array.choose (fun cell ->
@@ -106,7 +115,7 @@ module ResponsiveTable =
                     import Stack from '@mui/material/Stack';
 
                     <Grid item sx={ {| width="100%"; mb = 0.5 |} } >
-                        <Card raised={true} >
+                        <Card raised={true} onClick={handleClick} sx={ {| cursor = "pointer" |} } >
                             <CardContent sx={ {| paddingTop = 1; paddingBottom = bottomPad; paddingX = 1.5; ``&:last-child`` = {| paddingBottom = bottomPad |} |} } >
                                 <Stack spacing={0} divider={divider} >
                                     {content}
@@ -270,7 +279,7 @@ module ResponsiveTable =
             let typedColumns =
                 props.columns
                 |> Array.map unbox<{| field: string; headerName: string; width: int; filterable: bool; sortable: bool |}>
-            {| columns = typedColumns; rows = rows; filter = Some filter |}
+            {| columns = typedColumns; rows = rows; filter = Some filter; onRowClick = props.onRowClick |}
             |> CardTable
         else
             let rows =
