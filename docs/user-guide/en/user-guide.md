@@ -83,9 +83,8 @@ The URL uses hash-based routing (`/#patient?...`). Supported query parameters:
 
 Example patients using query parameters:
 
-| ad | | gw | wt | ht | md | rt | in | Link |
+| Age (years) | Age (days) | GA (weeks) | Weight (kg) | Height (cm) | Medication | Route | Indication | Link |
 |---|---|---|---|---|---|---|---|---|
-| Age (years) | Age (days) | GA (weeks) | Weight (kg) | Height (cm) | Medication | Route | Indication | |
 | 1 | | | 10 | | paracetamol | oraal | Milde tot matige pijn; koorts | [GenPRES](https://genpres.nl/#patient?pg=pr&dc=n&la=du&ad=366&wt=10000&md=paracetamol&rt=oraal&in=Milde%20tot%20matige%20pijn%3B%20koorts) |
 | | 2 | 35 | 1.2 | 45 | paracetamol | oraal | Pijn, acuut/post-operatief | [GenPRES](https://genpres.nl/#patient?pg=pr&dc=n&la=du&ad=2&gw=35&wt=1200&ht=45&md=paracetamol&rt=oraal&in=Pijn%2C%20acuut%2Fpost-operatief) |
 | 1 | | | 10 | | gentamicine | intraveneus | Ernstige infectie, gram negatieve microorganismen | [GenPRES](https://genpres.nl/#patient?pg=pr&dc=n&la=du&ad=366&wt=10000&md=gentamicine&rt=intraveneus&in=Ernstige%20infectie%2C%20gram%20negatieve%20microorganismen) |
