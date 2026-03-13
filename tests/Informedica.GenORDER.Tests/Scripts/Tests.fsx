@@ -201,10 +201,10 @@ Components:
 ///
 /// Demonstrates:
 /// - DiscontinuousOrder with international units (IE = internationale eenheid)
-/// - Dosing expressed in millions of units (milj.IE), illustrating how the
-///   system formats large numbers (e.g., 50 000 IE/kg/dosis)
+/// - Dosing expressed in millions of units (miljIE), illustrating how the
+///   system formats large numbers (e.g., 100 000 IE/ml concentration)
 /// - The concentration is expressed per ml (IE/ml), while the dose per-time
-///   limit is in milj.IE/kg/dag, showing unit conversion across scales
+///   limit is in miljIE/kg/dag, showing unit conversion across scales
 let benzylpenicillineText = """
 Id: benzylpen-001
 Name: benzylpenicilline
@@ -230,7 +230,7 @@ Components:
 
 		Name: benzylpenicilline
 		Concentrations: 100 000 IE/ml
-		Dose: benzylpenicilline, [dun] IE, [per-time-adj] 0.2 milj.IE/kg/dag - 0.6 milj.IE/kg/dag, [per-time] max 24 milj.IE/dag
+		Dose: benzylpenicilline, [dun] IE, [per-time-adj] 0.2 miljIE/kg/dag - 0.6 miljIE/kg/dag, [per-time] max 24 miljIE/dag
 		Solution:
 """
 
@@ -404,7 +404,7 @@ let tests =
             gentamicin36hText
 
         createTest
-            "benzylpenicilline — international unit dosing (IE/milj.IE) and large number readability"
+            "benzylpenicilline — international unit dosing (IE/miljIE) and large number readability"
             benzylpenicillineText
 
         createTest
