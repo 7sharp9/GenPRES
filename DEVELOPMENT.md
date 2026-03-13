@@ -27,6 +27,194 @@ dotnet run
 
 Open your browser to `http://localhost:5173`
 
+## Build System Architecture
+
+### How `dotnet run` Interacts with FAKE
+
+GenPRES uses [FAKE](https://fake.build/) (F# Make) as its build automation tool. The build configuration lives in two files at the repository root:
+
+- **`Build.fs`** – defines all FAKE build targets (tasks) and their dependency chains
+- **`Helpers.fs`** – helper functions for running processes (dotnet, npm, docker) in the build
+
+When you type `dotnet run` from the repository root, .NET executes `Build.fsproj`, which is an F# console application that initialises the FAKE execution context. FAKE then reads the target name from the command-line arguments (defaulting to `Run` when none is given) and executes the corresponding target and all of its declared dependencies.
+
+```text
+dotnet run [target]
+     │
+     └─► Build.fsproj (F# console app)
+              │
+              └─► FAKE target engine
+                       │
+                       ├─► resolves target dependency chain
+                       └─► executes each target step
+```
+
+For example, `dotnet run` (no target) runs the `Run` target, which depends on:
+`Clean → RestoreClient → Build → Run` (server + Fable watcher in parallel).
+
+### FAKE Build Targets Reference
+
+| Command | Target | Description |
+|---|---|---|
+| `dotnet run` | `Run` | Start server + Fable/Vite dev server with hot reload (default) |
+| `dotnet run list` | *(special)* | List all available FAKE targets |
+| `dotnet run Build` | `Build` | Compile the entire solution (`GenPRES.sln`) |
+| `dotnet run Clean` | `Clean` | Remove `deploy/` and `dist/` artefacts, delete Fable-generated `.jsx` files |
+| `dotnet run Bundle` | `Bundle` | Production build: publish server, compile client, copy data |
+| `dotnet run ServerTests` | `ServerTests` | Run all F# unit tests (Expecto) with quiet logging |
+| `dotnet run TestHeadless` | `TestHeadless` | Build and run tests without launching a browser |
+| `dotnet run WatchTests` | `WatchTests` | Run tests in watch mode (re-runs on file changes) |
+| `dotnet run Format` | `Format` | Format all F# source files using Fantomas |
+| `dotnet run DockerRun` | `DockerRun` | Run the pre-built Docker image locally |
+
+#### Target Dependency Chains
+
+```text
+Clean ──► RestoreClient ──► Bundle
+Clean ──► RestoreClient ──► Build ──► Run
+
+RestoreClient ──► Build ──► TestHeadless
+RestoreClient ──► Build ──► WatchTests
+```
+
+### What Happens During `dotnet run` (the `Run` target)
+
+The `Run` target starts two long-running processes **in parallel**:
+
+1. **Server** – `dotnet run --no-restore` in `src/Informedica.GenPRES.Server/`
+   - Saturn/Giraffe HTTP server on port `8085`
+2. **Client** – `dotnet fable watch … --run npx vite` in `src/Informedica.GenPRES.Client/`
+   - Fable compiles F# → JavaScript, Vite serves the client on `http://localhost:5173` with Hot Module Replacement (HMR)
+
+Output from both processes is printed concurrently with colour-coded prefixes (`server:`, `client:`).
+
+### CI/CD Pipeline (GitHub Actions)
+
+The CI pipeline is defined in `.github/workflows/build.yml` and runs on every push or pull request to `master` across three operating systems:
+
+| Matrix | OS |
+|---|---|
+| ubuntu-latest | Linux |
+| windows-latest | Windows |
+| macOS-latest | macOS |
+
+**Pipeline steps:**
+
+1. **Checkout** – `actions/checkout@v4`
+2. **Install .NET SDK** – installs .NET 10.0 via `actions/setup-dotnet`
+3. **Tool restore** – `dotnet tool restore` (installs paket, fable, fantomas, husky from `.config/dotnet-tools.json`)
+4. **Format check** – `dotnet fantomas --check .` (fails the build on unformatted code)
+5. **Test execution** – `dotnet run ServerTests` (runs all Expecto tests)
+
+Environment variables set in CI (from `.github/workflows/build.yml`):
+
+```yaml
+env:
+  CI: true          # Disables interactive prompts
+  GENPRES_DEBUG: 1  # Enables debug logging during test runs
+```
+
+The pipeline does **not** set `GENPRES_URL_ID`, so tests run against demo/cached data only. Production data is never accessed in CI.
+
+### IDE Integration
+
+#### Visual Studio Code
+
+The repository ships a `.vscode/settings.json` with Ionide (F# language support) settings. To work effectively:
+
+1. Install the **Ionide for F#** extension (`ionide.ionide-fsharp`)
+2. Open the repository root folder in VS Code
+3. Ionide will use `GenPRES.sln` to discover projects and provide IntelliSense
+
+**Running from VS Code terminal:**
+
+```bash
+# Start full application (server + client)
+dotnet run
+
+# Run tests
+dotnet run ServerTests
+
+# Build only
+dotnet run Build
+```
+
+You can also add custom VS Code tasks in `.vscode/tasks.json` if you want keyboard-shortcut access to build targets.
+
+#### JetBrains Rider
+
+1. Open `GenPRES.sln` in Rider (not the folder — open the `.sln` file)
+2. Rider will restore packages and index the solution automatically
+
+**Running the application from Rider:**
+
+The most reliable approach in Rider is to use the integrated terminal:
+
+```bash
+dotnet run
+```
+
+Alternatively, you can create a **Run Configuration** manually:
+
+- **Type**: .NET Project
+- **Project**: `Build` (the root `Build.fsproj`)
+- **Program arguments**: *(leave empty to start with the default `Run` target)*
+
+**Running individual targets:**
+
+Add the target name as a program argument, for example `ServerTests` to run the tests.
+
+#### Debug Mode in Rider
+
+Because the application starts the server process indirectly through FAKE, attaching the Rider debugger requires a two-step approach:
+
+**Option 1 – Attach to running process (recommended):**
+
+1. Start the server normally: `dotnet run` in the terminal
+2. In Rider: **Run → Attach to Process** and select the `Informedica.GenPRES.Server` process
+3. Set breakpoints in the server source files; Rider will break when they are hit
+
+**Option 2 – Run server directly:**
+
+1. In Rider, create a **Run/Debug Configuration** of type **.NET Project**:
+   - **Project**: `Informedica.GenPRES.Server`
+   - **Working directory**: `src/Informedica.GenPRES.Server`
+2. Start the client separately in a terminal: `dotnet fable watch -o output -s -e .jsx --run npx vite` from `src/Informedica.GenPRES.Client/`
+3. Use Rider's **Debug** button to launch the server with the full debugger attached
+
+> **Note**: When running the server directly (Option 2), environment variables from `.env` are loaded automatically by `Env.loadDotEnv()` in the server startup code, so no additional IDE configuration is needed for environment variables.
+
+#### Debug Mode in VS Code
+
+1. Create a `.vscode/launch.json` file (if it does not exist):
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch GenPRES Server",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "dotnet: build",
+      "program": "${workspaceFolder}/src/Informedica.GenPRES.Server/bin/Debug/net10.0/Informedica.GenPRES.Server.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Informedica.GenPRES.Server",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      }
+    }
+  ]
+}
+```
+
+2. Press **F5** to start the server with the debugger attached
+3. Start the client in a separate terminal: `dotnet fable watch -o output -s -e .jsx --run npx vite` from `src/Informedica.GenPRES.Client/`
+
+> **Tip**: The C# Dev Kit or the **.NET Install Tool** extension may be required depending on your VS Code setup.
+
 ## Project Folder Structure
 
 ### Root Level

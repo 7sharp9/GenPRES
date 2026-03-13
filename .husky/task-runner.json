@@ -16,6 +16,20 @@
             ]
         },
         {
+            "name": "markdown-lint",
+            "group": "pre-commit",
+            "command": "dotnet",
+            "args": [
+                "fsi",
+                ".husky/scripts/markdown-lint.fsx",
+                "--",
+                "${staged}"
+            ],
+            "include": [
+                "**/*.md"
+            ]
+        },
+        {
             "name": "commit-message-linter",
             "group": "commit-msg",
             "command": "dotnet",
