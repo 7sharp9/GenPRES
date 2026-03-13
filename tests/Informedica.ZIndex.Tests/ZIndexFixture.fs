@@ -688,25 +688,31 @@ module ZIndexFixture =
 
     /// Copy every BST*.test file to its corresponding name without the .test
     /// extension, making the synthetic data visible to the ZIndex parsers.
-    let setupForTest (zindexDir: string) =
+    /// Returns the list of files that were created (not pre-existing).
+    let setupForTest (zindexDir: string) : string list =
         printfn "Setting up fixture files for test run..."
         Directory.GetFiles(zindexDir, "BST*.test")
-        |> Array.iter (fun src ->
+        |> Array.choose (fun src ->
             let dest = Path.Combine(zindexDir, Path.GetFileNameWithoutExtension(src))
-            File.Copy(src, dest, overwrite = true)
-            printfn $"  Copied {Path.GetFileName(src)} → {Path.GetFileName(dest)}"
+            if File.Exists(dest) then
+                printfn $"  Skipped {Path.GetFileName(dest)} (pre-existing file preserved)"
+                None
+            else
+                File.Copy(src, dest)
+                printfn $"  Copied {Path.GetFileName(src)} → {Path.GetFileName(dest)}"
+                Some dest
         )
-        printfn ""
+        |> Array.toList
 
 
-    /// Delete all plain BST* files (without .test extension) from the directory.
-    let teardownAfterTest (zindexDir: string) =
+    /// Delete only the files that were created by setupForTest.
+    let teardownAfterTest (createdFiles: string list) =
         printfn ""
         printfn "Tearing down temporary fixture files..."
-        Directory.GetFiles(zindexDir, "BST*")
-        |> Array.filter (fun f -> not (f.EndsWith(".test")))
-        |> Array.iter (fun f ->
-            File.Delete(f)
-            printfn $"  Deleted {Path.GetFileName(f)}"
+        createdFiles
+        |> List.iter (fun f ->
+            if File.Exists(f) then
+                File.Delete(f)
+                printfn $"  Deleted {Path.GetFileName(f)}"
         )
         printfn "Done."

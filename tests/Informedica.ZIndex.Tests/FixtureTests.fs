@@ -5,7 +5,8 @@ open System.IO
 
 
 /// Ensures fixture files are in place before any test accesses ZIndex modules.
-/// This module is referenced by FixtureTests to trigger initialization.
+/// Initialization is guaranteed because F# initializes modules in compilation
+/// order: FixtureSetup (this module) precedes FixtureTests in the same file.
 [<AutoOpen>]
 module FixtureSetup =
 
@@ -30,12 +31,14 @@ module FixtureSetup =
         let repoRoot = findRepoRoot ()
         Path.Combine(repoRoot, "data/zindex")
 
-    // Run fixture setup at module initialization time (before any test runs)
-    do
-        if Directory.GetFiles(fixtureZindexDir, "BST*.test") |> Array.isEmpty then
-            ZIndexFixture.generate fixtureZindexDir
-
-        ZIndexFixture.setupForTest fixtureZindexDir
+    // Run fixture setup at module initialization time (before any test runs).
+    // fixtureCreatedFiles tracks which BST files were created so teardown
+    // only removes those, preserving any pre-existing licensed data files.
+    let fixtureCreatedFiles =
+        let zDir = fixtureZindexDir
+        if Directory.GetFiles(zDir, "BST*.test") |> Array.isEmpty then
+            ZIndexFixture.generate zDir
+        ZIndexFixture.setupForTest zDir
 
 
 module FixtureTests =
