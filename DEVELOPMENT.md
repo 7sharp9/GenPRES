@@ -309,6 +309,7 @@ GenPRES/
 - `WARP.md` - Warp AI agent documentation
 - `docs/mdr/design-history/architecture.md` - Technical architecture
 - `docs/domain/` - Domain model specifications
+- `docs/user-guide/` - Multilingual user guide ([English](docs/user-guide/en/user-guide.md), [Nederlands](docs/user-guide/nl/gebruikershandleiding.md))
 
 ## Directory Descriptions
 
