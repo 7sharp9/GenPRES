@@ -1,0 +1,33 @@
+09020   2     1                   mg                       milligram                                         
+09020   2     2                   g                        gram                                              
+09020   2     3                   ml                       milliliter                                        
+09020   2     4                   mmol                     millimol                                          
+09020   2     5                   microg                   microgram                                         
+09020   2     6                   IE                       internationale eenheid                            
+09020   2     7                   mval                     milliequivalent                                   
+09020   2     8                   druppels                 druppels                                          
+09020   2     9                   puf                      puf                                               
+09020   7     1                   oraal                    oraal                                             
+09020   7     2                   intraveneus              intraveneus                                       
+09020   7     3                   inhalatie                inhalatie                                         
+09020   7     4                   rectaal                  rectaal                                           
+09020   7     5                   subcutaan                subcutaan                                         
+09020   7     6                   intramusculair           intramusculair                                    
+09020   7     7                   transdermaal             transdermaal                                      
+09020   7     8                   intranasaal              intranasaal                                       
+09020   7     9                   oogdruppels              oogdruppels                                       
+09020   7    10                   oordruppels              oordruppels                                       
+09020   6     1                   tablet                   tablet                                            
+09020   6     2                   pdr iv                   poeder voor injectieoplossing                     
+09020   6     3                   stroop                   stroop                                            
+09020   6     4                   capsule                  capsule                                           
+09020   6     5                   zetpil                   zetpil                                            
+09020   6     6                   inj. vlst                injectievloeistof                                 
+09020   6     7                   druppels                 druppels                                          
+09020   4     1                   fl                       flacon                                            
+09020   4     2                   strip                    strip                                             
+09020   4     3                   ampul                    ampul                                             
+09020   4     4                   tube                     tube                                              
+09020  73     1                   fl                       flacon                                            
+09020  73     2                   strip                    strip                                             
+09020  73     3                   ampul                    ampul                                             

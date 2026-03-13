@@ -158,6 +158,7 @@
 !/data/cache/
 !/data/cache/*.demo
 !/data/zindex/
+!/data/zindex/BST*.test
 !/data/formulary/
 !/data/formulary/*.csv
 !/data/mapping/
