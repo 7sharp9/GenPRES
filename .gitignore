@@ -156,6 +156,7 @@
 !/data/cache/
 !/data/cache/*.demo
 !/data/zindex/
+!/data/zindex/BST*
 !/data/formulary/
 !/data/formulary/*.csv
 !/data/mapping/

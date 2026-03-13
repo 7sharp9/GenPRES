@@ -1,0 +1,176 @@
+00200BST020T               1BSTNUM    Bestand nummer                                              N   4 0                       
+00200BST020T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+00200BST020T               3NMNR      Naamnummer                                                  N   7 0                       
+00200BST020T               4NMMEMO    Memokode                                                    A   3 0                       
+00200BST020T               5NMETIK    Etiketnaam                                                  A  25 0                       
+00200BST020T               6NMNM40    Korte handelsnaam                                           A  40 0                       
+00200BST020T               7NMNAAM    Naam volledig                                               A  60 0                       
+03600BST360T               1BSTNUM    Bestand nummer                                              N   4 0                       
+03600BST360T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+03600BST360T               3TTEHNR    Uniek nummer tijdseenheid                                   N   5 0                       
+03600BST360T               4SKIP1     Omschrijving kode                                           N   5 0                       
+03600BST360T               5TTEHOM    Omschrijving tijdseenheid                                   A  25 0                       
+03800BST380T               1BSTNUM    Bestand nummer                                              N   4 0                       
+03800BST380T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+03800BST380T               3ICPCNR1   ICPC1-nummer                                                N   6 0                       
+03800BST380T               4SKIP1     Tekstkode                                                   N   5 0                       
+03800BST380T               5ICPCTXT   ICPC omschrijving                                           A  60 0                       
+06400BST640T               1BSTNUM    Bestand nummer                                              N   4 0                       
+06400BST640T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+06400BST640T               3GPKODE    Generiekproductcode                                         N   8 0(7+1)                  
+06400BST640T               4SKIP1     GPK naam nummer                                             N   4 0                       
+06400BST640T               5SKIP2     Indicatiekode                                               N   4 0                       
+06400BST640T               6SKIP3     Indicatietekst nummer                                       N   4 0                       
+06400BST640T               7GPDGST    Geslacht code                                               N   1 0                       
+06400BST640T               8SKIP4     Risicogroep kode                                            N   4 0                       
+06400BST640T               9GPRISC    Hoog risico kode                                            A   2 0                       
+06410BST641T               1BSTNUM    Bestand nummer                                              N   4 0                       
+06410BST641T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+06410BST641T               3GPKODE    Generiekproductcode                                         N   8 0(7+1)                  
+06410BST641T               4PRKODE    PRK-code                                                    N   8 0(7+1)                  
+06410BST641T               5HPKODE    HPK-code                                                    N   8 0(7+1)                  
+06410BST641T               6GPDCTH    Thesaurus dosering kode                                     N   4 0                       
+06410BST641T               7GPDCOD    Soort doseringscode                                         N   4 0                       
+06410BST641T               8GPDBAS    Dosis basisnummer                                           N   6 0                       
+06420BST642T               1BSTNUM    Bestand nummer                                              N   4 0                       
+06420BST642T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+06420BST642T               3GPDBAS    Dosis basisnummer                                           N   6 0                       
+06420BST642T               4GPDID1    Identificerend volgnummer                                   N   6 0                       
+06420BST642T               5SKIP1     Zorggroep skip                                              N   4 0                       
+06420BST642T               6GPDZCO    Zorggroep codering                                          N   5 0                       
+06420BST642T               7ICPCNR1   ICPC1-nummer                                                N   6 0                       
+06420BST642T               8SKIP2     Verbijzondering skip                                        N   4 0                       
+06420BST642T               9ICPCTO    Verbijzondering                                             N   2 0                       
+06420BST642T              10SKIP3     Skip 3                                                      N   4 0                       
+06420BST642T              11SKIP4     Skip 4                                                      N   4 0                       
+06420BST642T              12GPKTTH    Thesaurus toedieningsweg                                    N   5 0                       
+06420BST642T              13GPKTWG    Toedieningsweg kode                                         N   5 0                       
+06420BST642T              14GPDCAT    Dosis categorienummer                                       N   6 0                       
+06430BST643T               1BSTNUM    Bestand nummer                                              N   4 0                       
+06430BST643T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+06430BST643T               3GPDCAT    Dosis categorienummer                                       N   6 0                       
+06430BST643T               4GPDID2    Identificerend recordnummer                                 N   6 0                       
+06430BST643T               5GPDLFM    Leeftijd vanaf (maanden)                                    N   6 2(4,2)                  
+06430BST643T               6GPDLFX    Leeftijd tot (maanden)                                      N   6 2(4,2)                  
+06430BST643T               7GPDKGM    Gewicht vanaf (kg)                                          N   6 3(3,3)                  
+06430BST643T               8GPDKGX    Gewicht tot (kg)                                            N   6 3(3,3)                  
+06430BST643T               9GPDM2M    Oppervlakte vanaf m2                                        N   6 3(3,3)                  
+06430BST643T              10GPDM2X    Oppervlakte tot m2                                          N   6 3(3,3)                  
+06430BST643T              11GPDFAA    Frequentie aantal                                           N   4 2(2,2)                  
+06430BST643T              12GPDFEE    Frequentie tijdseenheid                                     N   4 0                       
+06430BST643T              13GPDDEN    Denekamp berekening                                         A   1 0                       
+06430BST643T              14GPDDNR    Dosisnummer                                                 N   6 0                       
+06490BST649T               1BSTNUM    Bestand nummer                                              N   4 0                       
+06490BST649T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+06490BST649T               3GPDDNR    Dosisnummer                                                 N   6 0                       
+06490BST649T               4GPNRMMIN  Norm minimum                                                N  11 3(8,3)                  
+06490BST649T               5GPNRMMAX  Norm maximum                                                N  11 3(8,3)                  
+06490BST649T               6GPABSMIN  Absoluut minimum                                            N  11 3(8,3)                  
+06490BST649T               7GPABSMAX  Absoluut maximum                                            N  11 3(8,3)                  
+06490BST649T               8GPNRMMINK Norm min per KG                                             N  11 3(8,3)                  
+06490BST649T               9GPNRMMAXK Norm max per KG                                             N  11 3(8,3)                  
+06490BST649T              10GPABSMINK Absoluut min per KG                                         N  11 3(8,3)                  
+06490BST649T              11GPABSMAXK Absoluut max per KG                                         N  11 3(8,3)                  
+06490BST649T              12GPNRMMINM Norm min per M2                                             N  11 3(8,3)                  
+06490BST649T              13GPNRMMAXM Norm max per M2                                             N  11 3(8,3)                  
+06490BST649T              14GPABSMINM Absoluut min per M2                                         N  11 3(8,3)                  
+06490BST649T              15GPABSMAXM Absoluut max per M2                                         N  11 3(8,3)                  
+07010BST701T               1BSTNUM    Bestand nummer                                              N   4 0                       
+07010BST701T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+07010BST701T               3HPKODE    HPK-code                                                    N   8 0(7+1)                  
+07010BST701T               4GNVOLG    Volgnummer                                                  N   4 0                       
+07010BST701T               5GNMWHS    Werkzaam/hulpstof                                           A   1 0                       
+07010BST701T               6GNGNK     GeneriekeNaamKode                                           N   6 0(5+1)                  
+07010BST701T               7GNMINH    Hoeveelheid werkzame stof                                   N  12 3(9,3)                  
+07010BST701T               8THMINE    Eenheid thesaurus                                           N   4 0                       
+07010BST701T               9XNMINE    Eenheid kode                                                N   4 0                       
+07010BST701T              10GNSTAM    Stamnaamcode                                                N   6 0(5+1)                  
+07010BST701T              11THSTWG    Toedieningsweg thesaurus                                    N   4 0                       
+07010BST701T              12SSKTWG    Toedieningsweg kode                                         N   4 0                       
+07110BST711T               1BSTNUM    Bestand nummer                                              N   4 0                       
+07110BST711T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+07110BST711T               3GPKODE    Generiekproductcode                                         N   8 0(7+1)                  
+07110BST711T               4GSKODE    GSK-code                                                    N   8 0(7+1)                  
+07110BST711T               5SKIP1     Skip 1                                                      N   4 0                       
+07110BST711T               6GPKTVR    Farmaceutische vorm                                         N   5 0                       
+07110BST711T               7SKIP2     Skip 2                                                      N   4 0                       
+07110BST711T               8GPKTWG    Toedieningsweg kode                                         N   5 0                       
+07110BST711T               9GPNMNR    Naamnummer GPK                                              N   7 0                       
+07110BST711T              10SKIP3     Skip 3                                                      N   4 0                       
+07110BST711T              11SKIP4     Skip 4                                                      N   4 0                       
+07110BST711T              12GPMLCI    Min leeftijd CI                                             N   5 0                       
+07110BST711T              13GPMLCT    Min leeftijd CI tekst                                       N   6 0                       
+07110BST711T              14SKIP5     Skip 5                                                      N   4 0                       
+07110BST711T              15SKIP6     Skip 6                                                      N   4 0                       
+07110BST711T              16SKIP7     Skip 7                                                      N   4 0                       
+07110BST711T              17SKIP8     Skip 8                                                      N   4 0                       
+07110BST711T              18SPKODE    SuperProductKode                                            N   8 0(7+1)                  
+07110BST711T              19SKIP9     Skip 9                                                      N   4 0                       
+07110BST711T              20SKIP10    Skip 10                                                     N   4 0                       
+07110BST711T              21ATCODE    ATC-code                                                    A   7 0                       
+07110BST711T              22SKIP11    Skip 11                                                     N   4 0                       
+07110BST711T              23XPEHHV    Basiseenheid product                                        N   5 0                       
+07150BST715T               1BSTNUM    Bestand nummer                                              N   4 0                       
+07150BST715T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+07150BST715T               3GNMWHS    Werkzaam/hulpstof                                           A   1 0                       
+07150BST715T               4GSKODE    GSK-code                                                    N   8 0(7+1)                  
+07150BST715T               5GNNKPK    Volledige generieke naam                                    N   6 0(5+1)                  
+07150BST715T               6GNMOMH    Omgerekende hoeveelheid                                     N  12 3(9,3)                  
+07150BST715T               7XNMOME    Eenheid omgerekend                                          N   4 0                       
+07150BST715T               8XPEHHV    Basiseenheid product                                        N   5 0                       
+07200BST720T               1BSTNUM    Bestand nummer                                              N   4 0                       
+07200BST720T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+07200BST720T               3SPKODE    SuperProductKode                                            N   8 0(7+1)                  
+07200BST720T               4SSKODE    SSK-kode                                                    N   8 0(7+1)                  
+07250BST725T               1BSTNUM    Bestand nummer                                              N   4 0                       
+07250BST725T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+07250BST725T               3SSKODE    SSK-kode                                                    N   8 0(7+1)                  
+07250BST725T               4GNSTAM    Stamnaamcode                                                N   6 0(5+1)                  
+07250BST725T               5SSKTWG    Stamtoedieningsweg                                          N   5 0                       
+07500BST750T               1BSTNUM    Bestand nummer                                              N   4 0                       
+07500BST750T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+07500BST750T               3GNGNK     GeneriekeNaamKode                                           N   6 0(5+1)                  
+07500BST750T               4GNGNAM    Generieke naam                                              A  40 0                       
+07500BST750T               5GNSTAM    Stamnaamcode                                                N   6 0(5+1)                  
+07500BST750T               6GNNKPK    Volledige naam kode                                         N   6 0(5+1)                  
+07500BST750T               7GNSTNT    Stamnaam toegestaan                                         A   1 0                       
+07500BST750T               8GNWZHS    Werkzaam/hulpstof                                           A   1 0                       
+07500BST750T               9GNSTKD    Informatorium kode                                          N   6 0                       
+07500BST750T              10GNCAS     CAS nummer                                                  N   9 0(8+1)                  
+07500BST750T              11GNFORM    Bruto formule                                               A  20 0                       
+07500BST750T              12GNMOLE    Molekuulgewicht echt                                        N  12 4(8,4)                  
+07500BST750T              13GNMOLI    Molekuulgewicht indicator                                   A   1 0                       
+07500BST750T              14GNMOLS    Molekuulgewicht samenstelling                               N  12 4(8,4)                  
+07500BST750T              15GNSGEW    Soortelijk gewicht                                          N   7 5(2,5)                  
+07500BST750T              16GNVOOR    Voorkeurseenheid                                            A   6 0                       
+07600BST760T               1BSTNUM    Bestand nummer                                              N   4 0                       
+07600BST760T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+07600BST760T               3HPKODE    HPK-code                                                    N   8 0(7+1)                  
+07600BST760T               4SKIP1     Thesaurus toedieningsweg                                    N   4 0                       
+07600BST760T               5SKIP2     Toedieningsweg skip                                         N   4 0                       
+07600BST760T               6ENKTDW    Enkelvoudige toedieningsweg                                 N   5 0                       
+08010BST801T               1BSTNUM    Bestand nummer                                              N   4 0                       
+08010BST801T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+08010BST801T               3ATCODE    ATC-code                                                    A   7 0                       
+08010BST801T               4ATOMS     ATC-NL omschrijving                                         A  60 0                       
+08010BST801T               5ATOMSE    ATC-EN omschrijving                                         A  60 0                       
+08010BST801T               6ATKIND    ATC-indicator                                               A   1 0                       
+09020BST902T               1BSTNUM    Bestand nummer                                              N   4 0                       
+09020BST902T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+09020BST902T               3TSNR      Thesaurusnummer                                             N   4 0                       
+09020BST902T               4TSITNR    Thesaurus itemnummer                                        N   6 0                       
+09020BST902T               5SKIP1     Skip 1                                                      N   4 0                       
+09020BST902T               6SKIP2     Skip 2                                                      N   5 0                       
+09020BST902T               7SKIP3     Skip 3                                                      A  10 0                       
+09020BST902T               8THNM25    Naam item 25 posities                                       A  25 0                       
+09020BST902T               9THNM50    Naam item 50 posities                                       A  50 0                       
+09220BST922T               1BSTNUM    Bestand nummer                                              N   4 0                       
+09220BST922T               2MUTKOD    Mutatiecode                                                 N   1 0                       
+09220BST922T               3THMODU    Thesaurus tekstmodule                                       N   4 0                       
+09220BST922T               4TXMODU    Tekstmodule                                                 N   6 0                       
+09220BST922T               5THTSRT    Thesaurus tekstsoort                                        N   4 0                       
+09220BST922T               6TXTSRT    Tekstsoort                                                  N   6 0                       
+09220BST922T               7TXKODE    Tekst nivo kode                                             N   8 0                       
+09220BST922T               8TXBLNR    Tekstbloknummer                                             N   6 0                       
+09220BST922T               9TXRGLN    Tekstregelnummer                                            N   6 0                       
+09220BST922T              10TXTEXT    Tekst                                                       A 200 0                       
