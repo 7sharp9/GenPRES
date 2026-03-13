@@ -252,6 +252,14 @@ These fields correspond to the Solution object in GenFORM:
 - `Mmol` - Molar concentration (numeric, optional)
 - `Divisible` - Divisibility factor (numeric, optional)
 
+Sample data:
+
+| GPKODE          | Type       | UMCU | ICC | NEO | ICK | HCK | Generic         | UseGenName | UseForm | UseBrand | TallMan | Mmol | Divisible | GStand         | Form        | Brand | GenName        | Unit | Energy kCal | Carb g | Prot g | Lip g | Sod mmol | Pot mmol | Calc mmol | Posph mmol | Magn mmol | Chlor mmol | Iron mmol | VitD IE | IsReconste | IsDilute | IsAdditive |
+|-----------------|------------|------|-----|-----|-----|-----|-----------------|------------|---------|----------|---------|------|-----------|----------------|-------------|-------|----------------|------|-------------|--------|--------|-------|----------|----------|-----------|------------|-----------|------------|-----------|---------|------------|----------|------------|
+| 104299          | medication |      |     |     |     |     | ACETYLCYSTEINE  |            |         |          |         |      |           | ACETYLCYSTEINE | OOGDRUPPELS |       | ACETYLCYSTEINE |      |             |        |        |       |          |          |           |            |           |            |           |         |            |          |            |
+| Samenstelling C | parenteral | x    | x   | x   | x   |     | Samenstelling C |            |         |          |         |      |           |                |             |       |                | mL   | 0.32        | 0      | 0.08   | 0     | 0.008    | 0.02     | 0.028     | 0.024      | 0.008     | 0.072      | 0         | 0       | FALSE      | FALSE    |
+
+
 **Usage**: Used by the main `get` function to create the primary product formulary with department-specific configurations.
 
 **Example Data**:
