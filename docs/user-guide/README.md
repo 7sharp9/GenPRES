@@ -28,7 +28,6 @@ Additional background (in Dutch, with a language banner) is available at <https:
 > **⚠️ Medical Disclaimer**
 > GenPRES is not intended for direct clinical use without appropriate validation and regulatory approval.
 > See [SUPPORT.md](../../SUPPORT.md) for the full disclaimer.
-> ⚠️ **Clinical Disclaimer**: GenPRES is a Clinical Decision Support System (CDSS). It is **not** intended for direct clinical use without appropriate validation, regulatory approval, and institutional governance. Always apply independent clinical judgment. See [SUPPORT.md](../../SUPPORT.md#medical-advice-disclaimer).
 
 ---
 
