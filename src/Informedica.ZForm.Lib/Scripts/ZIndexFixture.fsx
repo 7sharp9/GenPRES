@@ -779,7 +779,11 @@ module ZIndexFixture =
         printfn $"  Written {path} ({lines.Length} records)"
 
     /// <summary>
-    /// Generate all synthetic BST fixture files in the given directory.
+    /// Generate all synthetic BST fixture files in the given directory as
+    /// <c>BST*.test</c> files.  These are the committed, version-controlled
+    /// copies of the synthetic data.  Call <see cref="setupForTest"/> to make
+    /// them available to the ZIndex parser under their real names before
+    /// loading the ZIndex library.
     /// </summary>
     /// <param name="zindexDir">
     /// The <c>data/zindex/</c> directory path, e.g.
@@ -789,35 +793,78 @@ module ZIndexFixture =
         printfn $"Generating synthetic Z-Index fixture files in:"
         printfn $"  {zindexDir}"
         printfn ""
-        writeLines (Path.Combine(zindexDir, "BST001T")) allBst001TLines
-        writeLines (Path.Combine(zindexDir, "BST020T")) nameRecords
-        writeLines (Path.Combine(zindexDir, "BST360T")) timeUnitRecords
-        writeLines (Path.Combine(zindexDir, "BST380T")) icpcRecords
-        writeLines (Path.Combine(zindexDir, "BST640T")) doseBaseRecords
-        writeLines (Path.Combine(zindexDir, "BST641T")) doseArticleRecords
-        writeLines (Path.Combine(zindexDir, "BST642T")) doseExceptionRecords
-        writeLines (Path.Combine(zindexDir, "BST643T")) doseCategoryRecords
-        writeLines (Path.Combine(zindexDir, "BST649T")) doseDataRecords
-        writeLines (Path.Combine(zindexDir, "BST701T")) tradeCompositionRecords
-        writeLines (Path.Combine(zindexDir, "BST711T")) genericProductRecords
-        writeLines (Path.Combine(zindexDir, "BST715T")) genericCompositionRecords
-        writeLines (Path.Combine(zindexDir, "BST720T")) superProductRecords
-        writeLines (Path.Combine(zindexDir, "BST725T")) stemNameRecords
-        writeLines (Path.Combine(zindexDir, "BST750T")) substanceRecords
-        writeLines (Path.Combine(zindexDir, "BST760T")) tradeRouteRecords
-        writeLines (Path.Combine(zindexDir, "BST801T")) atcRecords
-        writeLines (Path.Combine(zindexDir, "BST902T")) thesaurusRecords
-        writeLines (Path.Combine(zindexDir, "BST922T")) textBlockRecords
+        writeLines (Path.Combine(zindexDir, "BST001T.test")) allBst001TLines
+        writeLines (Path.Combine(zindexDir, "BST020T.test")) nameRecords
+        writeLines (Path.Combine(zindexDir, "BST360T.test")) timeUnitRecords
+        writeLines (Path.Combine(zindexDir, "BST380T.test")) icpcRecords
+        writeLines (Path.Combine(zindexDir, "BST640T.test")) doseBaseRecords
+        writeLines (Path.Combine(zindexDir, "BST641T.test")) doseArticleRecords
+        writeLines (Path.Combine(zindexDir, "BST642T.test")) doseExceptionRecords
+        writeLines (Path.Combine(zindexDir, "BST643T.test")) doseCategoryRecords
+        writeLines (Path.Combine(zindexDir, "BST649T.test")) doseDataRecords
+        writeLines (Path.Combine(zindexDir, "BST701T.test")) tradeCompositionRecords
+        writeLines (Path.Combine(zindexDir, "BST711T.test")) genericProductRecords
+        writeLines (Path.Combine(zindexDir, "BST715T.test")) genericCompositionRecords
+        writeLines (Path.Combine(zindexDir, "BST720T.test")) superProductRecords
+        writeLines (Path.Combine(zindexDir, "BST725T.test")) stemNameRecords
+        writeLines (Path.Combine(zindexDir, "BST750T.test")) substanceRecords
+        writeLines (Path.Combine(zindexDir, "BST760T.test")) tradeRouteRecords
+        writeLines (Path.Combine(zindexDir, "BST801T.test")) atcRecords
+        writeLines (Path.Combine(zindexDir, "BST902T.test")) thesaurusRecords
+        writeLines (Path.Combine(zindexDir, "BST922T.test")) textBlockRecords
         printfn ""
-        printfn "Done. Fixture files are ready."
+        printfn "BST*.test fixture files are ready."
+
+
+    /// <summary>
+    /// Copy every <c>BST*.test</c> file in <paramref name="zindexDir"/> to its
+    /// corresponding name without the <c>.test</c> extension, making the
+    /// synthetic data visible to the ZIndex fixed-width parsers.
+    /// </summary>
+    /// <remarks>
+    /// Must be called BEFORE loading the ZIndex library, because
+    /// <c>BST001T._data</c> is initialised eagerly on the first module access.
+    /// Call <see cref="teardownAfterTest"/> afterwards to remove the temporary
+    /// copies and avoid accidentally committing plain <c>BST*</c> files.
+    /// </remarks>
+    let setupForTest (zindexDir: string) =
+        printfn "Setting up fixture files for test run..."
+        Directory.GetFiles(zindexDir, "BST*.test")
+        |> Array.iter (fun src ->
+            let dest = Path.Combine(zindexDir, Path.GetFileNameWithoutExtension(src))
+            File.Copy(src, dest, overwrite = true)
+            printfn $"  Copied {Path.GetFileName(src)} → {Path.GetFileName(dest)}"
+        )
+        printfn ""
+
+
+    /// <summary>
+    /// Delete all plain <c>BST*</c> files (those without a <c>.test</c>
+    /// extension) from <paramref name="zindexDir"/>, leaving only the
+    /// committed <c>BST*.test</c> sources.
+    /// </summary>
+    let teardownAfterTest (zindexDir: string) =
+        printfn ""
+        printfn "Tearing down temporary fixture files..."
+        Directory.GetFiles(zindexDir, "BST*")
+        |> Array.filter (fun f -> not (f.EndsWith(".test")))
+        |> Array.iter (fun f ->
+            File.Delete(f)
+            printfn $"  Deleted {Path.GetFileName(f)}"
+        )
+        printfn "Done."
 
 
 // ============================================================================
-// Section 2 — Setup: set working directory and generate fixture files
+// Section 2 — Setup: set working directory and prepare fixture files
 //
-// IMPORTANT: The working directory and fixture files must be ready BEFORE
-// loading any ZIndex or ZForm modules, because BST001T initialises its field
-// definitions eagerly the first time any BST table is accessed.
+// The BST*.test files in data/zindex/ are the committed, version-controlled
+// synthetic fixture data.  We copy them to their plain BST* names so the
+// ZIndex parsers can find them, then remove the copies after the tests.
+//
+// IMPORTANT: setupForTest MUST be called BEFORE loading any ZIndex or ZForm
+// modules, because BST001T initialises its field definitions eagerly the
+// first time any BST table is accessed.
 // ============================================================================
 
 let private repoRoot =
@@ -826,8 +873,14 @@ let private repoRoot =
 printfn $"Repo root: {repoRoot}"
 Environment.CurrentDirectory <- repoRoot
 
-let private zindexDir = Path.Combine(repoRoot, "data/zindex")
-ZIndexFixture.generate zindexDir
+let zindexDir = Path.Combine(repoRoot, "data/zindex")
+
+// If no BST*.test files exist yet (first run), generate them.
+if Directory.GetFiles(zindexDir, "BST*.test") |> Array.isEmpty then
+    ZIndexFixture.generate zindexDir
+
+// Copy BST*.test → BST* so ZIndex can find them.
+ZIndexFixture.setupForTest zindexDir
 
 
 // ============================================================================
@@ -1061,6 +1114,9 @@ open Expecto
 let result =
     SyntheticTests.tests
     |> runTestsWithCLIArgs [] [| "--summary" |]
+
+// Remove temporary BST* files; keep only the committed BST*.test sources.
+ZIndexFixture.teardownAfterTest zindexDir
 
 if result <> 0 then
     failwithf "Tests failed with exit code %d" result
