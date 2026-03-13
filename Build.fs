@@ -118,7 +118,7 @@ Target.create
         try
             run npx [ "--yes"; "markdownlint-cli2"; "**/*.md"; "#node_modules" ] "."
         with ex ->
-            Trace.traceImportant $"⚠️  Markdown lint issues found above. Fix these to improve documentation quality. (%s{ex.Message})"
+            Trace.traceImportant $"⚠️  MarkdownLint: {ex.Message}"
     )
 
 
