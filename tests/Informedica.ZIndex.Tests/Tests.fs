@@ -737,6 +737,7 @@ module Tests =
             testHelloWorld
             FilePathTests.tests
             DoseRuleExceptionTests.tests
+            FixtureTests.tests
             (*
             ZIndexBaseTableTests.tests
             NameTests.tests

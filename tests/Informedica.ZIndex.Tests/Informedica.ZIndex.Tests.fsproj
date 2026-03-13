@@ -8,7 +8,9 @@
     <NoWarn>$(NoWarn);NU1510</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ZIndexFixture.fs" />
     <Compile Include="Generators.fs" />
+    <Compile Include="FixtureTests.fs" />
     <Compile Include="Tests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
