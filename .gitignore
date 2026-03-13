@@ -146,6 +146,9 @@
 !/docs/mdr/validation/
 !/docs/mdr/interface/
 !/docs/implementation-plans/
+!/docs/user-guide/
+!/docs/user-guide/en/
+!/docs/user-guide/nl/
 
 # Add source files
 !/scripts/

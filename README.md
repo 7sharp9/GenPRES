@@ -104,6 +104,17 @@ You will find more documentation about the used F# components at the following p
 
 For an overview of the GenPRES system architecture, see `ARCHITECTURE.md`, which serves as the stable entry point and index for the detailed architecture documentation under `docs/mdr/`.
 
+## User Guide
+
+A multilingual user guide is available in [`docs/user-guide/`](docs/user-guide/README.md):
+
+| Language | Guide |
+|----------|-------|
+| 🇬🇧 English | [User Guide](docs/user-guide/en/user-guide.md) |
+| 🇳🇱 Nederlands | [Gebruikershandleiding](docs/user-guide/nl/gebruikershandleiding.md) |
+
+The guide covers basic navigation, prescribing medication, the emergency list, testing without patient data, and unit conversion testing.
+
 ## Collaboration
 
 Any help or collaboration is welcome! You can fork this repository, post issues, ask questions or get on [slack](https://genpresworkspace.slack.com).
