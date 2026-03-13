@@ -40,20 +40,48 @@ Aanvullende achtergrondinformatie is beschikbaar op <https://medicatieveiligensn
 
 ### Met patiëntgegevens (EPD-koppeling)
 
-In een klinische omgeving wordt GenPRES doorgaans gestart vanuit een Elektronisch Patiënten Dossier (EPD) waarbij patiëntparameters vooraf zijn ingevuld in de URL-querystring, bijvoorbeeld:
+In een klinische omgeving wordt GenPRES doorgaans gestart vanuit een Elektronisch Patiënten Dossier (EPD) waarbij patiëntparameters vooraf zijn ingevuld in de URL, bijvoorbeeld:
 
 ```
-http://genpres.nl?age=2&weight=12&gender=male
+https://genpres.nl/#patient?pg=pr&dc=n&la=du&ad=730&wt=12000
 ```
 
-Ondersteunde queryparameters:
+De URL gebruikt hash-based routing (`/#patient?...`). Ondersteunde queryparameters:
 
-| Parameter | Omschrijving | Voorbeeld |
-|-----------|--------------|-----------|
-| `age`     | Leeftijd in jaren | `age=2` |
-| `weight`  | Lichaamsgewicht in kg | `weight=12` |
-| `gender`  | `male` of `female` | `gender=male` |
-| `height`  | Lichaamslengte in cm | `height=90` |
+**Patiëntparameters:**
+
+| Parameter | Omschrijving | Eenheid / Waarden |
+|-----------|--------------|-------------------|
+| `ad` | Leeftijd | Dagen (bijv. 730 ≈ 2 jaar) |
+| `by` | Geboortejaar | JJJJ |
+| `bm` | Geboortemaand | 1–12 |
+| `bd` | Geboortedag | 1–31 |
+| `wt` | Gewicht | Grammen (bijv. 12000 = 12 kg) |
+| `ht` | Lengte | Centimeters |
+| `gw` | Zwangerschapsduur weken | Weken |
+| `gd` | Zwangerschapsduur dagen | Dagen |
+| `cv` | Centraal veneuze lijn | `y` = ja |
+| `dp` | Afdeling | Tekst |
+
+> Gebruik `ad` (leeftijd in dagen) of `by`/`bm`/`bd` (geboortedatum), niet beide.
+
+**Medicatieparameters:**
+
+| Parameter | Omschrijving | Eenheid / Waarden |
+|-----------|--------------|-------------------|
+| `md` | Medicatie | Generieke naam |
+| `rt` | Toedieningsweg | bijv. `oraal`, `intraveneus` |
+| `in` | Indicatie | Tekst |
+| `dt` | Doseertype | Tekst |
+| `fr` | Vorm | Tekst |
+
+**UI-parameters:**
+
+| Parameter | Omschrijving | Eenheid / Waarden |
+|-----------|--------------|-------------------|
+| `pg` | Pagina | `pr`, `el`, `cm`, `fm`, `pe` |
+| `la` | Taal | `en`, `du`, `fr`, `gr`, `sp`, `it` |
+| `dc` | Disclaimer | `n` = verbergen |
 
 ### Zonder patiëntgegevens (demo / testen)
 
@@ -167,7 +195,7 @@ U kunt een volledige end-to-end workflow uitvoeren zonder echte patiëntgegevens
 
    Open <http://localhost:5173> in uw browser.
 
-2. Laat de URL-querystring leeg (geen `?age=...` parameters).
+2. Laat de URL-querystring leeg (geen queryparameters).
 
 3. Voer op het hoofdscherm **handmatig testpatiëntgegevens in**:
    - Leeftijd: bijv. `2` jaar
