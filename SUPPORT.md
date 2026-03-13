@@ -10,6 +10,7 @@ Thank you for using GenPRES! This document provides guidance on how to get help 
 
 1. **Check the documentation**
    - [README.md](README.md) - Getting started and overview
+   - [User Guide](docs/user-guide/README.md) - Application usage, testing workflows, and URL reference
    - [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
    - [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
    - `docs/` - Detailed documentation
