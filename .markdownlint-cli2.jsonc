@@ -1,0 +1,26 @@
+{
+    // Markdownlint configuration for GenPRES documentation.
+    // See https://github.com/DavidAnson/markdownlint-cli2#configuration
+    // Rules reference: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+    // Markdownlint rule overrides go inside "config".
+    "config": {
+        // Enable all rules by default, then selectively disable noisy/stylistic ones.
+        "default": true,
+
+        // MD013/line-length: Not enforced - project documentation uses long lines.
+        "MD013": false,
+
+        // MD024/no-duplicate-heading: Allowed - common in changelogs and structured docs.
+        "MD024": false,
+
+        // MD036/no-emphasis-as-heading: Allowed - stylistic choice in some docs.
+        "MD036": false,
+
+        // MD012/no-multiple-blanks: Allowed - blank lines used for readability.
+        "MD012": false,
+
+        // MD060/fenced-code-block-style: Not enforced - mixed styles in docs.
+        "MD060": false
+    }
+}

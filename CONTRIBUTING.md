@@ -57,6 +57,7 @@ lines.
 3. **Write Tests**: Include comprehensive tests for new functionality
 4. **Update Documentation**: Update relevant documentation and comments
 5. **Test Locally**: Run all tests and ensure the application builds successfully
+6. **Markdown Lint**: Address any Markdown warnings flagged by the pre-commit hook (see [Markdown Linting](#markdown-linting) below)
 
 ### Submission
 
@@ -126,6 +127,36 @@ Join our [Slack workspace](https://genpresworkspace.slack.com) for:
 ## Development
 
 Documented in [./DEVELOPMENT.md](./DEVELOPMENT.md).
+
+## Markdown Linting
+
+Markdown files are linted automatically as a pre-commit hook using [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2). The hook is **non-blocking** — it prints warnings but never prevents a commit from succeeding.
+
+Lint issues should still be assessed and addressed over time to maintain documentation quality.
+
+### Running the linter manually
+
+```bash
+# Lint all Markdown files
+npx markdownlint-cli2 "**/*.md" "#node_modules"
+
+# Lint a specific file
+npx markdownlint-cli2 README.md
+```
+
+You can also run it as a FAKE build target:
+
+```bash
+dotnet run MarkdownLint
+```
+
+### Configuration
+
+Rules are configured in [`.markdownlint-cli2.jsonc`](./.markdownlint-cli2.jsonc) at the project root. The most common style-only rules (line length, duplicate headings, emphasis-as-heading) are disabled to reduce noise. Structural rules (trailing spaces, fenced code block syntax, etc.) remain enabled.
+
+### VS Code integration
+
+Install the [markdownlint extension](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) for inline lint feedback while editing Markdown files.
 
 ## Recognition
 

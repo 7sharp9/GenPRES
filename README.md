@@ -90,6 +90,18 @@ docker run -it -p 8080:8085 [USERNAME]/genpres
 
 Open a browser to <http://localhost:8080> to view the site.
 
+## User Documentation
+
+For guidance on using and testing the application, see the [User Guide](docs/user-guide/README.md):
+
+- [Getting Started](docs/user-guide/getting-started.md) — accessing the app without patient data, URL parameter reference, navigating views
+- [Testing Workflows](docs/user-guide/testing-workflows.md) — reproducible QA procedures: no-patient-context testing, unit conversion testing, emergency list, neonate scenarios
+
+External functional walkthroughs (with annotated screenshots and animations):
+
+- [Emergency List & Standard Infusion Pumps](https://picuwkz.nl/de-genpres-noodlijst/)
+- [Prescribing & Drug Dosing](https://picuwkz.nl/genpres-medicatie-controle/)
+
 ## SAFE Stack Documentation
 
 This project is based on the SAFE Stack template. This template can be used to generate a full-stack web application using the [SAFE Stack](https://safe-stack.github.io/). It was created using the dotnet [SAFE Template](https://safe-stack.github.io/docs/template-overview/). If you want to learn more about the template why not start with the [quick start](https://safe-stack.github.io/docs/quickstart/) guide?
@@ -103,6 +115,17 @@ You will find more documentation about the used F# components at the following p
 - [Elmish](https://elmish.github.io/elmish/)
 
 For an overview of the GenPRES system architecture, see `ARCHITECTURE.md`, which serves as the stable entry point and index for the detailed architecture documentation under `docs/mdr/`.
+
+## User Guide
+
+A multilingual user guide is available in [`docs/user-guide/`](docs/user-guide/README.md):
+
+| Language | Guide |
+|----------|-------|
+| 🇬🇧 English | [User Guide](docs/user-guide/en/user-guide.md) |
+| 🇳🇱 Nederlands | [Gebruikershandleiding](docs/user-guide/nl/gebruikershandleiding.md) |
+
+The guide covers basic navigation, prescribing medication, the emergency list, testing without patient data, and unit conversion testing.
 
 ## Collaboration
 
