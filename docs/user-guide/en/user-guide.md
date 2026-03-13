@@ -40,7 +40,7 @@ The live system runs at <http://genpres.nl>.
 
 In a clinical setting GenPRES is typically launched from an Electronic Patient Dossier (EPD) with patient parameters pre-filled in the URL, for example:
 
-```
+```url
 https://genpres.nl/#patient?pg=pr&dc=n&la=en&ad=730&wt=12000
 ```
 
@@ -114,13 +114,13 @@ Example patients using query parameters:
 
 The application can be used **without patient data** in the query string. Open the application directly:
 
-```
+```url
 http://localhost:5173
 ```
 
 or on the production server:
 
-```
+```url
 http://genpres.nl
 ```
 
@@ -139,6 +139,7 @@ Displays patient parameters (age, weight, gender, height). If these are not prov
 ### Medication Search (main area)
 
 Use the search field to find medications by:
+
 - Generic name (e.g., *paracetamol*, *morphine*)
 - ATC code
 
