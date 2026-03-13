@@ -12,6 +12,8 @@
     <Compile Include="Scenarios.fs" />
     <Compile Include="Tests.fs" />
     <Compile Include="Main.fs" />
+    <None Include="Scripts\load.fsx" />
+    <None Include="Scripts\Tests.fsx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Informedica.GenORDER.Lib\Informedica.GenORDER.Lib.fsproj" />
