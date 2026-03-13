@@ -29,9 +29,10 @@
 # Add global json
 !global.json
 
-# Add editor config and fantomasignore
+# Add editor config, fantomasignore and markdownlint config
 !.editorconfig
 !.fantomasignore
+!.markdownlint-cli2.jsonc
 
 # Add env example for onboarding
 !.env.example
@@ -159,6 +160,7 @@
 !/data/cache/
 !/data/cache/*.demo
 !/data/zindex/
+!/data/zindex/BST*.test
 !/data/formulary/
 !/data/formulary/*.csv
 !/data/mapping/

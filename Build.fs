@@ -112,6 +112,16 @@ Target.create
 Target.create "Format" (fun _ -> run dotnet [ "fantomas"; "." ] ".")
 
 
+Target.create
+    "MarkdownLint"
+    (fun _ ->
+        try
+            run npx [ "--yes"; "markdownlint-cli2"; "**/*.md"; "#node_modules" ] "."
+        with ex ->
+            Trace.traceImportant $"⚠️  MarkdownLint: {ex.Message}"
+    )
+
+
 Target.create "DockerRun" (fun _ -> run docker [ "run"; "-it"; "p"; "8080:8085"; "halcwb/genpres"] ".")
 
 
