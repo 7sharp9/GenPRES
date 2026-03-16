@@ -67,6 +67,8 @@ type Terms =
     | ``Disclaimer``
     | ``Disclaimer text``
     | ``Disclaimer accept``
+    | Settings
+    | ``Reload resources``
 
 
 module Localization =

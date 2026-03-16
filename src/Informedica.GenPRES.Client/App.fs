@@ -483,10 +483,7 @@ module private Elmish =
                 }, Cmd.ofMsg (LoadOrderContextResult (Api.UpdateOrderContext, Started))
             else
                 if page = Settings then
-                    { state with
-                        OrderContext = OrderContext.empty |> Resolved
-                    }
-                    , Cmd.ofMsg (LoadOrderContextResult (Api.ReloadResources, Started))
+                    { state with Page = page }, Cmd.none
                 else
                     { state with
                         Page = page
@@ -1042,6 +1039,7 @@ let View () =
                         updateFormulary = UpdateFormulary >> dispatch
                         parenteralia = state.Parenteralia
                         updateParenteralia = UpdateParenteralia >> dispatch
+                        reloadResources = fun () -> OrderContextMsg (Api.ReloadResources, OrderContext.empty) |> dispatch
                         page = state.Page
                         localizationTerms = state.Localization
                         languages = Localization.languages
