@@ -308,24 +308,27 @@ module Resources =
                 state
             | Error msgs ->
                 writeErrorMessage $"Failed to load resources: {msgs}"
-                // Return empty state on error
-                {
-                    UnitMappings = [||]
-                    RouteMappings = [||]
-                    ValidForms = [||]
-                    FormRoutes = [||]
-                    FormularyProducts = [||]
-                    Reconstitution = [||]
-                    EnteralFeeding = [||]
-                    ParenteralMeds = [||]
-                    Products = [||]
-                    DoseRules = [||]
-                    SolutionRules = [||]
-                    RenalRules = [||]
-                    Messages = [| yield! msgs |> List.toArray |]
-                    LastReloaded = DateTime.MinValue
-                    IsLoaded = false
-                }
+                // Return empty state on error and cache it to prevent retry on every request
+                let emptyState =
+                    {
+                        UnitMappings = [||]
+                        RouteMappings = [||]
+                        ValidForms = [||]
+                        FormRoutes = [||]
+                        FormularyProducts = [||]
+                        Reconstitution = [||]
+                        EnteralFeeding = [||]
+                        ParenteralMeds = [||]
+                        Products = [||]
+                        DoseRules = [||]
+                        SolutionRules = [||]
+                        RenalRules = [||]
+                        Messages = [| yield! msgs |> List.toArray |]
+                        LastReloaded = DateTime.MinValue
+                        IsLoaded = false
+                    }
+                cachedState <- Some (emptyState, DateTime.UtcNow)
+                emptyState
 
         member private _.getFromCache (selector: ResourceState -> 'T) =
             lock lockObj (fun () ->

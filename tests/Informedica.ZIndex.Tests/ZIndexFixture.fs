@@ -686,33 +686,60 @@ module ZIndexFixture =
         printfn "BST*.test fixture files are ready."
 
 
+    /// Result of setupForTest tracking which files were created and backed up.
+    type FixtureResult =
+        {
+            // Files that were newly created (no pre-existing file)
+            Created: string list
+            // Files that were backed up: (original path, backup path)
+            BackedUp: (string * string) list
+        }
+
+
     /// Copy every BST*.test file to its corresponding name without the .test
     /// extension, making the synthetic data visible to the ZIndex parsers.
-    /// Returns the list of files that were created (not pre-existing).
-    let setupForTest (zindexDir: string) : string list =
+    /// Pre-existing files are backed up to .bak and restored in teardown.
+    let setupForTest (zindexDir: string) : FixtureResult =
         printfn "Setting up fixture files for test run..."
+        let created = System.Collections.Generic.List<string>()
+        let backedUp = System.Collections.Generic.List<string * string>()
+
         Directory.GetFiles(zindexDir, "BST*.test")
-        |> Array.choose (fun src ->
+        |> Array.iter (fun src ->
             let dest = Path.Combine(zindexDir, Path.GetFileNameWithoutExtension(src))
             if File.Exists(dest) then
-                printfn $"  Skipped {Path.GetFileName(dest)} (pre-existing file preserved)"
-                None
+                let backup = dest + ".bak"
+                File.Copy(dest, backup, true)
+                File.Copy(src, dest, true)
+                backedUp.Add((dest, backup))
+                printfn $"  Backed up {Path.GetFileName(dest)} → {Path.GetFileName(backup)}, replaced with test data"
             else
                 File.Copy(src, dest)
+                created.Add(dest)
                 printfn $"  Copied {Path.GetFileName(src)} → {Path.GetFileName(dest)}"
-                Some dest
         )
-        |> Array.toList
+
+        {
+            Created = created |> Seq.toList
+            BackedUp = backedUp |> Seq.toList
+        }
 
 
-    /// Delete only the files that were created by setupForTest.
-    let teardownAfterTest (createdFiles: string list) =
+    /// Restore backed-up files and delete files created by setupForTest.
+    let teardownAfterTest (result: FixtureResult) =
         printfn ""
         printfn "Tearing down temporary fixture files..."
-        createdFiles
+        result.Created
         |> List.iter (fun f ->
             if File.Exists(f) then
                 File.Delete(f)
                 printfn $"  Deleted {Path.GetFileName(f)}"
+        )
+        result.BackedUp
+        |> List.iter (fun (original, backup) ->
+            if File.Exists(backup) then
+                File.Copy(backup, original, true)
+                File.Delete(backup)
+                printfn $"  Restored {Path.GetFileName(original)} from backup"
         )
         printfn "Done."

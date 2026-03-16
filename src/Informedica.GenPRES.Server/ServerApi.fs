@@ -1108,6 +1108,18 @@ module NutritionPlan =
 module Command =
 
     open Shared.Api
+    open Informedica.GenForm.Lib
+
+    /// Check if resources are loaded. Returns Error with messages if not.
+    let requireLoaded (provider: Resources.IResourceProvider) =
+        let info = provider.GetResourceInfo()
+        if info.IsLoaded then None
+        else
+            info.Messages
+            |> Array.map (sprintf "%A")
+            |> Error
+            |> Some
+
 
     let processCmd provider cmd =
         let agent, logger =
@@ -1117,6 +1129,10 @@ module Command =
                 let agent =
                     Logging.getLogger level Logging.OrderLogger
                 (Some agent, agent.Logger)
+
+        match requireLoaded provider with
+        | Some err -> async { return err }
+        | None ->
 
         match cmd with
         | OrderContextCmd (ctxCmd, ctx) ->
