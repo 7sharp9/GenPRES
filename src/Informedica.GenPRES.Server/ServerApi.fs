@@ -1110,6 +1110,17 @@ module Command =
     open Shared.Api
     open Informedica.GenForm.Lib
 
+    /// Check if resources are loaded. Returns Error with messages if not.
+    let requireLoaded (provider: Resources.IResourceProvider) =
+        let info = provider.GetResourceInfo()
+        if info.IsLoaded then None
+        else
+            info.Messages
+            |> Array.map (sprintf "%A")
+            |> Error
+            |> Some
+
+
     let processCmd provider cmd =
         let agent, logger =
             match Logging.loggingLevel with
@@ -1118,6 +1129,10 @@ module Command =
                 let agent =
                     Logging.getLogger level Logging.OrderLogger
                 (Some agent, agent.Logger)
+
+        match requireLoaded provider with
+        | Some err -> async { return err }
+        | None ->
 
         match cmd with
         | OrderContextCmd (ctxCmd, ctx) ->
@@ -1155,31 +1170,19 @@ module Command =
 
         | FormularyCmd form ->
             async {
-                let info = (provider :> Resources.IResourceProvider).GetResourceInfo()
                 return
-                    if not info.IsLoaded then
-                        info.Messages
-                        |> Array.map (sprintf "%A")
-                        |> Error
-                    else
-                        form
-                        |> Formulary.get provider
-                        |> Result.map FormularyResp
+                    form
+                    |> Formulary.get provider
+                    |> Result.map FormularyResp
             }
 
         | ParenteraliaCmd par ->
             async {
-                let info = (provider :> Resources.IResourceProvider).GetResourceInfo()
                 return
-                    if not info.IsLoaded then
-                        info.Messages
-                        |> Array.map (sprintf "%A")
-                        |> Error
-                    else
-                        par
-                        |> Parenteralia.get provider
-                        |> Result.mapError Array.singleton
-                        |> Result.map ParenteraliaResp
+                    par
+                    |> Parenteralia.get provider
+                    |> Result.mapError Array.singleton
+                    |> Result.map ParenteraliaResp
             }
 
         | NutritionPlanCmd (InitNutritionPlan patient) ->

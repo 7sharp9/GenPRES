@@ -435,7 +435,7 @@ module private Elmish =
             checkServer
 
         | CheckServer (Finished (Ok _)) ->
-            { state with ServerStatus = Resolved true },
+            { state with ServerStatus = Resolved true; ServerError = None },
             Cmd.none
 
         | CheckServer (Finished (Error err)) ->
