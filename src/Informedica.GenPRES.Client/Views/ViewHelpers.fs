@@ -118,6 +118,27 @@ module ViewHelpers =
         | _ -> circularProgress
 
 
+    let backdropProgress isOpen (message: string) =
+        JSX.jsx
+            $"""
+        import Backdrop from '@mui/material/Backdrop';
+        import CircularProgress from '@mui/material/CircularProgress';
+        import Box from '@mui/material/Box';
+        import Typography from '@mui/material/Typography';
+
+        <Backdrop
+            sx={ {| color = "#fff"; zIndex = 9999 |} }
+            open={isOpen}>
+            <Box sx={ {| display = "flex"; flexDirection = "column"; alignItems = "center"; gap = 2 |} }>
+                <CircularProgress color="inherit" />
+                <Typography variant="h6" color="inherit">
+                    {message}
+                </Typography>
+            </Box>
+        </Backdrop>
+        """
+
+
     let modalStyle =
         {|
             position="absolute"

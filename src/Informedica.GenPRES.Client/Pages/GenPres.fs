@@ -293,6 +293,7 @@ module GenPres =
                             | Global.Pages.Settings ->
                                 Views.Settings.View {|
                                     reloadResources = props.reloadResources
+                                    orderContext = props.orderContext
                                     localizationTerms = props.localizationTerms
                                 |}
 
