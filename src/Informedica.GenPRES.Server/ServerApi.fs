@@ -1108,6 +1108,7 @@ module NutritionPlan =
 module Command =
 
     open Shared.Api
+    open Informedica.GenForm.Lib
 
     let processCmd provider cmd =
         let agent, logger =
@@ -1154,19 +1155,31 @@ module Command =
 
         | FormularyCmd form ->
             async {
+                let info = (provider :> Resources.IResourceProvider).GetResourceInfo()
                 return
-                    form
-                    |> Formulary.get provider
-                    |> Result.map FormularyResp
+                    if not info.IsLoaded then
+                        info.Messages
+                        |> Array.map (sprintf "%A")
+                        |> Error
+                    else
+                        form
+                        |> Formulary.get provider
+                        |> Result.map FormularyResp
             }
 
         | ParenteraliaCmd par ->
             async {
+                let info = (provider :> Resources.IResourceProvider).GetResourceInfo()
                 return
-                    par
-                    |> Parenteralia.get provider
-                    |> Result.mapError Array.singleton
-                    |> Result.map ParenteraliaResp
+                    if not info.IsLoaded then
+                        info.Messages
+                        |> Array.map (sprintf "%A")
+                        |> Error
+                    else
+                        par
+                        |> Parenteralia.get provider
+                        |> Result.mapError Array.singleton
+                        |> Result.map ParenteraliaResp
             }
 
         | NutritionPlanCmd (InitNutritionPlan patient) ->

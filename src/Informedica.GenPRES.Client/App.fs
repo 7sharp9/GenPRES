@@ -37,6 +37,8 @@ module private Elmish =
             IsDemo: bool
             SnackbarMsg : string
             SnackbarOpen : bool
+            ServerStatus : Deferred<bool>
+            ServerError : string option
         }
 
 
@@ -76,6 +78,8 @@ module private Elmish =
 
         | UpdateHospital of string
         | CloseSnackbar
+        | CheckServer of AsyncOperationStatus<Result<string, exn>>
+        | DismissServerError
 
 
     and ApiResponse = AsyncOperationStatus<Result<Api.Response, string []>>
@@ -85,6 +89,17 @@ module private Elmish =
         Remoting.createApi ()
         |> Remoting.withRouteBuilder Api.routerPaths
         |> Remoting.buildProxy<Api.IServerApi>
+
+
+    let checkServer =
+        async {
+            try
+                let! result = serverApi.testApi ()
+                return CheckServer (Finished (Ok result))
+            with ex ->
+                return CheckServer (Finished (Error ex))
+        }
+        |> Cmd.fromAsync
 
 
     let createApiMsg msg cmd =
@@ -319,6 +334,8 @@ module private Elmish =
             IsDemo = false
             SnackbarMsg = ""
             SnackbarOpen = false
+            ServerStatus = HasNotStartedYet
+            ServerError = None
         }
 
 
@@ -327,7 +344,7 @@ module private Elmish =
 
         let cmds =
             Cmd.batch [
-                //Cmd.ofMsg (pat |> UpdatePatient)
+                checkServer
                 Cmd.ofMsg (LoadNormalValues Started)
                 Cmd.ofMsg (LoadBolusMedication Started)
                 Cmd.ofMsg (LoadContinuousMedication Started)
@@ -394,10 +411,16 @@ module private Elmish =
     let update (msg: Msg) (state: State) =
         let processOk = processApiMsg state
         let processError err (state, cmd) =
+            let errMsg =
+                err
+                |> Array.truncate 3
+                |> Array.map (fun (s: string) -> if s.Length > 200 then s[..199] + "..." else s)
+                |> String.concat "; "
             Logging.error "error" err
             { state with
                 SnackbarMsg = "Er ging iets mis, herladen"
                 SnackbarOpen = true
+                ServerError = Some $"Server fout: {errMsg}"
             }, cmd
 
         match msg with
@@ -406,6 +429,29 @@ module private Elmish =
                 SnackbarMsg = ""
                 SnackbarOpen = false
             }, Cmd.none
+
+        | CheckServer Started ->
+            { state with ServerStatus = InProgress },
+            checkServer
+
+        | CheckServer (Finished (Ok _)) ->
+            { state with ServerStatus = Resolved true },
+            Cmd.none
+
+        | CheckServer (Finished (Error err)) ->
+            Logging.error "server niet bereikbaar" err
+            { state with
+                ServerStatus = Resolved false
+                ServerError = Some "De server is niet bereikbaar. Controleer of de server is gestart."
+            },
+            async {
+                do! Async.Sleep 5000
+                return CheckServer Started
+            }
+            |> Cmd.fromAsync
+
+        | DismissServerError ->
+            { state with ServerError = None }, Cmd.none
 
         | AcceptDisclaimer ->
             { state with
@@ -684,8 +730,7 @@ module private Elmish =
 
         | LoadOrderContextResult (_, Finished (Ok msg)) -> msg |> processOk
         | LoadOrderContextResult (_, Finished (Error err)) ->
-            ({ state with OrderContext = HasNotStartedYet },
-            LoadOrderContextResult (Api.UpdateOrderContext, Started) |> Cmd.ofMsg)
+            ({ state with OrderContext = HasNotStartedYet }, Cmd.none)
             |> processError err
 
 
@@ -742,8 +787,7 @@ module private Elmish =
 
         | LoadOrderPlanResult (_, Finished (Ok msg)) -> msg |> processOk
         | LoadOrderPlanResult (_, Finished (Error err)) ->
-            ({ state with TreatmentPlan = HasNotStartedYet },
-            LoadOrderPlanResult (Api.UpdateOrderPlan (OrderPlan.create Patient.empty [||], None), Started) |> Cmd.ofMsg)
+            ({ state with TreatmentPlan = HasNotStartedYet }, Cmd.none)
             |> processError err
 
         | NutritionPlanMsg npCmd ->
@@ -758,25 +802,27 @@ module private Elmish =
             |> processError err
 
         | LoadFormulary Started ->
-            let form =
-                match state.Formulary with
-                | Resolved form ->
-                    { form with
-                        Patient =
-                            state.Patient
-                    }
-                | _ -> Formulary.empty
+            match state.Formulary with
+            | InProgress -> state, Cmd.none
+            | _ ->
+                let form =
+                    match state.Formulary with
+                    | Resolved form ->
+                        { form with
+                            Patient =
+                                state.Patient
+                        }
+                    | _ -> Formulary.empty
 
-            let cmd = form |> loadFormuarly
+                let cmd = form |> loadFormuarly
 
-            { state with Formulary = InProgress }, cmd
+                { state with Formulary = InProgress }, cmd
 
         | LoadFormulary (Finished (Ok msg)) -> processOk msg
 
         | LoadFormulary (Finished(Error err)) ->
-            Logging.error "LoadFormulary error:" err
-            state,
-            Cmd.none
+            ({ state with Formulary = HasNotStartedYet }, Cmd.none)
+            |> processError err
 
         | UpdateFormulary form ->
             let state =
@@ -803,19 +849,22 @@ module private Elmish =
             ]
 
         | LoadParenteralia Started ->
-            let cmd =
-                let par =
-                    state.Parenteralia
-                    |> Deferred.defaultValue Parenteralia.empty
+            match state.Parenteralia with
+            | InProgress -> state, Cmd.none
+            | _ ->
+                let cmd =
+                    let par =
+                        state.Parenteralia
+                        |> Deferred.defaultValue Parenteralia.empty
 
-                loadParenteralia par
-            { state with Parenteralia = InProgress }, cmd
+                    loadParenteralia par
+                { state with Parenteralia = InProgress }, cmd
 
         | LoadParenteralia (Finished(Ok msg)) -> msg |> processOk
 
         | LoadParenteralia (Finished (Error err)) ->
-            Logging.error "LoadParenteralia finished with error:" err
-            state, Cmd.none
+            ({ state with Parenteralia = HasNotStartedYet }, Cmd.none)
+            |> processError err
 
         | UpdateParenteralia par ->
             let state =
@@ -936,6 +985,19 @@ let View () =
 
     let theme = if isMobile then mobile else theme
 
+    let serverErrorBanner =
+        match state.ServerError with
+        | Some errMsg ->
+            let onClose = fun _ -> dispatch DismissServerError
+            JSX.jsx
+                $"""
+                <Alert severity="error" sx={ {| width= "100%" |} } onClose={onClose}>
+                    <AlertTitle>Server probleem</AlertTitle>
+                    {errMsg}
+                </Alert>
+                """
+        | None -> null
+
     JSX.jsx
         $"""
     import {{ ThemeProvider }} from '@mui/material/styles';
@@ -946,11 +1008,14 @@ let View () =
     import Snackbar from '@mui/material/Snackbar';
     import IconButton from '@mui/material/IconButton';
     import CloseIcon from '@mui/icons-material/Close';
+    import Alert from '@mui/material/Alert';
+    import AlertTitle from '@mui/material/AlertTitle';
 
     <React.StrictMode>
         <ThemeProvider theme={theme}>
             <Box sx={ sx }>
                 <CssBaseline />
+                {serverErrorBanner}
                 {
                     Components.Router.View {| onUrlChanged = UrlChanged >> dispatch |}
                 }
