@@ -130,6 +130,7 @@ module GenPres =
             updateFormulary : Formulary -> unit
             parenteralia : Deferred<Parenteralia>
             updateParenteralia : Parenteralia -> unit
+            reloadResources : unit -> unit
             page : Global.Pages
             localizationTerms : Deferred<string[][]>
             languages : Localization.Locales []
@@ -177,6 +178,24 @@ module GenPres =
                     | _ -> "auto"
             |}
 
+        let patientBox =
+            match props.page with
+            | Global.Pages.Settings -> JSX.jsx "<></>"
+            | _ ->
+                JSX.jsx
+                    $"""
+                import Box from '@mui/material/Box';
+                <Box sx={ {| flexBasis=1 |} } >
+                    {
+                        Views.Patient.View({|
+                            patient = props.patient
+                            updatePatient = props.updatePatient
+                            localizationTerms = props.localizationTerms
+                        |})
+                    }
+                </Box>
+                """
+
         JSX.jsx
             $"""
         import {{ ThemeProvider }} from '@mui/material/styles';
@@ -215,15 +234,7 @@ module GenPres =
             </React.Fragment>
             <Container id="page-container" sx={ {| height="87%"; marginTop= 3 |} } >
                 <Stack sx={ {| height="100%" |} }>
-                    <Box sx={ {| flexBasis=1 |} } >
-                        {
-                            Views.Patient.View({|
-                                patient = props.patient
-                                updatePatient = props.updatePatient
-                                localizationTerms = props.localizationTerms
-                            |})
-                        }
-                    </Box>
+                    {patientBox}
                     <Box id="page-box" sx={sxPageBox}>
                         {
                             match props.page with
@@ -280,11 +291,9 @@ module GenPres =
                                     updateParenteralia = props.updateParenteralia
                                 |}
                             | Global.Pages.Settings ->
-                                Views.Prescribe.View {|
+                                Views.Settings.View {|
+                                    reloadResources = props.reloadResources
                                     orderContext = props.orderContext
-                                    orderContextMsg = props.orderContextMsg
-                                    treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
                                 |}
 

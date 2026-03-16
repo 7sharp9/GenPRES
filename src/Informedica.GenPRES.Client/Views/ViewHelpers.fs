@@ -8,13 +8,14 @@ module ViewHelpers =
     open Shared.Types
 
 
-    let simpleSelect isLoading lbl selected dispatch xs =
+    let simpleSelect disabled isLoading lbl selected dispatch xs =
         Components.SimpleSelect.View({|
             updateSelected = dispatch
             label = lbl
             selected = selected
             values = xs
             isLoading = isLoading
+            disabled = disabled
             hasClear = true
             navigate = None
             warning = None
@@ -34,6 +35,7 @@ module ViewHelpers =
 
 
     let orderSelect
+        disabled
         isLoading
         lbl
         selected
@@ -55,6 +57,7 @@ module ViewHelpers =
                     else selected
                 values = xs
                 isLoading = isLoading
+                disabled = disabled
                 hasClear = hasClear
                 warning = warning
                 navigate = navigate
@@ -91,14 +94,28 @@ module ViewHelpers =
         |> Some
 
 
-    let autoComplete isLoading lbl selected dispatch xs =
+    let autoComplete disabled isLoading lbl selected dispatch xs =
         Components.Autocomplete.View({|
             updateSelected = dispatch
             label = lbl
             selected = selected
             values = xs
             isLoading = isLoading
+            disabled = disabled
         |})
+
+
+    let inlineProgress isLoading =
+        if isLoading then
+            JSX.jsx
+                $"""
+            import CircularProgress from '@mui/material/CircularProgress';
+            import Box from '@mui/material/Box';
+            <Box sx={ {| display = "flex"; justifyContent = "center"; padding = 2 |} }>
+                <CircularProgress size={24} />
+            </Box>
+            """
+        else empty
 
 
     let circularProgress =
@@ -116,6 +133,27 @@ module ViewHelpers =
         match deferred with
         | Resolved _ -> empty
         | _ -> circularProgress
+
+
+    let backdropProgress isOpen (message: string) =
+        JSX.jsx
+            $"""
+        import Backdrop from '@mui/material/Backdrop';
+        import CircularProgress from '@mui/material/CircularProgress';
+        import Box from '@mui/material/Box';
+        import Typography from '@mui/material/Typography';
+
+        <Backdrop
+            sx={ {| color = "#fff"; zIndex = 9999 |} }
+            open={isOpen}>
+            <Box sx={ {| display = "flex"; flexDirection = "column"; alignItems = "center"; gap = 2 |} }>
+                <CircularProgress color="inherit" />
+                <Typography variant="h6" color="inherit">
+                    {message}
+                </Typography>
+            </Box>
+        </Backdrop>
+        """
 
 
     let modalStyle =

@@ -199,8 +199,8 @@ module Formulary =
                 |]
             )
 
-        let select = ViewHelpers.simpleSelect
-        let autoComplete = ViewHelpers.autoComplete
+        let select = ViewHelpers.simpleSelect false
+        let autoComplete = ViewHelpers.autoComplete false
 
 
         let progress = ViewHelpers.progressOrEmpty props.formulary

@@ -199,6 +199,7 @@ module ResponsiveTable =
                     updateSelected = setState
                     values = data |> Array.map (fun s -> s, s)
                     isLoading = false
+                    disabled = false
                 |})
             |> toReact
 

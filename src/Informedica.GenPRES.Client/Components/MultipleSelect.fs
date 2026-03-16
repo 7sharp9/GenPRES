@@ -17,6 +17,7 @@ module MultipleSelect =
                 values : (string * string) []
                 updateSelected : string [] -> unit
                 isLoading : bool
+                disabled : bool
             |}
         ) =
 
@@ -80,6 +81,7 @@ module MultipleSelect =
             value={props.selected}
             onChange={handleChange}
             label={props.label}
+            disabled={props.disabled}
             multiple={true}
             endAdornment={clearButton}
             sx=

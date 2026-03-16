@@ -10,6 +10,16 @@ module Prescribe =
     open Shared.Models
 
 
+    type private LoadingSource =
+        | IndicationLoading
+        | MedicationLoading
+        | RouteLoading
+        | FormLoading
+        | DiluentLoading
+        | ComponentsLoading
+        | DoseTypeLoading
+
+
     [<JSX.Component>]
     let View (props:
         {|
@@ -26,43 +36,70 @@ module Prescribe =
 
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
+        let loadingSource, setLoadingSource = React.useState<LoadingSource option> None
+        let prevOrderContext = React.useRef props.orderContext
+
+        React.useEffect (
+            (fun () ->
+                match prevOrderContext.current, props.orderContext with
+                | InProgress, Resolved _ -> setLoadingSource None
+                | _ -> ()
+                prevOrderContext.current <- props.orderContext
+            ),
+            [| box props.orderContext |]
+        )
+
         let updateOrderContext ctx = props.orderContextMsg (Api.UpdateOrderContext, ctx)
 
         let indicationChange s =
             match props.orderContext with
-            | Resolved pr -> pr |> OrderContext.indicationChange s |> updateOrderContext
+            | Resolved pr ->
+                setLoadingSource (Some IndicationLoading)
+                pr |> OrderContext.indicationChange s |> updateOrderContext
             | _ -> ()
 
         let medicationChange s =
             match props.orderContext with
-            | Resolved pr -> pr |> OrderContext.medicationChange s |> updateOrderContext
+            | Resolved pr ->
+                setLoadingSource (Some MedicationLoading)
+                pr |> OrderContext.medicationChange s |> updateOrderContext
             | _ -> ()
 
         let routeChange s =
             match props.orderContext with
-            | Resolved pr -> pr |> OrderContext.routeChange s |> updateOrderContext
+            | Resolved pr ->
+                setLoadingSource (Some RouteLoading)
+                pr |> OrderContext.routeChange s |> updateOrderContext
             | _ -> ()
 
         let formChange s =
             match props.orderContext with
-            | Resolved ctx -> ctx |> OrderContext.formChange s |> updateOrderContext
+            | Resolved ctx ->
+                setLoadingSource (Some FormLoading)
+                ctx |> OrderContext.formChange s |> updateOrderContext
             | _ -> ()
 
         let diluentChange s =
             match props.orderContext with
-            | Resolved pr -> pr |> OrderContext.diluentChange s |> updateOrderContext
+            | Resolved pr ->
+                setLoadingSource (Some DiluentLoading)
+                pr |> OrderContext.diluentChange s |> updateOrderContext
             | _ -> ()
 
         let componentsChange cs =
             Logging.log "componentsChange" cs
             match props.orderContext with
-            | Resolved prctx -> prctx |> OrderContext.componentsChange cs |> updateOrderContext
+            | Resolved prctx ->
+                setLoadingSource (Some ComponentsLoading)
+                prctx |> OrderContext.componentsChange cs |> updateOrderContext
             | _ -> ()
 
         let doseTypeChange s =
             let dt = s |> Option.map DoseType.doseTypeFromString
             match props.orderContext with
-            | Resolved pr -> pr |> OrderContext.doseTypeChange dt |> updateOrderContext
+            | Resolved pr ->
+                setLoadingSource (Some DoseTypeLoading)
+                pr |> OrderContext.doseTypeChange dt |> updateOrderContext
             | _ -> ()
 
         let clear () =
@@ -74,7 +111,15 @@ module Prescribe =
         let modalOpen, setModalOpen = React.useState false
         let handleModalClose = fun () -> setModalOpen false
 
-        let select = ViewHelpers.simpleSelect
+        let isAnythingLoading =
+            match props.orderContext with
+            | InProgress -> true
+            | _ -> false
+
+        let isSourceLoading source =
+            isAnythingLoading && loadingSource = Some source
+
+        let select = ViewHelpers.simpleSelect isAnythingLoading
 
         let multiSelect isLoading lbl selected dispatch xs =
             Components.MultipleSelect.View({|
@@ -83,44 +128,15 @@ module Prescribe =
                 selected = selected
                 values = xs
                 isLoading = isLoading
+                disabled = isAnythingLoading
             |})
 
-        let autoComplete = ViewHelpers.autoComplete
+        let autoComplete = ViewHelpers.autoComplete isAnythingLoading
 
         let progress =
             match props.orderContext with
-            | Resolved _ -> ViewHelpers.empty
             | HasNotStartedYet -> JSX.jsx $"<>Voer eerst patient gegevens in</>"
-            | _ ->
-                JSX.jsx
-                    $"""
-                import CircularProgress from '@mui/material/CircularProgress';
-                import Backdrop from '@mui/material/Backdrop';
-
-                <Backdrop open={true} sx={ {| color= Mui.Colors.Grey.``200`` |} } >
-                    <Box sx={ {| position = "relative"; display= "inline-flex"; padding = 20 |} }>
-                        <CircularProgress color="primary" size={260} thickness={1} disableShrink={true} />
-                        <Box
-                            sx={ {|
-                            top= 0
-                            left= 0
-                            bottom= 0
-                            right= 0
-                            position= "absolute"
-                            display= "flex"
-                            alignItems= "center"
-                            justifyContent= "center"
-                            |} }
-                        >
-                            <Typography
-                            variant="subtitle2"
-                            component="div"
-                            color="white"
-                            >... berekenen, even geduld A.U.B.</Typography>
-                        </Box>
-                    </Box>
-                </Backdrop>
-                """
+            | _ -> ViewHelpers.empty
 
 
         let displayScenario (pr : OrderContext) med (sc : OrderScenario) =
@@ -281,11 +297,13 @@ module Prescribe =
                         <CardActions>
                             <Button
                                 size="small"
+                                disabled={isAnythingLoading}
                                 onClick={fun () -> setModalOpen true; onClick sc}
                                 startIcon={Mui.Icons.CalculateIcon}
                             >{Edit |> getTerm "bewerken"}</Button>
                             <Button
                                 size="small"
+                                disabled={isAnythingLoading}
                                 onClick={updateTreatmentPlan}
                                 startIcon={Mui.Icons.Add}
                             >Voorschrijven</Button>
@@ -296,6 +314,8 @@ module Prescribe =
 
         let stackDirection =
             if isMobile then "column" else "row"
+
+        let loadingIndicator = ViewHelpers.inlineProgress isAnythingLoading
 
         let cards =
             JSX.jsx
@@ -311,9 +331,10 @@ module Prescribe =
                     </Typography>
                     {
                         match props.orderContext with
-                        | Resolved pr -> false, pr.Filter.Indication, pr.Filter.Indications
-                        | _ -> true, None, [||]
-                        |> fun (isLoading, sel, items) ->
+                        | Resolved pr -> pr.Filter.Indication, pr.Filter.Indications
+                        | _ -> None, [||]
+                        |> fun (sel, items) ->
+                            let isLoading = isSourceLoading IndicationLoading
                             let lbl = Terms.``Prescribe Indications`` |> getTerm "Indicaties"
 
                             if isMobile then
@@ -327,9 +348,10 @@ module Prescribe =
                     <Stack direction={stackDirection} spacing={if isMobile then 1 else 3} >
                         {
                             match props.orderContext with
-                            | Resolved pr -> false, pr.Filter.Generic, pr.Filter.Generics
-                            | _ -> true, None, [||]
-                            |> fun (isLoading, sel, items) ->
+                            | Resolved pr -> pr.Filter.Generic, pr.Filter.Generics
+                            | _ -> None, [||]
+                            |> fun (sel, items) ->
+                                let isLoading = isSourceLoading MedicationLoading
                                 let lbl = Terms.``Prescribe Medications`` |> getTerm "Medicatie"
 
                                 if isMobile then
@@ -343,9 +365,10 @@ module Prescribe =
                         }
                         {
                             match props.orderContext with
-                            | Resolved pr -> false, pr.Filter.Route, pr.Filter.Routes
-                            | _ -> true, None, [||]
-                            |> fun (isLoading, sel, items) ->
+                            | Resolved pr -> pr.Filter.Route, pr.Filter.Routes
+                            | _ -> None, [||]
+                            |> fun (sel, items) ->
+                                let isLoading = isSourceLoading RouteLoading
                                 let lbl = Terms.``Prescribe Routes`` |> getTerm "Routes"
 
                                 if isMobile then
@@ -361,10 +384,10 @@ module Prescribe =
                             match props.orderContext with
                             | Resolved ctx when ctx.Filter.Forms |> Array.length >= 1 &&
                                                 (not isMobile || ctx.Scenarios |> Array.length <> 1) ->
-                                false, ctx.Filter.Form, ctx.Filter.Forms
-                            | Resolved _ -> false, None, [||]
-                            | _ -> true, None, [||]
-                            |> fun (isLoading, sel, items) ->
+                                ctx.Filter.Form, ctx.Filter.Forms
+                            | _ -> None, [||]
+                            |> fun (sel, items) ->
+                                let isLoading = isSourceLoading FormLoading
                                 let lbl = "Vorm"
 
                                 if items |> Array.isEmpty then ViewHelpers.empty
@@ -386,14 +409,14 @@ module Prescribe =
                                                pr.Filter.Diluents |> Array.length > 1 &&
                                                pr.Scenarios |> Array.length = 1 ->
 
+                                    let isLoading = isSourceLoading DiluentLoading
                                     let sel = pr.Filter.Diluent
                                     let items = pr.Filter.Diluents
                                     let lbl = "Verdunningsvorm"
-                                    let sel = sel
 
                                     items
                                     |> Array.map (fun s -> s, s)
-                                    |> select false lbl sel diluentChange
+                                    |> select isLoading lbl sel diluentChange
 
                             | _ -> ViewHelpers.empty
                         }
@@ -405,6 +428,7 @@ module Prescribe =
                                                pr.Filter.Components |> Array.length > 1 &&
                                                pr.Scenarios |> Array.length = 1 ->
 
+                                    let isLoading = isSourceLoading ComponentsLoading
                                     let items = pr.Filter.Components
                                     let lbl = "Componenten"
                                     let sel =
@@ -413,7 +437,7 @@ module Prescribe =
 
                                     items
                                     |> Array.map (fun s -> s, s)
-                                    |> multiSelect false lbl sel componentsChange
+                                    |> multiSelect isLoading lbl sel componentsChange
 
                             | _ -> ViewHelpers.empty
                         }
@@ -422,20 +446,21 @@ module Prescribe =
                             | Resolved pr when pr.Filter.Indication.IsSome &&
                                                pr.Filter.Generic.IsSome &&
                                                pr.Filter.Route.IsSome ->
-                                (false, pr.Filter.DoseType, pr.Filter.DoseTypes)
-                                |> fun (isLoading, sel, items) ->
-                                    let lbl = "Doseer types"
-                                    let sel = sel |> Option.map DoseType.doseTypeToString
+                                let isLoading = isSourceLoading DoseTypeLoading
+                                let sel = pr.Filter.DoseType |> Option.map DoseType.doseTypeToString
+                                let items = pr.Filter.DoseTypes
+                                let lbl = "Doseer types"
 
-                                    items
-                                    |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
-                                    |> select isLoading lbl sel doseTypeChange
+                                items
+                                |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
+                                |> select isLoading lbl sel doseTypeChange
 
                             | _ -> ViewHelpers.empty
                         }
                     </Stack>
+                    {loadingIndicator}
                     <Box sx={ {| marginTop=2 |} }>
-                        <Button variant="text" onClick={clear} fullWidth startIcon={Mui.Icons.Delete} >
+                        <Button variant="text" onClick={clear} disabled={isAnythingLoading} fullWidth startIcon={Mui.Icons.Delete} >
                             {Delete |> getTerm "Verwijder"}
                         </Button>
                     </Box>

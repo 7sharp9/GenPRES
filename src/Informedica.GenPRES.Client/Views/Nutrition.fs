@@ -299,9 +299,9 @@ module Nutrion =
         let fixPrecision = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision
 
         let getWarning = ViewHelpers.getWarning
-        let select = ViewHelpers.orderSelect
-        let filterSelect = ViewHelpers.simpleSelect
-        let autoComplete = ViewHelpers.autoComplete
+        let select = ViewHelpers.orderSelect false
+        let filterSelect = ViewHelpers.simpleSelect false
+        let autoComplete = ViewHelpers.autoComplete false
 
         let genericChange s =
             ctx
