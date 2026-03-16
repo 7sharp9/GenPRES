@@ -16,6 +16,8 @@
 open System
 open System.Diagnostics
 
+open MathNet.Numerics
+
 open Informedica.GenUnits.Lib
 open Informedica.GenSolver.Lib
 
@@ -45,7 +47,7 @@ let timed (f: unit -> 'a) =
 
 /// Print a benchmark row
 let reportMs label ms =
-    printfn $"  %-45s{label}  %8.2f ms" label ms
+    printfn $"{label}  {ms}"
 
 /// Print a section heading
 let section title =
@@ -220,7 +222,7 @@ for n in [ 5; 10; 20; 50; 100; 200; 400; 499 ] do
         solved
         |> List.collect Equation.toVars
         |> List.tryFind (fun v -> v |> Variable.getName |> Name.toString = "result")
-        |> Option.map (Variable.getValueRange >> Variable.ValueRange.count)
+        |> Option.map (Variable.getValueRange >> Variable.ValueRange.cardinality)
         |> Option.defaultValue 0
     let overflow = if n >= MAX_CALC_COUNT then "⚠ near overflow" else ""
     printfn $"  n={n,4}  ({n}×{n}={n*n,7} combos)  solved in {ms,8:F2} ms  → result has {resultCount,6} values  {overflow}"
