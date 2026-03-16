@@ -32,13 +32,18 @@ module FixtureSetup =
         Path.Combine(repoRoot, "data/zindex")
 
     // Run fixture setup at module initialization time (before any test runs).
-    // fixtureCreatedFiles tracks which BST files were created so teardown
-    // only removes those, preserving any pre-existing licensed data files.
-    let fixtureCreatedFiles =
+    // Pre-existing BST files are backed up and restored via ProcessExit handler.
+    let fixtureCreatedFiles : ZIndexFixture.FixtureResult =
         let zDir = fixtureZindexDir
         if Directory.GetFiles(zDir, "BST*.test") |> Array.isEmpty then
             ZIndexFixture.generate zDir
-        ZIndexFixture.setupForTest zDir
+        let result = ZIndexFixture.setupForTest zDir
+        // Register ProcessExit handler for reliable teardown.
+        // This fires regardless of whether Main.fs finally block runs.
+        AppDomain.CurrentDomain.ProcessExit.Add(fun _ ->
+            ZIndexFixture.teardownAfterTest result
+        )
+        result
 
 
 module FixtureTests =
