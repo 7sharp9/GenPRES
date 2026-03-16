@@ -17,6 +17,7 @@ module Autocomplete =
                 values : string []
                 updateSelected : string option -> unit
                 isLoading : bool
+                disabled : bool
             |}
         ) =
 
@@ -50,6 +51,8 @@ module Autocomplete =
             sx={ {| minWidth = 300 |} }
             id={props.label}
             blurOnSelect
+            loading={props.isLoading}
+            disabled={props.disabled}
             value={props.selected |> Option.defaultValue ""}
             onChange={handleChange}
             options={props.values}

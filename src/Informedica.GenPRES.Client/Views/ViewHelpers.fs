@@ -8,13 +8,14 @@ module ViewHelpers =
     open Shared.Types
 
 
-    let simpleSelect isLoading lbl selected dispatch xs =
+    let simpleSelect disabled isLoading lbl selected dispatch xs =
         Components.SimpleSelect.View({|
             updateSelected = dispatch
             label = lbl
             selected = selected
             values = xs
             isLoading = isLoading
+            disabled = disabled
             hasClear = true
             navigate = None
             warning = None
@@ -34,6 +35,7 @@ module ViewHelpers =
 
 
     let orderSelect
+        disabled
         isLoading
         lbl
         selected
@@ -55,6 +57,7 @@ module ViewHelpers =
                     else selected
                 values = xs
                 isLoading = isLoading
+                disabled = disabled
                 hasClear = hasClear
                 warning = warning
                 navigate = navigate
@@ -91,14 +94,28 @@ module ViewHelpers =
         |> Some
 
 
-    let autoComplete isLoading lbl selected dispatch xs =
+    let autoComplete disabled isLoading lbl selected dispatch xs =
         Components.Autocomplete.View({|
             updateSelected = dispatch
             label = lbl
             selected = selected
             values = xs
             isLoading = isLoading
+            disabled = disabled
         |})
+
+
+    let inlineProgress isLoading =
+        if isLoading then
+            JSX.jsx
+                $"""
+            import CircularProgress from '@mui/material/CircularProgress';
+            import Box from '@mui/material/Box';
+            <Box sx={ {| display = "flex"; justifyContent = "center"; padding = 2 |} }>
+                <CircularProgress size={24} />
+            </Box>
+            """
+        else empty
 
 
     let circularProgress =

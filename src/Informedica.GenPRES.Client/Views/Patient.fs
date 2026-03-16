@@ -170,6 +170,7 @@ module Patient =
                 updateSelected = changeValue
                 navigate = None
                 isLoading = false
+                disabled = false
                 hasClear = true
                 warning = None
                 minWidth = None

@@ -25,6 +25,7 @@ module SimpleSelect =
                     useDebounce : bool
                 |} option
                 isLoading : bool
+                disabled : bool
                 hasClear : bool
                 warning : string option
                 minWidth : int option
@@ -252,6 +253,7 @@ module SimpleSelect =
             value={props.selected |> Option.defaultValue ""}
             onChange={handleChange}
             label={props.label}
+            disabled={props.disabled}
             endAdornment={endAdornment}
             sx={sx}
             MenuProps={menuProps}
