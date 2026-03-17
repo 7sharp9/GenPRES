@@ -39,11 +39,10 @@ module Settings =
 
         React.useEffect (
             fun () ->
-                match props.orderContext with
-                | InProgress | Recalculating _ -> wasInProgress.current <- true
-                | _ -> ()
                 if reloading then
                     match props.orderContext with
+                    | InProgress | Recalculating _ ->
+                        wasInProgress.current <- true
                     | Resolved _ ->
                         wasInProgress.current <- false
                         setReloading false
