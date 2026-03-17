@@ -74,7 +74,7 @@ module Order =
         let init (ctx : Deferred<OrderContext>) =
             let ord, cmp, itm =
                 match ctx with
-                | Resolved ctx ->
+                | Resolved ctx | Recalculating ctx ->
                     match ctx.Scenarios with
                     | [| sc |] ->
 
@@ -251,7 +251,7 @@ module Order =
                                 }
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeTime s ->
@@ -267,7 +267,7 @@ module Order =
                                 }
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeSubstanceDoseQuantity s ->
@@ -303,7 +303,7 @@ module Order =
                                 }
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeSubstanceDoseQuantityAdjust s ->
@@ -339,7 +339,7 @@ module Order =
                                 }
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeSubstancePerTime s ->
@@ -376,7 +376,7 @@ module Order =
 
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeSubstancePerTimeAdjust s ->
@@ -413,7 +413,7 @@ module Order =
 
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeSubstanceRate s ->
@@ -450,7 +450,7 @@ module Order =
 
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeSubstanceRateAdjust s ->
@@ -487,7 +487,7 @@ module Order =
 
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeSubstanceComponentConcentration (cname, iname, s) ->
@@ -617,7 +617,7 @@ module Order =
 
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeOrderableDoseRate s ->
@@ -637,7 +637,7 @@ module Order =
 
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             | ChangeOrderableQuantity s ->
@@ -654,7 +654,7 @@ module Order =
 
                         }
                         |> UpdateOrderScenario
-                    { state with Order = None}, Cmd.ofMsg msg
+                    { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             // == Frequency ==
@@ -770,7 +770,7 @@ module Order =
 
         let useAdjust =
             match props.orderContext with
-            | Resolved pr ->
+            | Resolved pr | Recalculating pr ->
                 pr.Scenarios
                 |> Array.tryExactlyOne
                 |> Option.map (fun sc -> sc.UseAdjust)
@@ -948,22 +948,19 @@ module Order =
                 [| box props.orderContext |]
             )
 
-        // Cache last known state for display during loading
-        let lastStateRef = React.useRef state
         let loadingField, setLoadingField = React.useState<string option> None
 
+        // Clear loadingField when parent finishes recalculating
         React.useEffect (
             (fun () ->
-                match state.Order with
-                | Some _ ->
-                    lastStateRef.current <- state
-                    setLoadingField None
-                | None -> ()
+                match props.orderContext with
+                | Resolved _ -> setLoadingField None
+                | _ -> ()
             ),
-            [| box state.Order |]
+            [| box props.orderContext |]
         )
 
-        let isOrderLoading = state.Order.IsNone && lastStateRef.current.Order.IsSome
+        let isOrderLoading = Deferred.inProgress props.orderContext
         let isFieldLoading field = isOrderLoading && loadingField = Some field
 
         // Shadow dispatch to auto-track which field triggered loading
@@ -973,11 +970,23 @@ module Order =
                 msgToField msg |> Option.iter (fun f -> setLoadingField (Some f))
                 originalDispatch msg
 
-        // Shadow state with cached state during loading so controls stay visible
-        let state = if state.Order.IsSome then state else lastStateRef.current
+        // Use local state order when available, otherwise fall back to the
+        // order carried by the parent Deferred (Recalculating case) so that
+        // the UI stays populated while the server is processing.
+        let displayOrder =
+            state.Order
+            |> Option.orElseWith (fun () ->
+                props.orderContext
+                |> Deferred.toOption
+                |> Option.bind (fun ctx ->
+                    ctx.Scenarios
+                    |> Array.tryExactlyOne
+                    |> Option.map _.Order
+                )
+            )
 
         let itms =
-            match state.Order with
+            match displayOrder with
             | Some ord ->
                 ord.Orderable.Components
                 // only use the main component for dosing
@@ -1005,7 +1014,7 @@ module Order =
             | Some i -> Some i
 
         let showDosingDivider =
-            match state.Order with
+            match displayOrder with
             | None -> false
             | Some ord ->
                 let hasSubstIndx = substIndx.IsSome && itms |> Array.length > 0
@@ -1066,7 +1075,7 @@ module Order =
                 hasSubstDoseQty || hasSubstDoseQtyAdj || hasSubstPerTime || hasSubstRate
 
         let showPrepDivider =
-            match state.Order with
+            match displayOrder with
             | None -> false
             | Some ord ->
                 let multiComponent = ord.Orderable.Components |> Array.length > 1
@@ -1126,7 +1135,7 @@ module Order =
                 hasCompOrdQty || hasSubstCompConc || hasSubstOrbConc || hasSubstOrbQty || hasOrbQty
 
         let showAdminDivider =
-            match state.Order with
+            match displayOrder with
             | None -> false
             | Some ord ->
                 // frequency: shown when has vals or single val (nav)
@@ -1207,14 +1216,14 @@ module Order =
             <div>
             <CardHeader
                 sx = {headerSx}
-                title={state.Order |> showOrderName}
+                title={displayOrder |> showOrderName}
                 titleTypographyProps={ {| variant = "h6" |} }
             ></CardHeader>
             <CardContent sx={ {| paddingX = (if isMobile then 1.5 else 2); paddingY = (if isMobile then 1 else 2) |} }>
                 <Stack direction={"column"} spacing={if isMobile then 1.5 else 3} >
                     {
                         // component name
-                        match state.Order with
+                        match displayOrder with
                         | Some ord ->
                             if ord.Orderable.Components |> Array.length <= 1 then ViewHelpers.empty
                             else
@@ -1227,7 +1236,7 @@ module Order =
                     }
                     {
                         // substance name
-                        match state.Order with
+                        match displayOrder with
                         | Some ord ->
                             if ord.Orderable.Components |> Array.isEmpty ||
                                itms |> Array.length <= 1 then ViewHelpers.empty
@@ -1242,7 +1251,7 @@ module Order =
                     {dosingDivider}
                     {
                         // substance dose quantity
-                        match substIndx, state.Order with
+                        match substIndx, displayOrder with
                         | Some i, Some ord when ord.Schedule.IsContinuous |> not &&
                                                 itms |> Array.length > 0 ->
                             let label, vals =
@@ -1266,7 +1275,7 @@ module Order =
                     }
                     {
                         // substance dose quantity adjust
-                        match substIndx, state.Order with
+                        match substIndx, displayOrder with
                         | Some i, Some ord when (ord.Schedule.IsOnce || ord.Schedule.IsOnceTimed) &&
                                                 itms |> Array.length > 0 && useAdjust ->
                             let label, vals =
@@ -1290,7 +1299,7 @@ module Order =
                     }
                     {
                         // substance dose per time / dose per time adjust
-                        match substIndx, state.Order with
+                        match substIndx, displayOrder with
                         | Some i, Some ord when ord.Schedule.IsContinuous |> not &&
                                                 itms |> Array.length > 0 ->
                             let dispatch =
@@ -1326,7 +1335,7 @@ module Order =
                         // substance dose rate / dose rate adust
                         let navigate = None
 
-                        match substIndx, state.Order with
+                        match substIndx, displayOrder with
                         | Some i, Some ord when ord.Schedule.IsContinuous &&
                                                 itms |> Array.length > 0 ->
                             let dispatch = if useAdjust then ChangeSubstanceRateAdjust >> dispatch else ChangeSubstanceRate >> dispatch
@@ -1354,7 +1363,7 @@ module Order =
                     {preparationDivider}
                     {
                         // component orderable quantity
-                        match state.Order with
+                        match displayOrder with
                         | Some ord when ord.Orderable.Components |> Array.length > 1 ->
                             let cmp =
                                 ord.Orderable.Components
@@ -1409,7 +1418,7 @@ module Order =
                     }
                     {
                         // substance component concentration
-                        match substIndx, state.Order with
+                        match substIndx, displayOrder with
                         | Some i, Some ord ->
                             match itms |> Array.tryItem i with
                             | Some itm ->
@@ -1457,7 +1466,7 @@ module Order =
                     }
                     {
                         // substance orderable quantity
-                        match substIndx, state.Order with
+                        match substIndx, displayOrder with
                         | Some i, Some ord when ord.Schedule.IsContinuous &&
                                                 itms |> Array.length > 0 &&
                                                 ord.Orderable.Components |> Array.length > 1 ->
@@ -1472,7 +1481,7 @@ module Order =
                     }
                     {
                         // substance orderable concentration
-                        match substIndx, state.Order with
+                        match substIndx, displayOrder with
                         | Some i, Some ord when ord.Schedule.IsContinuous |> not &&
                                                 itms |> Array.length > 0 &&
                                                 ord.Orderable.Components |> Array.length > 1 ->
@@ -1487,7 +1496,7 @@ module Order =
                     }
                     {
                         // orderable quantity
-                        match state.Order with
+                        match displayOrder with
                         | Some ord when ord.Orderable.Components |> Array.length > 1 ->
                             let warning = ord.Orderable.OrderableQuantity.Level |> getWarning
 
@@ -1501,7 +1510,7 @@ module Order =
                     {administrationDivider}
                     {
                         // frequency
-                        match state.Order with
+                        match displayOrder with
                         | Some ord  when ord.Schedule.IsDiscontinuous ||
                                          ord.Schedule.IsTimed ->
                             let xs =
@@ -1530,7 +1539,7 @@ module Order =
                     }
                     {
                         // orderable dose quantity
-                        match state.Order with
+                        match displayOrder with
                         | Some ord when ord.Schedule.IsContinuous |> not ->
                             // only show nav if all components have
                             // a distinct orderable quantity
@@ -1599,7 +1608,7 @@ module Order =
                     }
                     {
                         // orderable dose rate
-                        match state.Order with
+                        match displayOrder with
                         | Some ord when ord.Schedule.IsContinuous ||
                                         ord.Schedule.IsTimed ||
                                         ord.Schedule.IsOnceTimed ->
@@ -1629,7 +1638,7 @@ module Order =
                     }
                     {
                         // administration time
-                        match state.Order with
+                        match displayOrder with
                         | Some ord ->
                             let warning = ord.Schedule.Time.Level |> getWarning
 

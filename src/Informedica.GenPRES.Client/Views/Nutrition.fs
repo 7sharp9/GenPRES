@@ -30,6 +30,7 @@ module Nutrion =
             | ChangeComponentDoseQuantityAdjust of cmp: string * string option
             | ChangeOrderableDoseRate of string option
             | ChangeOrderableQuantity of string option
+            | ChangeFrequency of string option
             | UpdateOrderScenario of Order
             | ResetOrderScenario
             // Rate navigation
@@ -56,14 +57,17 @@ module Nutrion =
         let init (ctx : Deferred<OrderContext>) =
             let ord, cmp =
                 match ctx with
-                | Resolved ctx ->
+                | Resolved ctx | Recalculating ctx ->
                     match ctx.Scenarios with
                     | [| sc |] ->
                         let ord = sc.Order
                         match ord.Orderable.Components with
                         | [||] -> Some ord, None
                         | cmps -> Some ord, Some cmps[0].Name
-                    | _ -> None, None
+                    | _ ->
+                        if ctx.Scenarios |> Array.length > 1 then
+                            Logging.error "received multiple scenarios" ctx.Scenarios.Length
+                        None, None
                 | _ -> None, None
 
             {
@@ -240,6 +244,22 @@ module Nutrion =
                     { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
+            | ChangeFrequency s ->
+                match state.Order with
+                | Some ord ->
+                    let msg =
+                        { ord with
+                            Schedule =
+                                { ord.Schedule with
+                                    Frequency =
+                                        ord.Schedule.Frequency
+                                        |> setOvar s
+                                }
+                        }
+                        |> UpdateOrderScenario
+                    { state with Order = None }, Cmd.ofMsg msg
+                | _ -> state, Cmd.none
+
             | ChangeOrderableDoseQuantity s ->
                 match state.Order with
                 | Some ord ->
@@ -290,9 +310,19 @@ module Nutrion =
         plan: NutritionPlan
         nutritionPlanMsg: Api.NutritionPlanCommand -> unit
         localizationTerms: Deferred<string [][]>
+        onRemove: (unit -> unit) option
+        wrapInAccordion: bool
+        isRecalculating: bool
     |}) =
         let ctx = props.nutritionContext.OrderContext
+        let ncId = props.nutritionContext.Id
         let label = props.nutritionContext.Label
+
+        // Use a ref for the plan so that closures captured by useElmish
+        // always read the latest plan, even when useElmish doesn't re-initialize
+        // (its deps only include ctx, not the plan).
+        let planRef = React.useRef props.plan
+        planRef.current <- props.plan
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
@@ -315,18 +345,18 @@ module Nutrion =
                             Indication = None
                         }
                 }
-            |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderContext, updCtx)
             |> props.nutritionPlanMsg
 
         let indicationChange s =
             ctx |> OrderContext.indicationChange s
-            |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderContext, updCtx)
             |> props.nutritionPlanMsg
 
         let doseTypeChange s =
             let dt = s |> Option.map DoseType.doseTypeFromString
             ctx |> OrderContext.doseTypeChange dt
-            |> fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, Api.UpdateOrderContext, updCtx)
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderContext, updCtx)
             |> props.nutritionPlanMsg
 
         let updateOrderScenario (ol : OrderLoader) =
@@ -344,10 +374,10 @@ module Nutrion =
                             }
                     )
             }
-            |> fun updCtx -> Api.UpdateNutritionOrderContext(props.plan, label, updCtx) |> props.nutritionPlanMsg
+            |> fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderScenario, updCtx) |> props.nutritionPlanMsg
 
         let resetOrderScenario (_ol : OrderLoader) =
-            Api.NavigateNutritionOrderContext(props.plan, label, Api.ResetOrderScenario, ctx)
+            Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.ResetOrderScenario, ctx)
             |> props.nutritionPlanMsg
 
         let navigate =
@@ -433,10 +463,10 @@ module Nutrion =
                             }
                         nav (updCtx, cmp, n, uc)
 
-            let navRate cmd = fun updCtx -> Api.NavigateNutritionOrderContext(props.plan, label, cmd, updCtx) |> props.nutritionPlanMsg
-            let navRateN cmd = fun (updCtx, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, label, cmd (n, uc), updCtx) |> props.nutritionPlanMsg
-            let navCmpQty cmd = fun (updCtx, cmp) -> Api.NavigateNutritionOrderContext(props.plan, label, cmd cmp, updCtx) |> props.nutritionPlanMsg
-            let navCmpQtyN cmd = fun (updCtx, cmp, n, uc) -> Api.NavigateNutritionOrderContext(props.plan, label, cmd (cmp, n, uc), updCtx) |> props.nutritionPlanMsg
+            let navRate cmd = fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd, updCtx) |> props.nutritionPlanMsg
+            let navRateN cmd = fun (updCtx, n, uc) -> Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd (n, uc), updCtx) |> props.nutritionPlanMsg
+            let navCmpQty cmd = fun (updCtx, cmp) -> Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd cmp, updCtx) |> props.nutritionPlanMsg
+            let navCmpQtyN cmd = fun (updCtx, cmp, n, uc) -> Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd (cmp, n, uc), updCtx) |> props.nutritionPlanMsg
 
             {|
                 // Dose Rate
@@ -466,10 +496,24 @@ module Nutrion =
                 [| box ctx |]
             )
 
-        let isLoading = state.Order.IsNone
+        let isOrderLoading = props.isRecalculating
+        let isLoading = state.Order.IsNone && not props.isRecalculating
+        let select = ViewHelpers.orderSelect isOrderLoading
+        let loadingIndicator = ViewHelpers.inlineProgress isOrderLoading
+
+        // Use local state order when available, otherwise fall back to the
+        // order carried by the parent context so that the UI stays populated
+        // while the server is processing.
+        let displayOrder =
+            state.Order
+            |> Option.orElseWith (fun () ->
+                ctx.Scenarios
+                |> Array.tryExactlyOne
+                |> Option.map _.Order
+            )
 
         let componentRows =
-            match state.Order with
+            match displayOrder with
             | Some ord ->
                 ord.Orderable.Components
                 |> Array.map (fun cmp ->
@@ -552,14 +596,20 @@ module Nutrion =
             | None ->
                 [| ViewHelpers.empty |]
 
-        let totalDoseRow =
-            match state.Order with
+        let isEnteral =
+            props.nutritionContext.Category = NutritionCategory.EnteralFeeding
+            || props.nutritionContext.Category = NutritionCategory.EnteralSupplement
+
+        let selectMinWidth = if isEnteral then None else Some 400
+
+        let doseQtyControl =
+            match displayOrder with
             | Some ord ->
                 let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
                 let label =
                     ord.Orderable.Dose.Quantity.Variable.Vals
-                    |> Option.map (fun v -> $"totaal dosering ({v.Unit})")
-                    |> Option.defaultValue "totaal dosering"
+                    |> Option.map (fun v -> $"toedien hoeveelheid ({v.Unit})")
+                    |> Option.defaultValue "toedien hoeveelheid"
 
                 let vals =
                     ord.Orderable.Dose.Quantity.Variable.Vals
@@ -620,23 +670,65 @@ module Nutrion =
                         |}
                         |> Some
 
-                let qtyDisplay =
-                    select isLoading label None (ChangeOrderableDoseQuantity >> dispatch) doseQtyNav false warning (Some 400) vals
+                select isLoading label None (ChangeOrderableDoseQuantity >> dispatch) doseQtyNav false warning selectMinWidth vals
+            | None ->
+                ViewHelpers.empty
 
-                let adjWarning = ord.Orderable.Dose.QuantityAdjust.Level |> getWarning
-                let adjLabel =
-                    ord.Orderable.Dose.QuantityAdjust.Variable.Vals
-                    |> Option.map (fun v -> $"totaal ({v.Unit})")
-                    |> Option.defaultValue "totaal"
+        let dosePerTimeAdjDisplay =
+            match displayOrder with
+            | Some ord ->
+                let warning = ord.Orderable.Dose.PerTimeAdjust.Level |> getWarning
+                let label =
+                    ord.Orderable.Dose.PerTimeAdjust.Variable.Vals
+                    |> Option.map (fun v -> $"dosering ({v.Unit})")
+                    |> Option.defaultValue "dosering"
 
-                let adjVals =
-                    ord.Orderable.Dose.QuantityAdjust.Variable.Vals
+                let vals =
+                    ord.Orderable.Dose.PerTimeAdjust.Variable.Vals
                     |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                     |> Option.defaultValue [||]
 
-                let adjDisplay =
-                    select false adjLabel None ignore None false adjWarning (Some 400) adjVals
+                select false label None ignore None false warning selectMinWidth vals
+            | None ->
+                ViewHelpers.empty
 
+        let frequencyControl =
+            match displayOrder with
+            | Some ord when ord.Schedule.IsDiscontinuous || ord.Schedule.IsTimed ->
+                let warning = ord.Schedule.Frequency.Level |> getWarning
+                let label =
+                    ord.Schedule.Frequency.Variable.Vals
+                    |> Option.map (fun v -> $"frequentie ({v.Unit})")
+                    |> Option.defaultValue "frequentie"
+
+                let freqVals =
+                    ord.Schedule.Frequency.Variable.Vals
+                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
+                    |> Option.defaultValue [||]
+
+                select isLoading label None (ChangeFrequency >> dispatch) None false warning selectMinWidth freqVals
+            | _ ->
+                ViewHelpers.empty
+
+        let frequencyDoseRow =
+            if isEnteral then
+                let thirdSize = {| xs = 12; md = 4 |}
+                JSX.jsx
+                    $"""
+                import Grid from '@mui/material/Grid';
+                <Grid container spacing={{2}} alignItems="flex-end">
+                    <Grid size={thirdSize}>
+                        {frequencyControl}
+                    </Grid>
+                    <Grid size={thirdSize}>
+                        {doseQtyControl}
+                    </Grid>
+                    <Grid size={thirdSize}>
+                        {dosePerTimeAdjDisplay}
+                    </Grid>
+                </Grid>
+                """
+            else
                 let halfSize = {| xs = 12; md = 6 |}
                 let cellSx = {| minWidth = 350 |}
                 JSX.jsx
@@ -646,22 +738,20 @@ module Nutrion =
                 <Grid container spacing={{2}} alignItems="flex-end">
                     <Grid size={halfSize}>
                         <Box sx={cellSx}>
-                            {qtyDisplay}
+                            {frequencyControl}
                         </Box>
                     </Grid>
                     <Grid size={halfSize}>
                         <Box sx={cellSx}>
-                            {adjDisplay}
+                            {doseQtyControl}
                         </Box>
                     </Grid>
                 </Grid>
                 """
-            | None ->
-                ViewHelpers.empty
 
         let rateControl =
-            match state.Order with
-            | Some ord ->
+            match displayOrder with
+            | Some ord when ord.Schedule.IsTimed || ord.Schedule.IsContinuous ->
                 let solved = ord |> isSolved
                 let navigable = ord.Orderable.Dose.Rate |> OrderVariable.isNavigable
 
@@ -723,11 +813,11 @@ module Nutrion =
                     </Grid>
                 </Grid>
                 """
-            | None ->
+            | _ ->
                 ViewHelpers.empty
 
         let totalVolumeDisplay =
-            match state.Order with
+            match displayOrder with
             | Some ord ->
                 let warning = ord.Orderable.OrderableQuantity.Level |> getWarning
                 let label =
@@ -765,6 +855,24 @@ module Nutrion =
             </Grid>
             """
 
+        let preparationSection =
+            if isEnteral then ViewHelpers.empty
+            else
+                JSX.jsx
+                    $"""
+                import Divider from '@mui/material/Divider';
+                <>
+                    {headerRow}
+                    {
+                        componentRows
+                        |> unbox
+                        |> React.fragment
+                    }
+                    <Divider />
+                    {totalVolumeDisplay}
+                </>
+                """
+
         let details =
             JSX.jsx
                 $"""
@@ -773,20 +881,15 @@ module Nutrion =
             import Typography from '@mui/material/Typography';
             import Button from '@mui/material/Button';
             <Stack direction={"column"} spacing={1} >
-                {headerRow}
-                {
-                    componentRows
-                    |> unbox
-                    |> React.fragment
-                }
-                <Divider />
-                {totalVolumeDisplay}
+                {preparationSection}
                 {administrationDivider}
-                {totalDoseRow}
+                {frequencyDoseRow}
                 {rateControl}
+                {loadingIndicator}
                 <Button
                     variant="outlined"
                     size="small"
+                    disabled={isOrderLoading}
                     onClick={fun _ -> onClickReset ()}
                 >
                     Reset
@@ -804,13 +907,13 @@ module Nutrion =
                 if isMobile then
                     items
                     |> Array.map (fun s -> s, s)
-                    |> filterSelect false lbl sel genericChange
+                    |> filterSelect isOrderLoading lbl sel genericChange
                 else
                     items
-                    |> autoComplete false lbl sel genericChange
+                    |> autoComplete isOrderLoading lbl sel genericChange
 
         let indicationFilter =
-            if ctx.Filter.Generic.IsNone || ctx.Filter.Indications |> Array.isEmpty then ViewHelpers.empty
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Indications |> Array.length <= 1 then ViewHelpers.empty
             else
                 let sel = ctx.Filter.Indication
                 let items = ctx.Filter.Indications
@@ -819,13 +922,13 @@ module Nutrion =
                 if isMobile then
                     items
                     |> Array.map (fun s -> s, s)
-                    |> filterSelect false lbl sel indicationChange
+                    |> filterSelect isOrderLoading lbl sel indicationChange
                 else
                     items
-                    |> autoComplete false lbl sel indicationChange
+                    |> autoComplete isOrderLoading lbl sel indicationChange
 
         let doseTypeFilter =
-            if ctx.Filter.Generic.IsNone || ctx.Filter.Indication.IsNone || ctx.Filter.DoseTypes |> Array.isEmpty then ViewHelpers.empty
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Indication.IsNone || ctx.Filter.DoseTypes |> Array.length <= 1 then ViewHelpers.empty
             else
                 let sel = ctx.Filter.DoseType |> Option.map DoseType.doseTypeToString
                 let items = ctx.Filter.DoseTypes
@@ -833,7 +936,7 @@ module Nutrion =
 
                 items
                 |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
-                |> filterSelect false lbl sel doseTypeChange
+                |> filterSelect isOrderLoading lbl sel doseTypeChange
 
         let filterSx = {| marginBottom = 2 |}
         let filterControls =
@@ -848,7 +951,7 @@ module Nutrion =
             """
 
         let orderDetails =
-            if state.Order.IsSome then details
+            if displayOrder.IsSome then details
             else ViewHelpers.empty
 
         let expanded, setExpanded = React.useState true
@@ -856,35 +959,108 @@ module Nutrion =
         let handleAccordionChange =
             fun _ -> setExpanded (not expanded)
 
-        JSX.jsx
-            $"""
-        import React from "react";
-        import Box from '@mui/material/Box';
-        import Accordion from '@mui/material/Accordion';
-        import AccordionDetails from '@mui/material/AccordionDetails';
-        import AccordionSummary from '@mui/material/AccordionSummary';
-        import Typography from '@mui/material/Typography';
-        import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+        let removeButton =
+            match props.onRemove with
+            | Some onRemove ->
+                let handleClick (e: Browser.Types.Event) =
+                    e.stopPropagation()
+                    onRemove ()
+                JSX.jsx
+                    $"""
+                import Box from '@mui/material/Box';
+                import DeleteIcon from '@mui/icons-material/Delete';
+                <Box
+                    component="span"
+                    onClick={handleClick}
+                    sx={
+                        {|
+                            marginLeft="auto"
+                            display="inline-flex"
+                            alignItems="center"
+                            cursor="pointer"
+                            padding="4px"
+                            borderRadius="50%"
+                            ``&:hover`` = {| backgroundColor="rgba(0, 0, 0, 0.04)" |}
+                        |}
+                    }
+                >
+                    <DeleteIcon fontSize="small" />
+                </Box>
+                """
+            | None -> ViewHelpers.empty
 
-        <Accordion expanded={expanded} onChange={handleAccordionChange}>
-            <AccordionSummary
-            sx={
-                {|
-                    bgcolor=Mui.Styles.headerBgColor
-                    paddingTop=(if isMobile then 0 else 1)
-                    paddingBottom=(if isMobile then 0 else 1)
-                    ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0 |}
-                |}
-            }
-            expandIcon={{ <ExpandMoreIcon /> }}
-            >
-            <Typography>{props.nutritionContext.Label}</Typography>
-            </AccordionSummary>
-            <AccordionDetails sx={ {| paddingTop=(if isMobile then 1 else 4) |} }>
+        if props.wrapInAccordion then
+            JSX.jsx
+                $"""
+            import React from "react";
+            import Box from '@mui/material/Box';
+            import Accordion from '@mui/material/Accordion';
+            import AccordionDetails from '@mui/material/AccordionDetails';
+            import AccordionSummary from '@mui/material/AccordionSummary';
+            import Typography from '@mui/material/Typography';
+            import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
+            <Accordion expanded={expanded} onChange={handleAccordionChange}>
+                <AccordionSummary
+                sx={
+                    {|
+                        bgcolor=Mui.Styles.headerBgColor
+                        paddingTop=(if isMobile then 0 else 1)
+                        paddingBottom=(if isMobile then 0 else 1)
+                        ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0; display="flex"; alignItems="center" |}
+                    |}
+                }
+                expandIcon={{ <ExpandMoreIcon /> }}
+                >
+                <Typography>{props.nutritionContext.Label}</Typography>
+                {removeButton}
+                </AccordionSummary>
+                <AccordionDetails sx={ {| paddingTop=(if isMobile then 1 else 4) |} }>
+                    {filterControls}
+                    {orderDetails}
+                </AccordionDetails>
+            </Accordion>
+            """
+        else
+            JSX.jsx
+                $"""
+            import React from "react";
+            import Stack from '@mui/material/Stack';
+            import Divider from '@mui/material/Divider';
+            import Typography from '@mui/material/Typography';
+            import Box from '@mui/material/Box';
+
+            <Box>
+                <Divider>
+                    <Stack direction="row" spacing={{1}} alignItems="center">
+                        <Typography variant="caption">{props.nutritionContext.Label}</Typography>
+                        {removeButton}
+                    </Stack>
+                </Divider>
                 {filterControls}
                 {orderDetails}
-            </AccordionDetails>
-        </Accordion>
+            </Box>
+            """
+
+
+    [<JSX.Component>]
+    let private AddButton (props: {|
+        label: string
+        onClick: unit -> unit
+    |}) =
+        JSX.jsx
+            $"""
+        import Button from '@mui/material/Button';
+        import AddIcon from '@mui/icons-material/Add';
+        <Button
+            variant="outlined"
+            size="small"
+            startIcon={{ <AddIcon /> }}
+            onClick={fun _ -> props.onClick ()}
+            sx={ {| marginTop=1; marginBottom=1 |} }
+        >
+            {props.label}
+        </Button>
         """
 
 
@@ -916,32 +1092,160 @@ module Nutrion =
             | _ ->
                 ViewHelpers.progressOrEmpty props.nutritionPlan
 
-        let slots plan =
-            plan.NutritionContexts
-            |> Array.map (fun nc ->
-                NutritionSlot {|
-                    nutritionContext = nc
-                    plan = plan
-                    nutritionPlanMsg = props.nutritionPlanMsg
-                    localizationTerms = props.localizationTerms
-                |}
-            )
+        let isRecalculating =
+            match props.nutritionPlan with
+            | Recalculating _ -> true
+            | _ -> false
+
+        let makeSlot wrapInAccordion plan nc =
+            let onRemove =
+                if nc.Removable then
+                    Some (fun () ->
+                        Api.RemoveNutritionContext(plan, nc.Id)
+                        |> props.nutritionPlanMsg
+                    )
+                else None
+            NutritionSlot {|
+                nutritionContext = nc
+                plan = plan
+                nutritionPlanMsg = props.nutritionPlanMsg
+                localizationTerms = props.localizationTerms
+                onRemove = onRemove
+                wrapInAccordion = wrapInAccordion
+                isRecalculating = isRecalculating
+            |}
+
+        let addContext plan category =
+            Api.AddNutritionContext(plan, category) |> props.nutritionPlanMsg
+
+        let hasCategory plan cat =
+            plan.NutritionContexts |> Array.exists (fun nc -> nc.Category = cat)
+
+        let suppExpanded, setSuppExpanded = React.useState true
 
         let content =
             match props.nutritionPlan with
-            | Resolved plan when plan.NutritionContexts |> Array.isEmpty ->
-                JSX.jsx $"<Typography>Geen voedingsplannen beschikbaar voor deze patiënt</Typography>"
-            | Resolved plan ->
+            | Resolved plan
+            | Recalculating plan ->
+                let enteralFeedingContexts =
+                    plan.NutritionContexts
+                    |> Array.filter (fun nc -> nc.Category = NutritionCategory.EnteralFeeding)
+
+                let enteralSupplementContexts =
+                    plan.NutritionContexts
+                    |> Array.filter (fun nc -> nc.Category = NutritionCategory.EnteralSupplement)
+
+                let parenteralContexts =
+                    plan.NutritionContexts
+                    |> Array.filter (fun nc ->
+                        nc.Category = NutritionCategory.TPN ||
+                        nc.Category = NutritionCategory.Lipid ||
+                        nc.Category = NutritionCategory.ElectrolyteGlucose
+                    )
+
+                let enteralFeedingSlots =
+                    enteralFeedingContexts
+                    |> Array.map (makeSlot true plan)
+
+                let enteralSupplementSlots =
+                    enteralSupplementContexts
+                    |> Array.map (makeSlot false plan)
+
+                let parenteralSlots =
+                    parenteralContexts
+                    |> Array.map (makeSlot true plan)
+
+                let hasEnteral = hasCategory plan NutritionCategory.EnteralFeeding
+                let hasTPN = hasCategory plan NutritionCategory.TPN
+                let hasLipid = hasCategory plan NutritionCategory.Lipid
+
+                let enteralFeedingAddButton =
+                    if not hasEnteral then
+                        AddButton {| label = "Enterale Voeding"; onClick = fun () -> addContext plan NutritionCategory.EnteralFeeding |}
+                    else ViewHelpers.empty
+
+                let supplementAddButton =
+                    if hasEnteral then
+                        AddButton {| label = "Supplement toevoegen"; onClick = fun () -> addContext plan NutritionCategory.EnteralSupplement |}
+                    else ViewHelpers.empty
+
+                let supplementsAccordion =
+                    if not hasEnteral then ViewHelpers.empty
+                    else
+                        JSX.jsx
+                            $"""
+                        import Accordion from '@mui/material/Accordion';
+                        import AccordionDetails from '@mui/material/AccordionDetails';
+                        import AccordionSummary from '@mui/material/AccordionSummary';
+                        import Typography from '@mui/material/Typography';
+                        import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+                        import Stack from '@mui/material/Stack';
+
+                        <Accordion expanded={suppExpanded} onChange={fun _ -> setSuppExpanded (not suppExpanded)}>
+                            <AccordionSummary
+                            sx={
+                                {|
+                                    bgcolor=Mui.Styles.headerBgColor
+                                    paddingTop=(if isMobile then 0 else 1)
+                                    paddingBottom=(if isMobile then 0 else 1)
+                                    ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0; display="flex"; alignItems="center" |}
+                                |}
+                            }
+                            expandIcon={{ <ExpandMoreIcon /> }}
+                            >
+                            <Typography>Enterale Supplementen</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails sx={ {| paddingTop=(if isMobile then 1 else 4) |} }>
+                                <Stack direction="column" spacing={{2}}>
+                                    {
+                                        enteralSupplementSlots
+                                        |> unbox
+                                        |> React.fragment
+                                    }
+                                    {supplementAddButton}
+                                </Stack>
+                            </AccordionDetails>
+                        </Accordion>
+                        """
+
+                let parenteralAddButtons =
+                    [|
+                        if not hasTPN then
+                            AddButton {| label = "TPN"; onClick = fun () -> addContext plan NutritionCategory.TPN |}
+                        if not hasLipid then
+                            AddButton {| label = "Vetten"; onClick = fun () -> addContext plan NutritionCategory.Lipid |}
+                        AddButton {| label = "Elektrolyten/Glucose"; onClick = fun () -> addContext plan NutritionCategory.ElectrolyteGlucose |}
+                    |]
+
                 JSX.jsx
                     $"""
                 import Stack from '@mui/material/Stack';
+                import Typography from '@mui/material/Typography';
+                import Divider from '@mui/material/Divider';
 
                 <Stack direction="column" spacing={1}>
+                    <Typography variant="h6">Enterale Voeding</Typography>
                     {
-                        slots plan
+                        enteralFeedingSlots
                         |> unbox
                         |> React.fragment
                     }
+                    {enteralFeedingAddButton}
+                    {supplementsAccordion}
+                    <Divider sx={ {| marginTop=2; marginBottom=2 |} } />
+                    <Typography variant="h6">Parenteraal</Typography>
+                    {
+                        parenteralSlots
+                        |> unbox
+                        |> React.fragment
+                    }
+                    <Stack direction="row" spacing={1}>
+                        {
+                            parenteralAddButtons
+                            |> unbox
+                            |> React.fragment
+                        }
+                    </Stack>
                 </Stack>
                 """
             | _ -> ViewHelpers.empty

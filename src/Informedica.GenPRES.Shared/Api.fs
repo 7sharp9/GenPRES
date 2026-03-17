@@ -54,6 +54,8 @@ module Api =
         | UpdateNutritionOrderContext of NutritionPlan * string * OrderContext
         | SelectNutritionOrderScenario of NutritionPlan * string * OrderContext
         | NavigateNutritionOrderContext of NutritionPlan * string * OrderContextCommand * OrderContext
+        | AddNutritionContext of NutritionPlan * NutritionCategory
+        | RemoveNutritionContext of NutritionPlan * string
 
     type Response =
         | OrderContextResp of OrderContextResponse
@@ -111,6 +113,8 @@ module Api =
             | NutritionPlanCmd (UpdateNutritionOrderContext _) -> "UpdateNutritionOrderContext"
             | NutritionPlanCmd (SelectNutritionOrderScenario _) -> "SelectNutritionOrderScenario"
             | NutritionPlanCmd (NavigateNutritionOrderContext _) -> "NavigateNutritionOrderContext"
+            | NutritionPlanCmd (AddNutritionContext _) -> "AddNutritionContext"
+            | NutritionPlanCmd (RemoveNutritionContext _) -> "RemoveNutritionContext"
 
 
     /// Defines how routes are generated on server and mapped from the client

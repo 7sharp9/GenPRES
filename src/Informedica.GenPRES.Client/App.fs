@@ -541,7 +541,7 @@ module private Elmish =
                     | None -> state.OrderContext
                     | Some m ->
                         match state.OrderContext with
-                        | InProgress -> state.OrderContext
+                        | InProgress | Recalculating _ -> state.OrderContext
                         | HasNotStartedYet ->
                             OrderContext.empty
                             |> OrderContext.setMedication m.indication m.medication m.route m.form m.dosetype
@@ -715,13 +715,13 @@ module private Elmish =
                     { state with OrderContext = HasNotStartedYet }, Cmd.none
             | Some pat ->
                 match state.OrderContext with
-                | InProgress -> state, Cmd.none
+                | InProgress | Recalculating _ -> state, Cmd.none
                 | HasNotStartedYet ->
                     { state with OrderContext = InProgress },
                     (cmd, OrderContext.empty |> OrderContext.setPatient pat)
                     |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
                 | Resolved ctx ->
-                    { state with OrderContext = InProgress },
+                    { state with OrderContext = Recalculating ctx },
                     (cmd, { ctx with Patient = pat })
                     |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
 
@@ -766,7 +766,7 @@ module private Elmish =
             | None -> { state with TreatmentPlan = HasNotStartedYet }, Cmd.none
             | Some pat ->
                 match state.TreatmentPlan with
-                | InProgress -> state, Cmd.none
+                | InProgress | Recalculating _ -> state, Cmd.none
                 | HasNotStartedYet ->
                     let apiCmd =
                         match cmd with
@@ -788,7 +788,11 @@ module private Elmish =
             |> processError err
 
         | NutritionPlanMsg npCmd ->
-            { state with NutritionPlan = InProgress },
+            let planState =
+                match state.NutritionPlan with
+                | Resolved plan -> Recalculating plan
+                | _ -> InProgress
+            { state with NutritionPlan = planState },
             Api.NutritionPlanCmd npCmd
             |> createApiMsg (fun resp -> LoadNutritionPlanResult (npCmd, resp))
 

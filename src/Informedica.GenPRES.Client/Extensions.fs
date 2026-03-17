@@ -16,6 +16,7 @@ let isDevelopment =
 type Deferred<'t> =
   | HasNotStartedYet
   | InProgress
+  | Recalculating of 't
   | Resolved of 't
 
 /// Utility functions around `Deferred<'T>` types.
@@ -24,24 +25,28 @@ module Deferred =
         match deferred with
         | HasNotStartedYet -> HasNotStartedYet
         | InProgress -> InProgress
+        | Recalculating value -> Recalculating (transform value)
         | Resolved value -> Resolved (transform value)
 
     /// Returns whether the `Deferred<'T>` value has been resolved or not.
     let resolved = function
         | HasNotStartedYet -> false
         | InProgress -> false
+        | Recalculating _ -> false
         | Resolved _ -> true
 
     /// Returns whether the `Deferred<'T>` value is in progress or not.
     let inProgress = function
         | HasNotStartedYet -> false
         | InProgress -> true
+        | Recalculating _ -> true
         | Resolved _ -> false
 
     /// Verifies that a `Deferred<'T>` value is resolved and the resolved data satisfies a given requirement.
     let exists (predicate: 'T -> bool) = function
         | HasNotStartedYet -> false
         | InProgress -> false
+        | Recalculating value -> predicate value
         | Resolved value -> predicate value
 
     /// Like `map` but instead of transforming just the value into another type in the `Resolved` case, it will transform the value into potentially a different case of the the `Deferred<'T>` type.
@@ -49,16 +54,19 @@ module Deferred =
         match deferred with
         | HasNotStartedYet -> HasNotStartedYet
         | InProgress -> InProgress
+        | Recalculating value -> transform value
         | Resolved value -> transform value
 
     let defaultValue defVal = function
         | HasNotStartedYet
         | InProgress -> defVal
+        | Recalculating value -> value
         | Resolved value -> value
 
     let toOption = function
         | HasNotStartedYet
         | InProgress -> None
+        | Recalculating value -> Some value
         | Resolved value -> Some value
 
 

@@ -37,14 +37,12 @@ module Prescribe =
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let loadingSource, setLoadingSource = React.useState<LoadingSource option> None
-        let prevOrderContext = React.useRef props.orderContext
 
         React.useEffect (
             (fun () ->
-                match prevOrderContext.current, props.orderContext with
-                | InProgress, Resolved _ -> setLoadingSource None
+                match props.orderContext with
+                | Resolved _ -> setLoadingSource None
                 | _ -> ()
-                prevOrderContext.current <- props.orderContext
             ),
             [| box props.orderContext |]
         )
@@ -105,6 +103,7 @@ module Prescribe =
         let clear () =
             match props.orderContext with
             | Resolved _ ->
+                setLoadingSource None
                 OrderContext.empty |> updateOrderContext
             | _ -> ()
 
@@ -113,7 +112,7 @@ module Prescribe =
 
         let isAnythingLoading =
             match props.orderContext with
-            | InProgress -> true
+            | InProgress | Recalculating _ -> true
             | _ -> false
 
         let isSourceLoading source =
@@ -331,7 +330,7 @@ module Prescribe =
                     </Typography>
                     {
                         match props.orderContext with
-                        | Resolved pr -> pr.Filter.Indication, pr.Filter.Indications
+                        | Resolved pr | Recalculating pr -> pr.Filter.Indication, pr.Filter.Indications
                         | _ -> None, [||]
                         |> fun (sel, items) ->
                             let isLoading = isSourceLoading IndicationLoading
@@ -348,7 +347,7 @@ module Prescribe =
                     <Stack direction={stackDirection} spacing={if isMobile then 1 else 3} >
                         {
                             match props.orderContext with
-                            | Resolved pr -> pr.Filter.Generic, pr.Filter.Generics
+                            | Resolved pr | Recalculating pr -> pr.Filter.Generic, pr.Filter.Generics
                             | _ -> None, [||]
                             |> fun (sel, items) ->
                                 let isLoading = isSourceLoading MedicationLoading
@@ -365,7 +364,7 @@ module Prescribe =
                         }
                         {
                             match props.orderContext with
-                            | Resolved pr -> pr.Filter.Route, pr.Filter.Routes
+                            | Resolved pr | Recalculating pr -> pr.Filter.Route, pr.Filter.Routes
                             | _ -> None, [||]
                             |> fun (sel, items) ->
                                 let isLoading = isSourceLoading RouteLoading
@@ -382,7 +381,7 @@ module Prescribe =
                         }
                         {
                             match props.orderContext with
-                            | Resolved ctx when ctx.Filter.Forms |> Array.length >= 1 &&
+                            | Resolved ctx | Recalculating ctx when ctx.Filter.Forms |> Array.length >= 1 &&
                                                 (not isMobile || ctx.Scenarios |> Array.length <> 1) ->
                                 ctx.Filter.Form, ctx.Filter.Forms
                             | _ -> None, [||]
@@ -403,7 +402,7 @@ module Prescribe =
                         }
                         {
                             match props.orderContext with
-                            | Resolved pr when pr.Filter.Indication.IsSome &&
+                            | Resolved pr | Recalculating pr when pr.Filter.Indication.IsSome &&
                                                pr.Filter.Generic.IsSome &&
                                                pr.Filter.Route.IsSome &&
                                                pr.Filter.Diluents |> Array.length > 1 &&
@@ -422,7 +421,7 @@ module Prescribe =
                         }
                         {
                             match props.orderContext with
-                            | Resolved pr when pr.Filter.Indication.IsSome &&
+                            | Resolved pr | Recalculating pr when pr.Filter.Indication.IsSome &&
                                                pr.Filter.Generic.IsSome &&
                                                pr.Filter.Route.IsSome &&
                                                pr.Filter.Components |> Array.length > 1 &&
@@ -443,7 +442,7 @@ module Prescribe =
                         }
                         {
                             match props.orderContext with
-                            | Resolved pr when pr.Filter.Indication.IsSome &&
+                            | Resolved pr | Recalculating pr when pr.Filter.Indication.IsSome &&
                                                pr.Filter.Generic.IsSome &&
                                                pr.Filter.Route.IsSome ->
                                 let isLoading = isSourceLoading DoseTypeLoading
@@ -467,7 +466,7 @@ module Prescribe =
                     <Stack direction="column" spacing={1} >
                         {
                             match props.orderContext with
-                            | Resolved pr ->
+                            | Resolved pr | Recalculating pr ->
                                 pr.Scenarios
                                 |> Array.map (displayScenario pr pr.Filter.Generic)
                                 |> unbox

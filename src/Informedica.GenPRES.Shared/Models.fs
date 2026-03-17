@@ -2229,7 +2229,14 @@ module Models =
 
     module NutritionContext =
 
-        let create label ctx : NutritionContext = { Label = label; OrderContext = ctx }
+        let create id label category removable ctx : NutritionContext =
+            {
+                Id = id
+                Label = label
+                Category = category
+                Removable = removable
+                OrderContext = ctx
+            }
 
 
     module NutritionPlan =
