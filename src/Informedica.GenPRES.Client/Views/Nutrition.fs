@@ -1097,12 +1097,20 @@ module Nutrion =
             | Recalculating _ -> true
             | _ -> false
 
+        let confirmDeleteTarget, setConfirmDeleteTarget = React.useState<string option> None
+
         let makeSlot wrapInAccordion plan nc =
             let onRemove =
                 if nc.Removable then
+                    let hasSupplements =
+                        nc.Category = NutritionCategory.EnteralFeeding &&
+                        plan.NutritionContexts |> Array.exists (fun c -> c.Category = NutritionCategory.EnteralSupplement)
                     Some (fun () ->
-                        Api.RemoveNutritionContext(plan, nc.Id)
-                        |> props.nutritionPlanMsg
+                        if hasSupplements then
+                            setConfirmDeleteTarget (Some nc.Id)
+                        else
+                            Api.RemoveNutritionContext(plan, nc.Id)
+                            |> props.nutritionPlanMsg
                     )
                 else None
             NutritionSlot {|
@@ -1250,6 +1258,39 @@ module Nutrion =
                 """
             | _ -> ViewHelpers.empty
 
+        let confirmDeleteDialog =
+            let isOpen = confirmDeleteTarget.IsSome
+            let handleCancel = fun _ -> setConfirmDeleteTarget None
+            let handleConfirm = fun _ ->
+                match confirmDeleteTarget, props.nutritionPlan with
+                | Some ncId, (Resolved plan | Recalculating plan) ->
+                    Api.RemoveNutritionContext(plan, ncId)
+                    |> props.nutritionPlanMsg
+                | _ -> ()
+                setConfirmDeleteTarget None
+            JSX.jsx
+                $"""
+            import Dialog from '@mui/material/Dialog';
+            import DialogTitle from '@mui/material/DialogTitle';
+            import DialogContent from '@mui/material/DialogContent';
+            import DialogContentText from '@mui/material/DialogContentText';
+            import DialogActions from '@mui/material/DialogActions';
+            import Button from '@mui/material/Button';
+
+            <Dialog open={isOpen} onClose={handleCancel}>
+                <DialogTitle>Enterale voeding verwijderen</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Als u de enterale voeding verwijdert, worden ook alle bijbehorende supplementen verwijderd. Wilt u doorgaan?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCancel}>Annuleren</Button>
+                    <Button onClick={handleConfirm} color="error">Verwijderen</Button>
+                </DialogActions>
+            </Dialog>
+            """
+
         JSX.jsx
             $"""
         import React from "react";
@@ -1259,5 +1300,6 @@ module Nutrion =
         <Box sx={ {| paddingBottom=(if isMobile then "16px" else "220px") |} }>
             {content}
             {progress}
+            {confirmDeleteDialog}
         </Box>
         """

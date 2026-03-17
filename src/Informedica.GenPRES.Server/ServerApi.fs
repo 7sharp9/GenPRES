@@ -887,7 +887,10 @@ module OrderContext =
             | Api.SetMedianComponentOrderableQuantityProperty cmp -> OrderContext.SetMedianComponentQuantityProperty (serverCtx, cmp)
 
         match cmd with
-        | Api.ReloadResources password when password <> "GenPRES2026" ->
+        | Api.ReloadResources password
+            when Informedica.Utils.Lib.Env.getItem "GENPRES_RELOAD_PASSWORD"
+                 |> Option.map (fun expected -> password <> expected)
+                 |> Option.defaultValue true ->  // no env var = always reject
             Error [| "Invalid password" |]
         | _ ->
             try
