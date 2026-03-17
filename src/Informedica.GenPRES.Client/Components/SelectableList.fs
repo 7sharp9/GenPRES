@@ -15,7 +15,7 @@ module SelectableList =
             |> Array.mapi (fun i (el, text, selected) ->
                 let icon =
                     match el with
-                    | None -> JSX.jsx "<></>"
+                    | None -> null
                     | Some el ->
                         JSX.jsx
                             $"""

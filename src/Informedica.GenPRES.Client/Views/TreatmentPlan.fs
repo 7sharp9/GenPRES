@@ -236,7 +236,7 @@ module TreatmentPlan =
                     </Button>
                 </Box>
                 """
-            | _ -> ViewHelpers.empty
+            | _ -> null
 
 
         JSX.jsx

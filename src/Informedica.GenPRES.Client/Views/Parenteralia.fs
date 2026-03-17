@@ -171,7 +171,7 @@ module Parenteralia =
                         | Resolved par -> false, par.Form, par.Forms
                         | _ -> true, None, [||]
                         |> fun (isLoading, sel, items) ->
-                            if items |> Array.isEmpty then JSX.jsx "<></>"
+                            if items |> Array.isEmpty then null
                             else
                                 if isMobile then
                                     items
@@ -212,7 +212,7 @@ module Parenteralia =
                             |> List.singleton
                             |> Feliz.Markdown.Markdown.markdown
                         | _ ->
-                            JSX.jsx "<></>"
+                            null
                             |> toReact
 
                     }

@@ -1188,19 +1188,19 @@ module Order =
             if showPrepDivider then
                 JSX.jsx
                     $"""<Divider><Typography variant="caption">bereiding</Typography></Divider>"""
-            else ViewHelpers.empty
+            else null
 
         let dosingDivider =
             if showDosingDivider then
                 JSX.jsx
                     $"""<Divider><Typography variant="caption">dosering</Typography></Divider>"""
-            else ViewHelpers.empty
+            else null
 
         let administrationDivider =
             if showAdminDivider then
                 JSX.jsx
                     $"""<Divider><Typography variant="caption">toediening</Typography></Divider>"""
-            else ViewHelpers.empty
+            else null
 
         let content =
             let createNav = ViewHelpers.createNav dispatch
@@ -1225,28 +1225,28 @@ module Order =
                         // component name
                         match displayOrder with
                         | Some ord ->
-                            if ord.Orderable.Components |> Array.length <= 1 then ViewHelpers.empty
+                            if ord.Orderable.Components |> Array.length <= 1 then null
                             else
                                 ord.Orderable.Components
                                 |> Array.map _.Name
                                 |> Array.map (fun s -> s, s)
                                 |> select false "componenten" state.SelectedComponent (ChangeComponent >> dispatch) None false None None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // substance name
                         match displayOrder with
                         | Some ord ->
                             if ord.Orderable.Components |> Array.isEmpty ||
-                               itms |> Array.length <= 1 then ViewHelpers.empty
+                               itms |> Array.length <= 1 then null
                             else
                                 itms
                                 |> Array.map _.Name
                                 |> Array.map (fun s -> s, s)
                                 |> select false "stoffen" state.SelectedItem (ChangeItem >> dispatch) None false None None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {dosingDivider}
                     {
@@ -1271,7 +1271,7 @@ module Order =
                             vals
                             |> select (isFieldLoading "substDoseQty") label None (ChangeSubstanceDoseQuantity >> dispatch) None false warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // substance dose quantity adjust
@@ -1295,7 +1295,7 @@ module Order =
                             vals
                             |> select (isFieldLoading "substDoseQtyAdj") label None (ChangeSubstanceDoseQuantityAdjust >> dispatch) None true warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // substance dose per time / dose per time adjust
@@ -1329,7 +1329,7 @@ module Order =
                             vals
                             |> select (isFieldLoading "substPerTime") label None dispatch None true warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // substance dose rate / dose rate adust
@@ -1358,7 +1358,7 @@ module Order =
                             |> Option.defaultValue [||]
                             |> select (isFieldLoading "substRate") (Terms.``Order Adjusted dose`` |> getTerm "dosering") None dispatch navigate true warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {preparationDivider}
                     {
@@ -1414,7 +1414,7 @@ module Order =
                             vals
                             |> select (isFieldLoading "compOrdQty") "bereiding hoeveelheid" None (ChangeComponentOrderableQuantity >> dispatch) navigate false warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // substance component concentration
@@ -1436,7 +1436,7 @@ module Order =
                                     |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
                                     |> Option.defaultValue [||]
                                     |> select (isFieldLoading "substCompConc") "product sterkte" None (change >> dispatch) None false None None
-                                else ViewHelpers.empty
+                                else null
                             | None ->
                                 match
                                     ord.Orderable.Components
@@ -1455,13 +1455,13 @@ module Order =
                                             |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
                                             |> Option.defaultValue [||]
                                             |> select (isFieldLoading "substCompConc") "product sterkte" None (change >> dispatch) None false None None
-                                        else ViewHelpers.empty
+                                        else null
 
-                                    | None -> ViewHelpers.empty
-                                | None -> ViewHelpers.empty
+                                    | None -> null
+                                | None -> null
 
                         | _ ->
-                            ViewHelpers.empty
+                            null
 
                     }
                     {
@@ -1477,7 +1477,7 @@ module Order =
                             |> Option.defaultValue [||]
                             |> select (isFieldLoading "substOrdQty") $"{itms[i].Name} hoeveelheid" None (ChangeSubstanceOrderableQuantity >> dispatch) None false warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // substance orderable concentration
@@ -1492,7 +1492,7 @@ module Order =
                             |> Option.defaultValue [||]
                             |> select (isFieldLoading "substOrdConc") $"{itms[i].Name} concentratie" None (ChangeSubstanceOrderableConcentration >> dispatch) None false warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // orderable quantity
@@ -1505,7 +1505,7 @@ module Order =
                             |> Option.defaultValue [||]
                             |> select (isFieldLoading "ordQty") "totale hoeveelheid" None (ChangeOrderableQuantity >> dispatch) None false warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {administrationDivider}
                     {
@@ -1535,7 +1535,7 @@ module Order =
 
                             select (isFieldLoading "frequency") (Terms.``Order Frequency`` |> getTerm "frequentie") None (ChangeFrequency >> dispatch) navigate false warning None xs
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // orderable dose quantity
@@ -1604,7 +1604,7 @@ module Order =
                             )
                             |> select (isFieldLoading "ordDoseQty") "toedien hoeveelheid" None (ChangeOrderableDoseQuantity >> dispatch) navigate false warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // orderable dose rate
@@ -1634,7 +1634,7 @@ module Order =
                             )
                             |> select (isFieldLoading "ordDoseRate") (Terms.``Order Drip rate`` |> getTerm "inloop snelheid") None (ChangeOrderableDoseRate >> dispatch) navigate false warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                     {
                         // administration time
@@ -1648,7 +1648,7 @@ module Order =
                             |> Array.distinctBy snd
                             |> select (isFieldLoading "time") (Terms.``Order Administration time`` |> getTerm "inloop tijd") None (ChangeTime >> dispatch) None true warning None
                         | _ ->
-                            ViewHelpers.empty
+                            null
                     }
                 </Stack>
                 {loadingIndicator}

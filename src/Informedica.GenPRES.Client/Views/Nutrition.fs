@@ -304,6 +304,11 @@ module Nutrion =
     open Elmish
 
 
+    let private halfSize = {| xs = 12; md = 6 |}
+
+    let private cellSx = {| minWidth = 350 |}
+
+
     [<JSX.Component>]
     let private NutritionSlot (props: {|
         nutritionContext: NutritionContext
@@ -573,8 +578,6 @@ module Nutrion =
                     let doseDisplay =
                         select isLoading doseLabel None (fun s -> ChangeComponentDoseQuantityAdjust (cmp.Name, s) |> dispatch) None false doseWarning (Some 400) doseVals
 
-                    let halfSize = {| xs = 12; md = 6 |}
-                    let cellSx = {| minWidth = 350 |}
                     JSX.jsx
                         $"""
                     import Grid from '@mui/material/Grid';
@@ -594,7 +597,7 @@ module Nutrion =
                     """
                 )
             | None ->
-                [| ViewHelpers.empty |]
+                [| null |]
 
         let isEnteral =
             props.nutritionContext.Category = NutritionCategory.EnteralFeeding
@@ -672,7 +675,7 @@ module Nutrion =
 
                 select isLoading label None (ChangeOrderableDoseQuantity >> dispatch) doseQtyNav false warning selectMinWidth vals
             | None ->
-                ViewHelpers.empty
+                null
 
         let dosePerTimeAdjDisplay =
             match displayOrder with
@@ -690,7 +693,7 @@ module Nutrion =
 
                 select false label None ignore None false warning selectMinWidth vals
             | None ->
-                ViewHelpers.empty
+                null
 
         let frequencyControl =
             match displayOrder with
@@ -708,7 +711,7 @@ module Nutrion =
 
                 select isLoading label None (ChangeFrequency >> dispatch) None false warning selectMinWidth freqVals
             | _ ->
-                ViewHelpers.empty
+                null
 
         let frequencyDoseRow =
             if isEnteral then
@@ -729,8 +732,6 @@ module Nutrion =
                 </Grid>
                 """
             else
-                let halfSize = {| xs = 12; md = 6 |}
-                let cellSx = {| minWidth = 350 |}
                 JSX.jsx
                     $"""
                 import Grid from '@mui/material/Grid';
@@ -794,8 +795,6 @@ module Nutrion =
                 let timeDisplay =
                     select false timeLabel None ignore None false timeWarning (Some 400) timeVals
 
-                let halfSize = {| xs = 12; md = 6 |}
-                let cellSx = {| minWidth = 350 |}
                 JSX.jsx
                     $"""
                 import Grid from '@mui/material/Grid';
@@ -814,7 +813,7 @@ module Nutrion =
                 </Grid>
                 """
             | _ ->
-                ViewHelpers.empty
+                null
 
         let totalVolumeDisplay =
             match displayOrder with
@@ -830,7 +829,7 @@ module Nutrion =
                 |> Option.defaultValue [||]
                 |> select false label None ignore None false warning (Some 400)
             | None ->
-                ViewHelpers.empty
+                null
 
         let onClickReset =
             fun () -> ResetOrderScenario |> dispatch
@@ -840,7 +839,6 @@ module Nutrion =
                 $"""<Divider><Typography variant="caption">toediening</Typography></Divider>"""
 
         let headerRow =
-            let halfSize = {| xs = 12; md = 6 |}
             JSX.jsx
                 $"""
             import Grid from '@mui/material/Grid';
@@ -856,7 +854,7 @@ module Nutrion =
             """
 
         let preparationSection =
-            if isEnteral then ViewHelpers.empty
+            if isEnteral then null
             else
                 JSX.jsx
                     $"""
@@ -898,7 +896,7 @@ module Nutrion =
             """
 
         let genericFilter =
-            if ctx.Filter.Generics |> Array.isEmpty then ViewHelpers.empty
+            if ctx.Filter.Generics |> Array.isEmpty then null
             else
                 let sel = ctx.Filter.Generic
                 let items = ctx.Filter.Generics
@@ -913,7 +911,7 @@ module Nutrion =
                     |> autoComplete isOrderLoading lbl sel genericChange
 
         let indicationFilter =
-            if ctx.Filter.Generic.IsNone || ctx.Filter.Indications |> Array.length <= 1 then ViewHelpers.empty
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Indications |> Array.length <= 1 then null
             else
                 let sel = ctx.Filter.Indication
                 let items = ctx.Filter.Indications
@@ -928,7 +926,7 @@ module Nutrion =
                     |> autoComplete isOrderLoading lbl sel indicationChange
 
         let doseTypeFilter =
-            if ctx.Filter.Generic.IsNone || ctx.Filter.Indication.IsNone || ctx.Filter.DoseTypes |> Array.length <= 1 then ViewHelpers.empty
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Indication.IsNone || ctx.Filter.DoseTypes |> Array.length <= 1 then null
             else
                 let sel = ctx.Filter.DoseType |> Option.map DoseType.doseTypeToString
                 let items = ctx.Filter.DoseTypes
@@ -952,7 +950,7 @@ module Nutrion =
 
         let orderDetails =
             if displayOrder.IsSome then details
-            else ViewHelpers.empty
+            else null
 
         let expanded, setExpanded = React.useState true
 
@@ -987,40 +985,40 @@ module Nutrion =
                     <DeleteIcon fontSize="small" />
                 </Box>
                 """
-            | None -> ViewHelpers.empty
+            | None -> null
 
         if props.wrapInAccordion then
-            JSX.jsx
-                $"""
-            import React from "react";
-            import Box from '@mui/material/Box';
-            import Accordion from '@mui/material/Accordion';
-            import AccordionDetails from '@mui/material/AccordionDetails';
-            import AccordionSummary from '@mui/material/AccordionSummary';
-            import Typography from '@mui/material/Typography';
-            import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+            let summary =
+                JSX.jsx
+                    $"""
+                import React from 'react';
+                import Typography from '@mui/material/Typography';
 
-            <Accordion expanded={expanded} onChange={handleAccordionChange}>
-                <AccordionSummary
-                sx={
-                    {|
-                        bgcolor=Mui.Styles.headerBgColor
-                        paddingTop=(if isMobile then 0 else 1)
-                        paddingBottom=(if isMobile then 0 else 1)
-                        ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0; display="flex"; alignItems="center" |}
-                    |}
-                }
-                expandIcon={{ <ExpandMoreIcon /> }}
-                >
-                <Typography>{props.nutritionContext.Label}</Typography>
-                {removeButton}
-                </AccordionSummary>
-                <AccordionDetails sx={ {| paddingTop=(if isMobile then 1 else 4) |} }>
+                <React.Fragment>
+                    <Typography>{props.nutritionContext.Label}</Typography>
+                    {removeButton}
+                </React.Fragment>
+                """
+
+            let children =
+                JSX.jsx
+                    $"""
+                import React from 'react';
+
+                <React.Fragment>
                     {filterControls}
                     {orderDetails}
-                </AccordionDetails>
-            </Accordion>
-            """
+                </React.Fragment>
+                """
+
+            Components.Accordion.View
+                {|
+                    expanded = expanded
+                    onChange = fun () -> setExpanded (not expanded)
+                    summary = summary
+                    children = children
+                    isMobile = isMobile
+                |}
         else
             JSX.jsx
                 $"""
@@ -1170,51 +1168,41 @@ module Nutrion =
                 let enteralFeedingAddButton =
                     if not hasEnteral then
                         AddButton {| label = "Enterale Voeding"; onClick = fun () -> addContext plan NutritionCategory.EnteralFeeding |}
-                    else ViewHelpers.empty
+                    else null
 
                 let supplementAddButton =
                     if hasEnteral then
                         AddButton {| label = "Supplement toevoegen"; onClick = fun () -> addContext plan NutritionCategory.EnteralSupplement |}
-                    else ViewHelpers.empty
+                    else null
 
                 let supplementsAccordion =
-                    if not hasEnteral then ViewHelpers.empty
+                    if not hasEnteral then null
                     else
-                        JSX.jsx
-                            $"""
-                        import Accordion from '@mui/material/Accordion';
-                        import AccordionDetails from '@mui/material/AccordionDetails';
-                        import AccordionSummary from '@mui/material/AccordionSummary';
-                        import Typography from '@mui/material/Typography';
-                        import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-                        import Stack from '@mui/material/Stack';
-
-                        <Accordion expanded={suppExpanded} onChange={fun _ -> setSuppExpanded (not suppExpanded)}>
-                            <AccordionSummary
-                            sx={
-                                {|
-                                    bgcolor=Mui.Styles.headerBgColor
-                                    paddingTop=(if isMobile then 0 else 1)
-                                    paddingBottom=(if isMobile then 0 else 1)
-                                    ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0; display="flex"; alignItems="center" |}
-                                |}
-                            }
-                            expandIcon={{ <ExpandMoreIcon /> }}
-                            >
+                        let summary =
+                            JSX.jsx
+                                $"""
+                            import Typography from '@mui/material/Typography';
                             <Typography>Enterale Supplementen</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails sx={ {| paddingTop=(if isMobile then 1 else 4) |} }>
-                                <Stack direction="column" spacing={{2}}>
-                                    {
-                                        enteralSupplementSlots
-                                        |> unbox
-                                        |> React.fragment
-                                    }
-                                    {supplementAddButton}
-                                </Stack>
-                            </AccordionDetails>
-                        </Accordion>
-                        """
+                            """
+
+                        let children =
+                            JSX.jsx
+                                $"""
+                            import Stack from '@mui/material/Stack';
+                            <Stack direction="column" spacing={2}>
+                                {enteralSupplementSlots |> unbox |> React.fragment}
+                                {supplementAddButton}
+                            </Stack>
+                            """
+
+                        Components.Accordion.View
+                            {|
+                                expanded = suppExpanded
+                                onChange = fun () -> setSuppExpanded (not suppExpanded)
+                                summary = summary
+                                children = children
+                                isMobile = isMobile
+                            |}
 
                 let parenteralAddButtons =
                     [|
@@ -1256,7 +1244,7 @@ module Nutrion =
                     </Stack>
                 </Stack>
                 """
-            | _ -> ViewHelpers.empty
+            | _ -> null
 
         let confirmDeleteDialog =
             let isOpen = confirmDeleteTarget.IsSome

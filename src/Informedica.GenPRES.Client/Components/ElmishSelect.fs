@@ -75,10 +75,12 @@ module ElmishSelect =
             import ClearIcon from '@mui/icons-material/Clear';
             import IconButton from "@mui/material/IconButton";
 
-            <IconButton sx={ {| visibility = if isClear then "hidden" else "visible" |} } onClick={clear}>
+            <IconButton sx={Mui.Styles.clearButtonVisibilitySx isClear} onClick={clear}>
                 <ClearIcon/>
             </IconButton>
             """
+
+        let selectSx = Mui.Styles.selectIconVisibilitySx isClear
 
         JSX.jsx
             $"""
@@ -96,7 +98,7 @@ module ElmishSelect =
             value={state |> Option.defaultValue ""}
             onChange={handleChange}
             label={props.label}
-            sx={ {| ``& .MuiSelect-icon`` = {| visibility = if isClear then "visible" else "hidden" |} |} }
+            sx={selectSx}
             endAdornment={clearButton}
             >
                 {items}

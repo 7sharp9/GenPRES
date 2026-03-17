@@ -292,7 +292,7 @@ module Formulary =
                                         |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
                                         |> select isLoading lbl sel (DoseTypeChange >> dispatch)
 
-                            | _ -> ViewHelpers.empty
+                            | _ -> null
 
                         }
                     </Stack>
@@ -313,7 +313,7 @@ module Formulary =
                             |> List.singleton
                             |> Feliz.Markdown.Markdown.markdown
                         | _ ->
-                            JSX.jsx "<></>"
+                            null
                             |> toReact
 
                     }

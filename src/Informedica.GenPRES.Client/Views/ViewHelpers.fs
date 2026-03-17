@@ -31,9 +31,6 @@ module ViewHelpers =
         | IsAlert -> Some Mui.Colors.Red.``700``
 
 
-    let empty = JSX.jsx $"<></>"
-
-
     let orderSelect
         disabled
         isLoading
@@ -47,7 +44,7 @@ module ViewHelpers =
         xs =
 
         if xs |> Array.isEmpty && navigate |> Option.isNone then
-            empty
+            null
         else
             Components.SimpleSelect.View({|
                 updateSelected = updateSelected
@@ -107,23 +104,27 @@ module ViewHelpers =
 
     let inlineProgress isLoading =
         if isLoading then
+            let progressSx = {| display = "flex"; justifyContent = "center"; padding = 2 |}
+
             JSX.jsx
                 $"""
             import CircularProgress from '@mui/material/CircularProgress';
             import Box from '@mui/material/Box';
-            <Box sx={ {| display = "flex"; justifyContent = "center"; padding = 2 |} }>
+            <Box sx={progressSx}>
                 <CircularProgress size={24} />
             </Box>
             """
-        else empty
+        else null
 
 
     let circularProgress =
+        let circularProgressSx = {| marginTop = 5; display = "flex"; padding = 20 |}
+
         JSX.jsx
             $"""
         import CircularProgress from '@mui/material/CircularProgress';
         import Box from '@mui/material/Box';
-        <Box sx={ {| marginTop = 5; display = "flex"; padding = 20 |} }>
+        <Box sx={circularProgressSx}>
             <CircularProgress />
         </Box>
         """
@@ -131,11 +132,13 @@ module ViewHelpers =
 
     let progressOrEmpty (deferred: Deferred<'a>) =
         match deferred with
-        | Resolved _ | Recalculating _ -> empty
+        | Resolved _ | Recalculating _ -> null
         | _ -> circularProgress
 
 
     let backdropProgress isOpen (message: string) =
+        let backdropBoxSx = {| display = "flex"; flexDirection = "column"; alignItems = "center"; gap = 2 |}
+
         JSX.jsx
             $"""
         import Backdrop from '@mui/material/Backdrop';
@@ -146,7 +149,7 @@ module ViewHelpers =
         <Backdrop
             sx={ {| color = "#fff"; zIndex = 9999 |} }
             open={isOpen}>
-            <Box sx={ {| display = "flex"; flexDirection = "column"; alignItems = "center"; gap = 2 |} }>
+            <Box sx={backdropBoxSx}>
                 <CircularProgress color="inherit" />
                 <Typography variant="h6" color="inherit">
                     {message}

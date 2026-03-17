@@ -46,12 +46,14 @@ module ResponsiveTable =
                                 | _ -> Mui.Colors.Grey.``700``, cell.value
 
                             if i = 0 then
+                                let headerBoxSx = {| paddingY = 0.5; backgroundColor = Mui.Styles.headerBgColor; marginX = -1.5; paddingX = 1.5 |}
+
                                 JSX.jsx
                                     $"""
                                 import Typography from '@mui/material/Typography';
                                 import Box from '@mui/material/Box';
 
-                                <Box sx={ {| paddingY = 0.5; backgroundColor = Mui.Styles.headerBgColor; marginX = -1.5; paddingX = 1.5 |} } >
+                                <Box sx={headerBoxSx} >
                                     <Typography variant="subtitle2" color={b} sx={ {| fontWeight = 600; lineHeight = 1.4 |} } >
                                         {s}
                                     </Typography>
@@ -88,15 +90,17 @@ module ResponsiveTable =
                     let actions =
                         match row.actions with
                         | Some act ->
+                            let actionsSx = {| paddingTop = 0; paddingBottom = 0.5; paddingX = 1 |}
+
                             JSX.jsx
                                 $"""
                             import CardActions from '@mui/material/CardActions';
-                            <CardActions sx={ {| paddingTop = 0; paddingBottom = 0.5; paddingX = 1 |} } >
+                            <CardActions sx={actionsSx} >
                                 {act}
                             </CardActions>
                             """
                             |> toReact
-                        | None -> JSX.jsx "<></>" |> toReact
+                        | None -> null |> toReact
 
                     let divider =
                         JSX.jsx
@@ -107,6 +111,7 @@ module ResponsiveTable =
                         |> toReact
 
                     let bottomPad = if hasActions then 0.5 else 1
+                    let contentSx = {| paddingTop = 1; paddingBottom = bottomPad; paddingX = 1.5; ``&:last-child`` = {| paddingBottom = bottomPad |} |}
 
                     JSX.jsx
                         $"""
@@ -116,7 +121,7 @@ module ResponsiveTable =
 
                     <Grid item sx={ {| width="100%"; mb = 0.5 |} } >
                         <Card raised={true} onClick={handleClick} sx={ {| cursor = "pointer" |} } >
-                            <CardContent sx={ {| paddingTop = 1; paddingBottom = bottomPad; paddingX = 1.5; ``&:last-child`` = {| paddingBottom = bottomPad |} |} } >
+                            <CardContent sx={contentSx} >
                                 <Stack spacing={0} divider={divider} >
                                     {content}
                                 </Stack>
@@ -135,7 +140,7 @@ module ResponsiveTable =
 
             <Stack id="responsive-card-table" >
                 <Box sx={ {| marginBottom=1.5 |} }>
-                    {props.filter |> Option.defaultValue (JSX.jsx "<></>" |> toReact)}
+                    {props.filter |> Option.defaultValue (null |> toReact)}
                 </Box>
                 <Grid container rowSpacing={1} columnSpacing={ {| xs=1; sm=2; md=3 |} } >
                     {React.fragment (cards |> unbox)}
@@ -181,7 +186,7 @@ module ResponsiveTable =
         let filter =
             columnFilter
             |> function
-            | None   -> JSX.jsx "<></>"
+            | None   -> null
             | Some column ->
                 let data =
                     props.rows
@@ -299,7 +304,7 @@ module ResponsiveTable =
                     """
                     |> toReact
                 else
-                    JSX.jsx "<></>" |> toReact
+                    null |> toReact
 
             let selectedRows =
                 props.selectedRows
