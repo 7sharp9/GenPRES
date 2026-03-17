@@ -29,6 +29,7 @@ module Settings =
         let dialogOpen, setDialogOpen = React.useState false
         let password, setPassword = React.useState ""
         let passwordError, setPasswordError = React.useState false
+        let wasInProgress = React.useRef false
 
         let isLoading =
             reloading &&
@@ -40,12 +41,16 @@ module Settings =
             fun () ->
                 if reloading then
                     match props.orderContext with
+                    | InProgress | Recalculating _ ->
+                        wasInProgress.current <- true
                     | Resolved _ ->
+                        wasInProgress.current <- false
                         setReloading false
                         setDialogOpen false
                         setPassword ""
-                    | HasNotStartedYet ->
+                    | HasNotStartedYet when wasInProgress.current ->
                         // Error occurred (server rejected), show error in dialog
+                        wasInProgress.current <- false
                         setReloading false
                         setDialogOpen true
                         setPasswordError true
