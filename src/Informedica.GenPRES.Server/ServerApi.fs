@@ -860,7 +860,7 @@ module OrderContext =
             | Api.SelectOrderScenario -> serverCtx |> OrderContext.SelectOrderScenario
             | Api.UpdateOrderScenario -> serverCtx |> OrderContext.UpdateOrderScenario
             | Api.ResetOrderScenario -> serverCtx |> OrderContext.ResetOrderScenario
-            | Api.ReloadResources -> serverCtx |> OrderContext.ReloadResources
+            | Api.ReloadResources _ -> serverCtx |> OrderContext.ReloadResources
             // Frequency property commands
             | Api.DecreaseScheduleFrequencyProperty -> serverCtx |> OrderContext.DecreaseScheduleFrequencyProperty
             | Api.IncreaseScheduleFrequencyProperty -> serverCtx |> OrderContext.IncreaseScheduleFrequencyProperty
@@ -886,21 +886,25 @@ module OrderContext =
             | Api.SetMaxComponentOrderableQuantityProperty cmp -> OrderContext.SetMaxComponentQuantityProperty (serverCtx, cmp)
             | Api.SetMedianComponentOrderableQuantityProperty cmp -> OrderContext.SetMedianComponentQuantityProperty (serverCtx, cmp)
 
-        try
-            ctx
-            |> mapFromShared logger provider pat
-            |> toServerCmd
-            |> OrderContext.logOrderContext logger "start eval"
-            |> OrderContext.evaluate logger provider
-            |> Result.get
-            |> OrderContext.logOrderContext logger "finish eval"
-            |> extractServerCtx
-            |> map
-            |> Ok
-        with
-        | e ->
-            writeErrorMessage $"errored:\n{e}"
-            raise e
+        match cmd with
+        | Api.ReloadResources password when password <> "GenPRES2026" ->
+            Error [| "Invalid password" |]
+        | _ ->
+            try
+                ctx
+                |> mapFromShared logger provider pat
+                |> toServerCmd
+                |> OrderContext.logOrderContext logger "start eval"
+                |> OrderContext.evaluate logger provider
+                |> Result.get
+                |> OrderContext.logOrderContext logger "finish eval"
+                |> extractServerCtx
+                |> map
+                |> Ok
+            with
+            | e ->
+                writeErrorMessage $"errored:\n{e}"
+                raise e
 
 
 module OrderPlan =

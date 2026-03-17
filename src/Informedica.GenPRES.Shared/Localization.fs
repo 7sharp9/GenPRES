@@ -69,6 +69,11 @@ type Terms =
     | ``Disclaimer accept``
     | Settings
     | ``Reload resources``
+    | ``Enter password``
+    | Password
+    | ``Invalid password``
+    | Cancel
+    | Confirm
 
 
 module Localization =

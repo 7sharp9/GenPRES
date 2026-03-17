@@ -19,7 +19,7 @@ module Api =
         | SelectOrderScenario
         | UpdateOrderScenario
         | ResetOrderScenario
-        | ReloadResources
+        | ReloadResources of password: string
         // Frequency property commands
         | DecreaseScheduleFrequencyProperty
         | IncreaseScheduleFrequencyProperty
@@ -81,7 +81,7 @@ module Api =
             | OrderContextCmd (SelectOrderScenario, _) -> "SelectOrderScenario"
             | OrderContextCmd (UpdateOrderScenario, _) -> "UpdateOrderScenario"
             | OrderContextCmd (ResetOrderScenario, _) -> "ResetOrderScenario"
-            | OrderContextCmd (ReloadResources, _) -> "ReloadResources"
+            | OrderContextCmd (ReloadResources _, _) -> "ReloadResources"
             | OrderContextCmd (DecreaseScheduleFrequencyProperty, _) -> "DecreaseScheduleFrequencyProperty"
             | OrderContextCmd (IncreaseScheduleFrequencyProperty, _) -> "IncreaseScheduleFrequencyProperty"
             | OrderContextCmd (SetMinScheduleFrequencyProperty, _) -> "SetMinScheduleFrequencyProperty"

@@ -385,7 +385,7 @@ module private Elmish =
                 let base' = { state with OrderContext = Resolved ctx }
 
                 match cmd with
-                | Api.UpdateOrderContext | Api.ReloadResources ->
+                | Api.UpdateOrderContext | Api.ReloadResources _ ->
                     { base' with
                         Formulary =
                             base'.Formulary
@@ -707,9 +707,9 @@ module private Elmish =
             match state.Patient with
             | None ->
                 match cmd with
-                | Api.ReloadResources ->
+                | Api.ReloadResources pw ->
                     { state with OrderContext = HasNotStartedYet },
-                    (Api.ReloadResources, OrderContext.empty)
+                    (Api.ReloadResources pw, OrderContext.empty)
                     |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
                 | _ ->
                     { state with OrderContext = HasNotStartedYet }, Cmd.none
@@ -1039,7 +1039,7 @@ let View () =
                         updateFormulary = UpdateFormulary >> dispatch
                         parenteralia = state.Parenteralia
                         updateParenteralia = UpdateParenteralia >> dispatch
-                        reloadResources = fun () -> OrderContextMsg (Api.ReloadResources, OrderContext.empty) |> dispatch
+                        reloadResources = fun pw -> OrderContextMsg (Api.ReloadResources pw, OrderContext.empty) |> dispatch
                         page = state.Page
                         localizationTerms = state.Localization
                         languages = Localization.languages
