@@ -131,7 +131,7 @@ module ViewHelpers =
 
     let progressOrEmpty (deferred: Deferred<'a>) =
         match deferred with
-        | Resolved _ -> empty
+        | Resolved _ | Recalculating _ -> empty
         | _ -> circularProgress
 
 

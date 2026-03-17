@@ -19,7 +19,7 @@ module Api =
         | SelectOrderScenario
         | UpdateOrderScenario
         | ResetOrderScenario
-        | ReloadResources
+        | ReloadResources of password: string
         // Frequency property commands
         | DecreaseScheduleFrequencyProperty
         | IncreaseScheduleFrequencyProperty
@@ -54,6 +54,8 @@ module Api =
         | UpdateNutritionOrderContext of NutritionPlan * string * OrderContext
         | SelectNutritionOrderScenario of NutritionPlan * string * OrderContext
         | NavigateNutritionOrderContext of NutritionPlan * string * OrderContextCommand * OrderContext
+        | AddNutritionContext of NutritionPlan * NutritionCategory
+        | RemoveNutritionContext of NutritionPlan * string
 
     type Response =
         | OrderContextResp of OrderContextResponse
@@ -81,7 +83,7 @@ module Api =
             | OrderContextCmd (SelectOrderScenario, _) -> "SelectOrderScenario"
             | OrderContextCmd (UpdateOrderScenario, _) -> "UpdateOrderScenario"
             | OrderContextCmd (ResetOrderScenario, _) -> "ResetOrderScenario"
-            | OrderContextCmd (ReloadResources, _) -> "ReloadResources"
+            | OrderContextCmd (ReloadResources _, _) -> "ReloadResources"
             | OrderContextCmd (DecreaseScheduleFrequencyProperty, _) -> "DecreaseScheduleFrequencyProperty"
             | OrderContextCmd (IncreaseScheduleFrequencyProperty, _) -> "IncreaseScheduleFrequencyProperty"
             | OrderContextCmd (SetMinScheduleFrequencyProperty, _) -> "SetMinScheduleFrequencyProperty"
@@ -111,6 +113,8 @@ module Api =
             | NutritionPlanCmd (UpdateNutritionOrderContext _) -> "UpdateNutritionOrderContext"
             | NutritionPlanCmd (SelectNutritionOrderScenario _) -> "SelectNutritionOrderScenario"
             | NutritionPlanCmd (NavigateNutritionOrderContext _) -> "NavigateNutritionOrderContext"
+            | NutritionPlanCmd (AddNutritionContext _) -> "AddNutritionContext"
+            | NutritionPlanCmd (RemoveNutritionContext _) -> "RemoveNutritionContext"
 
 
     /// Defines how routes are generated on server and mapped from the client

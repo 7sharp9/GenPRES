@@ -27,7 +27,7 @@ module TreatmentPlan =
         let handleModalClose =
             fun () ->
                 match props.treatmentPlan with
-                | Resolved tp ->
+                | Resolved tp | Recalculating tp ->
                     { tp with Selected = None }
                     |> props.updateTreatmentPlan
                 | _ -> ()
@@ -68,7 +68,7 @@ module TreatmentPlan =
                 |> String.concat ""
 
             match props.treatmentPlan with
-            | Resolved tp ->
+            | Resolved tp | Recalculating tp ->
                 tp.Scenarios
                 |> Array.map _.Order
                 |> Array.mapi (fun i o ->
@@ -161,7 +161,7 @@ module TreatmentPlan =
 
         let selectOrder id =
             match props.treatmentPlan with
-            | Resolved tp ->
+            | Resolved tp | Recalculating tp ->
                 tp.Scenarios
                 |> Array.tryFind (fun sc -> sc.Order.Id = id)
                 |> function
@@ -177,7 +177,7 @@ module TreatmentPlan =
 
         let filterOrders ids =
             match props.treatmentPlan with
-            | Resolved tp ->
+            | Resolved tp | Recalculating tp ->
                 { tp with
                     Selected = None
                     Filtered =
@@ -195,7 +195,7 @@ module TreatmentPlan =
 
         let selectedRows =
             match props.treatmentPlan with
-            | Resolved tp ->
+            | Resolved tp | Recalculating tp ->
                 tp.Filtered
                 |> Array.map _.Order
                 |> Array.map _.Id
@@ -204,7 +204,7 @@ module TreatmentPlan =
         let onDelete =
             fun () ->
                 match props.treatmentPlan with
-                | Resolved tp ->
+                | Resolved tp | Recalculating tp ->
                     { tp with
                         Scenarios =
                             tp.Scenarios
@@ -226,7 +226,7 @@ module TreatmentPlan =
 
         let deleteBtn =
             match props.treatmentPlan with
-            | Resolved tp when tp.Filtered |> Array.length > 0 ->
+            | Resolved tp | Recalculating tp when tp.Filtered |> Array.length > 0 ->
                 JSX.jsx $"""
                 import Button from '@mui/material/Button';
 
@@ -267,7 +267,7 @@ module TreatmentPlan =
                         Order.View {|
                             orderContext =
                                 match props.treatmentPlan with
-                                | Resolved tp ->
+                                | Resolved tp | Recalculating tp ->
                                     tp.Selected
                                     |> Option.map (fun sc ->
                                         OrderContext.fromOrderScenario tp.Patient sc

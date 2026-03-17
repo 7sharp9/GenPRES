@@ -385,7 +385,7 @@ module private Elmish =
                 let base' = { state with OrderContext = Resolved ctx }
 
                 match cmd with
-                | Api.UpdateOrderContext | Api.ReloadResources ->
+                | Api.UpdateOrderContext | Api.ReloadResources _ ->
                     { base' with
                         Formulary =
                             base'.Formulary
@@ -541,7 +541,7 @@ module private Elmish =
                     | None -> state.OrderContext
                     | Some m ->
                         match state.OrderContext with
-                        | InProgress -> state.OrderContext
+                        | InProgress | Recalculating _ -> state.OrderContext
                         | HasNotStartedYet ->
                             OrderContext.empty
                             |> OrderContext.setMedication m.indication m.medication m.route m.form m.dosetype
@@ -707,21 +707,21 @@ module private Elmish =
             match state.Patient with
             | None ->
                 match cmd with
-                | Api.ReloadResources ->
+                | Api.ReloadResources pw ->
                     { state with OrderContext = HasNotStartedYet },
-                    (Api.ReloadResources, OrderContext.empty)
+                    (Api.ReloadResources pw, OrderContext.empty)
                     |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
                 | _ ->
                     { state with OrderContext = HasNotStartedYet }, Cmd.none
             | Some pat ->
                 match state.OrderContext with
-                | InProgress -> state, Cmd.none
+                | InProgress | Recalculating _ -> state, Cmd.none
                 | HasNotStartedYet ->
                     { state with OrderContext = InProgress },
                     (cmd, OrderContext.empty |> OrderContext.setPatient pat)
                     |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
                 | Resolved ctx ->
-                    { state with OrderContext = InProgress },
+                    { state with OrderContext = Recalculating ctx },
                     (cmd, { ctx with Patient = pat })
                     |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
 
@@ -766,7 +766,7 @@ module private Elmish =
             | None -> { state with TreatmentPlan = HasNotStartedYet }, Cmd.none
             | Some pat ->
                 match state.TreatmentPlan with
-                | InProgress -> state, Cmd.none
+                | InProgress | Recalculating _ -> state, Cmd.none
                 | HasNotStartedYet ->
                     let apiCmd =
                         match cmd with
@@ -788,7 +788,11 @@ module private Elmish =
             |> processError err
 
         | NutritionPlanMsg npCmd ->
-            { state with NutritionPlan = InProgress },
+            let planState =
+                match state.NutritionPlan with
+                | Resolved plan -> Recalculating plan
+                | _ -> InProgress
+            { state with NutritionPlan = planState },
             Api.NutritionPlanCmd npCmd
             |> createApiMsg (fun resp -> LoadNutritionPlanResult (npCmd, resp))
 
@@ -1039,7 +1043,7 @@ let View () =
                         updateFormulary = UpdateFormulary >> dispatch
                         parenteralia = state.Parenteralia
                         updateParenteralia = UpdateParenteralia >> dispatch
-                        reloadResources = fun () -> OrderContextMsg (Api.ReloadResources, OrderContext.empty) |> dispatch
+                        reloadResources = fun pw -> OrderContextMsg (Api.ReloadResources pw, OrderContext.empty) |> dispatch
                         page = state.Page
                         localizationTerms = state.Localization
                         languages = Localization.languages

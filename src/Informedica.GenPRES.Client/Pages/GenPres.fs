@@ -130,7 +130,7 @@ module GenPres =
             updateFormulary : Formulary -> unit
             parenteralia : Deferred<Parenteralia>
             updateParenteralia : Parenteralia -> unit
-            reloadResources : unit -> unit
+            reloadResources : string -> unit
             page : Global.Pages
             localizationTerms : Deferred<string[][]>
             languages : Localization.Locales []

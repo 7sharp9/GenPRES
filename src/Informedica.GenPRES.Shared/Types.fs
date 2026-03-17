@@ -474,10 +474,23 @@ module Types =
         }
 
 
-    type NutritionContext = {
-        Label: string
-        OrderContext: OrderContext
-    }
+    [<RequireQualifiedAccess>]
+    type NutritionCategory =
+        | EnteralFeeding
+        | EnteralSupplement
+        | TPN
+        | Lipid
+        | ElectrolyteGlucose
+
+
+    type NutritionContext =
+        {
+            Id: string
+            Label: string
+            Category: NutritionCategory
+            Removable: bool
+            OrderContext: OrderContext
+        }
 
 
     type NutritionPlan = {
