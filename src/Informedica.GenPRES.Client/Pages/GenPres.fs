@@ -180,7 +180,7 @@ module GenPres =
 
         let patientBox =
             match props.page with
-            | Global.Pages.Settings -> JSX.jsx "<></>"
+            | Global.Pages.Settings -> null
             | _ ->
                 JSX.jsx
                     $"""
@@ -306,18 +306,18 @@ module GenPres =
                                 match props.orderContext with
                                 | Resolved pr ->
                                     Views.Totals.View {| intake = pr.Intake |}
-                                | _ -> JSX.jsx "<></>"
+                                | _ -> null
                             | Global.Pages.Nutrition ->
                                 match props.nutritionPlan with
                                 | Resolved np ->
                                     Views.Totals.View {| intake = np.Totals |}
-                                | _ -> JSX.jsx "<></>"
+                                | _ -> null
                             | Global.Pages.TreatmentPlan ->
                                 match props.treatmentPlan with
                                 | Resolved tp ->
                                     Views.Totals.View {| intake = tp.Totals |}
-                                | _ -> JSX.jsx "<></>"
-                            | _ -> JSX.jsx "<></>"
+                                | _ -> null
+                            | _ -> null
                         }
                     </Box>
                 </Stack>

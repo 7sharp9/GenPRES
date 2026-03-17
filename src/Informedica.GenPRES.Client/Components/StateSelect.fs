@@ -48,7 +48,7 @@ module StateSelect =
             import ClearIcon from '@mui/icons-material/Clear';
             import IconButton from "@mui/material/IconButton";
 
-            <IconButton sx={ {| visibility = if isClear then "hidden" else "visible" |} } onClick={clear}>
+            <IconButton sx={Mui.Styles.clearButtonVisibilitySx isClear} onClick={clear}>
                 <ClearIcon/>
             </IconButton>
             """
@@ -69,7 +69,7 @@ module StateSelect =
             value={props.selected |> Option.defaultValue ""}
             onChange={handleChange}
             label={props.label}
-            sx={ {| ``& .MuiSelect-icon`` = {| visibility = if isClear then "visible" else "hidden" |} |} }
+            sx={Mui.Styles.selectIconVisibilitySx isClear}
             endAdornment={clearButton}
             >
                 {items}

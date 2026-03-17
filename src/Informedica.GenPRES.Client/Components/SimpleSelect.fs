@@ -69,7 +69,7 @@ module SimpleSelect =
         let clearButton =
             match props.isLoading, isClear with
             | true, _      -> Mui.Icons.Downloading
-            | false, true  -> JSX.jsx "<></>"
+            | false, true  -> null
             | false, false ->
                 JSX.jsx
                     $"""

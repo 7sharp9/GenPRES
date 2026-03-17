@@ -135,11 +135,11 @@ module Prescribe =
         let progress =
             match props.orderContext with
             | HasNotStartedYet -> JSX.jsx $"<>Voer eerst patient gegevens in</>"
-            | _ -> ViewHelpers.empty
+            | _ -> null
 
 
         let displayScenario (pr : OrderContext) med (sc : OrderScenario) =
-            if med |> Option.isNone then ViewHelpers.empty
+            if med |> Option.isNone then null
             else
                 let caption =
                     let renal =
@@ -389,7 +389,7 @@ module Prescribe =
                                 let isLoading = isSourceLoading FormLoading
                                 let lbl = "Vorm"
 
-                                if items |> Array.isEmpty then ViewHelpers.empty
+                                if items |> Array.isEmpty then null
                                 else
                                     if isMobile then
                                         items
@@ -417,7 +417,7 @@ module Prescribe =
                                     |> Array.map (fun s -> s, s)
                                     |> select isLoading lbl sel diluentChange
 
-                            | _ -> ViewHelpers.empty
+                            | _ -> null
                         }
                         {
                             match props.orderContext with
@@ -438,7 +438,7 @@ module Prescribe =
                                     |> Array.map (fun s -> s, s)
                                     |> multiSelect isLoading lbl sel componentsChange
 
-                            | _ -> ViewHelpers.empty
+                            | _ -> null
                         }
                         {
                             match props.orderContext with
@@ -454,7 +454,7 @@ module Prescribe =
                                 |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
                                 |> select isLoading lbl sel doseTypeChange
 
-                            | _ -> ViewHelpers.empty
+                            | _ -> null
                         }
                     </Stack>
                     {loadingIndicator}

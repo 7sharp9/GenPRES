@@ -40,7 +40,7 @@ module Slider =
 
         let labelDisplay =
             if String.IsNullOrWhiteSpace props.label then
-                JSX.jsx "<></>"
+                null
             else
                 JSX.jsx
                     $"""

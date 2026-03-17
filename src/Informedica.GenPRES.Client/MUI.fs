@@ -972,3 +972,11 @@ type Hooks =
 module Styles =
 
     let headerBgColor = Colors.Blue.``50``
+
+
+    let selectIconVisibilitySx isClear =
+        {| ``& .MuiSelect-icon`` = {| visibility = if isClear then "visible" else "hidden" |} |}
+
+
+    let clearButtonVisibilitySx isClear =
+        {| visibility = if isClear then "hidden" else "visible" |}
