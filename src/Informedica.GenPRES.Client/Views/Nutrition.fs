@@ -1018,6 +1018,9 @@ module Nutrion =
                     summary = summary
                     children = children
                     isMobile = isMobile
+                    detailsPaddingTop = if isMobile then None else Some 4
+                    ariaControls = None
+                    summaryId = None
                 |}
         else
             JSX.jsx
@@ -1202,6 +1205,9 @@ module Nutrion =
                                 summary = summary
                                 children = children
                                 isMobile = isMobile
+                                detailsPaddingTop = if isMobile then None else Some 4
+                                ariaControls = None
+                                summaryId = None
                             |}
 
                 let parenteralAddButtons =

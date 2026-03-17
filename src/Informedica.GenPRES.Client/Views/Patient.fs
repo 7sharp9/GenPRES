@@ -395,8 +395,11 @@ module Patient =
             {|
                 expanded = isExpanded
                 onChange = handleChange
-                summary = pat |> show lang props.localizationTerms
+                summary = pat |> show lang props.localizationTerms |> toJsx
                 children = children
                 isMobile = isMobile
+                detailsPaddingTop = None
+                ariaControls = Some "patient"
+                summaryId = Some "patient-details"
             |}
 

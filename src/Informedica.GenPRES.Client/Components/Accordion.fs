@@ -11,9 +11,12 @@ module Accordion =
             {|
                 expanded : bool
                 onChange : unit -> unit
-                summary : obj
-                children : obj
+                summary : JSX.Element
+                children : JSX.Element
                 isMobile : bool
+                detailsPaddingTop : int option
+                ariaControls : string option
+                summaryId : string option
             |}
         ) =
         let sx =
@@ -27,6 +30,18 @@ module Accordion =
                 ``& .MuiAccordionSummary-content.Mui-expanded`` = {| margin=0 |}
             |}
 
+        let detailsPadding =
+            props.detailsPaddingTop
+            |> Option.defaultValue (if props.isMobile then 1 else 2)
+
+        let ariaControls =
+            props.ariaControls
+            |> Option.defaultValue ""
+
+        let summaryId =
+            props.summaryId
+            |> Option.defaultValue ""
+
         JSX.jsx
             $"""
         import Accordion from '@mui/material/Accordion';
@@ -39,10 +54,12 @@ module Accordion =
             <AccordionSummary
             sx={sx}
             expandIcon={{ <ExpandMoreIcon /> }}
+            aria-controls={ariaControls}
+            id={summaryId}
             >
             {props.summary}
             </AccordionSummary>
-            <AccordionDetails sx={ {| paddingTop=(if props.isMobile then 1 else 2) |} }>
+            <AccordionDetails sx={ {| paddingTop=detailsPadding |} }>
                 {props.children}
             </AccordionDetails>
         </Accordion>
