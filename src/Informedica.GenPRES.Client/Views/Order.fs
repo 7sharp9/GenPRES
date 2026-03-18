@@ -1346,16 +1346,11 @@ module Order =
                                 else
                                     itms[i].Dose.Rate.Level |> getWarning
 
-                            if useAdjust then
-                                itms[i].Dose.RateAdjust.Variable.Vals
-                            else
-                                itms[i].Dose.Rate.Variable.Vals
-                            |> Option.map (fun v ->
-                                v.Value
-                                |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}")
-                                |> Array.distinctBy snd
-                            )
-                            |> Option.defaultValue [||]
+                            let ovar = if useAdjust then itms[i].Dose.RateAdjust else itms[i].Dose.Rate
+
+                            ovar
+                            |> ViewHelpers.ovarVals (fixPrecision 3)
+                            |> Array.distinctBy snd
                             |> select (isFieldLoading "substRate") (Terms.``Order Adjusted dose`` |> getTerm "dosering") None dispatch navigate true warning None
                         | _ ->
                             null
@@ -1371,14 +1366,8 @@ module Order =
 
                             let vals =
                                 cmp
-                                |> Option.bind _.OrderableQuantity.Variable.Vals
-                                |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                                |> Option.defaultValue (
-                                    cmp
-                                    |> Option.map (_.OrderableQuantity.Variable >> Variable.renderValue 3)
-                                    |> Option.defaultValue ""
-                                    |> function | "" -> [||] | s -> [| "range", s |]
-                                )
+                                |> Option.map (_.OrderableQuantity >> ViewHelpers.ovarValsWithRange string 3)
+                                |> Option.defaultValue [||]
 
                             let navigate =
                                 let c = vals |> Array.length
@@ -1432,9 +1421,8 @@ module Order =
                                    |> Option.map (fun vu -> vu.Value |> Array.length > 1)
                                    |> Option.defaultValue false
                                 then
-                                    itm.ComponentConcentration.Variable.Vals
-                                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
-                                    |> Option.defaultValue [||]
+                                    itm.ComponentConcentration
+                                    |> ViewHelpers.ovarVals (fixPrecision 3)
                                     |> select (isFieldLoading "substCompConc") "product sterkte" None (change >> dispatch) None false None None
                                 else null
                             | None ->
@@ -1446,14 +1434,12 @@ module Order =
                                     | Some itm ->
                                         let change = fun s -> (cmp.Name, itm.Name, s) |> ChangeSubstanceComponentConcentration
 
-
-                                        if itm.ComponentConcentration.DefinedConstraints.Vals 
+                                        if itm.ComponentConcentration.DefinedConstraints.Vals
                                            |> Option.map (fun vu -> vu.Value |> Array.length > 1)
-                                           |> Option.defaultValue false 
+                                           |> Option.defaultValue false
                                         then
-                                            itm.ComponentConcentration.Variable.Vals
-                                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                                            |> Option.defaultValue [||]
+                                            itm.ComponentConcentration
+                                            |> ViewHelpers.ovarVals string
                                             |> select (isFieldLoading "substCompConc") "product sterkte" None (change >> dispatch) None false None None
                                         else null
 
@@ -1472,9 +1458,8 @@ module Order =
                                                 ord.Orderable.Components |> Array.length > 1 ->
                             let warning = itms[i].OrderableQuantity.Level |> getWarning
 
-                            itms[i].OrderableQuantity.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
-                            |> Option.defaultValue [||]
+                            itms[i].OrderableQuantity
+                            |> ViewHelpers.ovarVals (fixPrecision 3)
                             |> select (isFieldLoading "substOrdQty") $"{itms[i].Name} hoeveelheid" None (ChangeSubstanceOrderableQuantity >> dispatch) None false warning None
                         | _ ->
                             null
@@ -1485,11 +1470,10 @@ module Order =
                         | Some i, Some ord when ord.Schedule.IsContinuous |> not &&
                                                 itms |> Array.length > 0 &&
                                                 ord.Orderable.Components |> Array.length > 1 ->
-                            let warning = itms[i].OrderableConcentration.Level |> getWarning                            
+                            let warning = itms[i].OrderableConcentration.Level |> getWarning
 
-                            itms[i].OrderableConcentration.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
-                            |> Option.defaultValue [||]
+                            itms[i].OrderableConcentration
+                            |> ViewHelpers.ovarVals (fixPrecision 3)
                             |> select (isFieldLoading "substOrdConc") $"{itms[i].Name} concentratie" None (ChangeSubstanceOrderableConcentration >> dispatch) None false warning None
                         | _ ->
                             null
@@ -1500,9 +1484,8 @@ module Order =
                         | Some ord when ord.Orderable.Components |> Array.length > 1 ->
                             let warning = ord.Orderable.OrderableQuantity.Level |> getWarning
 
-                            ord.Orderable.OrderableQuantity.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                            |> Option.defaultValue [||]
+                            ord.Orderable.OrderableQuantity
+                            |> ViewHelpers.ovarVals string
                             |> select (isFieldLoading "ordQty") "totale hoeveelheid" None (ChangeOrderableQuantity >> dispatch) None false warning None
                         | _ ->
                             null
@@ -1513,10 +1496,7 @@ module Order =
                         match displayOrder with
                         | Some ord  when ord.Schedule.IsDiscontinuous ||
                                          ord.Schedule.IsTimed ->
-                            let xs =
-                                ord.Schedule.Frequency.Variable.Vals
-                                |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                                |> Option.defaultValue [||]
+                            let xs = ord.Schedule.Frequency |> ViewHelpers.ovarVals string
 
                             let navigate =
                                 if xs |> Array.length <> 1 then None
@@ -1595,13 +1575,8 @@ module Order =
 
                             let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
 
-                            ord.Orderable.Dose.Quantity.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                            |> Option.defaultValue (
-                                match Variable.renderValue 3 ord.Orderable.Dose.Quantity.Variable with
-                                | "" -> [||]
-                                | s -> [| "range", s |]
-                            )
+                            ord.Orderable.Dose.Quantity
+                            |> ViewHelpers.ovarValsWithRange string 3
                             |> select (isFieldLoading "ordDoseQty") "toedien hoeveelheid" None (ChangeOrderableDoseQuantity >> dispatch) navigate false warning None
                         | _ ->
                             null
@@ -1625,13 +1600,8 @@ module Order =
 
                             let warning = ord.Orderable.Dose.Rate.Level |> getWarning
 
-                            ord.Orderable.Dose.Rate.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                            |> Option.defaultValue (
-                                match Variable.renderValue 3 ord.Orderable.Dose.Rate.Variable with
-                                | "" -> [||]
-                                | s -> [| "range", s |]
-                            )
+                            ord.Orderable.Dose.Rate
+                            |> ViewHelpers.ovarValsWithRange string 3
                             |> select (isFieldLoading "ordDoseRate") (Terms.``Order Drip rate`` |> getTerm "inloop snelheid") None (ChangeOrderableDoseRate >> dispatch) navigate false warning None
                         | _ ->
                             null
@@ -1642,9 +1612,8 @@ module Order =
                         | Some ord ->
                             let warning = ord.Schedule.Time.Level |> getWarning
 
-                            ord.Schedule.Time.Variable.Vals
-                            |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 2} {v.Unit}"))
-                            |> Option.defaultValue [||]
+                            ord.Schedule.Time
+                            |> ViewHelpers.ovarVals (fixPrecision 2)
                             |> Array.distinctBy snd
                             |> select (isFieldLoading "time") (Terms.``Order Administration time`` |> getTerm "inloop tijd") None (ChangeTime >> dispatch) None true warning None
                         | _ ->

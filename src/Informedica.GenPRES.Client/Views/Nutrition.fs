@@ -306,7 +306,7 @@ module Nutrition =
 
     let private halfSize = {| xs = 12; md = 6 |}
 
-    let private cellSx = {| minWidth = 350 |}
+    let private cellSx = {| minWidth = 350; ``& .MuiFormControl-root`` = {| width = "100%" |} |}
 
 
     [<JSX.Component>]
@@ -523,13 +523,7 @@ module Nutrition =
                 ord.Orderable.Components
                 |> Array.map (fun cmp ->
                     // Quantity control (bereiding)
-                    let qtyVals =
-                        cmp.OrderableQuantity.Variable.Vals
-                        |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d} {v.Unit}"))
-                        |> Option.defaultValue (
-                            cmp.OrderableQuantity.Variable |> Order.Variable.renderValue 3
-                            |> function | "" -> [||] | s -> [| "range", s |]
-                        )
+                    let qtyVals = cmp.OrderableQuantity |> ViewHelpers.ovarValsWithRange string 3
 
                     let navigable = cmp.OrderableQuantity |> OrderVariable.isNavigable
                     let solved = ord |> isSolved
@@ -554,26 +548,15 @@ module Nutrition =
 
                     let qtyWarning = cmp.OrderableQuantity.Level |> getWarning
 
-                    let qtyLabel =
-                        cmp.OrderableQuantity.Variable.Vals
-                        |> Option.map (fun v -> $"{cmp.Name} ({v.Unit})")
-                        |> Option.defaultValue cmp.Name
+                    let qtyLabel = cmp.OrderableQuantity |> ViewHelpers.ovarLabel cmp.Name
 
                     let qtyControl =
                         select isLoading qtyLabel None (fun s -> ChangeComponentOrderableQuantity (cmp.Name, s) |> dispatch) nav false qtyWarning (Some 400) qtyVals
 
                     // Dose display (dosering) - always show with label
-                    let doseLabel =
-                        cmp.Dose.QuantityAdjust.Variable.Vals
-                        |> Option.map (fun v -> $"{cmp.Name} ({v.Unit})")
-                        |> Option.defaultValue cmp.Name
-
+                    let doseLabel = cmp.Dose.QuantityAdjust |> ViewHelpers.ovarLabel cmp.Name
                     let doseWarning = cmp.Dose.QuantityAdjust.Level |> getWarning
-
-                    let doseVals =
-                        cmp.Dose.QuantityAdjust.Variable.Vals
-                        |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
-                        |> Option.defaultValue [||]
+                    let doseVals = cmp.Dose.QuantityAdjust |> ViewHelpers.ovarVals (fixPrecision 3)
 
                     let doseDisplay =
                         select isLoading doseLabel None (fun s -> ChangeComponentDoseQuantityAdjust (cmp.Name, s) |> dispatch) None false doseWarning (Some 400) doseVals
@@ -609,19 +592,8 @@ module Nutrition =
             match displayOrder with
             | Some ord ->
                 let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
-                let label =
-                    ord.Orderable.Dose.Quantity.Variable.Vals
-                    |> Option.map (fun v -> $"toedien hoeveelheid ({v.Unit})")
-                    |> Option.defaultValue "toedien hoeveelheid"
-
-                let vals =
-                    ord.Orderable.Dose.Quantity.Variable.Vals
-                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                    |> Option.defaultValue (
-                        match Order.Variable.renderValue 3 ord.Orderable.Dose.Quantity.Variable with
-                        | "" -> [||]
-                        | s -> [| "range", s |]
-                    )
+                let label = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarLabel "toedien hoeveelheid"
+                let vals = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarValsWithRange string 3
 
                 let showNav =
                     ord.Orderable.Components
@@ -680,18 +652,8 @@ module Nutrition =
         let dosePerTimeAdjDisplay =
             match displayOrder with
             | Some ord ->
-                let warning = ord.Orderable.Dose.PerTimeAdjust.Level |> getWarning
-                let label =
-                    ord.Orderable.Dose.PerTimeAdjust.Variable.Vals
-                    |> Option.map (fun v -> $"dosering ({v.Unit})")
-                    |> Option.defaultValue "dosering"
-
-                let vals =
-                    ord.Orderable.Dose.PerTimeAdjust.Variable.Vals
-                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
-                    |> Option.defaultValue [||]
-
-                select false label None ignore None false warning selectMinWidth vals
+                ord.Orderable.Dose.PerTimeAdjust
+                |> ViewHelpers.ovarDisplay select "dosering" (fixPrecision 3) selectMinWidth
             | None ->
                 null
 
@@ -699,15 +661,8 @@ module Nutrition =
             match displayOrder with
             | Some ord when ord.Schedule.IsDiscontinuous || ord.Schedule.IsTimed ->
                 let warning = ord.Schedule.Frequency.Level |> getWarning
-                let label =
-                    ord.Schedule.Frequency.Variable.Vals
-                    |> Option.map (fun v -> $"frequentie ({v.Unit})")
-                    |> Option.defaultValue "frequentie"
-
-                let freqVals =
-                    ord.Schedule.Frequency.Variable.Vals
-                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                    |> Option.defaultValue [||]
+                let label = ord.Schedule.Frequency |> ViewHelpers.ovarLabel "frequentie"
+                let freqVals = ord.Schedule.Frequency |> ViewHelpers.ovarVals string
 
                 select isLoading label None (ChangeFrequency >> dispatch) None false warning selectMinWidth freqVals
             | _ ->
@@ -715,21 +670,34 @@ module Nutrition =
 
         let frequencyDoseRow =
             if isEnteral then
-                let thirdSize = {| xs = 12; md = 4 |}
+                let flexSx =
+                    {|
+                        display = "flex"
+                        flexWrap = "wrap"
+                        gap = 4
+                        alignItems = "flex-end"
+                        width = "100%"
+                    |}
+                let itemSx =
+                    {|
+                        flex = "1 1 0%"
+                        minWidth = 200
+                        ``& .MuiFormControl-root`` = {| width = "100%" |}
+                    |}
                 JSX.jsx
                     $"""
-                import Grid from '@mui/material/Grid';
-                <Grid container spacing={{2}} alignItems="flex-end">
-                    <Grid size={thirdSize}>
+                import Box from '@mui/material/Box';
+                <Box sx={flexSx}>
+                    <Box sx={itemSx}>
                         {frequencyControl}
-                    </Grid>
-                    <Grid size={thirdSize}>
+                    </Box>
+                    <Box sx={itemSx}>
                         {doseQtyControl}
-                    </Grid>
-                    <Grid size={thirdSize}>
+                    </Box>
+                    <Box sx={itemSx}>
                         {dosePerTimeAdjDisplay}
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
                 """
             else
                 JSX.jsx
@@ -765,35 +733,16 @@ module Nutrition =
                         SetMaxDoseRateProperty
 
                 let warning = ord.Orderable.Dose.Rate.Level |> getWarning
-
-                let label =
-                    ord.Orderable.Dose.Rate.Variable.Vals
-                    |> Option.map (fun v -> $"infuussnelheid ({v.Unit})")
-                    |> Option.defaultValue "infuussnelheid"
+                let label = ord.Orderable.Dose.Rate |> ViewHelpers.ovarLabel "infuussnelheid"
 
                 let rateDisplay =
-                    ord.Orderable.Dose.Rate.Variable.Vals
-                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                    |> Option.defaultValue (
-                        match Order.Variable.renderValue 3 ord.Orderable.Dose.Rate.Variable with
-                        | "" -> [||]
-                        | s -> [| "range", s |]
-                    )
+                    ord.Orderable.Dose.Rate
+                    |> ViewHelpers.ovarValsWithRange string 3
                     |> select isLoading label None (ChangeOrderableDoseRate >> dispatch) nav false warning (Some 400)
 
-                let timeWarning = ord.Schedule.Time.Level |> getWarning
-                let timeLabel =
-                    ord.Schedule.Time.Variable.Vals
-                    |> Option.map (fun v -> $"looptijd ({v.Unit})")
-                    |> Option.defaultValue "looptijd"
-
-                let timeVals =
-                    ord.Schedule.Time.Variable.Vals
-                    |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}"))
-                    |> Option.defaultValue [||]
-
                 let timeDisplay =
-                    select false timeLabel None ignore None false timeWarning (Some 400) timeVals
+                    ord.Schedule.Time
+                    |> ViewHelpers.ovarDisplay select "looptijd" (fixPrecision 3) (Some 400)
 
                 JSX.jsx
                     $"""
@@ -818,16 +767,8 @@ module Nutrition =
         let totalVolumeDisplay =
             match displayOrder with
             | Some ord ->
-                let warning = ord.Orderable.OrderableQuantity.Level |> getWarning
-                let label =
-                    ord.Orderable.OrderableQuantity.Variable.Vals
-                    |> Option.map (fun v -> $"totaal volume ({v.Unit})")
-                    |> Option.defaultValue "totaal volume"
-
-                ord.Orderable.OrderableQuantity.Variable.Vals
-                |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> string} {v.Unit}"))
-                |> Option.defaultValue [||]
-                |> select false label None ignore None false warning (Some 400)
+                ord.Orderable.OrderableQuantity
+                |> ViewHelpers.ovarDisplay select "totaal volume" string (Some 400)
             | None ->
                 null
 
