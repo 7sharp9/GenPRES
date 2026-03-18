@@ -1,6 +1,27 @@
+/// Localization support for the GenPRES application.
+///
+/// The current implementation fetches a "Localization" sheet from Google Sheets
+/// at startup and stores translations as a `string[][]` matrix.  The column
+/// indices that map to each language are hardcoded in `getTerm`, which means
+/// **reordering columns in the spreadsheet silently breaks all translations**.
+///
+/// An improved, more idiomatic approach is demonstrated in
+/// `Scripts/Localization.fsx`.  Key improvements proposed there:
+///   - Parse the CSV by column *headers* (language display names) so the
+///     implementation is robust to spreadsheet column reordering.
+///   - Store translations as `TranslationMap` (`Map<string, Map<Locales, string>>`)
+///     instead of `string[][]` — no magic column indices.
+///   - `tryLocaleFromString` returns `Option` instead of throwing.
+///   - Static fallback translations embedded in the binary so the UI works
+///     without a network connection.
+///   - `mergeTranslations` overlays remote sheet data over the static fallback
+///     so a partial sheet load degrades gracefully.
 namespace Shared
 
 
+/// Compile-time-safe enumeration of all localizable UI strings.
+/// Add a new case here whenever a new UI label is introduced, and update the
+/// Localization sheet (and `Scripts/Localization.fsx` static fallback) accordingly.
 type Terms =
     | ``Patient enter patient data``
     | ``Patient Age``
@@ -79,6 +100,10 @@ type Terms =
 module Localization =
 
 
+    /// Supported UI languages.  Add a case here when a new language is
+    /// introduced, then update `toString`, `fromString`, `languages`, the
+    /// Localization spreadsheet, and the static fallback in
+    /// `Scripts/Localization.fsx`.
     type Locales =
         | English
         | Dutch
@@ -89,6 +114,8 @@ module Localization =
     //        | Chinees
 
 
+    /// Converts a `Locales` value to its human-readable display name as it
+    /// appears in the "Localization" spreadsheet header row.
     let toString =
         function
         | English -> "English"
@@ -100,6 +127,11 @@ module Localization =
     //        | Chinees -> "中文"
 
 
+    /// Converts a display name string to a `Locales` value.
+    ///
+    /// ⚠️  This function **throws** for unknown input.  Consider using the
+    /// `tryLocaleFromString` function from `Scripts/Localization.fsx` which
+    /// returns `Option<Locales>` instead.
     let fromString (s: string) =
         let s = s.Trim().ToLower()
 
@@ -117,6 +149,14 @@ module Localization =
     let languages = [| English; Dutch; French; German; Spanish; Italian |]
 
 
+    /// Looks up a translated string for `term` in `locale` from a `string[][]`
+    /// matrix produced by `Csv.parseCSV` on the "Localization" Google Sheet.
+    ///
+    /// ⚠️  Column positions are **hardcoded** (English = 1, Dutch = 2, …).
+    /// Reordering columns in the spreadsheet will silently return wrong
+    /// translations.  See `Scripts/Localization.fsx` for a header-based parser
+    /// (`parseLocalizationCSV`) that is robust to column reordering and uses a
+    /// typed `TranslationMap` instead of `string[][]`.
     let getTerm (terms: string[][]) locale term =
         let term = $"{term}".Trim()
 
