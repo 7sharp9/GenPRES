@@ -259,7 +259,7 @@ module GenPres =
                                     localizationTerms = props.localizationTerms
                                 |}
                             | Global.Pages.Nutrition ->
-                                Views.Nutrion.View {|
+                                Views.Nutrition.View {|
                                     patient = props.patient
                                     nutritionPlan = props.nutritionPlan
                                     nutritionPlanMsg = props.nutritionPlanMsg
