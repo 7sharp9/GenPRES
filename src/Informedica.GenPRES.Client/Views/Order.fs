@@ -1165,7 +1165,7 @@ module Order =
 
         let getWarning = ViewHelpers.getWarning
 
-        let select = ViewHelpers.orderSelect isOrderLoading
+        let select = ViewHelpers.orderSelect false isOrderLoading
 
         let loadingIndicator = ViewHelpers.inlineProgress isOrderLoading
 
