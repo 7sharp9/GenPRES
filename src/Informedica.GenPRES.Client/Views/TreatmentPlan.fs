@@ -23,7 +23,13 @@ module TreatmentPlan =
         let context = React.useContext Global.context
         let lang = context.Localization
 
-        let modalOpen, setModalOpen = React.useState false
+        // Derive modal visibility from Elmish state — if an order is selected, the modal is open.
+        // This avoids duplicating tp.Selected.IsSome in local React state.
+        let modalOpen =
+            match props.treatmentPlan with
+            | Resolved tp | Recalculating tp -> tp.Selected.IsSome
+            | _ -> false
+
         let handleModalClose =
             fun () ->
                 match props.treatmentPlan with
@@ -31,7 +37,6 @@ module TreatmentPlan =
                     { tp with Selected = None }
                     |> props.updateTreatmentPlan
                 | _ -> ()
-                setModalOpen false
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
@@ -171,8 +176,6 @@ module TreatmentPlan =
                 | Some sc ->
                     { tp with Filtered = [||]; Selected = Some sc }
                     |> props.updateTreatmentPlan
-
-                    setModalOpen true
             | _ -> ()
 
         let filterOrders ids =
