@@ -673,6 +673,7 @@ module Nutrition =
                 let flexSx =
                     {|
                         display = "flex"
+                        flexWrap = "wrap"
                         gap = 4
                         alignItems = "flex-end"
                         width = "100%"
@@ -680,7 +681,7 @@ module Nutrition =
                 let itemSx =
                     {|
                         flex = "1 1 0%"
-                        minWidth = 0
+                        minWidth = 200
                         ``& .MuiFormControl-root`` = {| width = "100%" |}
                     |}
                 JSX.jsx
