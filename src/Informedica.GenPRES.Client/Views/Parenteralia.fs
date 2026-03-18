@@ -211,9 +211,7 @@ module Parenteralia =
                             |> Markdown.markdown.children
                             |> List.singleton
                             |> Feliz.Markdown.Markdown.markdown
-                        | _ ->
-                            null
-                            |> toReact
+                        | _ -> null
 
                     }
                 </Box>

@@ -100,7 +100,7 @@ module ResponsiveTable =
                             </CardActions>
                             """
                             |> toReact
-                        | None -> null |> toReact
+                        | None -> null
 
                     let divider =
                         JSX.jsx
@@ -140,7 +140,7 @@ module ResponsiveTable =
 
             <Stack id="responsive-card-table" >
                 <Box sx={ {| marginBottom=1.5 |} }>
-                    {props.filter |> Option.defaultValue (null |> toReact)}
+                    {props.filter |> Option.defaultValue null}
                 </Box>
                 <Grid container rowSpacing={1} columnSpacing={ {| xs=1; sm=2; md=3 |} } >
                     {React.fragment (cards |> unbox)}
@@ -304,7 +304,7 @@ module ResponsiveTable =
                     """
                     |> toReact
                 else
-                    null |> toReact
+                    null
 
             let selectedRows =
                 props.selectedRows

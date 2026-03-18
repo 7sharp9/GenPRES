@@ -6,6 +6,7 @@ module ViewHelpers =
     open Fable.Core
     open Shared
     open Shared.Types
+    open Shared.Models.Order
 
 
     let simpleSelect disabled isLoading lbl selected dispatch xs =
@@ -89,6 +90,39 @@ module ViewHelpers =
             useDebounce = not navigable && solved
         |}
         |> Some
+
+
+    let ovarLabel (name: string) (ovar: OrderVariable) =
+        ovar.Variable.Vals
+        |> Option.map (fun v -> $"{name} ({v.Unit})")
+        |> Option.defaultValue name
+
+
+    let ovarVals (format: decimal -> string) (ovar: OrderVariable) =
+        ovar.Variable.Vals
+        |> Option.map (fun v ->
+            v.Value |> Array.map (fun (s, d) -> s, $"{d |> format} {v.Unit}")
+        )
+        |> Option.defaultValue [||]
+
+
+    let ovarValsWithRange (format: decimal -> string) (prec: int) (ovar: OrderVariable) =
+        ovar.Variable.Vals
+        |> Option.map (fun v ->
+            v.Value |> Array.map (fun (s, d) -> s, $"{d |> format} {v.Unit}")
+        )
+        |> Option.defaultValue (
+            match Variable.renderValue prec ovar.Variable with
+            | "" -> [||]
+            | s -> [| "range", s |]
+        )
+
+
+    let ovarDisplay select (name: string) (format: decimal -> string) minWidth (ovar: OrderVariable) =
+        let warning = ovar.Level |> getWarning
+        let label = ovar |> ovarLabel name
+        let vals = ovar |> ovarVals format
+        select false label None ignore None false warning minWidth vals
 
 
     let autoComplete disabled isLoading lbl selected dispatch xs =
