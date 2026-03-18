@@ -1,6 +1,6 @@
 namespace Views
 
-module Nutrion =
+module Nutrition =
 
 
     open Fable.Core
