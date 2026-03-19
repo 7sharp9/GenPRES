@@ -309,6 +309,26 @@ module Nutrition =
     let private cellSx = {| minWidth = 350; ``& .MuiFormControl-root`` = {| width = "100%" |} |}
 
 
+    let private renderAdminSummary (key: string) (name: string) (blocks: TextBlock []) =
+        JSX.jsx
+            $"""
+        import Box from '@mui/material/Box';
+        import Typography from '@mui/material/Typography';
+
+        <Box key={key} display="inline" sx={ {| marginLeft=1 |} }>
+            <Typography display="inline" variant="body2" color="text.secondary">
+                {name}:
+            </Typography>
+            {
+                blocks
+                |> Array.map Mui.TypoGraphy.fromTextBlock
+                |> unbox
+                |> React.fragment
+            }
+        </Box>
+        """
+
+
     [<JSX.Component>]
     let private NutritionSlot (props: {|
         nutritionContext: NutritionContext
@@ -939,24 +959,7 @@ module Nutrition =
                             sc.Administration
                             |> TextBlock.flatten
                             |> Array.collect id
-
-                        JSX.jsx
-                            $"""
-                        import Box from '@mui/material/Box';
-                        import Typography from '@mui/material/Typography';
-
-                        <Box display="inline" sx={ {| marginLeft=1 |} }>
-                            <Typography display="inline" variant="body2" color="text.secondary">
-                                {sc.Order.Orderable.Name}:
-                            </Typography>
-                            {
-                                blocks
-                                |> Array.map Mui.TypoGraphy.fromTextBlock
-                                |> unbox
-                                |> React.fragment
-                            }
-                        </Box>
-                        """
+                        renderAdminSummary (string props.nutritionContext.Id) sc.Order.Orderable.Name blocks
                     | _ -> null
 
                 JSX.jsx
@@ -1166,24 +1169,7 @@ module Nutrition =
                                         sc.Administration
                                         |> TextBlock.flatten
                                         |> Array.collect id
-
-                                    JSX.jsx
-                                        $"""
-                                    import Box from '@mui/material/Box';
-                                    import Typography from '@mui/material/Typography';
-
-                                    <Box display="inline" sx={ {| marginLeft=1 |} }>
-                                        <Typography display="inline" variant="body2" color="text.secondary">
-                                            {sc.Order.Orderable.Name}:
-                                        </Typography>
-                                        {
-                                            blocks
-                                            |> Array.map Mui.TypoGraphy.fromTextBlock
-                                            |> unbox
-                                            |> React.fragment
-                                        }
-                                    </Box>
-                                    """
+                                    renderAdminSummary (string nc.Id) sc.Order.Orderable.Name blocks
                                     |> Some
                                 | _ -> None
                             )
