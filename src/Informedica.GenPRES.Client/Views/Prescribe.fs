@@ -179,38 +179,10 @@ module Prescribe =
                                     """
                             )
 
-                        let getItems tb =
-                            match tb with
-                            | Valid itms
-                            | Caution itms
-                            | Warning itms
-                            | Alert itms ->
-                                itms
-                                |> Array.append [| " " |> Normal |]
-
                         let sec =
                              if not isMobile then sec
                              else
-                                // flatten the TextBlock [] [] to a single TextBlock
-                                let add xs =
-                                    let plus = [| [| " + " |> Normal |] |]
-
-                                    xs
-                                    |> Array.fold (fun acc x ->
-                                        if acc |> Array.isEmpty then x
-                                        else
-                                            x
-                                            |> Array.append plus
-                                            |> Array.append acc
-                                    ) [||]
-                                    |> Array.collect id
-
-                                sec
-                                |> Array.map (Array.map getItems)
-                                |> add
-                                |> (sec |> TextBlock.maxTb)
-                                |> Array.singleton
-                                |> Array.singleton
+                                sec |> TextBlock.flatten
 
                         sec
                         |> Array.mapi (fun i row ->
