@@ -1648,7 +1648,7 @@ module Models =
                 |> Option.bind (fun v ->
                     v.Value
                     |> Array.tryHead
-                    |> Option.map (fun (_, d) -> string d + " " + v.Unit)
+                    |> Option.map (fun (_, d) -> (d |> Decimal.toStringNumberNLWithoutTrailingZeros) + " " + v.Unit)
                 )
                 |> Option.defaultValue ""
 
