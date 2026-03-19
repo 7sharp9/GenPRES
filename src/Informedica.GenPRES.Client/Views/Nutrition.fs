@@ -1,5 +1,7 @@
 namespace Views
 
+#nowarn "1104"
+
 module Nutrition =
 
 
@@ -326,6 +328,301 @@ module Nutrition =
                 |> React.fragment
             }
         </Box>
+        """
+
+
+    [<JSX.Component>]
+    let private ParenteralPrintView (props: {|
+        plan: NutritionPlan
+        onClose: unit -> unit
+    |}) =
+        let handlePrint = fun _ -> Browser.Dom.window.print()
+
+        let patient = props.plan.Patient
+
+        let weightKg =
+            patient
+            |> Shared.Models.Patient.getWeightInKg
+            |> Option.map (fun w ->
+                let s = decimal w |> Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 1
+                s + " kg"
+            )
+            |> Option.defaultValue "onbekend"
+
+        let parenteralContexts =
+            props.plan.NutritionContexts
+            |> Array.filter (fun nc ->
+                nc.Category = NutritionCategory.TPN ||
+                nc.Category = NutritionCategory.Lipid ||
+                nc.Category = NutritionCategory.ElectrolyteGlucose
+            )
+
+        let tableSx = {| tableLayout = "fixed"; width = "100%" |}
+
+        let contextSections =
+            parenteralContexts
+            |> Array.map (fun nc ->
+                let scenario =
+                    nc.OrderContext.Scenarios
+                    |> Array.tryExactlyOne
+
+                match scenario with
+                | None ->
+                    JSX.jsx
+                        $"""
+                    import Box from '@mui/material/Box';
+                    import Typography from '@mui/material/Typography';
+
+                    <Box key={nc.Id} sx={ {| marginBottom=2 |} }>
+                        <Typography variant="subtitle1" sx={ {| fontWeight="bold"; backgroundColor="#f5f5f5"; padding="4px 8px"; borderRadius=1 |} }>
+                            {nc.Label}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            niet geconfigureerd
+                        </Typography>
+                    </Box>
+                    """
+                | Some sc ->
+                    let ord = sc.Order
+                    let orderableName = ord.Orderable.Name
+
+                    let componentRows =
+                        ord.Orderable.Components
+                        |> Array.map (fun cmp ->
+                            let cmpQty = cmp.OrderableQuantity |> OrderVariable.displayString
+                            let fixPrec2 = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 2
+                            let doseAdj = cmp.Dose.QuantityAdjust |> OrderVariable.displayStringFormatted fixPrec2
+                            JSX.jsx
+                                $"""
+                            import TableRow from '@mui/material/TableRow';
+                            import TableCell from '@mui/material/TableCell';
+
+                            <TableRow key={cmp.Name}>
+                                <TableCell colSpan={2}>{cmp.Name}</TableCell>
+                                <TableCell align="right">{cmpQty}</TableCell>
+                                <TableCell align="right">{doseAdj}</TableCell>
+                            </TableRow>
+                            """
+                        )
+
+                    let totalVolume = ord.Orderable.OrderableQuantity |> OrderVariable.displayString
+
+                    let rateDisplay =
+                        if ord.Schedule.IsContinuous || ord.Schedule.IsTimed then
+                            let rate = ord.Orderable.Dose.Rate |> OrderVariable.displayString
+                            let fixPrec2 = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 2
+                            let time = ord.Schedule.Time |> OrderVariable.displayStringFormatted fixPrec2
+                            JSX.jsx
+                                $"""
+                            import Typography from '@mui/material/Typography';
+                            import Box from '@mui/material/Box';
+
+                            <Box sx={ {| display="flex"; gap=3; marginTop=1 |} }>
+                                <Typography variant="body2">
+                                    Pompsnelheid: <strong>{rate}</strong>
+                                </Typography>
+                                <Typography variant="body2">
+                                    Looptijd: <strong>{time}</strong>
+                                </Typography>
+                            </Box>
+                            """
+                        else null
+
+                    JSX.jsx
+                        $"""
+                    import Box from '@mui/material/Box';
+                    import Typography from '@mui/material/Typography';
+                    import Table from '@mui/material/Table';
+                    import TableBody from '@mui/material/TableBody';
+                    import TableRow from '@mui/material/TableRow';
+                    import TableCell from '@mui/material/TableCell';
+                    import TableHead from '@mui/material/TableHead';
+
+                    <Box key={nc.Id} sx={ {| marginBottom=3 |} }>
+                        <Typography variant="subtitle1" sx={ {| fontWeight="bold"; marginBottom=1; backgroundColor="#f5f5f5"; padding="4px 8px"; borderRadius=1 |} }>
+                            {nc.Label} - {orderableName}
+                        </Typography>
+                        <Table size="small" sx={tableSx}>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell colSpan={2}><strong>Component</strong></TableCell>
+                                    <TableCell align="right"><strong>Volume</strong></TableCell>
+                                    <TableCell align="right"><strong>Dosis/kg</strong></TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {componentRows |> unbox |> React.fragment}
+                                <TableRow>
+                                    <TableCell colSpan={2} sx={ {| fontWeight="bold" |} }>Totaal volume</TableCell>
+                                    <TableCell align="right" sx={ {| fontWeight="bold" |} }>{totalVolume}</TableCell>
+                                    <TableCell />
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                        {rateDisplay}
+                    </Box>
+                    """
+            )
+
+        let totalsSection =
+            let intake = props.plan.Totals
+            let rows = Shared.Models.Totals.intakeRows
+            let activeRows =
+                rows
+                |> Array.filter (fun cells ->
+                    let name = cells |> Array.head
+                    let items = Shared.Models.Totals.substanceToField intake name
+                    items |> Array.length >= 2
+                )
+
+            let totalsRows =
+                activeRows
+                |> Array.map (fun cells ->
+                    let name = cells.[0]
+                    let unit = cells.[2]
+                    let items = Shared.Models.Totals.substanceToField intake name
+                    let value =
+                        if items.Length >= 2 then
+                            items.[0..items.Length - 2]
+                            |> Array.map (fun item ->
+                                match item with
+                                | Normal s | Bold s | Italic s -> s
+                            )
+                            |> String.concat " "
+                        else ""
+                    let normal =
+                        if items.Length >= 1 then
+                            let s =
+                                match items.[items.Length - 1] with
+                                | Normal s | Bold s | Italic s -> s
+                            if s = "" then "" else s + " " + unit
+                        else ""
+                    JSX.jsx
+                        $"""
+                    import TableRow from '@mui/material/TableRow';
+                    import TableCell from '@mui/material/TableCell';
+
+                    <TableRow key={name}>
+                        <TableCell colSpan={2}>{name}</TableCell>
+                        <TableCell align="right"><strong>{value}</strong></TableCell>
+                        <TableCell align="right">{normal}</TableCell>
+                    </TableRow>
+                    """
+                )
+
+            if activeRows.Length = 0 then null
+            else
+                JSX.jsx
+                    $"""
+                import Box from '@mui/material/Box';
+                import Typography from '@mui/material/Typography';
+                import Table from '@mui/material/Table';
+                import TableBody from '@mui/material/TableBody';
+
+                <Box sx={ {| marginTop=2 |} }>
+                    <Typography variant="subtitle1" sx={ {| fontWeight="bold"; marginBottom=1; backgroundColor="#f5f5f5"; padding="4px 8px"; borderRadius=1 |} }>
+                        Totalen
+                    </Typography>
+                    <Table size="small" sx={tableSx}>
+                        <TableBody>
+                            {totalsRows |> unbox |> React.fragment}
+                        </TableBody>
+                    </Table>
+                </Box>
+                """
+
+        let appBarSx =
+            {|
+                ``@media print`` = {| display = "none" |}
+            |}
+
+        let headerCellSx = {| fontWeight = "bold"; borderBottom = "none"; paddingY = "2px"; width = "25%" |}
+        let valueCellSx = {| borderBottom = "1px dotted #ccc"; paddingY = "2px"; width = "25%" |}
+
+        let printSx =
+            {|
+                padding = 3
+                ``@media print`` =
+                    {|
+                        padding = 1
+                    |}
+            |}
+
+        JSX.jsx
+            $"""
+        import Dialog from '@mui/material/Dialog';
+        import AppBar from '@mui/material/AppBar';
+        import Toolbar from '@mui/material/Toolbar';
+        import IconButton from '@mui/material/IconButton';
+        import Button from '@mui/material/Button';
+        import Typography from '@mui/material/Typography';
+        import Box from '@mui/material/Box';
+        import Table from '@mui/material/Table';
+        import TableBody from '@mui/material/TableBody';
+        import TableRow from '@mui/material/TableRow';
+        import TableCell from '@mui/material/TableCell';
+        import CloseIcon from '@mui/icons-material/Close';
+        import PrintIcon from '@mui/icons-material/Print';
+
+        <Dialog fullScreen open={{true}} onClose={fun _ -> props.onClose ()}>
+            <AppBar sx={appBarSx} position="static">
+                <Toolbar>
+                    <IconButton edge="start" color="inherit" onClick={fun _ -> props.onClose ()} aria-label="close">
+                        <CloseIcon />
+                    </IconButton>
+                    <Typography sx={ {| marginLeft=2; flex=1 |} } variant="h6" component="div">
+                        Parenterale Voeding
+                    </Typography>
+                    <Button color="inherit" onClick={handlePrint} startIcon={{ <PrintIcon /> }}>
+                        Print
+                    </Button>
+                </Toolbar>
+            </AppBar>
+            <Box sx={printSx}>
+                <Typography variant="subtitle1" sx={ {| fontWeight="bold"; backgroundColor="#f5f5f5"; padding="4px 8px"; borderRadius=1; marginBottom=2 |} }>
+                    INFUUS AFSPRAKEN CENTRAAL VENEUZE CATHETERS
+                </Typography>
+                <Table size="small" sx={ {| tableLayout="fixed"; width="100%"; marginBottom=3 |} }>
+                    <TableBody>
+                        <TableRow>
+                            <TableCell sx={headerCellSx}>D.D.</TableCell>
+                            <TableCell sx={valueCellSx}></TableCell>
+                            <TableCell sx={headerCellSx}>Patientnummer</TableCell>
+                            <TableCell sx={valueCellSx}></TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell sx={headerCellSx}>Afdeling</TableCell>
+                            <TableCell sx={valueCellSx}></TableCell>
+                            <TableCell sx={headerCellSx}>Naam</TableCell>
+                            <TableCell sx={valueCellSx}></TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell sx={headerCellSx}>Bed</TableCell>
+                            <TableCell sx={valueCellSx}></TableCell>
+                            <TableCell sx={headerCellSx}>Geboorte datum</TableCell>
+                            <TableCell sx={valueCellSx}></TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell sx={headerCellSx}>Arts</TableCell>
+                            <TableCell sx={valueCellSx}></TableCell>
+                            <TableCell sx={headerCellSx}>Gewicht</TableCell>
+                            <TableCell sx={valueCellSx}>{weightKg}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell sx={headerCellSx}>Zoemer</TableCell>
+                            <TableCell sx={valueCellSx}></TableCell>
+                            <TableCell sx={headerCellSx}></TableCell>
+                            <TableCell sx={valueCellSx}></TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+                {contextSections |> unbox |> React.fragment}
+                {totalsSection}
+                <Box sx={ {| marginTop=4; borderTop="1px solid #ccc"; paddingTop=2 |} }>
+                    <Typography variant="body2">Paraaf arts:</Typography>
+                </Box>
+            </Box>
+        </Dialog>
         """
 
 
@@ -1077,6 +1374,7 @@ module Nutrition =
 
         let confirmDeleteTarget, setConfirmDeleteTarget = React.useState<string option> None
         let enteralExpanded, setEnteralExpanded = React.useState true
+        let printOpen, setPrintOpen = React.useState false
 
         let makeSlot wrapInAccordion plan nc =
             let onRemove =
@@ -1208,16 +1506,25 @@ module Nutrition =
                             summaryId = None
                         |}
 
+                let printDisabled = parenteralContexts |> Array.isEmpty
+
                 JSX.jsx
                     $"""
                 import Stack from '@mui/material/Stack';
                 import Typography from '@mui/material/Typography';
                 import Divider from '@mui/material/Divider';
+                import IconButton from '@mui/material/IconButton';
+                import PrintIcon from '@mui/icons-material/Print';
 
                 <Stack direction="column" spacing={1}>
                     {enteralAccordion}
                     <Divider sx={ {| marginTop=2; marginBottom=2 |} } />
-                    <Typography variant="h6">Parenteraal</Typography>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                        <Typography variant="h6">Parenteraal</Typography>
+                        <IconButton size="small" disabled={printDisabled} onClick={fun _ -> setPrintOpen true}>
+                            <PrintIcon />
+                        </IconButton>
+                    </Stack>
                     {parenteralSlots |> unbox |> React.fragment}
                     <Stack direction="row" spacing={1}>
                         {
@@ -1263,6 +1570,12 @@ module Nutrition =
             </Dialog>
             """
 
+        let printDialog =
+            match printOpen, props.nutritionPlan with
+            | true, (Resolved plan | Recalculating plan) ->
+                ParenteralPrintView {| plan = plan; onClose = fun () -> setPrintOpen false |}
+            | _ -> null
+
         JSX.jsx
             $"""
         import React from "react";
@@ -1273,5 +1586,6 @@ module Nutrition =
             {content}
             {progress}
             {confirmDeleteDialog}
+            {printDialog}
         </Box>
         """
