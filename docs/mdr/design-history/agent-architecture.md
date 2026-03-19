@@ -190,7 +190,7 @@ type Response =
     | SolutionRules         of SolutionRule array
     | RenalRules            of RenalRule array
     | ResourceInfo          of Resources.ResourceInfo
-    | FilteredDoseRules     of Result<DoseRule array,      Message list>
+    | FilteredDoseRules     of DoseRule array                               // filter is pure — never fails
     | PrescriptionRules     of Result<PrescriptionRule array, Message list>
     | CacheReloaded
     | Error                 of string list
@@ -209,17 +209,25 @@ let create (logger: Logger) (dataUrlId: string) =
             | GetRenalRules          -> Response.RenalRules (state.GetRenalRules()), state
             | GetResourceInfo        -> Response.ResourceInfo (state.GetResourceInfo()), state
             | FilterDoseRules f      ->
+                // filterDoseRules is a pure projection — remove the spurious Ok wrapper
                 let res = Api.filterDoseRules state f (state.GetDoseRules())
-                Response.FilteredDoseRules (Ok res), state
+                Response.FilteredDoseRules res, state
             | FilterPrescriptionRules f ->
                 let res = Api.filterPrescriptionRules state f
                 Response.PrescriptionRules res, state
             | GetPrescriptionRules p ->
+                // getPrescriptionRules returns Result<_,_> — pass it through directly
                 let res = Api.getPrescriptionRules state p
-                Response.PrescriptionRules (Ok res), state
+                Response.PrescriptionRules res, state
             | ReloadCache ->
-                Api.reloadCache logger state
-                Response.CacheReloaded, state
+                // Wrap I/O in try/with so the reply channel is always answered
+                let response =
+                    try
+                        Api.reloadCache logger state
+                        Response.CacheReloaded
+                    with ex ->
+                        Response.Error [ ex.Message ]
+                response, state
     )
 ```
 
@@ -302,12 +310,16 @@ Each command sent to an agent is a discrete, serialisable event. Enabling an aud
 ```fsharp
 let auditedAgent innerAgent =
     Agent.createReply<Command, Response>(fun cmd ->
-        // Log the command
         writeInfoMessage $"[AUDIT] {cmd |> Command.toString}"
-        let response = innerAgent |> Agent.postAndReply cmd
-        // Optionally log the response
-        writeInfoMessage $"[AUDIT] response received"
-        response
+        // Wrap in try/with: if postAndReply throws (e.g. timeout), we still reply
+        // so the caller is never left blocked on an unanswered reply channel.
+        try
+            let response = innerAgent |> Agent.postAndReply cmd
+            writeInfoMessage $"[AUDIT] response received"
+            response
+        with ex ->
+            writeInfoMessage $"[AUDIT] error: {ex.Message}"
+            Response.Error [ ex.Message ]
     )
 ```
 
