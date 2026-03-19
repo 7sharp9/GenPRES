@@ -501,8 +501,8 @@ module Nutrition =
         let isOrderLoading = props.isRecalculating
         let isLoading = state.Order.IsNone && not props.isRecalculating
         let select = ViewHelpers.orderSelect true isOrderLoading
-        let filterSelect = ViewHelpers.simpleSelect isOrderLoading
-        let autoComplete = ViewHelpers.autoComplete isOrderLoading
+        let filterSelect = ViewHelpers.simpleSelect isOrderLoading isOrderLoading
+        let autoComplete = ViewHelpers.autoComplete isOrderLoading isOrderLoading
         let loadingIndicator = ViewHelpers.inlineProgress isOrderLoading
 
         // Use local state order when available, otherwise fall back to the
@@ -677,10 +677,10 @@ module Nutrition =
                 if isMobile then
                     items
                     |> Array.map (fun s -> s, s)
-                    |> filterSelect isOrderLoading lbl sel genericChange
+                    |> filterSelect lbl sel genericChange
                 else
                     items
-                    |> autoComplete isOrderLoading lbl sel genericChange
+                    |> autoComplete lbl sel genericChange
 
         let frequencyDoseRow =
             if isEnteral then
@@ -703,9 +703,15 @@ module Nutrition =
                     $"""
                 import Box from '@mui/material/Box';
                 <Box sx={flexSx}>
-                    <Box sx={itemSx}>
-                        {genericFilter}
-                    </Box>
+                    {if genericFilter = null then null
+                     else
+                        JSX.jsx
+                            $"""
+                        import Box from '@mui/material/Box';
+                        <Box sx={itemSx}>
+                            {genericFilter}
+                        </Box>
+                        """}
                     <Box sx={itemSx}>
                         {frequencyControl}
                     </Box>
@@ -864,10 +870,10 @@ module Nutrition =
                 if isMobile then
                     items
                     |> Array.map (fun s -> s, s)
-                    |> filterSelect isOrderLoading lbl sel indicationChange
+                    |> filterSelect lbl sel indicationChange
                 else
                     items
-                    |> autoComplete isOrderLoading lbl sel indicationChange
+                    |> autoComplete lbl sel indicationChange
 
         let doseTypeFilter =
             if ctx.Filter.Generic.IsNone || ctx.Filter.Indication.IsNone || ctx.Filter.DoseTypes |> Array.length <= 1 then null
@@ -878,7 +884,7 @@ module Nutrition =
 
                 items
                 |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
-                |> filterSelect isOrderLoading lbl sel doseTypeChange
+                |> filterSelect lbl sel doseTypeChange
 
         let filterSx = {| marginBottom = 2 |}
         let filterControls =
