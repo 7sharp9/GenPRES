@@ -309,6 +309,26 @@ module Nutrition =
     let private cellSx = {| minWidth = 350; ``& .MuiFormControl-root`` = {| width = "100%" |} |}
 
 
+    let private renderAdminSummary (key: string) (name: string) (blocks: TextBlock []) =
+        JSX.jsx
+            $"""
+        import Box from '@mui/material/Box';
+        import Typography from '@mui/material/Typography';
+
+        <Box key={key} display="inline" sx={ {| marginLeft=1 |} }>
+            <Typography display="inline" variant="body2" color="text.secondary">
+                {name}:
+            </Typography>
+            {
+                blocks
+                |> Array.map Mui.TypoGraphy.fromTextBlock
+                |> unbox
+                |> React.fragment
+            }
+        </Box>
+        """
+
+
     [<JSX.Component>]
     let private NutritionSlot (props: {|
         nutritionContext: NutritionContext
@@ -932,15 +952,29 @@ module Nutrition =
 
         if props.wrapInAccordion then
             let summary =
+                let adminSummary =
+                    match ctx.Scenarios with
+                    | [| sc |] when sc.Administration |> Array.isEmpty |> not ->
+                        let blocks =
+                            sc.Administration
+                            |> TextBlock.flatten
+                            |> Array.collect id
+                        renderAdminSummary (string props.nutritionContext.Id) sc.Order.Orderable.Name blocks
+                    | _ -> null
+
                 JSX.jsx
                     $"""
                 import React from 'react';
                 import Typography from '@mui/material/Typography';
+                import Box from '@mui/material/Box';
 
-                <React.Fragment>
+                <Box sx={ {| display="flex"; alignItems="center"; width="100%"; overflow="hidden" |} }>
                     <Typography>{props.nutritionContext.Label}</Typography>
-                    {removeButton}
-                </React.Fragment>
+                    {adminSummary}
+                    <Box sx={ {| marginLeft="auto" |} }>
+                        {removeButton}
+                    </Box>
+                </Box>
                 """
 
             let children =
@@ -1126,10 +1160,29 @@ module Nutrition =
 
                 let enteralAccordion =
                     let summary =
+                        let adminSummaries =
+                            enteralContexts
+                            |> Array.choose (fun nc ->
+                                match nc.OrderContext.Scenarios with
+                                | [| sc |] when sc.Administration |> Array.isEmpty |> not ->
+                                    let blocks =
+                                        sc.Administration
+                                        |> TextBlock.flatten
+                                        |> Array.collect id
+                                    renderAdminSummary (string nc.Id) sc.Order.Orderable.Name blocks
+                                    |> Some
+                                | _ -> None
+                            )
+
                         JSX.jsx
                             $"""
                         import Typography from '@mui/material/Typography';
-                        <Typography>Enterale Voeding</Typography>
+                        import Box from '@mui/material/Box';
+
+                        <Box sx={ {| display="flex"; alignItems="center"; width="100%"; overflow="hidden" |} }>
+                            <Typography>Enterale Voeding</Typography>
+                            {adminSummaries |> unbox |> React.fragment}
+                        </Box>
                         """
 
                     let children =
