@@ -501,7 +501,7 @@ module Nutrition =
         let isOrderLoading = props.isRecalculating
         let isLoading = state.Order.IsNone && not props.isRecalculating
         let select = ViewHelpers.orderSelect true isOrderLoading
-        let filterSelect = ViewHelpers.simpleSelect isOrderLoading isOrderLoading
+        let filterSelect = ViewHelpers.filterSelect isOrderLoading isOrderLoading
         let autoComplete = ViewHelpers.autoComplete isOrderLoading isOrderLoading
         let loadingIndicator = ViewHelpers.inlineProgress isOrderLoading
 
@@ -671,14 +671,15 @@ module Nutrition =
             let sel = ctx.Filter.Generic
             let items = ctx.Filter.Generics
             let lbl = "Samenstelling"
+            let onChange = genericChange
 
             if isMobile then
                 items
                 |> Array.map (fun s -> s, s)
-                |> filterSelect lbl sel genericChange
+                |> filterSelect lbl sel onChange
             else
                 items
-                |> autoComplete lbl sel genericChange
+                |> autoComplete lbl sel onChange
 
         let frequencyDoseRow =
             if isEnteral then

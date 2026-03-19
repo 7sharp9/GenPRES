@@ -118,7 +118,7 @@ module Prescribe =
         let isSourceLoading source =
             isAnythingLoading && loadingSource = Some source
 
-        let select = ViewHelpers.simpleSelect isAnythingLoading
+        let select = ViewHelpers.filterSelect isAnythingLoading
 
         let multiSelect isLoading lbl selected dispatch xs =
             Components.MultipleSelect.View({|
