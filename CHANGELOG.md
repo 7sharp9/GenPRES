@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Scripts (NKF)**: Add `NKFTestAnalysis.fsx` — W3 test coverage analysis for NKF library
+- **Scripts (ZForm)**: Add `ZFormTestMigration.fsx` — analysis script for ZForm test migration
+- **Scripts**: Add `TestMigrationStatus.fsx` — W3 test migration status across all libraries
+
 ---
 
 ## [0.1.1-alpha] - 2026-03-16
