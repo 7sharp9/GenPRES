@@ -334,9 +334,6 @@ module Nutrition =
         let fixPrecision = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision
 
         let getWarning = ViewHelpers.getWarning
-        let select = ViewHelpers.orderSelect false
-        let filterSelect = ViewHelpers.simpleSelect false
-        let autoComplete = ViewHelpers.autoComplete false
 
         let genericChange s =
             ctx
@@ -503,7 +500,9 @@ module Nutrition =
 
         let isOrderLoading = props.isRecalculating
         let isLoading = state.Order.IsNone && not props.isRecalculating
-        let select = ViewHelpers.orderSelect isOrderLoading
+        let select = ViewHelpers.orderSelect true isOrderLoading
+        let filterSelect = ViewHelpers.simpleSelect isOrderLoading isOrderLoading
+        let autoComplete = ViewHelpers.autoComplete isOrderLoading isOrderLoading
         let loadingIndicator = ViewHelpers.inlineProgress isOrderLoading
 
         // Use local state order when available, otherwise fall back to the
@@ -668,6 +667,21 @@ module Nutrition =
             | _ ->
                 null
 
+        let genericFilter =
+            if ctx.Filter.Generics |> Array.isEmpty then null
+            else
+                let sel = ctx.Filter.Generic
+                let items = ctx.Filter.Generics
+                let lbl = "Samenstelling"
+
+                if isMobile then
+                    items
+                    |> Array.map (fun s -> s, s)
+                    |> filterSelect lbl sel genericChange
+                else
+                    items
+                    |> autoComplete lbl sel genericChange
+
         let frequencyDoseRow =
             if isEnteral then
                 let flexSx =
@@ -683,11 +697,21 @@ module Nutrition =
                         flex = "1 1 0%"
                         minWidth = 200
                         ``& .MuiFormControl-root`` = {| width = "100%" |}
+                        ``& .MuiAutocomplete-root`` = {| minWidth = "unset" |}
                     |}
                 JSX.jsx
                     $"""
                 import Box from '@mui/material/Box';
                 <Box sx={flexSx}>
+                    {if genericFilter = null then null
+                     else
+                        JSX.jsx
+                            $"""
+                        import Box from '@mui/material/Box';
+                        <Box sx={itemSx}>
+                            {genericFilter}
+                        </Box>
+                        """}
                     <Box sx={itemSx}>
                         {frequencyControl}
                     </Box>
@@ -821,7 +845,7 @@ module Nutrition =
             import Button from '@mui/material/Button';
             <Stack direction={"column"} spacing={1} >
                 {preparationSection}
-                {administrationDivider}
+                {if isEnteral then null else administrationDivider}
                 {frequencyDoseRow}
                 {rateControl}
                 {loadingIndicator}
@@ -836,21 +860,6 @@ module Nutrition =
             </Stack>
             """
 
-        let genericFilter =
-            if ctx.Filter.Generics |> Array.isEmpty then null
-            else
-                let sel = ctx.Filter.Generic
-                let items = ctx.Filter.Generics
-                let lbl = "Samenstelling"
-
-                if isMobile then
-                    items
-                    |> Array.map (fun s -> s, s)
-                    |> filterSelect isOrderLoading lbl sel genericChange
-                else
-                    items
-                    |> autoComplete isOrderLoading lbl sel genericChange
-
         let indicationFilter =
             if ctx.Filter.Generic.IsNone || ctx.Filter.Indications |> Array.length <= 1 then null
             else
@@ -861,10 +870,10 @@ module Nutrition =
                 if isMobile then
                     items
                     |> Array.map (fun s -> s, s)
-                    |> filterSelect isOrderLoading lbl sel indicationChange
+                    |> filterSelect lbl sel indicationChange
                 else
                     items
-                    |> autoComplete isOrderLoading lbl sel indicationChange
+                    |> autoComplete lbl sel indicationChange
 
         let doseTypeFilter =
             if ctx.Filter.Generic.IsNone || ctx.Filter.Indication.IsNone || ctx.Filter.DoseTypes |> Array.length <= 1 then null
@@ -875,7 +884,7 @@ module Nutrition =
 
                 items
                 |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
-                |> filterSelect isOrderLoading lbl sel doseTypeChange
+                |> filterSelect lbl sel doseTypeChange
 
         let filterSx = {| marginBottom = 2 |}
         let filterControls =
@@ -883,7 +892,7 @@ module Nutrition =
                 $"""
             import Stack from '@mui/material/Stack';
             <Stack direction="column" spacing={2} sx={filterSx}>
-                {genericFilter}
+                {if isEnteral && displayOrder.IsSome then null else genericFilter}
                 {indicationFilter}
                 {doseTypeFilter}
             </Stack>
@@ -891,7 +900,7 @@ module Nutrition =
 
         let orderDetails =
             if displayOrder.IsSome then details
-            else null
+            else loadingIndicator
 
         let expanded, setExpanded = React.useState true
 
@@ -1040,6 +1049,7 @@ module Nutrition =
             | _ -> false
 
         let confirmDeleteTarget, setConfirmDeleteTarget = React.useState<string option> None
+        let enteralExpanded, setEnteralExpanded = React.useState true
 
         let makeSlot wrapInAccordion plan nc =
             let onRemove =
@@ -1071,19 +1081,16 @@ module Nutrition =
         let hasCategory plan cat =
             plan.NutritionContexts |> Array.exists (fun nc -> nc.Category = cat)
 
-        let suppExpanded, setSuppExpanded = React.useState true
-
         let content =
             match props.nutritionPlan with
             | Resolved plan
             | Recalculating plan ->
-                let enteralFeedingContexts =
+                let enteralContexts =
                     plan.NutritionContexts
-                    |> Array.filter (fun nc -> nc.Category = NutritionCategory.EnteralFeeding)
-
-                let enteralSupplementContexts =
-                    plan.NutritionContexts
-                    |> Array.filter (fun nc -> nc.Category = NutritionCategory.EnteralSupplement)
+                    |> Array.filter (fun nc ->
+                        nc.Category = NutritionCategory.EnteralFeeding
+                        || nc.Category = NutritionCategory.EnteralSupplement
+                    )
 
                 let parenteralContexts =
                     plan.NutritionContexts
@@ -1093,12 +1100,8 @@ module Nutrition =
                         nc.Category = NutritionCategory.ElectrolyteGlucose
                     )
 
-                let enteralFeedingSlots =
-                    enteralFeedingContexts
-                    |> Array.map (makeSlot true plan)
-
-                let enteralSupplementSlots =
-                    enteralSupplementContexts
+                let enteralSlots =
+                    enteralContexts
                     |> Array.map (makeSlot false plan)
 
                 let parenteralSlots =
@@ -1119,38 +1122,6 @@ module Nutrition =
                         AddButton {| label = "Supplement toevoegen"; onClick = fun () -> addContext plan NutritionCategory.EnteralSupplement |}
                     else null
 
-                let supplementsAccordion =
-                    if not hasEnteral then null
-                    else
-                        let summary =
-                            JSX.jsx
-                                $"""
-                            import Typography from '@mui/material/Typography';
-                            <Typography>Enterale Supplementen</Typography>
-                            """
-
-                        let children =
-                            JSX.jsx
-                                $"""
-                            import Stack from '@mui/material/Stack';
-                            <Stack direction="column" spacing={2}>
-                                {enteralSupplementSlots |> unbox |> React.fragment}
-                                {supplementAddButton}
-                            </Stack>
-                            """
-
-                        Components.Accordion.View
-                            {|
-                                expanded = suppExpanded
-                                onChange = fun () -> setSuppExpanded (not suppExpanded)
-                                summary = summary
-                                children = children
-                                isMobile = isMobile
-                                detailsPaddingTop = if isMobile then None else Some 4
-                                ariaControls = None
-                                summaryId = None
-                            |}
-
                 let parenteralAddButtons =
                     [|
                         if not hasTPN then
@@ -1160,6 +1131,37 @@ module Nutrition =
                         AddButton {| label = "Elektrolyten/Glucose"; onClick = fun () -> addContext plan NutritionCategory.ElectrolyteGlucose |}
                     |]
 
+                let enteralAccordion =
+                    let summary =
+                        JSX.jsx
+                            $"""
+                        import Typography from '@mui/material/Typography';
+                        <Typography>Enterale Voeding</Typography>
+                        """
+
+                    let children =
+                        JSX.jsx
+                            $"""
+                        import Stack from '@mui/material/Stack';
+                        <Stack direction="column" spacing={{2}}>
+                            {enteralSlots |> unbox |> React.fragment}
+                            {enteralFeedingAddButton}
+                            {supplementAddButton}
+                        </Stack>
+                        """
+
+                    Components.Accordion.View
+                        {|
+                            expanded = enteralExpanded
+                            onChange = fun () -> setEnteralExpanded (not enteralExpanded)
+                            summary = summary
+                            children = children
+                            isMobile = isMobile
+                            detailsPaddingTop = if isMobile then None else Some 4
+                            ariaControls = None
+                            summaryId = None
+                        |}
+
                 JSX.jsx
                     $"""
                 import Stack from '@mui/material/Stack';
@@ -1167,21 +1169,10 @@ module Nutrition =
                 import Divider from '@mui/material/Divider';
 
                 <Stack direction="column" spacing={1}>
-                    <Typography variant="h6">Enterale Voeding</Typography>
-                    {
-                        enteralFeedingSlots
-                        |> unbox
-                        |> React.fragment
-                    }
-                    {enteralFeedingAddButton}
-                    {supplementsAccordion}
+                    {enteralAccordion}
                     <Divider sx={ {| marginTop=2; marginBottom=2 |} } />
                     <Typography variant="h6">Parenteraal</Typography>
-                    {
-                        parenteralSlots
-                        |> unbox
-                        |> React.fragment
-                    }
+                    {parenteralSlots |> unbox |> React.fragment}
                     <Stack direction="row" spacing={1}>
                         {
                             parenteralAddButtons

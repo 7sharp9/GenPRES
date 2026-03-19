@@ -33,6 +33,7 @@ module ViewHelpers =
 
 
     let orderSelect
+        alwaysShow
         disabled
         isLoading
         lbl
@@ -44,7 +45,7 @@ module ViewHelpers =
         minWidth
         xs =
 
-        if xs |> Array.isEmpty && navigate |> Option.isNone then
+        if not alwaysShow && xs |> Array.isEmpty && navigate |> Option.isNone then
             null
         else
             Components.SimpleSelect.View({|
