@@ -92,12 +92,12 @@ module SimpleSelect =
             |> Option.map (fun nav ->
                 let getNav prop =
                     match prop with
-                    | Some onClick -> false, onClick
+                    | Some onClick -> props.disabled, onClick
                     | None -> true, fun () -> ()
 
                 let getNavN prop =
                     match prop with
-                    | Some onClick -> false, onClick
+                    | Some onClick -> props.disabled, onClick
                     | None -> true, fun (_: int) -> ()
 
                 let firstDisabled, firstClick = nav.first |> getNavN
