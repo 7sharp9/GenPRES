@@ -1643,6 +1643,26 @@ module Models =
                     |> Option.defaultValue false
 
 
+            let displayString (ovar: OrderVariable) =
+                ovar.Variable.Vals
+                |> Option.bind (fun v ->
+                    v.Value
+                    |> Array.tryHead
+                    |> Option.map (fun (_, d) -> string d + " " + v.Unit)
+                )
+                |> Option.defaultValue ""
+
+
+            let displayStringFormatted (format: decimal -> string) (ovar: OrderVariable) =
+                ovar.Variable.Vals
+                |> Option.bind (fun v ->
+                    v.Value
+                    |> Array.tryHead
+                    |> Option.map (fun (_, d) -> (d |> format) + " " + v.Unit)
+                )
+                |> Option.defaultValue ""
+
+
             let (|NonNavigable|Navigable|Selectable|Stepable|) (ovar: OrderVariable) =
                 let var = ovar.Variable
                 let def = ovar.DefinedConstraints
