@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GenSOLVER**: Baseline benchmark script for solver performance measurement
 - **GenForm**: `LocalProducts.fsx` prototype for type-safe local product support (implementation exploration)
 - **Scripts**: `CoverageAnalysis.fsx` for W3 test coverage analysis — scans all 18 source libraries and generates a coverage matrix
+- **Scripts**: `TestMigrationStatus.fsx` for W3 test migration overview — lists which libraries have script tests ready to move to CI
+- **Scripts**: `ZFormTestMigration.fsx` for W3 ZForm test migration — categorises all 15 ZForm script tests as pure or data-dependent
+- **Scripts**: `NKFTestAnalysis.fsx` for W3 NKF test coverage — catalogues 14 pure testable functions and prints ready-to-use Expecto test cases
+- **Scripts**: `GenOrderTestScaffolding.fsx` for W3 GenORDER test scaffolding — identifies coverage gaps and provides concrete test scaffolding for Patient, Medication, and OrderVariable modules
 - **Server/GenForm**: Improve error handling when resources (Google Sheets / CSV) cannot be loaded
 
 ### Changed
