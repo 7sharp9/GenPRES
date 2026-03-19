@@ -9,22 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **GenSOLVER**: `Profile.fsx` benchmarking script for W2 core architecture review — profiles 5 scenarios including value-set scaling
-- **GenSOLVER**: Baseline benchmark script for solver performance measurement
-- **GenForm**: `LocalProducts.fsx` prototype for type-safe local product support (implementation exploration)
-- **Scripts**: `CoverageAnalysis.fsx` for W3 test coverage analysis — scans all 18 source libraries and generates a coverage matrix
-- **Server/GenForm**: Improve error handling when resources (Google Sheets / CSV) cannot be loaded
-
-### Changed
-
-- **Docs**: Improve user guides and add examples table with URLs
-- **Docs**: Fix Markdown linter problems in documentation files
-
-### Fixed
-
-- **Client**: Remove duplicate `isLoading` logic; clear error banner when server recovers
-- **Tests**: Add tests for resource load failure scenarios
-- **Tests**: Fix ZIndex test failures
+- **Scripts (NKF)**: Add `NKFTestAnalysis.fsx` — W3 test coverage analysis for NKF library
+- **Scripts (ZForm)**: Add `ZFormTestMigration.fsx` — analysis script for ZForm test migration
+- **Scripts**: Add `TestMigrationStatus.fsx` — W3 test migration status across all libraries
 
 ---
 
