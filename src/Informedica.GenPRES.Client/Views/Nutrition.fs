@@ -668,19 +668,17 @@ module Nutrition =
                 null
 
         let genericFilter =
-            if ctx.Filter.Generics |> Array.isEmpty then null
-            else
-                let sel = ctx.Filter.Generic
-                let items = ctx.Filter.Generics
-                let lbl = "Samenstelling"
+            let sel = ctx.Filter.Generic
+            let items = ctx.Filter.Generics
+            let lbl = "Samenstelling"
 
-                if isMobile then
-                    items
-                    |> Array.map (fun s -> s, s)
-                    |> filterSelect lbl sel genericChange
-                else
-                    items
-                    |> autoComplete lbl sel genericChange
+            if isMobile then
+                items
+                |> Array.map (fun s -> s, s)
+                |> filterSelect lbl sel genericChange
+            else
+                items
+                |> autoComplete lbl sel genericChange
 
         let frequencyDoseRow =
             if isEnteral then
@@ -703,15 +701,9 @@ module Nutrition =
                     $"""
                 import Box from '@mui/material/Box';
                 <Box sx={flexSx}>
-                    {if genericFilter = null then null
-                     else
-                        JSX.jsx
-                            $"""
-                        import Box from '@mui/material/Box';
-                        <Box sx={itemSx}>
-                            {genericFilter}
-                        </Box>
-                        """}
+                    <Box sx={itemSx}>
+                        {genericFilter}
+                    </Box>                        
                     <Box sx={itemSx}>
                         {frequencyControl}
                     </Box>
