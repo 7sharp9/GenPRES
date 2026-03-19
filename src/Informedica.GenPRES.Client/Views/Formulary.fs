@@ -199,7 +199,7 @@ module Formulary =
                 |]
             )
 
-        let select = ViewHelpers.simpleSelect false
+        let select = ViewHelpers.filterSelect false
         let autoComplete = ViewHelpers.autoComplete false
 
 

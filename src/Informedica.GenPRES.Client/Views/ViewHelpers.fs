@@ -9,14 +9,15 @@ module ViewHelpers =
     open Shared.Models.Order
 
 
-    let simpleSelect disabled isLoading lbl selected dispatch xs =
+    let filterSelect disabled isLoading lbl selected dispatch xs =
+        let isEmpty = xs |> Array.isEmpty
         Components.SimpleSelect.View({|
-            updateSelected = dispatch
+            updateSelected = if isEmpty then ignore else dispatch
             label = lbl
             selected = selected
             values = xs
             isLoading = isLoading
-            disabled = disabled
+            disabled = disabled || isEmpty
             hasClear = true
             navigate = None
             warning = None
@@ -48,15 +49,16 @@ module ViewHelpers =
         if not alwaysShow && xs |> Array.isEmpty && navigate |> Option.isNone then
             null
         else
+            let isEmpty = xs |> Array.isEmpty && navigate |> Option.isNone
             Components.SimpleSelect.View({|
-                updateSelected = updateSelected
+                updateSelected = if isEmpty then ignore else updateSelected
                 label = lbl
                 selected =
                     if xs |> Array.length = 1 then xs[0] |> fst |> Some
                     else selected
                 values = xs
                 isLoading = isLoading
-                disabled = disabled
+                disabled = disabled || isEmpty
                 hasClear = hasClear
                 warning = warning
                 navigate = navigate
@@ -127,13 +129,14 @@ module ViewHelpers =
 
 
     let autoComplete disabled isLoading lbl selected dispatch xs =
+        let isEmpty = xs |> Array.isEmpty
         Components.Autocomplete.View({|
-            updateSelected = dispatch
+            updateSelected = if isEmpty then ignore else dispatch
             label = lbl
             selected = selected
             values = xs
             isLoading = isLoading
-            disabled = disabled
+            disabled = disabled || isEmpty
         |})
 
 
