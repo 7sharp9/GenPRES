@@ -1011,6 +1011,25 @@ module Medication =
         (solutionRule: SolutionRule option)
         (limits : ComponentLimit []) =
 
+        let filterByUnitGroup (context: string) (vus: ValueUnit[]) =
+            if vus.Length <= 1 then vus
+            else
+                let grouped =
+                    vus
+                    |> Array.groupBy (ValueUnit.getGroup)
+
+                if grouped.Length <= 1 then vus
+                else
+                    let _, kept =
+                        grouped |> Array.maxBy (snd >> Array.length)
+
+                    let filtered = vus.Length - kept.Length
+
+                    writeWarningMessage
+                        $"{context}: filtered {filtered} value(s) with incompatible unit group"
+
+                    kept
+
         limits
         |> Array.map (fun lim ->
             let shape =
@@ -1033,6 +1052,7 @@ module Medication =
                     let qts =
                         lim.Products
                         |> Array.map _.FormQuantities
+                        |> filterByUnitGroup $"Component '{lim.Name}' FormQuantities"
                         |> ValueUnit.collect
 
                     let isVol =
@@ -1086,6 +1106,7 @@ module Medication =
                                         | Some c, q -> c * q |> Some
                                         | _ -> None
                                     )
+                                    |> filterByUnitGroup $"Component '{lim.Name}' Substance '{n}' Quantities"
                                     |> ValueUnit.collect
                             Concentrations =
                                 match dl with
@@ -1093,11 +1114,13 @@ module Medication =
                                     xs
                                     |> Array.choose (fst >> _.MolarConcentration)
                                     |> Array.distinct
+                                    |> filterByUnitGroup $"Component '{lim.Name}' Substance '{n}' MolarConcentrations"
                                     |> ValueUnit.collect
                                 | _ ->
                                     xs
                                     |> Array.choose (fst >> _.Concentration)
                                     |> Array.distinct
+                                    |> filterByUnitGroup $"Component '{lim.Name}' Substance '{n}' Concentrations"
                                     |> ValueUnit.collect
                             Dose = dl
                             Solution = None
