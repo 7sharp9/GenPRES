@@ -1020,9 +1020,17 @@ module Medication =
 
                 if grouped.Length <= 1 then vus
                 else
-                    let _, kept =
-                        grouped |> Array.maxBy (snd >> Array.length)
+                    let maxLen =
+                        grouped |> Array.map (snd >> Array.length) |> Array.max
 
+                    let winners =
+                        grouped |> Array.filter (fun (_, xs) -> xs.Length = maxLen)
+
+                    if winners.Length > 1 then
+                        writeWarningMessage
+                            $"{context}: tie between {winners.Length} unit groups of equal size, picking first"
+
+                    let _, kept = winners[0]
                     let filtered = vus.Length - kept.Length
 
                     writeWarningMessage
