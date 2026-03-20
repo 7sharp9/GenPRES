@@ -149,23 +149,35 @@ let processCommand (state: GenOrderState) (cmd: GenOrderCommand) : GenOrderRespo
             GenOrderResponse.OrderContextResult (Ok ctx)
 
         | GenOrderCommand.GetIndications ctx ->
-            let indications = Filters.getIndications state.Logger state.Provider ctx
+            let indications = Filters.getIndications state.Logger state.Provider ctx.Patient
             GenOrderResponse.StringArray indications
 
         | GenOrderCommand.GetGenerics ctx ->
-            let generics = Filters.getGenerics state.Logger state.Provider ctx
+            let generics = Filters.getGenerics state.Logger state.Provider ctx.Patient
             GenOrderResponse.StringArray generics
 
         | GenOrderCommand.GetRoutes ctx ->
-            let routes = Filters.getRoutes state.Logger state.Provider ctx
+            let routes = Filters.getRoutes state.Logger state.Provider ctx.Patient
             GenOrderResponse.StringArray routes
 
         | GenOrderCommand.GetForms ctx ->
-            let forms = Filters.getForms state.Logger state.Provider ctx
+            let forms = Filters.getForms state.Logger state.Provider ctx.Patient
             GenOrderResponse.StringArray forms
 
         | GenOrderCommand.GetDiluents ctx ->
-            let diluents = Filters.filterDiluents state.Logger state.Provider ctx.Filter
+            // filterDiluents expects a GenFORM DoseFilter, construct one from the OrderContext
+            let doseFilter : Informedica.GenForm.Lib.Types.DoseFilter =
+                {
+                    Indication = ctx.Filter.Indication
+                    Generic = ctx.Filter.Generic
+                    Route = ctx.Filter.Route
+                    Form = ctx.Filter.Form
+                    DoseType = ctx.Filter.DoseType
+                    Diluent = ctx.Filter.Diluent
+                    Components = ctx.Filter.SelectedComponents |> Array.toList
+                    Patient = ctx.Patient
+                }
+            let diluents = Filters.filterDiluents state.Logger state.Provider doseFilter
             GenOrderResponse.StringArray diluents
 
     response, state   // state (logger + provider) is always unchanged
@@ -193,9 +205,9 @@ let createGenOrderAgent (logger: Logger) (provider: IResourceProvider) =
 
 let withAuditLog (logger: Logger) (inner: Agent<GenOrderCommand * AsyncReplyChannel<GenOrderResponse>>) =
     Agent.createReply<GenOrderCommand, GenOrderResponse>(fun cmd ->
-        Logging.logInfo logger $"[AUDIT] GenOrder ← {cmd}"
+        Informedica.Logging.Lib.Logging.logInfo logger $"[AUDIT] GenOrder ← {cmd}"
         let response = inner |> Agent.postAndReply cmd
-        Logging.logInfo logger $"[AUDIT] GenOrder → {response}"
+        Informedica.Logging.Lib.Logging.logInfo logger $"[AUDIT] GenOrder → {response}"
         response
     )
 
@@ -253,7 +265,8 @@ match audited |> ask (GenOrderCommand.CreateOrderContext testPatient) with
     printfn "\n2. Get routes available for this patient:"
     match audited |> ask (GenOrderCommand.GetRoutes ctx) with
     | GenOrderResponse.StringArray routes ->
-        printfn $"   Routes: {routes |> String.concat \", \"}"
+        let routeStr = routes |> String.concat ", "
+        printfn $"   Routes: {routeStr}"
     | GenOrderResponse.Error msgs ->
         msgs |> List.iter (eprintfn "   Error: %s")
     | other ->

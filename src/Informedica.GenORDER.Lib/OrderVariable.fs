@@ -68,7 +68,16 @@ module ValueUnit =
             let u = vu |> getUnit
 
             if vus |> Array.forall (getUnit >> Units.eqsUnit u) |> not then
-                failwith "Cannot collect the ValueUnit array to a single ValueUnit" |> failwith
+                let details =
+                    vus
+                    |> Array.map (fun vu ->
+                        let v = vu |> getValue |> Array.map string |> String.concat ","
+                        let u = vu |> getUnit |> unitToString
+                        $"{v} {u}"
+                    )
+                    |> Array.distinct
+                    |> String.concat "; "
+                failwith $"Cannot collect the ValueUnit array to a single ValueUnit, values: [{details}]"
 
             vus
             |> Array.collect (toBase >> getValue)
