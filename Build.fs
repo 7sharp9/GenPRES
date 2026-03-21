@@ -117,13 +117,14 @@ Target.create
         |> CreateProcess.redirectOutputIfNotRedirected
         |> CreateProcess.withOutputEventsNotNull parseLine (eprintfn "%s")
         |> Proc.run
-        |> ignore
-
-        printfn ""
-        printfn "====================================================================="
-        printfn "Test Summary: %d passed, %d failed, %d skipped, %d total"
-            totalPassed.Value totalFailed.Value totalSkipped.Value totalTests.Value
-        printfn "====================================================================="
+        |> fun result ->
+            printfn ""
+            printfn "====================================================================="
+            printfn "Test Summary: %d passed, %d failed, %d skipped, %d total"
+                totalPassed.Value totalFailed.Value totalSkipped.Value totalTests.Value
+            printfn "====================================================================="
+            if result.ExitCode <> 0 then
+                failwithf "Tests failed with exit code %d" result.ExitCode
     )
 
 

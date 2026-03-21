@@ -50,13 +50,20 @@ open Informedica.ZForm.Lib
 module ValueUnit = Informedica.GenUnits.Lib.ValueUnit
 
 
+/// Remove whitespace inside numbers (e.g. "1 000" -> "1000")
+/// so tests don't depend on thousands-separator formatting.
+let private normalizeNumbers (s: string) =
+    System.Text.RegularExpressions.Regex.Replace(s, @"(\d)\s+(\d)", "$1$2")
+
 /// Check that a string contains all expected substrings.
-/// This makes tests resilient to formatting changes
-/// (e.g. "van"/"tot" prefixes, "(incl)" markers, number spacing).
+/// Both actual and expected are normalized to remove number
+/// formatting differences before comparison.
 let shouldContainAll msg (expected: string list) (actual: string) =
+    let actual' = normalizeNumbers actual
     for sub in expected do
-        actual
-        |> Expect.stringContains $"{msg}: should contain '{sub}'" sub
+        let sub' = normalizeNumbers sub
+        actual'
+        |> Expect.stringContains $"{msg}: should contain '{sub}'" sub'
 
 let vuFromStr v u =
     ValueUnit.unitFromZIndexString u
@@ -161,7 +168,7 @@ module PatientTests =
                 |> function
                     | None -> "false"
                     | Some p -> p |> toString
-                |> Expect.equal "should be 'Leeftijd: van 1 mnd'" "Leeftijd: van 1 maand"
+                |> Expect.equal "should be 'Leeftijd: van 1 maand'" "Leeftijd: van 1 maand"
             }
 
             test "a patient with a min age wrong unit" {
@@ -302,7 +309,7 @@ module DoseRangeTests =
                 |> setMaxNormPerKgDose (vuFromStr 1N "milligram")
                 |> DoseRange.convertTo (ValueUnit.Units.mcg)
                 |> DoseRange.toString (Some ValueUnit.Units.hour)
-                |> shouldContainAll "dose range rate per kg" [ "1 microg/kg/uur"; "microg/kg/uur" ]
+                |> shouldContainAll "dose range rate per kg" [ "1 microg/kg/uur"; "1000 microg/kg/uur" ]
             }
 
             test "can covert a unit" {
@@ -311,7 +318,7 @@ module DoseRangeTests =
                 |> setMinNormDose (vuFromStr (1N / 1_000N) "milligram")
                 |> DoseRange.convertTo (ValueUnit.Units.mcg)
                 |> drToStr
-                |> shouldContainAll "unit conversion" [ "microg"; "1 microg" ]
+                |> shouldContainAll "unit conversion" [ "1 microg"; "1000 microg" ]
             }
         ]
 
