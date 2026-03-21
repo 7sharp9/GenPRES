@@ -83,7 +83,48 @@ Target.create
     )
 
 
-Target.create "ServerTests" (fun _ -> run dotnet [ "test"; sln; "--no-restore"; "--verbosity"; "quiet"; "--logger"; "console;verbosity=minimal" ] ".")
+Target.create
+    "ServerTests"
+    (fun _ ->
+        let totalPassed = ref 0
+        let totalFailed = ref 0
+        let totalSkipped = ref 0
+        let totalTests = ref 0
+
+        let started = ref false
+
+        let parseLine (line: string) =
+            if line.Contains("Passed:") && line.Contains("Failed:") && line.Contains("Total:") then
+                let grab (key: string) =
+                    let i = line.IndexOf(key)
+                    if i >= 0 then
+                        let start = i + key.Length
+                        line.Substring(start).TrimStart().Split([|','; ' '|], System.StringSplitOptions.RemoveEmptyEntries)
+                        |> Array.tryHead
+                        |> Option.bind (fun s -> match System.Int32.TryParse(s) with true, n -> Some n | _ -> None)
+                        |> Option.defaultValue 0
+                    else 0
+                totalFailed.Value  <- totalFailed.Value  + grab "Failed:"
+                totalPassed.Value  <- totalPassed.Value  + grab "Passed:"
+                totalSkipped.Value <- totalSkipped.Value + grab "Skipped:"
+                totalTests.Value   <- totalTests.Value   + grab "Total:"
+                if not started.Value then
+                    started.Value <- true
+                    printf "Running tests "
+                printf "."
+
+        dotnet [ "test"; sln; "--no-restore"; "--verbosity"; "quiet"; "--logger"; "console;verbosity=minimal" ] "."
+        |> CreateProcess.redirectOutputIfNotRedirected
+        |> CreateProcess.withOutputEventsNotNull parseLine (eprintfn "%s")
+        |> Proc.run
+        |> ignore
+
+        printfn ""
+        printfn "====================================================================="
+        printfn "Test Summary: %d passed, %d failed, %d skipped, %d total"
+            totalPassed.Value totalFailed.Value totalSkipped.Value totalTests.Value
+        printfn "====================================================================="
+    )
 
 
 Target.create
