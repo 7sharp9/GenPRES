@@ -4,7 +4,7 @@ namespace Views
 
 module Nutrition =
 
-
+    open System
     open Fable.Core
     open Fable.React
     open Feliz
@@ -342,7 +342,7 @@ module Nutrition =
 
         let weightKg =
             patient
-            |> Shared.Models.Patient.getWeightInKg
+            |> Patient.getWeightInKg
             |> Option.map (fun w ->
                 let s = decimal w |> Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 1
                 s + " kg"
@@ -399,7 +399,7 @@ module Nutrition =
 
                             <TableRow key={cmp.Name}>
                                 <TableCell colSpan={2}>{cmp.Name}</TableCell>
-                                <TableCell align="right">{cmpQty}</TableCell>
+                                <TableCell align="right"><strong>{cmpQty}</strong></TableCell>
                                 <TableCell align="right">{doseAdj}</TableCell>
                             </TableRow>
                             """
@@ -417,7 +417,7 @@ module Nutrition =
                             import Typography from '@mui/material/Typography';
                             import Box from '@mui/material/Box';
 
-                            <Box sx={ {| display="flex"; gap=3; marginTop=1 |} }>
+                            <Box sx={ {| display="flex"; gap=3; marginTop=2 |} }>
                                 <Typography variant="body2">
                                     Pompsnelheid: <strong>{rate}</strong>
                                 </Typography>
@@ -466,24 +466,24 @@ module Nutrition =
 
         let totalsSection =
             let intake = props.plan.Totals
-            let rows = Shared.Models.Totals.intakeRows
+            let rows = Totals.intakeRows
             let activeRows =
                 rows
                 |> Array.filter (fun cells ->
                     let name = cells |> Array.head
-                    let items = Shared.Models.Totals.substanceToField intake name
+                    let items = Totals.substanceToField intake name
                     items |> Array.length >= 2
                 )
 
             let totalsRows =
                 activeRows
                 |> Array.map (fun cells ->
-                    let name = cells.[0]
-                    let unit = cells.[2]
-                    let items = Shared.Models.Totals.substanceToField intake name
+                    let name = cells[0]
+                    let unit = cells[2]
+                    let items = Totals.substanceToField intake name
                     let value =
                         if items.Length >= 2 then
-                            items.[0..items.Length - 2]
+                            items[0..items.Length - 2]
                             |> Array.map (fun item ->
                                 match item with
                                 | Normal s | Bold s | Italic s -> s
@@ -504,7 +504,7 @@ module Nutrition =
 
                     <TableRow key={name}>
                         <TableCell colSpan={2}>{name}</TableCell>
-                        <TableCell align="right"><strong>{value}</strong></TableCell>
+                        <TableCell align="right">{value}</TableCell>
                         <TableCell align="right">{normal}</TableCell>
                     </TableRow>
                     """
@@ -548,6 +548,11 @@ module Nutrition =
                     |}
             |}
 
+        let currentDate = 
+            let dt = DateTime.Now
+            $"{dt.Day} - {dt.Month} - {dt.Year}"
+            //DateTime.Now.ToShortDateString()
+
         JSX.jsx
             $"""
         import Dialog from '@mui/material/Dialog';
@@ -586,7 +591,7 @@ module Nutrition =
                     <TableBody>
                         <TableRow>
                             <TableCell sx={headerCellSx}>D.D.</TableCell>
-                            <TableCell sx={valueCellSx}></TableCell>
+                            <TableCell sx={valueCellSx}>{currentDate}</TableCell>
                             <TableCell sx={headerCellSx}>Patientnummer</TableCell>
                             <TableCell sx={valueCellSx}></TableCell>
                         </TableRow>
