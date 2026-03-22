@@ -494,50 +494,50 @@ module Mappers =
 
 
     let mapToShared ctx (newCtx : Informedica.GenOrder.Lib.Types.OrderContext) : OrderContext =
-            { ctx with
-                Filter =
-                    { ctx.Filter with
-                        Indications = newCtx.Filter.Indications
-                        Generics = newCtx.Filter.Generics
-                        Routes = newCtx.Filter.Routes
-                        Forms = newCtx.Filter.Forms
-                        DoseTypes = newCtx.Filter.DoseTypes |> Array.map mapFromOrderDoseTypeToSharedDoseType
-                        Diluents = newCtx.Filter.Diluents
-                        Components = newCtx.Filter.Components
-                        Indication = newCtx.Filter.Indication
-                        Generic = newCtx.Filter.Generic
-                        Form = newCtx.Filter.Form
-                        Route = newCtx.Filter.Route
-                        DoseType = newCtx.Filter.DoseType |> Option.map mapFromOrderDoseTypeToSharedDoseType
-                        Diluent = newCtx.Filter.Diluent
-                        SelectedComponents = newCtx.Filter.SelectedComponents
-                    }
+        { ctx with
+            Filter =
+                { ctx.Filter with
+                    Indications = newCtx.Filter.Indications
+                    Generics = newCtx.Filter.Generics
+                    Routes = newCtx.Filter.Routes
+                    Forms = newCtx.Filter.Forms
+                    DoseTypes = newCtx.Filter.DoseTypes |> Array.map mapFromOrderDoseTypeToSharedDoseType
+                    Diluents = newCtx.Filter.Diluents
+                    Components = newCtx.Filter.Components
+                    Indication = newCtx.Filter.Indication
+                    Generic = newCtx.Filter.Generic
+                    Form = newCtx.Filter.Form
+                    Route = newCtx.Filter.Route
+                    DoseType = newCtx.Filter.DoseType |> Option.map mapFromOrderDoseTypeToSharedDoseType
+                    Diluent = newCtx.Filter.Diluent
+                    SelectedComponents = newCtx.Filter.SelectedComponents
+                }
 
-                Scenarios =
-                    newCtx.Scenarios
-                    |> Array.map (fun sc ->
-                        Models.OrderScenario.create
-                            sc.Name
-                            sc.Indication
-                            sc.Form
-                            sc.Route
-                            (sc.DoseType |> mapFromOrderDoseTypeToSharedDoseType)
-                            sc.Diluent
-                            sc.Component
-                            sc.Item
-                            sc.Diluents
-                            sc.Components
-                            sc.Items
-                            (sc.Prescription |> Array.map (Array.map mapTextBlock))
-                            (sc.Preparation |> Array.map (Array.map mapTextBlock))
-                            (sc.Administration |> Array.map (Array.map mapTextBlock))
-                            (sc.Order |> (Order.Dto.toDto >> Order.mapFromOrderToShared sc.Items))
-                            sc.UseAdjust
-                            sc.UseRenalRule
-                            sc.RenalRule
-                            sc.ProductsIds
-                    )
-            }
+            Scenarios =
+                newCtx.Scenarios
+                |> Array.map (fun sc ->
+                    Models.OrderScenario.create
+                        sc.Name
+                        sc.Indication
+                        sc.Form
+                        sc.Route
+                        (sc.DoseType |> mapFromOrderDoseTypeToSharedDoseType)
+                        sc.Diluent
+                        sc.Component
+                        sc.Item
+                        sc.Diluents
+                        sc.Components
+                        sc.Items
+                        (sc.Prescription |> Array.map (Array.map mapTextBlock))
+                        (sc.Preparation |> Array.map (Array.map mapTextBlock))
+                        (sc.Administration |> Array.map (Array.map mapTextBlock))
+                        (sc.Order |> (Order.Dto.toDto >> Order.mapFromOrderToShared sc.Items))
+                        sc.UseAdjust
+                        sc.UseRenalRule
+                        sc.RenalRule
+                        sc.ProductsIds
+                )
+        }
 
 
     let mapToTotals (intake : Informedica.GenOrder.Lib.Types.Totals) : Totals =

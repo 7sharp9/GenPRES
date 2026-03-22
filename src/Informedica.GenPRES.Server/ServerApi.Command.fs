@@ -12,7 +12,7 @@ module Command =
         if info.IsLoaded then None
         else
             info.Messages
-            |> Array.map (sprintf "%A")
+            |> Array.map (fun msg -> FormLogging.formatMessage msg)
             |> Error
             |> Some
 
