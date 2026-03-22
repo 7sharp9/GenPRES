@@ -269,23 +269,23 @@ module Mappers =
 
 
     let mapFromSharedDoseTypeToOrderDoseType (dt: Types.DoseType) : Informedica.GenForm.Lib.Types.DoseType =
-            match dt with
-            | OnceTimed s -> s |> Informedica.GenForm.Lib.Types.OnceTimed
-            | Once s -> s |> Informedica.GenForm.Lib.Types.Once
-            | Timed s -> s |> Informedica.GenForm.Lib.Types.Timed
-            | Discontinuous s -> s |> Informedica.GenForm.Lib.Types.Discontinuous
-            | Continuous s -> s |> Informedica.GenForm.Lib.Types.Continuous
-            | NoDoseType -> Informedica.GenForm.Lib.Types.NoDoseType
+        match dt with
+        | OnceTimed s -> s |> Informedica.GenForm.Lib.Types.OnceTimed
+        | Once s -> s |> Informedica.GenForm.Lib.Types.Once
+        | Timed s -> s |> Informedica.GenForm.Lib.Types.Timed
+        | Discontinuous s -> s |> Informedica.GenForm.Lib.Types.Discontinuous
+        | Continuous s -> s |> Informedica.GenForm.Lib.Types.Continuous
+        | NoDoseType -> Informedica.GenForm.Lib.Types.NoDoseType
 
 
     let mapFromOrderDoseTypeToSharedDoseType (dt: Informedica.GenForm.Lib.Types.DoseType) : Types.DoseType =
-            match dt with
-            | Informedica.GenForm.Lib.Types.OnceTimed s -> s |> OnceTimed
-            | Informedica.GenForm.Lib.Types.Once s -> s |> Once
-            | Informedica.GenForm.Lib.Types.Timed s -> s |> Timed
-            | Informedica.GenForm.Lib.Types.Discontinuous s -> s |> Discontinuous
-            | Informedica.GenForm.Lib.Types.Continuous s -> s |> Continuous
-            | Informedica.GenForm.Lib.Types.NoDoseType -> NoDoseType
+        match dt with
+        | Informedica.GenForm.Lib.Types.OnceTimed s -> s |> OnceTimed
+        | Informedica.GenForm.Lib.Types.Once s -> s |> Once
+        | Informedica.GenForm.Lib.Types.Timed s -> s |> Timed
+        | Informedica.GenForm.Lib.Types.Discontinuous s -> s |> Discontinuous
+        | Informedica.GenForm.Lib.Types.Continuous s -> s |> Continuous
+        | Informedica.GenForm.Lib.Types.NoDoseType -> NoDoseType
 
 
     let mapFromSharedPatient
