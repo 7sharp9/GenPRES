@@ -166,6 +166,7 @@ module ResponsiveTable =
             onSelectChange: string [] -> unit
             showToolbar : bool
             showFooter : bool
+            onPrint : ({| cells : {| field: string; value: string |} []; actions : ReactElement option |} [] -> unit) option
         |}) =
         let state, setState = React.useState [||]
 
@@ -281,6 +282,8 @@ module ResponsiveTable =
                     )
             )
 
+        let filteredRows = rows
+
         if isMobile then
             let typedColumns =
                 props.columns
@@ -296,11 +299,31 @@ module ResponsiveTable =
 
             let toolbar () =
                 if props.showToolbar then
+                    let printButton =
+                        match props.onPrint with
+                        | Some handlePrint ->
+                            JSX.jsx
+                                $"""
+                            import Button from '@mui/material/Button';
+                            import PrintIcon from '@mui/icons-material/Print';
+
+                            <Button color="primary" size="small" startIcon={{<PrintIcon />}} onClick={fun _ -> handlePrint filteredRows}>
+                                Print
+                            </Button>
+                            """
+                        | None -> null
+
                     JSX.jsx
                         $"""
-                    import {{ GridToolbar }} from '@mui/x-data-grid';
+                    import {{ GridToolbarContainer, GridToolbarColumnsButton, GridToolbarFilterButton, GridToolbarDensitySelector, GridToolbarExport }} from '@mui/x-data-grid';
 
-                    <GridToolbar printOptions = { {| hideFooter=true; hideToolbar=true |} } />
+                    <GridToolbarContainer sx={ {| justifyContent = "flex-start" |} }>
+                        <GridToolbarColumnsButton />
+                        <GridToolbarFilterButton />
+                        <GridToolbarDensitySelector />
+                        <GridToolbarExport printOptions={ {| hideFooter=true; hideToolbar=true |} } />
+                        {printButton}
+                    </GridToolbarContainer>
                     """
                     |> toReact
                 else

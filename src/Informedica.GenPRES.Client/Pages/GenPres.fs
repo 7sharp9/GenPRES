@@ -242,12 +242,14 @@ module GenPres =
                                 Views.EmergencyList.View {|
                                     interventions = props.bolusMedication
                                     localizationTerms = props.localizationTerms
+                                    patient = props.patient
                                     onSelectItem = props.onSelectEmergencyListItem
                                 |}
                             | Global.Pages.ContinuousMeds ->
                                 Views.ContinuousMeds.View {|
                                     interventions = props.continuousMedication
                                     localizationTerms = props.localizationTerms
+                                    patient = props.patient
                                     onSelectItem = props.onSelectContinuousMedicationItem
                                 |}
                             | Global.Pages.Prescribe ->

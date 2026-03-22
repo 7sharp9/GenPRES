@@ -1,9 +1,13 @@
 namespace Views
 
+#nowarn "1104"
 
 module ViewHelpers =
 
+    open System
     open Fable.Core
+    open Fable.Core.JsInterop
+    open Feliz
     open Shared
     open Shared.Types
     open Shared.Models.Order
@@ -212,3 +216,141 @@ module ViewHelpers =
             boxShadow= 24
             borderRadius = "16px"
         |}
+
+
+    module PrintView =
+
+
+        let appBarSx =
+            {|
+                ``@media print`` = {| display = "none" |}
+            |}
+
+
+        let printSx =
+            {|
+                padding = 3
+                ``@media print`` =
+                    {|
+                        padding = 1
+                    |}
+            |}
+
+
+        let headerCellSx = {| fontWeight = "bold"; borderBottom = "none"; paddingY = "2px"; width = "25%" |}
+
+
+        let valueCellSx = {| borderBottom = "1px dotted #ccc"; paddingY = "2px"; width = "25%" |}
+
+
+        let patientWeight (patient: Patient option) =
+            patient
+            |> Option.bind Shared.Models.Patient.getWeightInKg
+            |> Option.map (fun w ->
+                let s = decimal w |> Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 1
+                s + " kg"
+            )
+            |> Option.defaultValue "onbekend"
+
+
+        [<JSX.Component>]
+        let PatientHeader (props: {| weightKg: string |}) =
+            let currentDate =
+                let dt = DateTime.Now
+                let pad (n: int) = if n < 10 then $"0{n}" else $"{n}"
+                $"{pad dt.Day} - {pad dt.Month} - {dt.Year}"
+
+            JSX.jsx
+                $"""
+            import Table from '@mui/material/Table';
+            import TableBody from '@mui/material/TableBody';
+            import TableRow from '@mui/material/TableRow';
+            import TableCell from '@mui/material/TableCell';
+
+            <Table size="small" sx={ {| tableLayout="fixed"; width="100%"; marginBottom=3 |} }>
+                <TableBody>
+                    <TableRow>
+                        <TableCell sx={headerCellSx}>D.D.</TableCell>
+                        <TableCell sx={valueCellSx}>{currentDate}</TableCell>
+                        <TableCell sx={headerCellSx}>Patientnummer</TableCell>
+                        <TableCell sx={valueCellSx}></TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableCell sx={headerCellSx}>Afdeling</TableCell>
+                        <TableCell sx={valueCellSx}></TableCell>
+                        <TableCell sx={headerCellSx}>Naam</TableCell>
+                        <TableCell sx={valueCellSx}></TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableCell sx={headerCellSx}>Bed</TableCell>
+                        <TableCell sx={valueCellSx}></TableCell>
+                        <TableCell sx={headerCellSx}>Geboorte datum</TableCell>
+                        <TableCell sx={valueCellSx}></TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableCell sx={headerCellSx}>Arts</TableCell>
+                        <TableCell sx={valueCellSx}></TableCell>
+                        <TableCell sx={headerCellSx}>Gewicht</TableCell>
+                        <TableCell sx={valueCellSx}>{props.weightKg}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableCell sx={headerCellSx}>Zoemer</TableCell>
+                        <TableCell sx={valueCellSx}></TableCell>
+                        <TableCell sx={headerCellSx}></TableCell>
+                        <TableCell sx={valueCellSx}></TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+            """
+
+
+        [<JSX.Component>]
+        let PatientSignature () =
+            JSX.jsx
+                $"""
+            import Box from '@mui/material/Box';
+            import Typography from '@mui/material/Typography';
+
+            <Box sx={ {| marginTop=4; borderTop="1px solid #ccc"; paddingTop=2 |} }>
+                <Typography variant="body2">Paraaf arts:</Typography>
+            </Box>
+            """
+
+
+        [<JSX.Component>]
+        let PrintDialog (props: {| isOpen: bool; onClose: unit -> unit; title: string; children: ReactElement |}) =
+            let handlePrint = fun _ -> Browser.Dom.window.print()
+
+            let isOpen = props.isOpen
+
+            JSX.jsx
+                $"""
+            import Dialog from '@mui/material/Dialog';
+            import AppBar from '@mui/material/AppBar';
+            import Toolbar from '@mui/material/Toolbar';
+            import IconButton from '@mui/material/IconButton';
+            import Button from '@mui/material/Button';
+            import Typography from '@mui/material/Typography';
+            import Box from '@mui/material/Box';
+            import CloseIcon from '@mui/icons-material/Close';
+            import PrintIcon from '@mui/icons-material/Print';
+
+            <Dialog fullScreen open={isOpen} onClose={fun _ -> props.onClose ()}>
+                    <AppBar sx={appBarSx} position="static">
+                        <Toolbar>
+                            <IconButton edge="start" color="inherit" onClick={fun _ -> props.onClose ()} aria-label="close">
+                                <CloseIcon />
+                            </IconButton>
+                            <Typography sx={ {| marginLeft=2; flex=1 |} } variant="h6" component="div">
+                                {props.title}
+                            </Typography>
+                            <Button color="inherit" onClick={handlePrint} startIcon={{ <PrintIcon /> }}>
+                                Print
+                            </Button>
+                        </Toolbar>
+                    </AppBar>
+                    <Box sx={printSx}>
+                        {props.children}
+                    </Box>
+                </Dialog>
+                """
