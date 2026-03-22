@@ -70,7 +70,7 @@ module AgentAdapters =
 
         let setComponent name =
             match logAgent with
-            | Some a -> a |> Logging.setComponentName (Some name) |> Async.RunSynchronously
+            | Some a -> a |> Logging.setComponentName (Some name) |> Async.Start
             | None -> ()
 
         match cmd with
@@ -140,9 +140,10 @@ module AgentAdapters =
             with ex ->
                 writeErrorMessage $"[AGENT] error in {cmd |> commandToString}: {ex}"
                 match cmd with
-                | ServerCommand.GetFormulary _
-                | ServerCommand.GetParenteralia _ ->
+                | ServerCommand.GetFormulary _ ->
                     ServerResponse.Formulary (Error [| ex.Message |])
+                | ServerCommand.GetParenteralia _ ->
+                    ServerResponse.Parenteralia (Error [| ex.Message |])
                 | ServerCommand.EvaluateOrderContext _ ->
                     ServerResponse.OrderContext (Error [| ex.Message |])
                 | ServerCommand.UpdateOrderPlan _
