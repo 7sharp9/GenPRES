@@ -1,21 +1,21 @@
-/// Localization support for the GenPRES application.
-///
-/// The current implementation fetches a "Localization" sheet from Google Sheets
-/// at startup and stores translations as a `string[][]` matrix.  The column
-/// indices that map to each language are hardcoded in `getTerm`, which means
-/// **reordering columns in the spreadsheet silently breaks all translations**.
-///
-/// An improved, more idiomatic approach is demonstrated in
-/// `Scripts/Localization.fsx`.  Key improvements proposed there:
-///   - Parse the CSV by column *headers* (language display names) so the
-///     implementation is robust to spreadsheet column reordering.
-///   - Store translations as `TranslationMap` (`Map<string, Map<Locales, string>>`)
-///     instead of `string[][]` — no magic column indices.
-///   - `tryLocaleFromString` returns `Option` instead of throwing.
-///   - Static fallback translations embedded in the binary so the UI works
-///     without a network connection.
-///   - `mergeTranslations` overlays remote sheet data over the static fallback
-///     so a partial sheet load degrades gracefully.
+// Localization support for the GenPRES application.
+//
+// The current implementation fetches a "Localization" sheet from Google Sheets
+// at startup and stores translations as a `string[][]` matrix.  The column
+// indices that map to each language are hardcoded in `getTerm`, which means
+// **reordering columns in the spreadsheet silently breaks all translations**.
+//
+// An improved, more idiomatic approach is demonstrated in
+// `Scripts/Localization.fsx`.  Key improvements proposed there:
+//   - Parse the CSV by column *headers* (language display names) so the
+//     implementation is robust to spreadsheet column reordering.
+//   - Store translations as `TranslationMap` (`Map<string, Map<Locales, string>>`)
+//     instead of `string[][]` — no magic column indices.
+//   - `tryLocaleFromString` returns `Option` instead of throwing.
+//   - Static fallback translations embedded in the binary so the UI works
+//     without a network connection.
+//   - `mergeTranslations` overlays remote sheet data over the static fallback
+//     so a partial sheet load degrades gracefully.
 namespace Shared
 
 

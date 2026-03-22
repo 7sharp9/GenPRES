@@ -477,6 +477,75 @@ module Tests =
             ]
 
 
+        let private envVarName = "AGENT_REPLY_TIMEOUT_MS"
+
+        /// Helper: run an action with a temporary env var value, restoring the previous value afterward.
+        let private withEnvVar value action =
+            let previous = Environment.GetEnvironmentVariable(envVarName)
+            Environment.SetEnvironmentVariable(envVarName, value)
+            try
+                action ()
+            finally
+                Environment.SetEnvironmentVariable(envVarName, previous)
+
+        // Configurable fallback timeout tests
+        let fallbackTimeoutTests =
+            // Tests that mutate AGENT_REPLY_TIMEOUT_MS must run sequentially
+            testSequenced <| testList "Fallback Timeout (postAndReply with Infinite DefaultTimeout)" [
+
+                test "postAndReply should succeed for fast agents with default 30s fallback" {
+                    withEnvVar null (fun () ->
+                        use agent = Agent.createReply<int, int>(fun n -> n * 2)
+                        // DefaultTimeout is Timeout.Infinite by default, so fallback path is used
+                        let result = agent |> Agent.postAndReply 21
+                        Expect.equal result 42 "should return doubled value"
+                    )
+                }
+
+                test "postAndReply should succeed for slow agents within 30s fallback" {
+                    withEnvVar null (fun () ->
+                        use agent = Agent.createReply<string, string>(fun msg ->
+                            Thread.Sleep(1200) // 1.2s — exceeds old 1s bug threshold, well within 30s fallback
+                            $"done: {msg}"
+                        )
+                        let result = agent |> Agent.postAndReply "slow"
+                        Expect.equal result "done: slow" "should complete within fallback timeout"
+                    )
+                }
+
+                test "postAndReply should use AGENT_REPLY_TIMEOUT_MS env var when set" {
+                    withEnvVar "200" (fun () ->
+                        use agent = Agent.createReply<string, string>(fun msg ->
+                            Thread.Sleep(800) // 800ms — exceeds the 200ms env var timeout
+                            $"done: {msg}"
+                        )
+                        try
+                            let _ = agent |> Agent.postAndReply "should-timeout"
+                            Tests.failtest "should have thrown timeout"
+                        with
+                        | ex ->
+                            Expect.stringContains ex.Message "200 ms" "should mention timeout duration"
+                    )
+                }
+
+                test "postAndReply should ignore invalid AGENT_REPLY_TIMEOUT_MS and use 30s default" {
+                    withEnvVar "not-a-number" (fun () ->
+                        use agent = Agent.createReply<int, int>(fun n -> n + 1)
+                        // Should still work — falls back to 30_000
+                        let result = agent |> Agent.postAndReply 41
+                        Expect.equal result 42 "should use default 30s fallback"
+                    )
+                }
+
+                test "postAndReply with explicit DefaultTimeout should bypass fallback" {
+                    use agent = Agent.createReply<int, int>(fun n -> n * 3)
+                    agent |> Agent.setDefaultTimeout 5000 // explicit 5s timeout
+                    let result = agent |> Agent.postAndReply 10
+                    Expect.equal result 30 "should use explicit timeout path"
+                }
+            ]
+
+
         // Main test suite
         let allTests =
             testList "Informedica.Agents.Lib Agent Tests" [
@@ -488,6 +557,7 @@ module Tests =
                 disposalTests
                 propertyTests
                 edgeCaseTests
+                fallbackTimeoutTests
             ]
 
 

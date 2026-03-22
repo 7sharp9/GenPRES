@@ -278,6 +278,8 @@ module Agent =
 
     /// <summary>
     /// Posts a request to the agent and synchronously waits for a reply.
+    /// When DefaultTimeout is Timeout.Infinite, a configurable fallback timeout is used
+    /// (AGENT_REPLY_TIMEOUT_MS environment variable, default 30 000 ms).
     /// Throws if the reply times out.
     /// </summary>
     /// <param name="msg">The request message.</param>
@@ -285,11 +287,20 @@ module Agent =
     /// <returns>The reply value.</returns>
     let postAndReply msg (agent: Agent<_>) =
         if agent.DefaultTimeout = Timeout.Infinite then
+            let fallbackMs =
+                Environment.GetEnvironmentVariable("AGENT_REPLY_TIMEOUT_MS")
+                |> Option.ofObj
+                |> Option.bind (fun s ->
+                    match Int32.TryParse(s) with
+                    | true, v when v > 0 -> Some v
+                    | _ -> None
+                )
+                |> Option.defaultValue 30_000
             agent
-            |> tryPostAndReply 1000 msg
+            |> tryPostAndReply fallbackMs msg
             |> function
                 | Some v -> v
-                | None -> failwith "Timed out waiting for reply"
+                | None -> failwith $"Timed out waiting for reply after {fallbackMs} ms"
         else
             agent.PostAndReply(fun replyChannel ->
                 msg, replyChannel
