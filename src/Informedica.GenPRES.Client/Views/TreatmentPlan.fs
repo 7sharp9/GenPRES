@@ -262,6 +262,7 @@ module TreatmentPlan =
                     onSelectChange = filterOrders
                     showToolbar = true
                     showFooter = true
+                    onPrint = None
                 |})
             }
             <Modal open={modalOpen} onClose={handleModalClose} >

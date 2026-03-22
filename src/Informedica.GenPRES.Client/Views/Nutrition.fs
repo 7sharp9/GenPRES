@@ -336,18 +336,7 @@ module Nutrition =
         plan: NutritionPlan
         onClose: unit -> unit
     |}) =
-        let handlePrint = fun _ -> Browser.Dom.window.print()
-
-        let patient = props.plan.Patient
-
-        let weightKg =
-            patient
-            |> Patient.getWeightInKg
-            |> Option.map (fun w ->
-                let s = decimal w |> Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 1
-                s + " kg"
-            )
-            |> Option.defaultValue "onbekend"
+        let weightKg = ViewHelpers.PrintView.patientWeight (props.plan.Patient |> Some)
 
         let parenteralContexts =
             props.plan.NutritionContexts
@@ -531,104 +520,29 @@ module Nutrition =
                 </Box>
                 """
 
-        let appBarSx =
-            {|
-                ``@media print`` = {| display = "none" |}
-            |}
+        let printContent =
+            JSX.jsx
+                $"""
+            import Typography from '@mui/material/Typography';
 
-        let headerCellSx = {| fontWeight = "bold"; borderBottom = "none"; paddingY = "2px"; width = "25%" |}
-        let valueCellSx = {| borderBottom = "1px dotted #ccc"; paddingY = "2px"; width = "25%" |}
-
-        let printSx =
-            {|
-                padding = 3
-                ``@media print`` =
-                    {|
-                        padding = 1
-                    |}
-            |}
-
-        let currentDate = 
-            let dt = DateTime.Now
-            $"{dt.Day} - {dt.Month} - {dt.Year}"
-            //DateTime.Now.ToShortDateString()
-
-        JSX.jsx
-            $"""
-        import Dialog from '@mui/material/Dialog';
-        import AppBar from '@mui/material/AppBar';
-        import Toolbar from '@mui/material/Toolbar';
-        import IconButton from '@mui/material/IconButton';
-        import Button from '@mui/material/Button';
-        import Typography from '@mui/material/Typography';
-        import Box from '@mui/material/Box';
-        import Table from '@mui/material/Table';
-        import TableBody from '@mui/material/TableBody';
-        import TableRow from '@mui/material/TableRow';
-        import TableCell from '@mui/material/TableCell';
-        import CloseIcon from '@mui/icons-material/Close';
-        import PrintIcon from '@mui/icons-material/Print';
-
-        <Dialog fullScreen open={{true}} onClose={fun _ -> props.onClose ()}>
-            <AppBar sx={appBarSx} position="static">
-                <Toolbar>
-                    <IconButton edge="start" color="inherit" onClick={fun _ -> props.onClose ()} aria-label="close">
-                        <CloseIcon />
-                    </IconButton>
-                    <Typography sx={ {| marginLeft=2; flex=1 |} } variant="h6" component="div">
-                        Parenterale Voeding
-                    </Typography>
-                    <Button color="inherit" onClick={handlePrint} startIcon={{ <PrintIcon /> }}>
-                        Print
-                    </Button>
-                </Toolbar>
-            </AppBar>
-            <Box sx={printSx}>
+            <React.Fragment>
                 <Typography variant="subtitle1" sx={ {| fontWeight="bold"; backgroundColor="#f5f5f5"; padding="4px 8px"; borderRadius=1; marginBottom=2 |} }>
                     INFUUS AFSPRAKEN CENTRAAL VENEUZE CATHETERS
                 </Typography>
-                <Table size="small" sx={ {| tableLayout="fixed"; width="100%"; marginBottom=3 |} }>
-                    <TableBody>
-                        <TableRow>
-                            <TableCell sx={headerCellSx}>D.D.</TableCell>
-                            <TableCell sx={valueCellSx}>{currentDate}</TableCell>
-                            <TableCell sx={headerCellSx}>Patientnummer</TableCell>
-                            <TableCell sx={valueCellSx}></TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell sx={headerCellSx}>Afdeling</TableCell>
-                            <TableCell sx={valueCellSx}></TableCell>
-                            <TableCell sx={headerCellSx}>Naam</TableCell>
-                            <TableCell sx={valueCellSx}></TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell sx={headerCellSx}>Bed</TableCell>
-                            <TableCell sx={valueCellSx}></TableCell>
-                            <TableCell sx={headerCellSx}>Geboorte datum</TableCell>
-                            <TableCell sx={valueCellSx}></TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell sx={headerCellSx}>Arts</TableCell>
-                            <TableCell sx={valueCellSx}></TableCell>
-                            <TableCell sx={headerCellSx}>Gewicht</TableCell>
-                            <TableCell sx={valueCellSx}>{weightKg}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell sx={headerCellSx}>Zoemer</TableCell>
-                            <TableCell sx={valueCellSx}></TableCell>
-                            <TableCell sx={headerCellSx}></TableCell>
-                            <TableCell sx={valueCellSx}></TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
+                {ViewHelpers.PrintView.PatientHeader {| weightKg = weightKg |}}
                 {contextSections |> unbox |> React.fragment}
                 {totalsSection}
-                <Box sx={ {| marginTop=4; borderTop="1px solid #ccc"; paddingTop=2 |} }>
-                    <Typography variant="body2">Paraaf arts:</Typography>
-                </Box>
-            </Box>
-        </Dialog>
-        """
+                {ViewHelpers.PrintView.PatientSignature ()}
+            </React.Fragment>
+            """
+            |> toReact
+
+        ViewHelpers.PrintView.PrintDialog {|
+            isOpen = true
+            onClose = props.onClose
+            title = "Parenterale Voeding"
+            children = printContent
+        |}
 
 
     [<JSX.Component>]
@@ -1526,9 +1440,9 @@ module Nutrition =
                     <Divider sx={ {| marginTop=2; marginBottom=2 |} } />
                     <Stack direction="row" alignItems="center" spacing={1}>
                         <Typography variant="h6">Parenteraal</Typography>
-                        <IconButton size="small" disabled={printDisabled} onClick={fun _ -> setPrintOpen true}>
-                            <PrintIcon />
-                        </IconButton>
+                        <Button color="primary" size="small" disabled={printDisabled} onClick={fun _ -> setPrintOpen true} startIcon={{<PrintIcon />}}>
+                            Print
+                        </Button>
                     </Stack>
                     {parenteralSlots |> unbox |> React.fragment}
                     <Stack direction="row" spacing={1}>
