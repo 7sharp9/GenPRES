@@ -292,7 +292,7 @@ module Agent =
                 |> Option.ofObj
                 |> Option.bind (fun s ->
                     match Int32.TryParse(s) with
-                    | true, v -> Some v
+                    | true, v when v > 0 -> Some v
                     | _ -> None
                 )
                 |> Option.defaultValue 30_000

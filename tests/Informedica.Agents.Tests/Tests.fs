@@ -502,7 +502,7 @@ module Tests =
 
                 test "postAndReply should succeed for slow agents within 30s fallback" {
                     use agent = Agent.createReply<string, string>(fun msg ->
-                        Thread.Sleep(2000) // 2s work — well within 30s fallback
+                        Thread.Sleep(1200) // 1.2s — exceeds old 1s bug threshold, well within 30s fallback
                         $"done: {msg}"
                     )
                     let result = agent |> Agent.postAndReply "slow"
@@ -510,9 +510,9 @@ module Tests =
                 }
 
                 test "postAndReply should use AGENT_REPLY_TIMEOUT_MS env var when set" {
-                    withEnvVar "500" (fun () ->
+                    withEnvVar "200" (fun () ->
                         use agent = Agent.createReply<string, string>(fun msg ->
-                            Thread.Sleep(2000) // 2s work — exceeds the 500ms env var
+                            Thread.Sleep(800) // 800ms — exceeds the 200ms env var timeout
                             $"done: {msg}"
                         )
                         try
@@ -520,7 +520,7 @@ module Tests =
                             Tests.failtest "should have thrown timeout"
                         with
                         | ex ->
-                            Expect.stringContains ex.Message "500 ms" "should mention timeout duration"
+                            Expect.stringContains ex.Message "200 ms" "should mention timeout duration"
                     )
                 }
 
