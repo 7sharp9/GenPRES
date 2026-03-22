@@ -257,7 +257,8 @@ module ViewHelpers =
         let PatientHeader (props: {| weightKg: string |}) =
             let currentDate =
                 let dt = DateTime.Now
-                $"{dt.Day} - {dt.Month} - {dt.Year}"
+                let pad (n: int) = if n < 10 then $"0{n}" else $"{n}"
+                $"{pad dt.Day} - {pad dt.Month} - {dt.Year}"
 
             JSX.jsx
                 $"""
@@ -320,21 +321,21 @@ module ViewHelpers =
         let PrintDialog (props: {| isOpen: bool; onClose: unit -> unit; title: string; children: ReactElement |}) =
             let handlePrint = fun _ -> Browser.Dom.window.print()
 
-            if not props.isOpen then null
-            else
-                JSX.jsx
-                    $"""
-                import Dialog from '@mui/material/Dialog';
-                import AppBar from '@mui/material/AppBar';
-                import Toolbar from '@mui/material/Toolbar';
-                import IconButton from '@mui/material/IconButton';
-                import Button from '@mui/material/Button';
-                import Typography from '@mui/material/Typography';
-                import Box from '@mui/material/Box';
-                import CloseIcon from '@mui/icons-material/Close';
-                import PrintIcon from '@mui/icons-material/Print';
+            let isOpen = props.isOpen
 
-                <Dialog fullScreen open={{true}} onClose={fun _ -> props.onClose ()}>
+            JSX.jsx
+                $"""
+            import Dialog from '@mui/material/Dialog';
+            import AppBar from '@mui/material/AppBar';
+            import Toolbar from '@mui/material/Toolbar';
+            import IconButton from '@mui/material/IconButton';
+            import Button from '@mui/material/Button';
+            import Typography from '@mui/material/Typography';
+            import Box from '@mui/material/Box';
+            import CloseIcon from '@mui/icons-material/Close';
+            import PrintIcon from '@mui/icons-material/Print';
+
+            <Dialog fullScreen open={isOpen} onClose={fun _ -> props.onClose ()}>
                     <AppBar sx={appBarSx} position="static">
                         <Toolbar>
                             <IconButton edge="start" color="inherit" onClick={fun _ -> props.onClose ()} aria-label="close">
