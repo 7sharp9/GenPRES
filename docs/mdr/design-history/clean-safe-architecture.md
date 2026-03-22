@@ -6,7 +6,7 @@
 
 **Date**: 2026-03-22
 
----
+**Issue**: [Safe Clean Architecture #194](https://github.com/informedica/GenPRES/issues/194) — Investigate requirements for adopting a Clean Safe Architecture with Tagless Final style.
 
 ## Table of Contents
 
