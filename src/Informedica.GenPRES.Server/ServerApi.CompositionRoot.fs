@@ -21,7 +21,7 @@ module CompositionRoot =
                             return result
                         with
                         | ex ->
-                            writeErrorMessage $"Error processing command: {cmd |> Shared.Api.Command.toString}\n{ex.Message}"
+                            writeErrorMessage $"Error processing command: {cmd |> Shared.Api.Command.toString}\n{ex}"
                             return Error [| ex.Message |]
                     }
 

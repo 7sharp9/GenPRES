@@ -4,27 +4,27 @@ open Shared.Types
 open Shared.Api
 
 
-type IFormularyPort =
+type FormularyPort =
     {
-        getDoseRules : Formulary -> Async<Result<Formulary, string []>>
+        getFormulary : Formulary -> Async<Result<Formulary, string []>>
         getParenteralia : Parenteralia -> Async<Result<Parenteralia, string []>>
     }
 
 
-type IOrderContextPort =
+type OrderContextPort =
     {
         evaluate : OrderContextCommand -> OrderContext -> Async<Result<OrderContext, string []>>
     }
 
 
-type IOrderPlanPort =
+type OrderPlanPort =
     {
         updateOrderPlan : OrderPlan -> (OrderContextCommand * OrderContext) option -> Async<Result<OrderPlan, string []>>
         filterOrderPlan : OrderPlan -> Async<Result<OrderPlan, string []>>
     }
 
 
-type INutritionPlanPort =
+type NutritionPlanPort =
     {
         initNutritionPlan : Patient -> Async<Result<NutritionPlan, string []>>
         addNutritionContext : NutritionPlan * NutritionCategory -> Async<Result<NutritionPlan, string []>>
@@ -37,9 +37,9 @@ type INutritionPlanPort =
 
 type AppEnv =
     {
-        formulary : IFormularyPort
-        orderContext : IOrderContextPort
-        orderPlan : IOrderPlanPort
-        nutritionPlan : INutritionPlanPort
+        formulary : FormularyPort
+        orderContext : OrderContextPort
+        orderPlan : OrderPlanPort
+        nutritionPlan : NutritionPlanPort
         requireLoaded : unit -> string [] option
     }

@@ -31,7 +31,7 @@ module Command =
 
             | FormularyCmd form ->
                 async {
-                    let! result = env.formulary.getDoseRules form
+                    let! result = env.formulary.getFormulary form
                     return result |> Result.map FormularyResp
                 }
 

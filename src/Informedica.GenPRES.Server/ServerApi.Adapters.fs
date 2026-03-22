@@ -23,9 +23,9 @@ module Adapters =
         }
 
 
-    let private makeFormularyPort (provider: Resources.IResourceProvider) : IFormularyPort =
+    let private makeFormularyPort (provider: Resources.IResourceProvider) : FormularyPort =
         {
-            getDoseRules = fun form ->
+            getFormulary = fun form ->
                 async {
                     return
                         form
@@ -42,7 +42,7 @@ module Adapters =
         }
 
 
-    let private makeOrderContextPort agent logger (provider: Resources.IResourceProvider) : IOrderContextPort =
+    let private makeOrderContextPort agent logger (provider: Resources.IResourceProvider) : OrderContextPort =
         {
             evaluate = fun ctxCmd ctx ->
                 async {
@@ -55,7 +55,7 @@ module Adapters =
         }
 
 
-    let private makeOrderPlanPort agent logger (provider: Resources.IResourceProvider) : IOrderPlanPort =
+    let private makeOrderPlanPort agent logger (provider: Resources.IResourceProvider) : OrderPlanPort =
         {
             updateOrderPlan = fun tp cmdOpt ->
                 async {
@@ -77,7 +77,7 @@ module Adapters =
         }
 
 
-    let private makeNutritionPlanPort logger (provider: Resources.IResourceProvider) : INutritionPlanPort =
+    let private makeNutritionPlanPort logger (provider: Resources.IResourceProvider) : NutritionPlanPort =
         {
             initNutritionPlan = fun patient ->
                 async {
