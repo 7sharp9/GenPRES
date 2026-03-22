@@ -103,7 +103,7 @@ Domain Core  ←  Application Services  ←  Ports  ←  Adapters  ←  Composit
 ### Tagless Final in F#
 
 "Tagless Final" (also called "finally tagless" or the "free monad lite") is a functional programming pattern where abstract behaviours are represented as parameterised *algebras*.  In Haskell this uses type classes; in F# the idiomatic encoding is a **record of functions**:
-
+Domain Core  →  Application Services  →  Ports  ←  Adapters  ←  Composition Root
 ```fsharp
 // The "algebra" — a port — expressed as a record of functions
 type IOrderContextPort =
