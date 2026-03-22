@@ -57,11 +57,12 @@ module Mappers =
         let mapFromVariable (var : Variable) : Informedica.GenSolver.Lib.Variable.Dto.Dto =
             let dto = Informedica.GenSolver.Lib.Variable.Dto.dto ()
 
+            dto.Name <- var.Name
+
             if var.IsNonZeroPositive && var.Incr.IsNone then
                 dto.IsNonZeroPositive <- true
 
             else
-                dto.Name <- var.Name
                 dto.IsNonZeroPositive <- var.IsNonZeroPositive
                 dto.MinOpt <- var.Min |> Option.map mapFromValueUnit
                 dto.MinIncl <- var.MinIncl

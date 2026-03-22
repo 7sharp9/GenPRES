@@ -15,13 +15,13 @@ module ApiImpl =
                 fun cmd ->
                     async {
                         try
-                            writeInfoMessage $"Processing command: {cmd |> Command.toString}"
+                            writeInfoMessage $"Processing command: {cmd |> Shared.Api.Command.toString}"
                             let! result = Command.processCmd provider cmd
-                            writeInfoMessage $"Finished processing command: {cmd |> Command.toString}"
+                            writeInfoMessage $"Finished processing command: {cmd |> Shared.Api.Command.toString}"
                             return result
                         with
                         | ex ->
-                            writeErrorMessage $"Error processing command: {cmd |> Command.toString}\n{ex.Message}"
+                            writeErrorMessage $"Error processing command: {cmd |> Shared.Api.Command.toString}\n{ex.Message}"
                             return Error [| ex.Message |]
                     }
 
