@@ -41,5 +41,5 @@ type AppEnv =
         orderContext : IOrderContextPort
         orderPlan : IOrderPlanPort
         nutritionPlan : INutritionPlanPort
-        requireLoaded : unit -> Option<Result<Response, string []>>
+        requireLoaded : unit -> string [] option
     }

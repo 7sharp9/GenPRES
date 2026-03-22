@@ -8,7 +8,7 @@ module Command =
 
     let processCmd (env: AppEnv) cmd =
         match env.requireLoaded () with
-        | Some err -> async { return err }
+        | Some msgs -> async { return Error msgs }
         | None ->
             match cmd with
             | OrderContextCmd (ctxCmd, ctx) ->

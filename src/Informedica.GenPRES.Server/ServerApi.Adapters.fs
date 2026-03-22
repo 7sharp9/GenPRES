@@ -15,16 +15,15 @@ module Adapters =
             (Some agent, agent.Logger)
 
 
-    let private setComponentName name (agent, logger) =
+    let private setComponentName name agent =
         async {
             match agent with
             | Some a -> do! a |> Logging.setComponentName (Some name)
             | None -> ()
-        },
-        logger
+        }
 
 
-    let makeFormularyPort (provider: Resources.IResourceProvider) : IFormularyPort =
+    let private makeFormularyPort (provider: Resources.IResourceProvider) : IFormularyPort =
         {
             getDoseRules = fun form ->
                 async {
@@ -43,13 +42,11 @@ module Adapters =
         }
 
 
-    let makeOrderContextPort (provider: Resources.IResourceProvider) : IOrderContextPort =
+    let private makeOrderContextPort agent logger (provider: Resources.IResourceProvider) : IOrderContextPort =
         {
             evaluate = fun ctxCmd ctx ->
                 async {
-                    let agent, logger = resolveLogger ()
-                    let setName, logger = setComponentName "OrderContext" (agent, logger)
-                    do! setName
+                    do! setComponentName "OrderContext" agent
 
                     return
                         ctx
@@ -58,13 +55,11 @@ module Adapters =
         }
 
 
-    let makeOrderPlanPort (provider: Resources.IResourceProvider) : IOrderPlanPort =
+    let private makeOrderPlanPort agent logger (provider: Resources.IResourceProvider) : IOrderPlanPort =
         {
             updateOrderPlan = fun tp cmdOpt ->
                 async {
-                    let agent, logger = resolveLogger ()
-                    let setName, logger = setComponentName "TreatmentPlan" (agent, logger)
-                    do! setName
+                    do! setComponentName "TreatmentPlan" agent
 
                     return
                         OrderPlan.updateOrderPlan logger provider tp cmdOpt
@@ -82,17 +77,15 @@ module Adapters =
         }
 
 
-    let makeNutritionPlanPort (provider: Resources.IResourceProvider) : INutritionPlanPort =
+    let private makeNutritionPlanPort logger (provider: Resources.IResourceProvider) : INutritionPlanPort =
         {
             initNutritionPlan = fun patient ->
                 async {
-                    let _, logger = resolveLogger ()
                     return NutritionPlan.initNutritionPlan logger provider patient
                 }
 
             addNutritionContext = fun (plan, category) ->
                 async {
-                    let _, logger = resolveLogger ()
                     return NutritionPlan.addNutritionContext logger provider (plan, category)
                 }
 
@@ -103,36 +96,34 @@ module Adapters =
 
             updateNutritionOrderContext = fun (plan, label, ctx) ->
                 async {
-                    let _, logger = resolveLogger ()
                     return NutritionPlan.updateNutritionOrderContext logger provider (plan, label, ctx)
                 }
 
             selectNutritionOrderScenario = fun (plan, label, ctx) ->
                 async {
-                    let _, logger = resolveLogger ()
                     return NutritionPlan.selectNutritionOrderScenario logger provider (plan, label, ctx)
                 }
 
             navigateNutritionOrderContext = fun (plan, label, ctxCmd, ctx) ->
                 async {
-                    let _, logger = resolveLogger ()
                     return NutritionPlan.navigateNutritionOrderContext logger provider (plan, label, ctxCmd, ctx)
                 }
         }
 
 
     let makeAppEnv (provider: Resources.IResourceProvider) : AppEnv =
+        let agent, logger = resolveLogger ()
+
         {
             formulary = makeFormularyPort provider
-            orderContext = makeOrderContextPort provider
-            orderPlan = makeOrderPlanPort provider
-            nutritionPlan = makeNutritionPlanPort provider
+            orderContext = makeOrderContextPort agent logger provider
+            orderPlan = makeOrderPlanPort agent logger provider
+            nutritionPlan = makeNutritionPlanPort logger provider
             requireLoaded = fun () ->
                 let info = provider.GetResourceInfo()
                 if info.IsLoaded then None
                 else
                     info.Messages
                     |> Array.map (fun msg -> FormLogging.formatMessage msg)
-                    |> Error
                     |> Some
         }
