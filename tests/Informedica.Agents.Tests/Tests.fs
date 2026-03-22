@@ -477,9 +477,21 @@ module Tests =
             ]
 
 
+        let private envVarName = "AGENT_REPLY_TIMEOUT_MS"
+
+        /// Helper: run an action with a temporary env var value, restoring the previous value afterward.
+        let private withEnvVar value action =
+            let previous = Environment.GetEnvironmentVariable(envVarName)
+            Environment.SetEnvironmentVariable(envVarName, value)
+            try
+                action ()
+            finally
+                Environment.SetEnvironmentVariable(envVarName, previous)
+
         // Configurable fallback timeout tests
         let fallbackTimeoutTests =
-            testList "Fallback Timeout (postAndReply with Infinite DefaultTimeout)" [
+            // Tests that mutate AGENT_REPLY_TIMEOUT_MS must run sequentially
+            testSequenced <| testList "Fallback Timeout (postAndReply with Infinite DefaultTimeout)" [
 
                 test "postAndReply should succeed for fast agents with default 30s fallback" {
                     let agent = Agent.createReply<int, int>(fun n -> n * 2)
@@ -500,9 +512,7 @@ module Tests =
                 }
 
                 test "postAndReply should use AGENT_REPLY_TIMEOUT_MS env var when set" {
-                    // Set a very short timeout via env var
-                    Environment.SetEnvironmentVariable("AGENT_REPLY_TIMEOUT_MS", "500")
-                    try
+                    withEnvVar "500" (fun () ->
                         let agent = Agent.createReply<string, string>(fun msg ->
                             Thread.Sleep(2000) // 2s work — exceeds the 500ms env var
                             $"done: {msg}"
@@ -514,20 +524,17 @@ module Tests =
                         | ex ->
                             Expect.stringContains ex.Message "500 ms" "should mention timeout duration"
                         agent |> Agent.dispose
-                    finally
-                        Environment.SetEnvironmentVariable("AGENT_REPLY_TIMEOUT_MS", null)
+                    )
                 }
 
                 test "postAndReply should ignore invalid AGENT_REPLY_TIMEOUT_MS and use 30s default" {
-                    Environment.SetEnvironmentVariable("AGENT_REPLY_TIMEOUT_MS", "not-a-number")
-                    try
+                    withEnvVar "not-a-number" (fun () ->
                         let agent = Agent.createReply<int, int>(fun n -> n + 1)
                         // Should still work — falls back to 30_000
                         let result = agent |> Agent.postAndReply 41
                         Expect.equal result 42 "should use default 30s fallback"
                         agent |> Agent.dispose
-                    finally
-                        Environment.SetEnvironmentVariable("AGENT_REPLY_TIMEOUT_MS", null)
+                    )
                 }
 
                 test "postAndReply with explicit DefaultTimeout should bypass fallback" {

@@ -201,7 +201,6 @@ module Order =
     open Informedica.GenOrder.Lib
 
     open Shared.Types
-    open Mappers
 
 
     let getTotals age wghtInGram (ords: Order []) =
@@ -217,9 +216,9 @@ module Order =
             |> Option.map (ValueUnit.singleWithUnit Units.Time.day)
 
         ords
-        |> Array.map Order.mapFromSharedToOrder
+        |> Array.map Mappers.Order.mapFromSharedToOrder
         |> Totals.getTotals age wghtInKg
-        |> mapToTotals
+        |> Mappers.mapToTotals
 
 
 module OrderContext =
