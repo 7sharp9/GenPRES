@@ -350,7 +350,7 @@ module OrderContext =
             with
             | e ->
                 writeErrorMessage $"errored:\n{e}"
-                raise e
+                Error [| e.Message |]
 
 
 module OrderPlan =
