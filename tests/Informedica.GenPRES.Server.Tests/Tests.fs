@@ -293,7 +293,7 @@ module ResourceErrorTests =
                     Shared.Api.FormularyCmd emptyFormulary
 
                 let result =
-                    ServerApi.Command.processCmd provider cmd
+                    ServerApi.Command.processCmd (ServerApi.Adapters.makeAppEnv provider) cmd
                     |> Async.RunSynchronously
 
                 result
@@ -312,7 +312,7 @@ module ResourceErrorTests =
                     Shared.Api.ParenteraliaCmd emptyParenteralia
 
                 let result =
-                    ServerApi.Command.processCmd provider cmd
+                    ServerApi.Command.processCmd (ServerApi.Adapters.makeAppEnv provider) cmd
                     |> Async.RunSynchronously
 
                 result

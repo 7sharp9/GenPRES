@@ -9,8 +9,11 @@
   <ItemGroup>
     <Compile Include="Logging.fs" />
     <Compile Include="ServerApi.Mappers.fs" />
+    <Compile Include="ServerApi.Ports.fs" />
     <Compile Include="ServerApi.Services.fs" />
+    <Compile Include="ServerApi.Adapters.fs" />
     <Compile Include="ServerApi.Command.fs" />
+    <Compile Include="ServerApi.CompositionRoot.fs" />
     <Compile Include="ServerApi.ApiImpl.fs" />
     <Compile Include="Server.fs" />
     <None Include="Scripts\load.fsx" />
