@@ -18,8 +18,11 @@
 
 #load "../Logging.fs"
 #load "../ServerApi.Mappers.fs"
+#load "../ServerApi.Ports.fs"
 #load "../ServerApi.Services.fs"
+#load "../ServerApi.Adapters.fs"
 #load "../ServerApi.Command.fs"
+#load "../ServerApi.CompositionRoot.fs"
 #load "../ServerApi.ApiImpl.fs"
 
 fsi.AddPrinter<System.DateTime> _.ToShortDateString()

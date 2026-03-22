@@ -4,30 +4,6 @@ namespace ServerApi
 [<AutoOpen>]
 module ApiImpl =
 
-    open Informedica.Utils.Lib.ConsoleWriter.NewLineNoTime
-    open Shared.Api
-
-
-    /// An implementation of the Shared IServerApi protocol.
-    let createServerApi provider : IServerApi =
-        {
-            processCommand =
-                fun cmd ->
-                    async {
-                        try
-                            writeInfoMessage $"Processing command: {cmd |> Shared.Api.Command.toString}"
-                            let! result = Command.processCmd provider cmd
-                            writeInfoMessage $"Finished processing command: {cmd |> Shared.Api.Command.toString}"
-                            return result
-                        with
-                        | ex ->
-                            writeErrorMessage $"Error processing command: {cmd |> Shared.Api.Command.toString}\n{ex.Message}"
-                            return Error [| ex.Message |]
-                    }
-
-            testApi =
-                fun () ->
-                    async {
-                        return "Hello world!"
-                    }
-        }
+    /// Creates the IServerApi implementation using the composition root.
+    let createServerApi provider : Shared.Api.IServerApi =
+        CompositionRoot.compose provider
