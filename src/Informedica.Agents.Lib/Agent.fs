@@ -286,7 +286,7 @@ module Agent =
     let postAndReply msg (agent: Agent<_>) =
         if agent.DefaultTimeout = Timeout.Infinite then
             agent
-            |> tryPostAndReply 1000 msg
+            |> tryPostAndReply 30_000 msg
             |> function
                 | Some v -> v
                 | None -> failwith "Timed out waiting for reply"

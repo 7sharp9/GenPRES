@@ -17,7 +17,10 @@
 // These can be loaded all at once.
 
 #load "../Logging.fs"
-#load "../ServerApi.fs"
+#load "../ServerApi.Mappers.fs"
+#load "../ServerApi.Services.fs"
+#load "../ServerApi.Command.fs"
+#load "../ServerApi.ApiImpl.fs"
 
 fsi.AddPrinter<System.DateTime> _.ToShortDateString()
 

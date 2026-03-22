@@ -310,14 +310,10 @@ Each command sent to an agent is a discrete, serialisable event. Enabling an aud
 ```fsharp
 let auditedAgent innerAgent =
     Agent.createReply<Command, Response>(fun cmd ->
-        // Wrap in try/with: if postAndReply throws (e.g. timeout), we still reply
-        // so the caller is never left blocked on an unanswered reply channel.
+        // Wrap in try/with so the caller is never left blocked
+        // on an unanswered reply channel if the inner agent fails.
         try
             writeInfoMessage $"[AUDIT] {cmd |> Command.toString}"
-            let response = innerAgent |> Agent.postAndReply cmd
-        // Wrap in try/with: if postAndReply throws (e.g. timeout), we still reply
-        // so the caller is never left blocked on an unanswered reply channel.
-        try
             let response = innerAgent |> Agent.postAndReply cmd
             writeInfoMessage $"[AUDIT] response received"
             response
