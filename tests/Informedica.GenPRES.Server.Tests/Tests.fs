@@ -322,6 +322,49 @@ module ResourceErrorTests =
         ]
 
 
+    let agentAdapterGuardTests =
+        testList "processCmd IsLoaded guard (AgentAdapters)" [
+
+            test "FormularyCmd returns Error when provider IsLoaded = false (agent)" {
+                let provider =
+                    CachedResourceProvider(
+                        (fun () -> Error [ errMsg "resources unavailable" ]),
+                        None
+                    )
+
+                let cmd =
+                    Shared.Api.FormularyCmd emptyFormulary
+
+                let result =
+                    ServerApi.Command.processCmd (ServerApi.AgentAdapters.makeAppEnv provider) cmd
+                    |> Async.RunSynchronously
+
+                result
+                |> Result.isError
+                |> Expect.isTrue "should return Error for FormularyCmd when not loaded (agent)"
+            }
+
+            test "ParenteraliaCmd returns Error when provider IsLoaded = false (agent)" {
+                let provider =
+                    CachedResourceProvider(
+                        (fun () -> Error [ errMsg "resources unavailable" ]),
+                        None
+                    )
+
+                let cmd =
+                    Shared.Api.ParenteraliaCmd emptyParenteralia
+
+                let result =
+                    ServerApi.Command.processCmd (ServerApi.AgentAdapters.makeAppEnv provider) cmd
+                    |> Async.RunSynchronously
+
+                result
+                |> Result.isError
+                |> Expect.isTrue "should return Error for ParenteraliaCmd when not loaded (agent)"
+            }
+        ]
+
+
     [<Tests>]
     let tests =
         testList "Resource Error Handling Tests" [
@@ -330,4 +373,5 @@ module ResourceErrorTests =
             cachedProviderErrorStateTests
             cachingBehaviorTests
             processCmdGuardTests
+            agentAdapterGuardTests
         ]

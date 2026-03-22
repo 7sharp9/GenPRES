@@ -8,7 +8,7 @@ module CompositionRoot =
 
 
     let compose (provider: Informedica.GenForm.Lib.Resources.IResourceProvider) : IServerApi =
-        let env = Adapters.makeAppEnv provider
+        let env = AgentAdapters.makeAppEnv provider
 
         {
             processCommand =
