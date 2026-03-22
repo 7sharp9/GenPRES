@@ -3,7 +3,7 @@ namespace ServerApi
 /// Agent-backed adapter implementations for the AppEnv ports.
 /// Wraps all service calls through a MailboxProcessor for:
 ///   - Serialized access to the IResourceProvider (prevents concurrent mutation)
-///   - Audit logging of each command/response pair
+///   - Debug-level console logging of command entry/completion
 ///   - Async boundary for all callers
 module AgentAdapters =
 
@@ -70,7 +70,7 @@ module AgentAdapters =
 
         let setComponent name =
             match logAgent with
-            | Some a -> a |> Logging.setComponentName (Some name) |> Async.Start
+            | Some a -> a |> Logging.setComponentName (Some name) |> Async.RunSynchronously
             | None -> ()
 
         match cmd with
@@ -190,7 +190,10 @@ module AgentAdapters =
 
     /// Build an AppEnv backed by a single MailboxProcessor agent.
     /// All service calls are serialized through the agent, providing
-    /// thread-safe access to the provider and audit logging.
+    /// thread-safe access to the provider.
+    /// Note: requireLoaded is not routed through the agent because it only
+    /// reads the thread-safe ResourceInfo and returns a different type
+    /// (string[] option) than the agent's ServerResponse DU.
     let makeAppEnv (provider: Resources.IResourceProvider) : AppEnv =
         let logAgent, logger =
             match Logging.loggingLevel with
