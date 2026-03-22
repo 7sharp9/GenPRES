@@ -341,11 +341,12 @@ module OrderContext =
                 |> toServerCmd
                 |> OrderContext.logOrderContext logger "start eval"
                 |> OrderContext.evaluate logger provider
-                |> Result.get
-                |> OrderContext.logOrderContext logger "finish eval"
-                |> extractServerCtx
-                |> map
-                |> Ok
+                |> Result.map (
+                    OrderContext.logOrderContext logger "finish eval"
+                    >> extractServerCtx
+                    >> map
+                )
+                |> Result.mapError Array.singleton
             with
             | e ->
                 writeErrorMessage $"errored:\n{e}"

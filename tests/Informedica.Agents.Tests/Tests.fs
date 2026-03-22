@@ -494,26 +494,24 @@ module Tests =
             testSequenced <| testList "Fallback Timeout (postAndReply with Infinite DefaultTimeout)" [
 
                 test "postAndReply should succeed for fast agents with default 30s fallback" {
-                    let agent = Agent.createReply<int, int>(fun n -> n * 2)
+                    use agent = Agent.createReply<int, int>(fun n -> n * 2)
                     // DefaultTimeout is Timeout.Infinite by default, so fallback path is used
                     let result = agent |> Agent.postAndReply 21
                     Expect.equal result 42 "should return doubled value"
-                    agent |> Agent.dispose
                 }
 
                 test "postAndReply should succeed for slow agents within 30s fallback" {
-                    let agent = Agent.createReply<string, string>(fun msg ->
+                    use agent = Agent.createReply<string, string>(fun msg ->
                         Thread.Sleep(2000) // 2s work — well within 30s fallback
                         $"done: {msg}"
                     )
                     let result = agent |> Agent.postAndReply "slow"
                     Expect.equal result "done: slow" "should complete within fallback timeout"
-                    agent |> Agent.dispose
                 }
 
                 test "postAndReply should use AGENT_REPLY_TIMEOUT_MS env var when set" {
                     withEnvVar "500" (fun () ->
-                        let agent = Agent.createReply<string, string>(fun msg ->
+                        use agent = Agent.createReply<string, string>(fun msg ->
                             Thread.Sleep(2000) // 2s work — exceeds the 500ms env var
                             $"done: {msg}"
                         )
@@ -523,26 +521,23 @@ module Tests =
                         with
                         | ex ->
                             Expect.stringContains ex.Message "500 ms" "should mention timeout duration"
-                        agent |> Agent.dispose
                     )
                 }
 
                 test "postAndReply should ignore invalid AGENT_REPLY_TIMEOUT_MS and use 30s default" {
                     withEnvVar "not-a-number" (fun () ->
-                        let agent = Agent.createReply<int, int>(fun n -> n + 1)
+                        use agent = Agent.createReply<int, int>(fun n -> n + 1)
                         // Should still work — falls back to 30_000
                         let result = agent |> Agent.postAndReply 41
                         Expect.equal result 42 "should use default 30s fallback"
-                        agent |> Agent.dispose
                     )
                 }
 
                 test "postAndReply with explicit DefaultTimeout should bypass fallback" {
-                    let agent = Agent.createReply<int, int>(fun n -> n * 3)
+                    use agent = Agent.createReply<int, int>(fun n -> n * 3)
                     agent |> Agent.setDefaultTimeout 5000 // explicit 5s timeout
                     let result = agent |> Agent.postAndReply 10
                     Expect.equal result 30 "should use explicit timeout path"
-                    agent |> Agent.dispose
                 }
             ]
 

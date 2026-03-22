@@ -96,6 +96,12 @@ module Mappers =
             dto.Variable <- ov.Variable |> mapFromVariable
             dto.Constraints <- ov.DefinedConstraints |> mapFromVariable
             dto.Calculated <- ov.CalculatedConstraints |> mapFromVariable
+            dto.Level <-
+                match ov.Level with
+                | IsNormal -> OrderVariable.Dto.IsNormal
+                | IsCaution -> OrderVariable.Dto.IsCaution
+                | IsWarning -> OrderVariable.Dto.IsWarning
+                | IsAlert -> OrderVariable.Dto.IsAlert
 
             dto
 
