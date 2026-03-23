@@ -43,6 +43,7 @@ COPY src/Informedica.NKF.Lib src/Informedica.NKF.Lib
 COPY src/Informedica.FTK.Lib src/Informedica.FTK.Lib
 COPY src/Informedica.GenFORM.Lib src/Informedica.GenFORM.Lib
 COPY src/Informedica.GenORDER.Lib src/Informedica.GenORDER.Lib
+COPY src/Informedica.GenINTERACT.Lib src/Informedica.GenINTERACT.Lib
 COPY src/Informedica.MCP.Lib src/Informedica.MCP.Lib
 COPY src/Informedica.FHIR.Lib src/Informedica.FHIR.Lib
 COPY src/Informedica.DataPlatform.Lib src/Informedica.DataPlatform.Lib
