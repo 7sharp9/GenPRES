@@ -47,7 +47,7 @@ module Verification =
 
 The input is valid F# code — it compiles and runs successfully with `dotnet fsi`. However, Fantomas 7.0.5 reports:
 
-```
+```text
 Failed to format file: repro.fsx : Formatting repro.fsx leads to invalid F# code
 ```
 
