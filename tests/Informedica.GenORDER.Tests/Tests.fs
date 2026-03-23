@@ -962,10 +962,130 @@ module Tests
             }
         ]
 
+    module PatientConstructorTests =
+
+
+        let tests =
+            testList "Patient constructors" [
+
+                test "premature has gestational age set" {
+                    Patient.premature.GestAge
+                    |> Expect.isSome "premature should have gestational age"
+                }
+
+                test "premature has department NEO" {
+                    Patient.premature.Department
+                    |> Expect.equal "should be NEO" (Some "NEO")
+                }
+
+                test "newBorn has age set" {
+                    Patient.newBorn.Age
+                    |> Expect.isSome "newBorn should have age"
+                }
+
+                test "infant has weight set" {
+                    Patient.infant.Weight
+                    |> Expect.isSome "infant should have weight"
+                }
+
+                test "child has height set" {
+                    Patient.child.Height
+                    |> Expect.isSome "child should have height"
+                }
+
+                test "teenager has age set" {
+                    Patient.teenager.Age
+                    |> Expect.isSome "teenager should have age"
+                }
+
+                test "adult has weight set" {
+                    Patient.adult.Weight
+                    |> Expect.isSome "adult should have weight"
+                }
+
+                test "all patient constructors have distinct departments or ages" {
+                    let patients =
+                        [
+                            Patient.premature
+                            Patient.newBorn
+                            Patient.infant
+                            Patient.toddler
+                            Patient.child
+                            Patient.teenager
+                            Patient.adult
+                        ]
+                    patients
+                    |> List.length
+                    |> Expect.equal "should have 7 distinct patients" 7
+                }
+            ]
+
+
+    module MedicationParserTests =
+
+
+        let tests =
+            testList "Medication.Parser" [
+
+                test "parseBigRationalOpt parses integer string" {
+                    Medication.Parser.parseBigRationalOpt "10"
+                    |> Expect.isSome "should parse '10'"
+                }
+
+                test "parseBigRationalOpt returns None for empty string" {
+                    Medication.Parser.parseBigRationalOpt ""
+                    |> Expect.isNone "empty string should give None"
+                }
+
+                test "parseBigRationalOpt returns None for whitespace" {
+                    Medication.Parser.parseBigRationalOpt "   "
+                    |> Expect.isNone "whitespace should give None"
+                }
+
+                test "parseDutchDecimal parses '1,5'" {
+                    Medication.Parser.parseDutchDecimal "1,5"
+                    |> Expect.isSome "should parse Dutch decimal '1,5'"
+                }
+
+                test "parseDutchDecimal parses '2.0'" {
+                    Medication.Parser.parseDutchDecimal "2.0"
+                    |> Expect.isSome "should parse '2.0'"
+                }
+
+                test "parseOrderType 'DiscontinuousOrder' gives Ok DiscontinuousOrder" {
+                    Medication.Parser.parseOrderType "DiscontinuousOrder"
+                    |> Expect.equal "should give Ok DiscontinuousOrder" (Ok DiscontinuousOrder)
+                }
+
+                test "parseOrderType 'TimedOrder' gives Ok TimedOrder" {
+                    Medication.Parser.parseOrderType "TimedOrder"
+                    |> Expect.equal "should give Ok TimedOrder" (Ok TimedOrder)
+                }
+
+                test "parseOrderType unknown gives Error" {
+                    Medication.Parser.parseOrderType "invalid"
+                    |> Result.isError
+                    |> Expect.isTrue "unknown order type should give Error"
+                }
+
+                test "parseLine returns None for line without colon" {
+                    Medication.Parser.parseLine "no colon here"
+                    |> Expect.isNone "no colon → None"
+                }
+
+                test "parseLine returns Some for key:value line" {
+                    Medication.Parser.parseLine "Name: Test"
+                    |> Expect.isSome "key:value → Some"
+                }
+            ]
+
+
     [<Tests>]
     let tests =
         testList "GenOrder Tests" [
             MedicationOrderTests.tests
             TypeTests.tests
             DosePrintoutTests.tests
+            PatientConstructorTests.tests
+            MedicationParserTests.tests
         ]
