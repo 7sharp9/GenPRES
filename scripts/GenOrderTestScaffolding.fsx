@@ -12,7 +12,6 @@
 
 open System
 open System.IO
-open System.Text.RegularExpressions
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -22,6 +21,9 @@ let repoRoot    = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let srcDir      = Path.Combine(repoRoot, "src", "Informedica.GenORDER.Lib")
 let ciTestsPath = Path.Combine(repoRoot, "tests", "Informedica.GenORDER.Tests", "Tests.fs")
 
+// Validate configured paths early so the script fails fast with a clear message.
+if not (Directory.Exists srcDir) then
+    failwithf "Configured source directory does not exist: %s" srcDir
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -49,11 +51,24 @@ type FunctionEntry =
 // Helper: check CI tests
 // ---------------------------------------------------------------------------
 
-let ciContent = File.ReadAllText ciTestsPath
+let ciContent =
+    if File.Exists ciTestsPath then
+        File.ReadAllText ciTestsPath
+    else
+        printfn "WARNING: CI tests file not found at path: %s. Proceeding with empty content." ciTestsPath
+        ""
+
+let testNameRegex = Regex(@"test(Task)?\s*\"([^\"]+)\"", RegexOptions.Compiled)
 
 let hasTest name =
-    // Simple heuristic: function name appears in a test "" block
-    ciContent.Contains(name) |> function
+    // Heuristic: function name appears within an Expecto test/testTask name (the string in test "...").
+    testNameRegex.Matches(ciContent)
+    |> Seq.cast<Match>
+    |> Seq.exists (fun m ->
+        let testName = m.Groups.[2].Value
+        testName.Contains(name)
+    )
+    |> function
     | true  -> HasTest
     | false -> NoTest
 
@@ -82,16 +97,16 @@ let catalogue =
         { Module = "Patient"
           Name   = "premature"
           Purity = Pure
-          Signature = "unit -> Patient"
+          Signature = "Patient"
           Status = hasTest "premature"
-          Notes  = "Returns a Patient with age=24 weeks gest + weight range" }
+          Notes  = "Returns a Patient with age=32 weeks gest + weight range" }
 
         { Module = "Patient"
           Name   = "newBorn"
           Purity = Pure
           Signature = "unit -> Patient"
           Status = hasTest "newBorn"
-          Notes  = "Returns a newborn Patient (age 0–28 days, weight 2.5–4.5 kg)" }
+          Notes  = "Returns an example newborn Patient at 1 week (weight 2.5–4.5 kg)" }
 
         { Module = "Patient"
           Name   = "infant"

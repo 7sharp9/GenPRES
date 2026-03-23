@@ -8,7 +8,6 @@
 
 open System
 open System.IO
-open System.Text.RegularExpressions
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -232,7 +231,7 @@ module PatientTests =
                         at
                         |> AgeValue.fromAgeType
                         |> AgeValue.toAgeType
-                        |> Expect.equal $"fromAgeType {at} should round-trip" at
+                        |> Expect.equal $"fromAgeType %A{at} should round-trip" at
                 }
 
             ]
