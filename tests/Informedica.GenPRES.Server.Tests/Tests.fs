@@ -414,6 +414,7 @@ module StubAdapterTests =
                 orderContext = orderContext
                 orderPlan = orderPlan
                 nutritionPlan = nutritionPlan
+                interaction = { checkInteractions = fun _ -> async { return Ok [] } }
                 requireLoaded = fun () -> None
             }
 
@@ -436,6 +437,7 @@ module StubAdapterTests =
                         selectNutritionOrderScenario = fun _ -> async { return Error [| "not loaded" |] }
                         navigateNutritionOrderContext = fun _ -> async { return Error [| "not loaded" |] }
                     }
+                interaction = { checkInteractions = fun _ -> async { return Error [| "not loaded" |] } }
                 requireLoaded = fun () -> Some msgs
             }
 

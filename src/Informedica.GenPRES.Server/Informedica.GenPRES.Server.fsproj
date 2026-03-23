@@ -24,6 +24,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Informedica.GenPRES.Shared\Informedica.GenPRES.Shared.fsproj" />
+    <ProjectReference Include="..\Informedica.GenINTERACT.Lib\Informedica.GenINTERACT.Lib.fsproj" />
     <ProjectReference Include="..\Informedica.DataPlatform.Lib\Informedica.DataPlatform.Lib.fsproj" />
     <ProjectReference Include="..\Informedica.HIXConnect.Lib\Informedica.HIXConnect.Lib.fsproj" />
   </ItemGroup>

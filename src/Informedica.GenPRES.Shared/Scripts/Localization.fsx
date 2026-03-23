@@ -661,6 +661,51 @@ let staticTranslations: (Terms * (Localization.Locales * string) list) list =
             es, "Parenterales"
             it, "Preparazioni parenterali"
         ]
+        Terms.``Interactions``,
+        [
+            en, "Interactions"
+            nl, "Interacties"
+            fr, "Interactions"
+            de, "Interaktionen"
+            es, "Interacciones"
+            it, "Interazioni"
+        ]
+        Terms.``Interactions Drug 1``,
+        [
+            en, "Drug 1"
+            nl, "Medicatie 1"
+            fr, "Médicament 1"
+            de, "Medikament 1"
+            es, "Medicamento 1"
+            it, "Farmaco 1"
+        ]
+        Terms.``Interactions Drug 2``,
+        [
+            en, "Drug 2"
+            nl, "Medicatie 2"
+            fr, "Médicament 2"
+            de, "Medikament 2"
+            es, "Medicamento 2"
+            it, "Farmaco 2"
+        ]
+        Terms.``Interactions Class``,
+        [
+            en, "Interaction class"
+            nl, "Interactie klasse"
+            fr, "Classe d'interaction"
+            de, "Interaktionsklasse"
+            es, "Clase de interacción"
+            it, "Classe di interazione"
+        ]
+        Terms.``Interactions None Found``,
+        [
+            en, "No interactions found"
+            nl, "Geen interacties gevonden"
+            fr, "Aucune interaction trouvée"
+            de, "Keine Interaktionen gefunden"
+            es, "No se encontraron interacciones"
+            it, "Nessuna interazione trovata"
+        ]
         Terms.``Delete``,
         [
             en, "Delete"

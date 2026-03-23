@@ -487,6 +487,14 @@ module Types =
         }
 
 
+    type DrugInteraction =
+        {
+            Name: string * string
+            Drug1: string
+            Drug2: string
+        }
+
+
     type OrderPlan =
         {
             Patient: Patient

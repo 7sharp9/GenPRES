@@ -38,6 +38,7 @@ module GenPres =
                 Prescribe
                 Nutrition
                 TreatmentPlan
+                Interactions
                 Formulary
                 Parenteralia
                 Settings
@@ -59,6 +60,7 @@ module GenPres =
                             | s when p = Prescribe -> Mui.Icons.Message |> Some, s, b
                             | s when p = Nutrition -> Mui.Icons.LocalDiningIcon |> Some, s, b
                             | s when p = TreatmentPlan -> Mui.Icons.SummarizeIcon |> Some, s, b
+                            | s when p = Interactions -> Mui.Icons.WarningAmber |> Some, s, b
                             | s when p = Formulary -> Mui.Icons.LocalPharmacy |> Some, s, b
                             | s when p = Parenteralia -> Mui.Icons.Bloodtype |> Some, s, b
                             | s when p = Settings -> Mui.Icons.Settings |> Some, s, b
@@ -86,7 +88,6 @@ module GenPres =
                 |> updatePage
 
                 { state with
-
                     SideMenuItems =
                         state.SideMenuItems
                         |> Array.map (fun (icon, item, _) -> if item = s then icon, item, true else icon, item, false)
@@ -122,6 +123,8 @@ module GenPres =
                 updateFormulary: Formulary -> unit
                 parenteralia: Deferred<Parenteralia>
                 updateParenteralia: Parenteralia -> unit
+                interactions: Deferred<DrugInteraction[]>
+                checkInteractions: string list -> unit
                 reloadResources: string -> unit
                 page: Global.Pages
                 localizationTerms: Deferred<string[][]>
@@ -172,6 +175,7 @@ module GenPres =
                     | Global.Pages.Prescribe
                     | Global.Pages.Nutrition
                     | Global.Pages.TreatmentPlan
+                    | Global.Pages.Interactions
                     | Global.Pages.Parenteralia
                     | Global.Pages.Formulary -> "auto"
                     | _ when not isMobile -> "hidden"
@@ -186,13 +190,12 @@ module GenPres =
                     $"""
                 import Box from '@mui/material/Box';
                 <Box sx={ {| flexBasis = 1 |} } >
-                    {Views.Patient.View(
+                    {Views.Patient.View
                          {|
                              patient = props.patient
                              updatePatient = props.updatePatient
                              localizationTerms = props.localizationTerms
-                         |}
-                     )}
+                         |}}
                 </Box>
                 """
 
@@ -209,7 +212,7 @@ module GenPres =
 
         <React.Fragment>
             <Box>
-                {Components.TitleBar.View(
+                {Components.TitleBar.View
                      {|
                          title =
                              let s =
@@ -222,19 +225,17 @@ module GenPres =
                          hospitals = props.hospitals
                          switchLang = props.switchLang
                          switchHosp = props.switchHosp
-                     |}
-                 )}
+                     |}}
             </Box>
             <React.Fragment>
-                {Components.SideMenu.View(
+                {Components.SideMenu.View
                      {|
                          anchor = "left"
                          isOpen = state.SideMenuIsOpen
-                         toggle = (fun _ -> ToggleMenu |> dispatch)
+                         toggle = fun _ -> ToggleMenu |> dispatch
                          menuClick = SideMenuClick >> dispatch
                          items = state.SideMenuItems
-                     |}
-                 )}
+                     |}}
             </React.Fragment>
             <Container id="page-container" sx={ {|
                                                     height = "87%"
@@ -290,6 +291,14 @@ module GenPres =
                                              match props.treatmentPlan with
                                              | Resolved tp -> Api.UpdateOrderPlan(tp, Some(cmd, ctx)) |> props.treatmentPlanCommand
                                              | _ -> ()
+                                     localizationTerms = props.localizationTerms
+                                 |}
+                         | Global.Pages.Interactions ->
+                             Views.Interactions.View
+                                 {|
+                                     interactions = props.interactions
+                                     checkInteractions = props.checkInteractions
+                                     treatmentPlan = props.treatmentPlan
                                      localizationTerms = props.localizationTerms
                                  |}
                          | Global.Pages.Formulary ->

@@ -17,11 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tests (GenORDER)**: Migrate test scaffolding into formal CI test suite — 120 lines of new Expecto tests
 - **Tests (NKF)**: Migrate NKF test analysis into formal CI test suite — 194 lines of new Expecto tests
 - **Build**: Add Fantomas pre-commit hook — F# source files are now auto-formatted on every commit; `.fantomasignore` updated to exclude client UI code
+---
+
+## [0.1.2-alpha] - 2026-03-23
+
+> ⚠️ **Alpha release** — Early development stage. Major features are incomplete. **Not for clinical use.**
+
+### Added
+
+- **Architecture**: Modular agent bounded contexts — safe and clean architecture with Command/Response pattern for ZForm, ZIndex, GenForm, and GenOrder agents (PR #204)
+- **Server**: Graceful shutdown support with proper resource cleanup (PR #207)
+- **Build**: Enforce Fantomas code formatting on all projects at commit time (PR #208, #209)
+- **Tests**: Add formal Expecto tests for GenForm, GenOrder, and NKF libraries (PR #206)
+- **Tests (Agents)**: Convert `Agents.Lib` tests to Expecto.Flip reversed-argument style (Issue #197)
+- **Docs**: Additional F# documentation and implementation proposals (PR #201)
 - **Scripts**: `GenCORECalculationsScaffolding.fsx` for W3 GenCORE test scaffolding — catalogues pure functions in Calculations and Measures modules and generates Expecto test scaffolding
 - **Scripts**: `GenCOREPatientScaffolding.fsx` for W3 GenCORE patient scaffolding — identifies coverage gaps and provides concrete test scaffolding for Patient modules
 - **Scripts**: `GenFORMTestScaffolding.fsx` for W3 GenFORM test scaffolding — catalogues pure functions and generates scaffolded Expecto tests for the GenFORM library
 - **Scripts**: `GenOrderTestScaffolding.fsx` for W3 GenORDER test scaffolding — identifies coverage gaps and provides concrete test scaffolding for Patient, Medication, and OrderVariable modules
 - **Server/GenForm**: Improve error handling when resources (Google Sheets / CSV) cannot be loaded
+- **Scripts**: `NKFTestAnalysis.fsx` for W3 NKF test coverage — catalogues 14 pure testable functions and prints ready-to-use Expecto test cases
 - **Tests (ZForm)**: Migrate 11 pure ZForm tests from `ZFormCITests.fsx` script into `tests/Informedica.ZForm.Tests/Tests.fs` formal test suite (W3)
 - **Scripts (NKF)**: Add `NKFCITests.fsx` — 19 pure NKF tests ready for CI migration (W3)
 - **Scripts (NKF)**: Add `NKFTestAnalysis.fsx` — W3 test coverage analysis for NKF library
@@ -41,6 +56,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Server (Agents)**: Convert `processOrderPlanCommand` and `processNutritionCommand` to use `let!` for async calls instead of `Async.RunSynchronously`, preventing thread-pool starvation
+- **Dependencies**: Update Fable to latest version (PR #205)
+- **Build**: Apply Fantomas formatting to client UI code (PR #209)
+
+### Fixed
+
+- **Server/GenForm**: Improve error handling when resources (Google Sheets / CSV) cannot be loaded
+- **Tests**: Fix errors in test scaffolding scripts (PR #203)
 - **GenOrder**: Fix incompatible substance concentrations causing incorrect product filtering
 - **GenOrder**: Add warning when filtering out products with incompatible units
 - **Client (UI)**: Fix date formatting — zero-padded day/month display (e.g., `01 - 03 - 2026`)

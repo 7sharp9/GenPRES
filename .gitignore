@@ -159,6 +159,8 @@
 !/data/
 !/data/cache/
 !/data/cache/*.demo
+!/data/cache/interactions/
+!/data/cache/interactions/*.JSON
 !/data/zindex/
 !/data/zindex/BST*.test
 !/data/formulary/
@@ -221,6 +223,9 @@
 !/src/Informedica.GenFORM.Lib/
 !/src/Informedica.GenFORM.Lib/Scripts/
 !/src/Informedica.GenFORM.Lib/Notebooks/
+#Informedica.GenINTERACT.Lib
+!/src/Informedica.GenINTERACT.Lib/
+!/src/Informedica.GenINTERACT.Lib/Scripts/
 #Informedica.GenORDER.Lib
 !/src/Informedica.GenORDER.Lib/
 !/src/Informedica.GenORDER.Lib/Scripts/
@@ -250,6 +255,8 @@
 !/src/Informedica.GenPRES.Server/data
 !/src/Informedica.GenPRES.Server/data/cache
 !/src/Informedica.GenPRES.Server/data/cache/*.demo
+!/src/Informedica.GenPRES.Server/data/cache/interactions/
+!/src/Informedica.GenPRES.Server/data/cache/interactions/*.JSON
 # Informedica.GenPRES.Client
 !/src/Informedica.GenPRES.Client/
 !/src/Informedica.GenPRES.Client/Scripts/

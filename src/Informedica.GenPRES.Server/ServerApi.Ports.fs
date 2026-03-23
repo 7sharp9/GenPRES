@@ -33,11 +33,15 @@ type NutritionPlanPort =
     }
 
 
+type InteractionPort = { checkInteractions: string list -> Async<Result<DrugInteraction list, string[]>> }
+
+
 type AppEnv =
     {
         formulary: FormularyPort
         orderContext: OrderContextPort
         orderPlan: OrderPlanPort
         nutritionPlan: NutritionPlanPort
+        interaction: InteractionPort
         requireLoaded: unit -> string[] option
     }
