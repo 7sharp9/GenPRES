@@ -58,9 +58,17 @@ let ciContent =
         printfn "WARNING: CI tests file not found at path: %s. Proceeding with empty content." ciTestsPath
         ""
 
+let testNameRegex = Regex(@"test(Task)?\s*\"([^\"]+)\"", RegexOptions.Compiled)
+
 let hasTest name =
-    // Simple heuristic: function name appears in a test "" block
-    ciContent.Contains(name) |> function
+    // Heuristic: function name appears within an Expecto test/testTask name (the string in test "...").
+    testNameRegex.Matches(ciContent)
+    |> Seq.cast<Match>
+    |> Seq.exists (fun m ->
+        let testName = m.Groups.[2].Value
+        testName.Contains(name)
+    )
+    |> function
     | true  -> HasTest
     | false -> NoTest
 
