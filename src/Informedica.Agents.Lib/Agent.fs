@@ -236,6 +236,26 @@ module Agent =
         )
 
     /// <summary>
+    /// Creates and starts an agent that supports request-reply messaging
+    /// with an async processor function. Unlike createReply, the processor
+    /// returns Async&lt;'Reply&gt;, so the agent can await async operations
+    /// (e.g., inter-agent calls) without blocking a thread pool thread.
+    /// </summary>
+    /// <param name="processor">An async function to process each request and produce a reply.</param>
+    /// <returns>An Agent instance.</returns>
+    let createReplyAsync<'Request, 'Reply>(processor: 'Request -> Async<'Reply>) =
+        Agent<'Request * AsyncReplyChannel<'Reply>>.Start(fun inbox ->
+            let rec loop () = async {
+                let! request, replyChannel = inbox.Receive()
+                let! reply = processor request
+                replyChannel.Reply(reply)
+                return! loop ()
+            }
+            loop ()
+        )
+
+
+    /// <summary>
     /// Creates and starts a stateful agent that supports request-reply messaging.
     /// The processor function computes a reply and updates the state for each request.
     /// </summary>

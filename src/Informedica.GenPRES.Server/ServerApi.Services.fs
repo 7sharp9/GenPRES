@@ -1,7 +1,7 @@
 namespace ServerApi
 
 
-module Formulary =
+module FormularyService =
 
     open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
@@ -146,7 +146,7 @@ DoseTypes: {form.DoseTypes |> Array.length}
         Ok form
 
 
-module Parenteralia =
+module ParenteraliaService =
 
     open Informedica.GenOrder.Lib
     open Informedica.Utils.Lib.ConsoleWriter.NewLineTime
@@ -194,7 +194,7 @@ module Parenteralia =
         |> Ok
 
 
-module Order =
+module OrderService =
 
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
@@ -255,7 +255,7 @@ module OrderContextService =
 
                 ctx.Scenarios
                 |> Array.map _.Order
-                |> Order.getTotals a w
+                |> OrderService.getTotals a w
         }
 
 
@@ -355,7 +355,7 @@ module OrderContextService =
                 Error [| e.Message |]
 
 
-module OrderPlan =
+module OrderPlanService =
 
     open Shared
     open Shared.Types
@@ -363,29 +363,32 @@ module OrderPlan =
     module OrderLogger = Informedica.GenOrder.Lib.OrderLogging
 
 
-    let updateOrderPlan logger provider (tp : OrderPlan) (cmdOpt: (Api.OrderContextCommand * OrderContext) option) =
+    let updateOrderPlan (orderCtxPort: OrderContextPort) (tp : OrderPlan) (cmdOpt: (Api.OrderContextCommand * OrderContext) option) =
         match cmdOpt with
-        | None -> tp
+        | None -> async { return tp }
         | Some (cmd, ctx) ->
-            ctx
-            |> OrderContextService.evaluate logger provider cmd
-            |> Result.map (fun newCtx ->
-                let newOsc = newCtx.Scenarios |> Array.tryExactlyOne
+            async {
+                let! result = orderCtxPort.evaluate cmd ctx
+                return
+                    result
+                    |> Result.map (fun newCtx ->
+                        let newOsc = newCtx.Scenarios |> Array.tryExactlyOne
 
-                { tp with
-                    Selected = newOsc
-                    Scenarios =
-                        match newOsc with
-                        | None -> tp.Scenarios
-                        | Some newOsc ->
-                            tp.Scenarios
-                            |> Array.map (fun sc ->
-                                if sc |> Models.OrderScenario.eqs newOsc then newOsc
-                                else sc
-                            )
-                }
-            )
-            |> Result.defaultValue tp
+                        { tp with
+                            Selected = newOsc
+                            Scenarios =
+                                match newOsc with
+                                | None -> tp.Scenarios
+                                | Some newOsc ->
+                                    tp.Scenarios
+                                    |> Array.map (fun sc ->
+                                        if sc |> Models.OrderScenario.eqs newOsc then newOsc
+                                        else sc
+                                    )
+                        }
+                    )
+                    |> Result.defaultValue tp
+            }
 
 
     let calculateTotals (tp : OrderPlan) =
@@ -402,11 +405,11 @@ module OrderPlan =
 
                 scs
                 |> Array.map _.Order
-                |> Order.getTotals a w
+                |> OrderService.getTotals a w
         }
 
 
-module NutritionPlan =
+module NutritionPlanService =
 
     open Shared
     open Shared.Types
@@ -563,31 +566,36 @@ module NutritionPlan =
                 let a = plan.Patient |> Models.Patient.getAgeInDays |> Option.map int
                 plan.NutritionContexts
                 |> Array.collect (fun nc -> nc.OrderContext.Scenarios |> Array.map _.Order)
-                |> Order.getTotals a w
+                |> OrderService.getTotals a w
         }
 
 
     /// Discovers available filter options for a given OrderContext.
-    /// Evaluates the context and intersects the resolved options with the configured values.
-    let discoverFilterOptions logger provider ctx =
-        match OrderContextService.evaluate logger provider Api.UpdateOrderContext ctx with
-        | Ok resolved ->
-            { resolved with
-                Filter =
-                    { resolved.Filter with
-                        Indications =
-                            resolved.Filter.Indications
-                            |> Array.filter (fun i -> ctx.Filter.Indications |> Array.exists ((=) i))
-                        Generics =
-                            resolved.Filter.Generics
-                            |> Array.filter (fun g -> ctx.Filter.Generics |> Array.exists ((=) g))
-                        DoseTypes =
-                            resolved.Filter.DoseTypes
-                            |> Array.filter (fun dt -> ctx.Filter.DoseTypes |> Array.exists ((=) dt))
+    /// Evaluates the context via the OrderContext port and intersects
+    /// the resolved options with the configured values.
+    let discoverFilterOptions (orderCtxPort: OrderContextPort) ctx =
+        async {
+            let! result = orderCtxPort.evaluate Api.UpdateOrderContext ctx
+            return
+                match result with
+                | Ok resolved ->
+                    { resolved with
+                        Filter =
+                            { resolved.Filter with
+                                Indications =
+                                    resolved.Filter.Indications
+                                    |> Array.filter (fun i -> ctx.Filter.Indications |> Array.exists ((=) i))
+                                Generics =
+                                    resolved.Filter.Generics
+                                    |> Array.filter (fun g -> ctx.Filter.Generics |> Array.exists ((=) g))
+                                DoseTypes =
+                                    resolved.Filter.DoseTypes
+                                    |> Array.filter (fun dt -> ctx.Filter.DoseTypes |> Array.exists ((=) dt))
+                            }
                     }
-            }
-            |> Some
-        | Error _ -> None
+                    |> Some
+                | Error _ -> None
+        }
 
 
     let initNutritionPlan _logger _provider (patient: Patient) : Result<NutritionPlan, string[]> =
@@ -632,48 +640,64 @@ module NutritionPlan =
         |> calculateNutritionTotals
 
 
-    let updateNutritionOrderContext logger provider (plan: NutritionPlan, id: string, ctx: OrderContext) : Result<NutritionPlan, string[]> =
-        match OrderContextService.evaluate logger provider Api.UpdateOrderContext ctx with
-        | Ok resolved ->
-            plan |> updateContext id resolved |> Ok
-        | Error errs -> Error errs
+    let updateNutritionOrderContext (orderCtxPort: OrderContextPort) (plan: NutritionPlan, id: string, ctx: OrderContext) : Async<Result<NutritionPlan, string[]>> =
+        async {
+            let! result = orderCtxPort.evaluate Api.UpdateOrderContext ctx
+            return
+                match result with
+                | Ok resolved ->
+                    plan |> updateContext id resolved |> Ok
+                | Error errs -> Error errs
+        }
 
 
-    let navigateNutritionOrderContext logger provider (plan: NutritionPlan, id: string, ctxCmd: Api.OrderContextCommand, ctx: OrderContext) : Result<NutritionPlan, string[]> =
-        match OrderContextService.evaluate logger provider ctxCmd ctx with
-        | Ok resolved ->
-            plan |> updateContext id resolved |> Ok
-        | Error errs -> Error errs
+    let navigateNutritionOrderContext (orderCtxPort: OrderContextPort) (plan: NutritionPlan, id: string, ctxCmd: Api.OrderContextCommand, ctx: OrderContext) : Async<Result<NutritionPlan, string[]>> =
+        async {
+            let! result = orderCtxPort.evaluate ctxCmd ctx
+            return
+                match result with
+                | Ok resolved ->
+                    plan |> updateContext id resolved |> Ok
+                | Error errs -> Error errs
+        }
 
 
-    let selectNutritionOrderScenario logger provider (plan: NutritionPlan, id: string, ctx: OrderContext) : Result<NutritionPlan, string[]> =
-        match OrderContextService.evaluate logger provider Api.SelectOrderScenario ctx with
-        | Ok resolved ->
-            plan |> updateContext id resolved |> Ok
-        | Error errs -> Error errs
+    let selectNutritionOrderScenario (orderCtxPort: OrderContextPort) (plan: NutritionPlan, id: string, ctx: OrderContext) : Async<Result<NutritionPlan, string[]>> =
+        async {
+            let! result = orderCtxPort.evaluate Api.SelectOrderScenario ctx
+            return
+                match result with
+                | Ok resolved ->
+                    plan |> updateContext id resolved |> Ok
+                | Error errs -> Error errs
+        }
 
 
-    let addNutritionContext logger provider (plan: NutritionPlan, category: NutritionCategory) : Result<NutritionPlan, string[]> =
-        let drs = getDoseRuleSet category
-        let ctx =
-            Models.OrderContext.empty
-            |> Models.OrderContext.setPatient plan.Patient
-            |> fun c ->
-                { c with
-                    Filter =
-                        { c.Filter with
-                            Indications = drs.Indications
-                            Generics = drs.Generics
-                        }
-                }
-        match discoverFilterOptions logger provider ctx with
-        | Some resolved ->
-            let id = System.Guid.NewGuid().ToString()
-            let nc = Models.NutritionContext.create id drs.Label category true resolved
-            { plan with NutritionContexts = Array.append plan.NutritionContexts [| nc |] }
-            |> calculateNutritionTotals
-            |> Ok
-        | None -> Error [| "Could not discover filter options for nutrition context" |]
+    let addNutritionContext (orderCtxPort: OrderContextPort) (plan: NutritionPlan, category: NutritionCategory) : Async<Result<NutritionPlan, string[]>> =
+        async {
+            let drs = getDoseRuleSet category
+            let ctx =
+                Models.OrderContext.empty
+                |> Models.OrderContext.setPatient plan.Patient
+                |> fun c ->
+                    { c with
+                        Filter =
+                            { c.Filter with
+                                Indications = drs.Indications
+                                Generics = drs.Generics
+                            }
+                    }
+            let! filterResult = discoverFilterOptions orderCtxPort ctx
+            return
+                match filterResult with
+                | Some resolved ->
+                    let id = System.Guid.NewGuid().ToString()
+                    let nc = Models.NutritionContext.create id drs.Label category true resolved
+                    { plan with NutritionContexts = Array.append plan.NutritionContexts [| nc |] }
+                    |> calculateNutritionTotals
+                    |> Ok
+                | None -> Error [| "Could not discover filter options for nutrition context" |]
+        }
 
 
     let removeNutritionContext (plan: NutritionPlan, id: string) : Result<NutritionPlan, string[]> =
