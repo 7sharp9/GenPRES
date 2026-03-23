@@ -12,6 +12,7 @@
 
 open System
 open System.IO
+open System.Text.RegularExpressions
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -58,9 +59,9 @@ let ciContent =
         printfn "WARNING: CI tests file not found at path: %s. Proceeding with empty content." ciTestsPath
         ""
 
-let testNameRegex = Regex(@"test(Task)?\s*\"([^\"]+)\"", RegexOptions.Compiled)
+let testNameRegex = Regex(@"test(Task)?\s*""([^""]+)""", RegexOptions.Compiled)
 
-let hasTest name =
+let hasTest (name: string) =
     // Heuristic: function name appears within an Expecto test/testTask name (the string in test "...").
     testNameRegex.Matches(ciContent)
     |> Seq.cast<Match>
