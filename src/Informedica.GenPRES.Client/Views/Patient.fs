@@ -126,7 +126,7 @@ module Patient =
             |}
         ) =
 
-        let context = React.useContext Global.context
+        let context : Global.Context = React.useContext Global.context
         let lang = context.Localization
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
@@ -141,9 +141,9 @@ module Patient =
                         JS.setTimeout
                             (fun () -> setExpanded false)
                             5000
-                    React.createDisposable(fun () -> JS.clearTimeout timeoutId)
+                    fun () -> JS.clearTimeout timeoutId
                 else
-                    React.createDisposable(fun () -> ())
+                    fun () -> ()
             ),
             [| box isExpanded |]
         )
@@ -378,10 +378,10 @@ module Patient =
 
             <React.Fragment>
                 <Grid container spacing={2}>
-                    {React.fragment (items1 |> unbox)}
+                    {React.Fragment (items1 |> unbox<seq<ReactElement>>)}
                 </Grid>
                 <Grid container spacing={2} sx={ {| marginTop=2 |} } >
-                    {React.fragment (items2 |> unbox)}
+                    {React.Fragment (items2 |> unbox<seq<ReactElement>>)}
                 </Grid>
                 <Box sx={ {| marginTop=2 |} }>
                     <Button variant="text" onClick={fun _ -> Clear |> dispatch} fullWidth startIcon={Mui.Icons.Delete} >

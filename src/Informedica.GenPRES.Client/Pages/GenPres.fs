@@ -138,7 +138,7 @@ module GenPres =
             switchLang : Localization.Locales -> unit
             switchHosp : string -> unit |}) =
 
-        let context = React.useContext(Global.context)
+        let context : Global.Context = React.useContext Global.context
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 

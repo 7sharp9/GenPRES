@@ -20,7 +20,7 @@ module TreatmentPlan =
         localizationTerms : Deferred<string [] []>
         |}) =
 
-        let context = React.useContext Global.context
+        let context : Global.Context = React.useContext Global.context
         let lang = context.Localization
 
         // Derive modal visibility from Elmish state — if an order is selected, the modal is open.

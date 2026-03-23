@@ -940,7 +940,7 @@ module TypoGraphy =
         import Typography from '@mui/material/Typography';
 
         <Box display="inline" >
-            {textBlock |> print |> unbox |> React.fragment}
+            {textBlock |> print |> unbox<seq<ReactElement>> |> React.Fragment}
         </Box>
         """
 

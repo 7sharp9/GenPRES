@@ -15,7 +15,7 @@ module EmergencyList =
     [<JSX.Component>]
     let View (props : {| interventions: Deferred<Types.Intervention list>; localizationTerms : Deferred<string [] []>; patient: Patient option; onSelectItem: string -> unit |}) =
 
-        let context = React.useContext(Global.context)
+        let context : Global.Context = React.useContext Global.context
         let lang = context.Localization
         let hosp = context.Hospital
 
@@ -181,8 +181,8 @@ module EmergencyList =
                 </TableRow>
                 """
             )
-            |> unbox
-            |> React.fragment
+            |> unbox<seq<ReactElement>>
+            |> React.Fragment
 
         let patientHeader = ViewHelpers.PrintView.PatientHeader {| weightKg = weightKg |}
         let patientSignature = ViewHelpers.PrintView.PatientSignature ()

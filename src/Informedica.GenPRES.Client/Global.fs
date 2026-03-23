@@ -43,7 +43,7 @@ type Context = { Localization : Localization.Locales; Hospital : string }
 let defContext = { Localization = Localization.Dutch; Hospital = "" }
 
 let context =
-    React.createContext (name = "context", defaultValue = defContext)
+    React.createContext (defaultValue = defContext)
 
 
 module Speech =

@@ -166,15 +166,13 @@ module Router =
 
             window.addEventListener(customNavigationEvent, onChange)
 
-            { new IDisposable with
-                member _.Dispose() =
-                    if navigatorUserAgent.Contains "Trident" || navigatorUserAgent.Contains "MSIE" then
-                        window.removeEventListener("hashchange", onChange)
-                    else
-                        window.removeEventListener("popstate", onChange)
+            fun () ->
+                if navigatorUserAgent.Contains "Trident" || navigatorUserAgent.Contains "MSIE" then
+                    window.removeEventListener("hashchange", onChange)
+                else
+                    window.removeEventListener("popstate", onChange)
 
-                    window.removeEventListener(customNavigationEvent, onChange)
-            }
+                window.removeEventListener(customNavigationEvent, onChange)
         )
         
         // trigger navigation event on mount
@@ -196,7 +194,7 @@ module ReactExtension =
     type React with
         /// Initializes the router as an element of the page and starts listening to URL changes.
         static member inline router (props: IRouterProperty list) =
-            Router.router (unbox<Router.RouterProps> (createObj !!props))
+            React.memoRender(Router.router, unbox<Router.RouterProps> (createObj !!props))
 
 [<Erase>]
 type router =
@@ -230,7 +228,7 @@ type router =
     /// The content that is rendered inside where the `router` is placed. Usually this contains the root application but it could also be part of another root element.
     ///
     /// It will keep listening for URL changes as long as the `router` is rendered on screen somewhere.
-    static member inline children (elements: ReactElement list) : IRouterProperty = unbox ("application", React.fragment elements)
+    static member inline children (elements: ReactElement list) : IRouterProperty = unbox ("application", React.Fragment elements)
 
     /// Use # based routes (default)
     static member inline hashMode : IRouterProperty = unbox ("hashMode", RouteMode.Hash)

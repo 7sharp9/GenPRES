@@ -15,7 +15,7 @@ module Localization =
             switchLang : Shared.Localization.Locales -> unit
     |}) =
 
-        let context = React.useContext(Global.context)
+        let context : Global.Context = React.useContext Global.context
         let anchorElLang, setAnchorElLang = React.useState(None)
 
         let handleOpenLangMenu = fun ev -> ev?currentTarget |> setAnchorElLang
