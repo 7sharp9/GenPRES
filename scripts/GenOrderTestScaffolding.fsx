@@ -48,7 +48,12 @@ type FunctionEntry =
 // Helper: check CI tests
 // ---------------------------------------------------------------------------
 
-let ciContent = File.ReadAllText ciTestsPath
+let ciContent =
+    if File.Exists ciTestsPath then
+        File.ReadAllText ciTestsPath
+    else
+        printfn "WARNING: CI tests file not found at path: %s. Proceeding with empty content." ciTestsPath
+        ""
 
 let hasTest name =
     // Simple heuristic: function name appears in a test "" block
