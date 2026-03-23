@@ -1117,8 +1117,226 @@ module Tests =
         ]
 
 
+    module DoseTypeTests =
+
+
+        let tests =
+            testList "DoseType" [
+
+                test "sortBy Once = 0" {
+                    DoseType.sortBy (Once "")
+                    |> Expect.equal "Once should sort first" 0
+                }
+
+                test "sortBy OnceTimed = 0" {
+                    DoseType.sortBy (OnceTimed "")
+                    |> Expect.equal "OnceTimed should sort first" 0
+                }
+
+                test "sortBy Discontinuous = 3" {
+                    DoseType.sortBy (Discontinuous "")
+                    |> Expect.equal "Discontinuous should sort at 3" 3
+                }
+
+                test "sortBy Timed = 3" {
+                    DoseType.sortBy (Timed "")
+                    |> Expect.equal "Timed should sort at 3" 3
+                }
+
+                test "sortBy Continuous = 4" {
+                    DoseType.sortBy (Continuous "")
+                    |> Expect.equal "Continuous should sort at 4" 4
+                }
+
+                test "sortBy NoDoseType = 100" {
+                    DoseType.sortBy NoDoseType
+                    |> Expect.equal "NoDoseType should sort last" 100
+                }
+
+                test "fromString 'once' produces Once constructor" {
+                    let dt = DoseType.fromString "once" "eenmalig"
+                    match dt with
+                    | Once _ -> ()
+                    | other -> failtest $"expected Once, got %A{other}"
+                }
+
+                test "fromString 'continuous' produces Continuous constructor" {
+                    let dt = DoseType.fromString "continuous" "continu"
+                    match dt with
+                    | Continuous _ -> ()
+                    | other -> failtest $"expected Continuous, got %A{other}"
+                }
+
+                test "fromString unknown input produces NoDoseType" {
+                    DoseType.fromString "unknown" ""
+                    |> Expect.equal "unknown type should give NoDoseType" NoDoseType
+                }
+
+                test "toString returns type for Once with empty text" {
+                    DoseType.toString (Once "")
+                    |> Expect.equal "should be 'once'" "once"
+                }
+
+                test "toString returns type and text for Timed with text" {
+                    DoseType.toString (Timed "onderhoud")
+                    |> Expect.equal "should be 'timed onderhoud'" "timed onderhoud"
+                }
+
+                test "getText returns payload for Discontinuous" {
+                    DoseType.getText (Discontinuous "onderhoud")
+                    |> Expect.equal "should return 'onderhoud'" "onderhoud"
+                }
+
+                test "getText returns empty string for NoDoseType" {
+                    DoseType.getText NoDoseType
+                    |> Expect.equal "NoDoseType → empty" ""
+                }
+
+                test "toDescription returns Dutch fallback for Once with empty text" {
+                    DoseType.toDescription (Once "")
+                    |> Expect.equal "Once fallback should be 'eenmalig'" "eenmalig"
+                }
+
+                test "toDescription returns Dutch fallback for Continuous with empty text" {
+                    DoseType.toDescription (Continuous "")
+                    |> Expect.equal "Continuous fallback should be 'continu'" "continu"
+                }
+
+                test "toDescription returns text when set" {
+                    DoseType.toDescription (Once "special")
+                    |> Expect.equal "explicit text should be returned" "special"
+                }
+
+                test "eqs is true for same constructor same text case-insensitive" {
+                    DoseType.eqs (Once "A") (Once "a")
+                    |> Expect.isTrue "case-insensitive eqs should match"
+                }
+
+                test "eqs is false for different constructors" {
+                    DoseType.eqs (Once "a") (Continuous "a")
+                    |> Expect.isFalse "different constructors should not be equal"
+                }
+
+                test "eqsType is true for same constructor different text" {
+                    DoseType.eqsType (Once "A") (Once "B")
+                    |> Expect.isTrue "same type regardless of text"
+                }
+
+                test "eqsType is false for different constructors" {
+                    DoseType.eqsType (Once "") (Timed "")
+                    |> Expect.isFalse "different constructors → false"
+                }
+
+                test "setDescription replaces text payload" {
+                    DoseType.setDescription "new" (Once "old")
+                    |> DoseType.getText
+                    |> Expect.equal "payload should be replaced" "new"
+                }
+
+                test "setDescription preserves constructor" {
+                    let dt = DoseType.setDescription "x" (Discontinuous "old")
+                    match dt with
+                    | Discontinuous _ -> ()
+                    | other -> failtest $"constructor changed: %A{other}"
+                }
+            ]
+
+
+    module LimitTargetTests =
+
+
+        let tests =
+            testList "LimitTarget" [
+
+                test "toString NoLimitTarget returns empty string" {
+                    LimitTarget.toString NoLimitTarget
+                    |> Expect.equal "should be empty" ""
+                }
+
+                test "toString OrderableLimitTarget returns empty string" {
+                    LimitTarget.toString OrderableLimitTarget
+                    |> Expect.equal "should be empty" ""
+                }
+
+                test "toString SubstanceLimitTarget returns label" {
+                    LimitTarget.toString (SubstanceLimitTarget "paracetamol")
+                    |> Expect.equal "should return label" "paracetamol"
+                }
+
+                test "toString ComponentLimitTarget returns label" {
+                    LimitTarget.toString (ComponentLimitTarget "comp1")
+                    |> Expect.equal "should return label" "comp1"
+                }
+
+                test "isOrderableTarget true only for OrderableLimitTarget" {
+                    LimitTarget.isOrderableTarget OrderableLimitTarget
+                    |> Expect.isTrue "OrderableLimitTarget should match"
+                }
+
+                test "isOrderableTarget false for SubstanceLimitTarget" {
+                    LimitTarget.isOrderableTarget (SubstanceLimitTarget "x")
+                    |> Expect.isFalse "SubstanceLimitTarget should not match"
+                }
+
+                test "isComponentTarget true for ComponentLimitTarget" {
+                    LimitTarget.isComponentTarget (ComponentLimitTarget "c")
+                    |> Expect.isTrue "ComponentLimitTarget should match"
+                }
+
+                test "isSubstanceTarget true for SubstanceLimitTarget" {
+                    LimitTarget.isSubstanceTarget (SubstanceLimitTarget "s")
+                    |> Expect.isTrue "SubstanceLimitTarget should match"
+                }
+
+                test "isSubstanceTarget false for ComponentLimitTarget" {
+                    LimitTarget.isSubstanceTarget (ComponentLimitTarget "c")
+                    |> Expect.isFalse "ComponentLimitTarget is not substance target"
+                }
+
+                test "componentTargetToString returns label for ComponentLimitTarget" {
+                    LimitTarget.componentTargetToString (ComponentLimitTarget "comp")
+                    |> Expect.equal "should return label" "comp"
+                }
+
+                test "componentTargetToString returns empty for SubstanceLimitTarget" {
+                    LimitTarget.componentTargetToString (SubstanceLimitTarget "s")
+                    |> Expect.equal "non-component → empty" ""
+                }
+
+                test "substanceTargetToString returns label for SubstanceLimitTarget" {
+                    LimitTarget.substanceTargetToString (SubstanceLimitTarget "sub")
+                    |> Expect.equal "should return label" "sub"
+                }
+
+                test "substanceTargetToString returns empty for ComponentLimitTarget" {
+                    LimitTarget.substanceTargetToString (ComponentLimitTarget "c")
+                    |> Expect.equal "non-substance → empty" ""
+                }
+
+                test "DoseLimit.isSubstanceLimit true when SubstanceLimitTarget is set" {
+                    let dl = { DoseLimit.limit with DoseLimitTarget = SubstanceLimitTarget "paracetamol" }
+                    dl |> DoseLimit.isSubstanceLimit
+                    |> Expect.isTrue "should detect substance limit"
+                }
+
+                test "DoseLimit.isComponentLimit true when ComponentLimitTarget is set" {
+                    let dl = { DoseLimit.limit with DoseLimitTarget = ComponentLimitTarget "comp" }
+                    dl |> DoseLimit.isComponentLimit
+                    |> Expect.isTrue "should detect component limit"
+                }
+
+                test "DoseLimit.isShapeLimit true when OrderableLimitTarget is set" {
+                    let dl = { DoseLimit.limit with DoseLimitTarget = OrderableLimitTarget }
+                    dl |> DoseLimit.isShapeLimit
+                    |> Expect.isTrue "should detect shape/orderable limit"
+                }
+            ]
+
+
     [<Tests>]
     let tests = testList "GenForm Tests" [
         DoseLimitTests.tests
         PatientCategoryTests.tests
+        DoseTypeTests.tests
+        LimitTargetTests.tests
     ]
