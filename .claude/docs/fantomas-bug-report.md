@@ -52,11 +52,13 @@ Failed to format file: repro.fsx : Formatting repro.fsx leads to invalid F# code
 ```
 
 The bug requires all three of:
+
 1. `module rec` containing type definitions and a nested module with `let inline` custom operators (`let inline ( *? ) ...`)
 2. A **separate** module that calls the custom operator via qualified access (`ValueUnit.( *? )`)
 3. The operators are defined as `let inline` in a nested module (not as `static member` on the type)
 
 Removing any one of these makes formatting succeed:
+
 - Removing the `Verification` module → formats OK
 - Removing `module rec` → formats OK
 - Changing `let inline ( *? )` to `static member (*)` on a type extension → formats OK
