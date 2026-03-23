@@ -487,6 +487,14 @@ module Types =
         }
 
 
+    type DrugInteraction =
+        {
+            Name: string * string
+            Drug1: string
+            Drug2: string
+        }
+
+
     type OrderPlan =
         {
             Patient: Patient
@@ -496,6 +504,7 @@ module Types =
             // so, OrderContexts: OrderContext []
             Scenarios: OrderScenario[]
             Totals: Totals
+            Interactions: DrugInteraction[]
         }
 
 

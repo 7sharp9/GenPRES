@@ -98,6 +98,28 @@ module Adapters =
             orderContext = orderCtxPort
             orderPlan = makeOrderPlanPort agent orderCtxPort
             nutritionPlan = makeNutritionPlanPort orderCtxPort logger provider
+            interaction =
+                {
+                    checkInteractions =
+                        fun drugs ->
+                            async {
+                                try
+                                    let result =
+                                        Informedica.GenInteract.Lib.Api.checkInteractions None drugs
+                                        |> List.map (fun (di: Informedica.GenInteract.Lib.DrugInteraction) ->
+                                            ({
+                                                Name = di.Name
+                                                Drug1 = di.Drug1
+                                                Drug2 = di.Drug2
+                                            }
+                                            : Shared.Types.DrugInteraction)
+                                        )
+
+                                    return Ok result
+                                with ex ->
+                                    return Error [| ex.Message |]
+                            }
+                }
             requireLoaded =
                 fun () ->
                     let info = provider.GetResourceInfo()

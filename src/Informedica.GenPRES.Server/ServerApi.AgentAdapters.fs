@@ -285,6 +285,65 @@ module AgentAdapters =
 
 
     // ---------------------------------------------------------------
+    //  Interaction Component
+    // ---------------------------------------------------------------
+
+    [<RequireQualifiedAccess>]
+    type InteractionCommand = Check of string list
+
+
+    [<RequireQualifiedAccess>]
+    type InteractionResponse = Checked of Result<Shared.Types.DrugInteraction list, string[]>
+
+
+    let private interactionCommandToString =
+        function
+        | InteractionCommand.Check _ -> "CheckInteractions"
+
+
+    let private toSharedDrugInteraction
+        (di: Informedica.GenInteract.Lib.DrugInteraction)
+        : Shared.Types.DrugInteraction
+        =
+        {
+            Name = di.Name
+            Drug1 = di.Drug1
+            Drug2 = di.Drug2
+        }
+
+
+    let private processInteractionCommand (cmd: InteractionCommand) : InteractionResponse =
+        match cmd with
+        | InteractionCommand.Check drugNames ->
+            try
+                let result =
+                    Informedica.GenInteract.Lib.Api.checkInteractions None drugNames
+                    |> List.map toSharedDrugInteraction
+
+                InteractionResponse.Checked(Ok result)
+            with ex ->
+                InteractionResponse.Checked(Error [| ex.Message |])
+
+
+    let private createInteractionAgent () =
+        Agent.createReply<InteractionCommand, InteractionResponse> (fun cmd ->
+            try
+                writeDebugMessage $"[InteractionAgent] <- {cmd |> interactionCommandToString}"
+                let response = processInteractionCommand cmd
+                writeDebugMessage $"[InteractionAgent] -> {cmd |> interactionCommandToString} completed"
+                response
+            with ex ->
+                writeErrorMessage $"[InteractionAgent] error in {cmd |> interactionCommandToString}: {ex}"
+                InteractionResponse.Checked(Error [| ex.Message |])
+        )
+
+
+    let private extractInteractions =
+        function
+        | InteractionResponse.Checked r -> r
+
+
+    // ---------------------------------------------------------------
     //  Helper
     // ---------------------------------------------------------------
 
@@ -329,6 +388,7 @@ module AgentAdapters =
 
         let orderPlanAgent = createOrderPlanAgent logAgent orderCtxPort
         let nutritionAgent = createNutritionAgent logger provider orderCtxPort
+        let interactionAgent = createInteractionAgent ()
 
         {
             formulary =
@@ -376,6 +436,12 @@ module AgentAdapters =
                                 nutritionAgent
                                 (NutritionCommand.Navigate(plan, label, ctxCmd, ctx))
                                 extractNutritionPlan
+                }
+
+            interaction =
+                {
+                    checkInteractions =
+                        fun drugs -> postAsync interactionAgent (InteractionCommand.Check drugs) extractInteractions
                 }
 
             requireLoaded =
