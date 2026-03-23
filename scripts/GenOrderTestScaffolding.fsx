@@ -21,6 +21,9 @@ let repoRoot    = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let srcDir      = Path.Combine(repoRoot, "src", "Informedica.GenORDER.Lib")
 let ciTestsPath = Path.Combine(repoRoot, "tests", "Informedica.GenORDER.Tests", "Tests.fs")
 
+// Validate configured paths early so the script fails fast with a clear message.
+if not (Directory.Exists srcDir) then
+    failwithf "Configured source directory does not exist: %s" srcDir
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
