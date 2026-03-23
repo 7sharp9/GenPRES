@@ -1,10 +1,11 @@
-﻿namespace Informedica.Agent.Tests
+namespace Informedica.Agent.Tests
 
 
 module Tests =
 
     open Informedica.Agents.Lib
     open Expecto
+    open Expecto.Flip
     open FsCheck
     open System
     open System.Threading
@@ -41,7 +42,7 @@ module Tests =
                                 ()
                         })
 
-                    Expect.isTrue (agent <> Unchecked.defaultof<_>) "Agent should be created"
+                    (agent <> Unchecked.defaultof<_>) |> Expect.isTrue "Agent should be created"
                     agent |> Agent.dispose
                 }
 
@@ -59,7 +60,7 @@ module Tests =
                     // Give time for message processing
                     do! Async.Sleep 100
 
-                    Expect.equal receivedMessage (Some "Hello, World!") "Should receive the message"
+                    receivedMessage |> Expect.equal "Should receive the message" (Some "Hello, World!")
                     agent |> Agent.dispose
                 }
 
@@ -81,7 +82,7 @@ module Tests =
                     do! Async.Sleep 200
 
                     let expectedOrder = ["Third"; "Second"; "First"] // Reversed due to cons
-                    Expect.equal receivedMessages expectedOrder "Should process messages in order"
+                    receivedMessages |> Expect.equal "Should process messages in order" expectedOrder
                     agent |> Agent.dispose
                 }
 
@@ -97,11 +98,11 @@ module Tests =
 
                     agent.Post (SimpleMessage "test")
                     do! Async.Sleep 50
-                    Expect.equal lastMessage (Some (SimpleMessage "test")) "Should handle SimpleMessage"
+                    lastMessage |> Expect.equal "Should handle SimpleMessage" (Some (SimpleMessage "test"))
 
                     agent.Post (NumberMessage 42)
                     do! Async.Sleep 50
-                    Expect.equal lastMessage (Some (NumberMessage 42)) "Should handle NumberMessage"
+                    lastMessage |> Expect.equal "Should handle NumberMessage" (Some (NumberMessage 42))
 
                     agent |> Agent.dispose
                 }
@@ -131,7 +132,7 @@ module Tests =
                     do! Async.Sleep 50
 
                     // We can't directly check state, but we can test through side effects
-                    Expect.isTrue true "Agent should maintain state internally"
+                    true |> Expect.isTrue "Agent should maintain state internally"
                     agent |> Agent.dispose
                 }
 
@@ -148,19 +149,19 @@ module Tests =
 
                     // Test initial state
                     let! response1 = agent |> Agent.postAndAsyncReply GetState
-                    Expect.equal response1 (StateResponse 0) "Initial state should be 0"
+                    response1 |> Expect.equal "Initial state should be 0" (StateResponse 0)
 
                     // Test setting state
                     let! response2 = agent |> Agent.postAndAsyncReply (SetState 10)
-                    Expect.equal response2 AckResponse "Should acknowledge set"
+                    response2 |> Expect.equal "Should acknowledge set" AckResponse
 
                     // Test getting updated state
                     let! response3 = agent |> Agent.postAndAsyncReply GetState
-                    Expect.equal response3 (StateResponse 10) "State should be updated to 10"
+                    response3 |> Expect.equal "State should be updated to 10" (StateResponse 10)
 
                     // Test adding to state
                     let! response4 = agent |> Agent.postAndAsyncReply (AddToState 5)
-                    Expect.equal response4 (StateResponse 15) "State should be 15 after adding 5"
+                    response4 |> Expect.equal "State should be 15 after adding 5" (StateResponse 15)
 
                     agent |> Agent.dispose
                 }
@@ -186,8 +187,8 @@ module Tests =
                     // Give time for error to propagate
                     do! Async.Sleep 200
 
-                    Expect.isSome errorReceived "Should receive error event"
-                    Expect.stringContains errorReceived.Value "Test exception" "Should contain error message"
+                    errorReceived |> Expect.isSome "Should receive error event"
+                    errorReceived.Value |> Expect.stringContains "Should contain error message" "Test exception"
 
                     agent |> Agent.dispose
                 }
@@ -214,8 +215,8 @@ module Tests =
                     agent.Post (SimpleMessage "second")
                     do! Async.Sleep 50
 
-                    Expect.equal messageCount 2 "Should process normal messages"
-                    Expect.equal errorCount 1 "Should handle one error"
+                    messageCount |> Expect.equal "Should process normal messages" 2
+                    errorCount |> Expect.equal "Should handle one error" 1
 
                     agent |> Agent.dispose
                 }
@@ -231,7 +232,7 @@ module Tests =
                         $"Echo: %s{msg}")
 
                     let! response = agent |> Agent.postAndAsyncReply "Hello"
-                    Expect.equal response "Echo: Hello" "Should echo the message"
+                    response |> Expect.equal "Should echo the message" "Echo: Hello"
 
                     agent |> Agent.dispose
                 }
@@ -241,7 +242,7 @@ module Tests =
                         msg * 2)
 
                     let response = agent |> Agent.postAndReply 42
-                    Expect.equal response 84 "Should double the number"
+                    response |> Expect.equal "Should double the number" 84
 
                     agent |> Agent.dispose
                 }
@@ -255,8 +256,9 @@ module Tests =
                                 ()
                         })
 
-                    Expect.throwsT<TimeoutException> (fun () ->
-                        agent.PostAndReply((fun replyChannel -> ("test", replyChannel)), timeout = 100)) "Should timeout when no reply"
+                    (fun () ->
+                        agent.PostAndReply((fun replyChannel -> ("test", replyChannel)), timeout = 100))
+                    |> Expect.throwsT<TimeoutException> "Should timeout when no reply"
 
                     agent |> Agent.dispose
                 }
@@ -272,7 +274,7 @@ module Tests =
                         })
 
                     let result = agent |> Agent.tryPostAndReply 50 "test"
-                    Expect.isNone result "Should return None on timeout"
+                    result |> Expect.isNone "Should return None on timeout"
 
                     agent |> Agent.dispose
                 }
@@ -294,7 +296,7 @@ module Tests =
 
                     // Queue length should be > 0 due to slow processing
                     let queueLength = agent |> Agent.getCurrentQueueLength
-                    Expect.isGreaterThan queueLength 0 "Queue should have pending messages"
+                    Expect.isGreaterThan "Queue should have pending messages" (queueLength, 0)
 
                     agent |> Agent.dispose
                 }
@@ -312,7 +314,7 @@ module Tests =
                     // Wait for processing
                     do! Async.Sleep 2000
 
-                    Expect.equal processedCount messageCount "Should process all messages"
+                    processedCount |> Expect.equal "Should process all messages" messageCount
 
                     agent |> Agent.dispose
                 }
@@ -332,7 +334,7 @@ module Tests =
                     let b =
                         agent
                         |> Agent.post "test"
-                    Expect.isFalse b "Posting to disposed agent should not throw, but post is not performed"
+                    b |> Expect.isFalse "Posting to disposed agent should not throw, but post is not performed"
                 }
 
                 testAsync "disposal should stop agent processing" {
@@ -354,7 +356,7 @@ module Tests =
                     agent |> Agent.dispose
                     do! Async.Sleep 100
 
-                    Expect.isFalse isProcessing "Agent should stop processing after disposal"
+                    isProcessing |> Expect.isFalse "Agent should stop processing after disposal"
                 }
             ]
 
@@ -436,7 +438,7 @@ module Tests =
                     agent.Post "test"
                     do! Async.Sleep 200
 
-                    Expect.isTrue true "Agent should handle no message processing gracefully"
+                    true |> Expect.isTrue "Agent should handle no message processing gracefully"
                     agent |> Agent.dispose
                 }
 
@@ -450,7 +452,7 @@ module Tests =
                     agent.Post null
                     do! Async.Sleep 100
 
-                    Expect.isTrue receivedNull "Should handle null messages"
+                    receivedNull |> Expect.isTrue "Should handle null messages"
                     agent |> Agent.dispose
                 }
 
@@ -471,7 +473,7 @@ module Tests =
                     let! results = Async.Parallel tasks
                     let expectedResults = [|2; 4; 6; 8; 10|]
 
-                    Expect.equal (Array.sort results) expectedResults "Should handle concurrent requests correctly"
+                    (Array.sort results) |> Expect.equal "Should handle concurrent requests correctly" expectedResults
                     agent |> Agent.dispose
                 }
             ]
@@ -498,7 +500,7 @@ module Tests =
                         use agent = Agent.createReply<int, int>(fun n -> n * 2)
                         // DefaultTimeout is Timeout.Infinite by default, so fallback path is used
                         let result = agent |> Agent.postAndReply 21
-                        Expect.equal result 42 "should return doubled value"
+                        result |> Expect.equal "should return doubled value" 42
                     )
                 }
 
@@ -509,7 +511,7 @@ module Tests =
                             $"done: {msg}"
                         )
                         let result = agent |> Agent.postAndReply "slow"
-                        Expect.equal result "done: slow" "should complete within fallback timeout"
+                        result |> Expect.equal "should complete within fallback timeout" "done: slow"
                     )
                 }
 
@@ -524,7 +526,7 @@ module Tests =
                             Tests.failtest "should have thrown timeout"
                         with
                         | ex ->
-                            Expect.stringContains ex.Message "200 ms" "should mention timeout duration"
+                            ex.Message |> Expect.stringContains "should mention timeout duration" "200 ms"
                     )
                 }
 
@@ -533,7 +535,7 @@ module Tests =
                         use agent = Agent.createReply<int, int>(fun n -> n + 1)
                         // Should still work — falls back to 30_000
                         let result = agent |> Agent.postAndReply 41
-                        Expect.equal result 42 "should use default 30s fallback"
+                        result |> Expect.equal "should use default 30s fallback" 42
                     )
                 }
 
@@ -541,7 +543,7 @@ module Tests =
                     use agent = Agent.createReply<int, int>(fun n -> n * 3)
                     agent |> Agent.setDefaultTimeout 5000 // explicit 5s timeout
                     let result = agent |> Agent.postAndReply 10
-                    Expect.equal result 30 "should use explicit timeout path"
+                    result |> Expect.equal "should use explicit timeout path" 30
                 }
             ]
 
@@ -617,7 +619,7 @@ module Tests =
 
                 test "create agent should succeed" {
                     use writer = FileWriterAgent.create()
-                    Expect.isTrue (writer <> Unchecked.defaultof<_>) "Agent should be created"
+                    (writer <> Unchecked.defaultof<_>) |> Expect.isTrue "Agent should be created"
                 }
 
                 testAsync "append single line should work" {
@@ -634,7 +636,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllLines tempFile
-                        Expect.equal content [|"Hello, World!"|] "Should write single line"
+                        content |> Expect.equal "Should write single line" [|"Hello, World!"|]
 
                     finally
                         deleteFileIfExists tempFile
@@ -655,7 +657,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllLines tempFile
-                        Expect.equal content lines "Should write all lines"
+                        content |> Expect.equal "Should write all lines" lines
 
                     finally
                         deleteFileIfExists tempFile
@@ -677,7 +679,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllLines tempFile
-                        Expect.equal content [|"First"; "Second"; "Third"|] "Should accumulate lines"
+                        content |> Expect.equal "Should accumulate lines" [|"First"; "Second"; "Third"|]
 
                     finally
                         deleteFileIfExists tempFile
@@ -697,9 +699,9 @@ module Tests =
 
                         waitForFileWrite()
 
-                        Expect.isTrue (File.Exists tempFile) "Should create file"
+                        (File.Exists tempFile) |> Expect.isTrue "Should create file"
                         let content = readAllLines tempFile
-                        Expect.equal content [|"Created file"|] "Should write content"
+                        content |> Expect.equal "Should write content" [|"Created file"|]
 
                     finally
                         deleteDirIfExists tempDir
@@ -727,7 +729,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllText tempFile
-                        Expect.equal content "" "Should be empty after clear"
+                        content |> Expect.equal "Should be empty after clear" ""
 
                     finally
                         deleteFileIfExists tempFile
@@ -747,9 +749,9 @@ module Tests =
 
                         waitForFileWrite()
 
-                        Expect.isTrue (File.Exists tempFile) "Should create file"
+                        (File.Exists tempFile) |> Expect.isTrue "Should create file"
                         let content = readAllText tempFile
-                        Expect.equal content "" "Should be empty"
+                        content |> Expect.equal "Should be empty" ""
 
                     finally
                         deleteDirIfExists tempDir
@@ -773,7 +775,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllLines tempFile
-                        Expect.equal content [|"New content"|] "Should only have new content"
+                        content |> Expect.equal "Should only have new content" [|"New content"|]
 
                     finally
                         deleteFileIfExists tempFile
@@ -802,8 +804,8 @@ module Tests =
                         let content1 = readAllLines tempFile1
                         let content2 = readAllLines tempFile2
 
-                        Expect.equal content1 [|"File 1 content"|] "File 1 should have correct content"
-                        Expect.equal content2 [|"File 2 content"|] "File 2 should have correct content"
+                        content1 |> Expect.equal "File 1 should have correct content" [|"File 1 content"|]
+                        content2 |> Expect.equal "File 2 should have correct content" [|"File 2 content"|]
 
                     finally
                         deleteFileIfExists tempFile1
@@ -837,8 +839,8 @@ module Tests =
                         let content1 = readAllText tempFile1
                         let content2 = readAllLines tempFile2
 
-                        Expect.equal content1 "" "File 1 should be empty"
-                        Expect.equal content2 [|"File 2"|] "File 2 should be unchanged"
+                        content1 |> Expect.equal "File 1 should be empty" ""
+                        content2 |> Expect.equal "File 2 should be unchanged" [|"File 2"|]
 
                     finally
                         deleteFileIfExists tempFile1
@@ -866,7 +868,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllLines tempFile
-                        Expect.equal content unicodeContent "Should handle Unicode correctly"
+                        content |> Expect.equal "Should handle Unicode correctly" unicodeContent
 
                     finally
                         deleteFileIfExists tempFile
@@ -889,7 +891,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllLines tempFile
-                        Expect.equal content [|"Initial content"; "Appended content"|] "Should preserve and append correctly"
+                        content |> Expect.equal "Should preserve and append correctly" [|"Initial content"; "Appended content"|]
 
                     finally
                         deleteFileIfExists tempFile
@@ -923,7 +925,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllLines tempFile
-                        Expect.equal content [|"Valid operation"|] "Agent should continue working after error"
+                        content |> Expect.equal "Agent should continue working after error" [|"Valid operation"|]
 
                     finally
                         deleteFileIfExists tempFile
@@ -943,7 +945,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllText tempFile
-                        Expect.equal content "" "Empty array should result in no content"
+                        content |> Expect.equal "Empty array should result in no content" ""
 
                     finally
                         deleteFileIfExists tempFile
@@ -970,9 +972,9 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllLines tempFile
-                        Expect.equal content.Length 1000 "Should handle large content"
-                        Expect.equal content[0] "Line 0" "First line should be correct"
-                        Expect.equal content[999] "Line 999" "Last line should be correct"
+                        content.Length |> Expect.equal "Should handle large content" 1000
+                        content[0] |> Expect.equal "First line should be correct" "Line 0"
+                        content[999] |> Expect.equal "Last line should be correct" "Line 999"
 
                     finally
                         deleteFileIfExists tempFile
@@ -994,7 +996,7 @@ module Tests =
                         waitForFileWrite()
 
                         let content = readAllLines tempFile
-                        Expect.equal content.Length 100 "Should handle all rapid operations"
+                        content.Length |> Expect.equal "Should handle all rapid operations" 100
 
                     finally
                         deleteFileIfExists tempFile
@@ -1141,7 +1143,7 @@ module Tests =
                         do! FileWriterAgent.flushAsync writer
 
                         let content = readAllLines tempFile
-                        Expect.equal content [|"Async test"|] "Should flush asynchronously"
+                        content |> Expect.equal "Should flush asynchronously" [|"Async test"|]
 
                     finally
                         deleteFileIfExists tempFile
@@ -1160,7 +1162,7 @@ module Tests =
                         do! FileWriterAgent.stopAsync writer
 
                         let content = readAllLines tempFile
-                        Expect.equal content [|"Stop test"|] "Should stop and flush content"
+                        content |> Expect.equal "Should stop and flush content" [|"Stop test"|]
 
                     finally
                         deleteFileIfExists tempFile
