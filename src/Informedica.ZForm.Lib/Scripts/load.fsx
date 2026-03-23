@@ -1,4 +1,3 @@
-
 #load "../../../scripts/load-dependencies.fsx"
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
@@ -22,11 +21,8 @@ open Informedica.Utils.Lib
 let zindexPath = __SOURCE_DIRECTORY__ |> Path.combineWith "../../../"
 
 // Check the path to the zindex
-zindexPath
-|> Path.combineWith "data/zindex/BST000T"
-|> File.exists
+zindexPath |> Path.combineWith "data/zindex/BST000T" |> File.exists
 
 Environment.CurrentDirectory <- zindexPath
 
 #time
-

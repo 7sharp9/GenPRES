@@ -41,13 +41,12 @@ let silentLogger = SolverLogging.create (fun _ -> ())
 /// Time a thunk and return (result, elapsed ms)
 let timed (f: unit -> 'a) =
     let sw = Stopwatch.StartNew()
-    let r  = f ()
+    let r = f ()
     sw.Stop()
     r, sw.Elapsed.TotalMilliseconds
 
 /// Print a benchmark row
-let reportMs label ms =
-    printfn $"{label}  {ms}"
+let reportMs label ms = printfn $"{label}  {ms}"
 
 /// Print a section heading
 let section title =
@@ -59,71 +58,64 @@ let section title =
 // Setup helpers  (mirrors Solver.fsx / Tests.fsx)
 // ──────────────────────────────────────────────
 
-let create c u v =
-    [| v |]
-    |> ValueUnit.create u
-    |> c
+let create c u v = [| v |] |> ValueUnit.create u |> c
 
 let createMinIncl = create (Minimum.create true)
 let createMaxIncl = create (Maximum.create true)
-let createIncr    = create Increment.create
+let createIncr = create Increment.create
 
 let createValSet u vs =
-    vs
-    |> Array.ofSeq
-    |> ValueUnit.create u
-    |> ValueSet.create
+    vs |> Array.ofSeq |> ValueUnit.create u |> ValueSet.create
 
 let setMinIncl u n min eqs =
     let n = n |> Name.createExc
     let p = min |> createMinIncl u |> MinProp
+
     match eqs |> Api.setVariableValues n p with
     | Some var -> eqs |> List.map (Equation.replace var)
-    | None     -> eqs
+    | None -> eqs
 
 let setMaxIncl u n max eqs =
     let n = n |> Name.createExc
     let p = max |> createMaxIncl u |> MaxProp
+
     match eqs |> Api.setVariableValues n p with
     | Some var -> eqs |> List.map (Equation.replace var)
-    | None     -> eqs
+    | None -> eqs
 
 let setIncr u n incr eqs =
     let n = n |> Name.createExc
     let p = incr |> createIncr u |> IncrProp
+
     match eqs |> Api.setVariableValues n p with
     | Some var -> eqs |> List.map (Equation.replace var)
-    | None     -> eqs
+    | None -> eqs
 
 let setValues u n vs eqs =
     let n = n |> Name.createExc
     let p = vs |> createValSet u |> ValsProp
+
     match eqs |> Api.setVariableValues n p with
     | Some var -> eqs |> List.map (Equation.replace var)
-    | None     -> eqs
+    | None -> eqs
 
 let solveAll eqs =
     eqs
     |> Api.solveAll false silentLogger
     |> function
-    | Ok solved   -> solved
-    | Error _     -> eqs
+        | Ok solved -> solved
+        | Error _ -> eqs
 
 let solveMinMax eqs =
     eqs
     |> Api.solveAll true silentLogger
     |> function
-    | Ok solved   -> solved
-    | Error _     -> eqs
+        | Ok solved -> solved
+        | Error _ -> eqs
 
 /// Report how many solved values each variable holds
 let countValues eqs =
-    eqs
-    |> List.sumBy (fun eq ->
-        eq
-        |> Equation.toVars
-        |> List.sumBy Variable.count
-    )
+    eqs |> List.sumBy (fun eq -> eq |> Equation.toVars |> List.sumBy Variable.count)
 
 
 // ──────────────────────────────────────────────
@@ -138,10 +130,10 @@ let sc1 () =
     [ "dose = weight * dpkg" ]
     |> Api.init
     |> Api.nonZeroNegative
-    |> setMinIncl Units.Weight.kiloGram "weight"    1N
-    |> setMaxIncl Units.Weight.kiloGram "weight"   70N
-    |> setMinIncl Units.Mass.milliGram  "dpkg"      5N
-    |> setMaxIncl Units.Mass.milliGram  "dpkg"     15N
+    |> setMinIncl Units.Weight.kiloGram "weight" 1N
+    |> setMaxIncl Units.Weight.kiloGram "weight" 70N
+    |> setMinIncl Units.Mass.milliGram "dpkg" 5N
+    |> setMaxIncl Units.Mass.milliGram "dpkg" 15N
     |> solveMinMax
 
 let _, ms1 = timed sc1
@@ -159,12 +151,12 @@ let sc2 () =
     [ "dose = weight * dpkg" ]
     |> Api.init
     |> Api.nonZeroNegative
-    |> setMinIncl Units.Weight.kiloGram "weight"    1N
-    |> setMaxIncl Units.Weight.kiloGram "weight"   70N
-    |> setIncr    Units.Weight.kiloGram "weight"    1N
-    |> setMinIncl Units.Mass.milliGram  "dpkg"      5N
-    |> setMaxIncl Units.Mass.milliGram  "dpkg"     15N
-    |> setIncr    Units.Mass.milliGram  "dpkg"      1N
+    |> setMinIncl Units.Weight.kiloGram "weight" 1N
+    |> setMaxIncl Units.Weight.kiloGram "weight" 70N
+    |> setIncr Units.Weight.kiloGram "weight" 1N
+    |> setMinIncl Units.Mass.milliGram "dpkg" 5N
+    |> setMaxIncl Units.Mass.milliGram "dpkg" 15N
+    |> setIncr Units.Mass.milliGram "dpkg" 1N
     |> solveAll
 
 let solved2, ms2 = timed sc2
@@ -180,17 +172,16 @@ printfn $"  → total solved values across equations: {countValues solved2}"
 section "Scenario 3: two chained product eqs, increment constraints (solveAll)"
 
 let sc3 () =
-    [ "dose = weight * dpkg"
-      "totaldose = dose * freq" ]
+    [ "dose = weight * dpkg"; "totaldose = dose * freq" ]
     |> Api.init
     |> Api.nonZeroNegative
-    |> setMinIncl Units.Weight.kiloGram "weight"       1N
-    |> setMaxIncl Units.Weight.kiloGram "weight"      70N
-    |> setIncr    Units.Weight.kiloGram "weight"       1N
-    |> setMinIncl Units.Mass.milliGram  "dpkg"         5N
-    |> setMaxIncl Units.Mass.milliGram  "dpkg"        15N
-    |> setIncr    Units.Mass.milliGram  "dpkg"         1N
-    |> setValues  Units.Count.times     "freq"        [| 1N; 2N; 3N; 4N |]
+    |> setMinIncl Units.Weight.kiloGram "weight" 1N
+    |> setMaxIncl Units.Weight.kiloGram "weight" 70N
+    |> setIncr Units.Weight.kiloGram "weight" 1N
+    |> setMinIncl Units.Mass.milliGram "dpkg" 5N
+    |> setMaxIncl Units.Mass.milliGram "dpkg" 15N
+    |> setIncr Units.Mass.milliGram "dpkg" 1N
+    |> setValues Units.Count.times "freq" [| 1N; 2N; 3N; 4N |]
     |> solveAll
 
 let solved3, ms3 = timed sc3
@@ -206,10 +197,11 @@ printfn $"  → total solved values across equations: {countValues solved3}"
 
 section "Scenario 4: value-set scaling (product eq, setValues on both vars)"
 
-let MAX_CALC_COUNT = 500  // mirrors Utils.Constants.MAX_CALC_COUNT
+let MAX_CALC_COUNT = 500 // mirrors Utils.Constants.MAX_CALC_COUNT
 
 for n in [ 5; 10; 20; 50; 100; 200; 400; 499 ] do
-    let vals = Array.init n (fun i -> BigRational.FromInt (i + 1))
+    let vals = Array.init n (fun i -> BigRational.FromInt(i + 1))
+
     let run () =
         [ "result = a * b" ]
         |> Api.init
@@ -217,15 +209,20 @@ for n in [ 5; 10; 20; 50; 100; 200; 400; 499 ] do
         |> setValues Units.Count.times "a" vals
         |> setValues Units.Count.times "b" vals
         |> solveAll
+
     let solved, ms = timed run
+
     let resultCount =
         solved
         |> List.collect Equation.toVars
         |> List.tryFind (fun v -> v |> Variable.getName |> Name.toString = "result")
         |> Option.map (Variable.getValueRange >> Variable.ValueRange.cardinality)
         |> Option.defaultValue 0
+
     let overflow = if n >= MAX_CALC_COUNT then "⚠ near overflow" else ""
-    printfn $"  n={n,4}  ({n}×{n}={n*n,7} combos)  solved in {ms,8:F2} ms  → result has {resultCount,6} values  {overflow}"
+
+    printfn
+        $"  n={n, 4}  ({n}×{n}={n * n, 7} combos)  solved in {ms, 8:F2} ms  → result has {resultCount, 6} values  {overflow}"
 
 
 // ──────────────────────────────────────────────
@@ -239,12 +236,12 @@ let sc5 () =
     [ "total = bolus + continuous" ]
     |> Api.init
     |> Api.nonZeroNegative
-    |> setMinIncl Units.Volume.milliLiter "bolus"       0N
-    |> setMaxIncl Units.Volume.milliLiter "bolus"     500N
-    |> setIncr    Units.Volume.milliLiter "bolus"       5N
-    |> setMinIncl Units.Volume.milliLiter "continuous"  0N
+    |> setMinIncl Units.Volume.milliLiter "bolus" 0N
+    |> setMaxIncl Units.Volume.milliLiter "bolus" 500N
+    |> setIncr Units.Volume.milliLiter "bolus" 5N
+    |> setMinIncl Units.Volume.milliLiter "continuous" 0N
     |> setMaxIncl Units.Volume.milliLiter "continuous" 500N
-    |> setIncr    Units.Volume.milliLiter "continuous"  5N
+    |> setIncr Units.Volume.milliLiter "continuous" 5N
     |> solveAll
 
 let solved5, ms5 = timed sc5
@@ -264,6 +261,12 @@ printfn "  Scenario 3 (chained eqs + incr)   : %8.2f ms" ms3
 printfn "  Scenario 5 (sum eq + incr 5 mL)   : %8.2f ms" ms5
 printfn ""
 printfn "  Constants: MAX_CALC_COUNT=%d  MAX_LOOP_COUNT=20  PRUNE=4" MAX_CALC_COUNT
-printfn "  ValueSet overflow threshold: %d × %d = %d values" MAX_CALC_COUNT MAX_CALC_COUNT (MAX_CALC_COUNT * MAX_CALC_COUNT)
+
+printfn
+    "  ValueSet overflow threshold: %d × %d = %d values"
+    MAX_CALC_COUNT
+    MAX_CALC_COUNT
+    (MAX_CALC_COUNT * MAX_CALC_COUNT)
+
 printfn ""
 printfn "Profiling complete."

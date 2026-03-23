@@ -1,4 +1,3 @@
-
 #I __SOURCE_DIRECTORY__
 
 #time
@@ -72,7 +71,8 @@ let createTest (name: string) (txt: string) =
 /// - Weight-adjusted dosing (mg/kg/dosis)
 /// - The system selects the appropriate product strength based on the
 ///   calculated dose and the patient weight (14 kg)
-let pcmSuppText = """
+let pcmSuppText =
+    """
 Id: 047f9e19-4cfc-43cb-b7ee-f88f23d2eab6
 Name: paracetamol
 Quantity:
@@ -110,7 +110,8 @@ Components:
 /// - The solver calculates doses for both substances simultaneously,
 ///   respecting the 5:1 ratio (sulfamethoxazol:trimethoprim) inherent
 ///   in the product concentration
-let cotrimText = """
+let cotrimText =
+    """
 Id: cotrim-001
 Name: cotrimoxazol
 Quantity:
@@ -153,7 +154,8 @@ Components:
 ///   by representing 36 hours as a composite time unit
 /// - Medication in solution (gentamicin diluted in glucose 10%)
 /// - Concentration constraint on the prepared solution (1.2-2 mg/ml)
-let gentamicin36hText = """
+let gentamicin36hText =
+    """
 Id: genta-36h-001
 Name: gentamicine
 Quantity:
@@ -205,7 +207,8 @@ Components:
 ///   system formats large numbers (e.g., 100 000 IE/ml concentration)
 /// - The concentration is expressed per ml (IE/ml), while the dose per-time
 ///   limit is in miljIE/kg/dag, showing unit conversion across scales
-let benzylpenicillineText = """
+let benzylpenicillineText =
+    """
 Id: benzylpen-001
 Name: benzylpenicilline
 Quantity:
@@ -241,7 +244,8 @@ Components:
 /// - ContinuousOrder without a fixed dose time or frequency
 /// - Rate-adjusted dosing in mg/kg/hr
 /// - A fixed total volume (50 ml) for the prepared syringe
-let continuousInfusionText = """
+let continuousInfusionText =
+    """
 Id: 6854e269-df1c-480f-ac58-a08fe108a59d
 Name: propofol
 Quantity:
@@ -280,7 +284,8 @@ Components:
 /// - Rate limit (max 1.7 mg/min) alongside per-time and per-time-adjusted
 ///   dose limits — multiple simultaneous dose constraints
 /// - Carrier fluid (glucose 5%) as a second component
-let vancomycinReconstitutionText = """
+let vancomycinReconstitutionText =
+    """
 Id: 13e4f4e5-059d-47d6-8882-46cc2ed0f072
 Name: vancomycine
 Quantity:
@@ -336,7 +341,8 @@ Components:
 /// - Rate-adjusted dosing in microg/kg/min
 /// - A carrier fluid (glucose 10%) as a second component contributing to
 ///   total infusion volume
-let noradrenalineInSolutionText = """
+let noradrenalineInSolutionText =
+    """
 Id: b5189d1a-c1c5-4223-9b2d-e8e35e1b22fd
 Name: noradrenaline
 Quantity:
@@ -389,39 +395,29 @@ Components:
 // ============================================================
 
 let tests =
-    testList "Special medication scenarios" [
+    testList
+        "Special medication scenarios"
+        [
 
-        createTest
-            "paracetamol supp — product selection from multiple strengths"
-            pcmSuppText
+            createTest "paracetamol supp — product selection from multiple strengths" pcmSuppText
 
-        createTest
-            "cotrimoxazol — trimethoprim/sulfamethoxazole multi-component calculation"
-            cotrimText
+            createTest "cotrimoxazol — trimethoprim/sulfamethoxazole multi-component calculation" cotrimText
 
-        createTest
-            "gentamicine — 1/36 hour dosing interval with special time unit"
-            gentamicin36hText
+            createTest "gentamicine — 1/36 hour dosing interval with special time unit" gentamicin36hText
 
-        createTest
-            "benzylpenicilline — international unit dosing (IE/miljIE) and large number readability"
-            benzylpenicillineText
+            createTest
+                "benzylpenicilline — international unit dosing (IE/miljIE) and large number readability"
+                benzylpenicillineText
 
-        createTest
-            "propofol — continuous infusion with rate-adjusted dosing"
-            continuousInfusionText
+            createTest "propofol — continuous infusion with rate-adjusted dosing" continuousInfusionText
 
-        createTest
-            "vancomycine — medication reconstitution from powder with concentration constraint"
-            vancomycinReconstitutionText
+            createTest
+                "vancomycine — medication reconstitution from powder with concentration constraint"
+                vancomycinReconstitutionText
 
-        createTest
-            "noradrenaline — continuous infusion in solution with carrier fluid"
-            noradrenalineInSolutionText
+            createTest "noradrenaline — continuous infusion in solution with carrier fluid" noradrenalineInSolutionText
 
-    ]
+        ]
 
 
-tests
-|> runTestsWithCLIArgs [ CLIArguments.Sequenced ] [||]
-|> ignore
+tests |> runTestsWithCLIArgs [ CLIArguments.Sequenced ] [||] |> ignore

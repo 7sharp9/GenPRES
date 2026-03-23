@@ -1,7 +1,6 @@
 namespace Shared
 
 
-
 module Models =
 
     open Types
@@ -270,8 +269,20 @@ module Models =
             {
                 Age = None
                 GestationalAge = None
-                Weight = { EstimatedP3 = None; Estimated = None; EstimatedP97 = None; Measured = None }
-                Height = { EstimatedP3 = None; Estimated = None; EstimatedP97 = None; Measured = None }
+                Weight =
+                    {
+                        EstimatedP3 = None
+                        Estimated = None
+                        EstimatedP97 = None
+                        Measured = None
+                    }
+                Height =
+                    {
+                        EstimatedP3 = None
+                        Estimated = None
+                        EstimatedP97 = None
+                        Measured = None
+                    }
                 Gender = UnknownGender
                 Access = []
                 RenalFunction = None
@@ -311,22 +322,21 @@ module Models =
             p.RenalFunction |> Option.map RenalFunction.renalToOption
 
 
-        let tryParse (s : string) =
+        let tryParse (s: string) =
             match System.Int32.TryParse(s) with
             | false, _ -> None
             | true, v -> v |> Some
 
 
         let toggle item (p: Patient option) : Patient option =
-            p |> Option.map (fun p ->
+            p
+            |> Option.map (fun p ->
                 { p with
                     Access =
-                        if p.Access |> List.exists((=) item) then
-                            p.Access
-                            |> List.filter ((<>) item)
+                        if p.Access |> List.exists ((=) item) then
+                            p.Access |> List.filter ((<>) item)
                         else
-                            p.Access
-                            |> List.append [ item ]
+                            p.Access |> List.append [ item ]
                 }
             )
 
@@ -341,26 +351,16 @@ module Models =
 
 
         let setRenal (s: string option) (p: Patient option) : Patient option =
-            let set rf (p : Patient option) =
+            let set rf (p: Patient option) =
                 match p with
                 | None -> p
-                | Some p ->
-                    { p with
-                        RenalFunction = rf
-                    }
-                    |> Some
+                | Some p -> { p with RenalFunction = rf } |> Some
 
             match s with
-            | None ->
-                p
-                |> set None
+            | None -> p |> set None
             | Some s ->
-                let rf =
-                    s
-                    |> RenalFunction.optionToRenal
-                    |> Some
-                p
-                |> set rf
+                let rf = s |> RenalFunction.optionToRenal |> Some
+                p |> set rf
 
 
         let create years months weeks days weight height gw gd gend cvl gfr dep : Patient option =
@@ -487,12 +487,7 @@ module Models =
 
         let updateWeightGram gr pat =
 
-            { (pat |> get) with
-                Weight =
-                    { pat.Weight with
-                        Measured = gr |> Some
-                    }
-            }
+            { (pat |> get) with Weight = { pat.Weight with Measured = gr |> Some } }
 
 
         let calcBMI (pat: Patient) =
@@ -514,15 +509,19 @@ module Models =
             | Some w, _, Some h, _
             | Some w, _, None, Some h
             | None, Some w, Some h, _
-            | None, Some w, None, Some h -> 0.007184 * ((float w / 1000.) ** 0.425) * ((float h) ** 0.725) |> Math.fixPrecision 2 |> Some
+            | None, Some w, None, Some h ->
+                0.007184 * ((float w / 1000.) ** 0.425) * ((float h) ** 0.725)
+                |> Math.fixPrecision 2
+                |> Some
 
 
         let applyNormalValues
-            (normalWeights : NormalValue list option)
-            (normalHeights : NormalValue list option)
-            (normalNeoWeights : NormalValue list option)
+            (normalWeights: NormalValue list option)
+            (normalHeights: NormalValue list option)
+            (normalNeoWeights: NormalValue list option)
             (normalNeoHeights: NormalValue list option)
-            (pat: Patient) =
+            (pat: Patient)
+            =
 
             let wghts =
                 [ 21000..1000..100000 ]
@@ -533,21 +532,18 @@ module Models =
             let hghts = [ 40..220 ]
 
             let forGender age nvs gend =
-                let nvs =
-                    nvs
-                    |> List.filter (fun nv -> nv.Sex = gend)
+                let nvs = nvs |> List.filter (fun nv -> nv.Sex = gend)
 
                 nvs
                 |> List.map _.Age
                 |> List.nearestIndex age
                 |> fun idx ->
-                if idx < 0 || idx >=nvs.Length then
-                    None
-                else
-                    (nvs[idx].P3, nvs[idx].Mean, nvs[idx].P97)
-                    |> Some
+                    if idx < 0 || idx >= nvs.Length then
+                        None
+                    else
+                        (nvs[idx].P3, nvs[idx].Mean, nvs[idx].P97) |> Some
 
-            let nearest age (nvs : NormalValue list option) =
+            let nearest age (nvs: NormalValue list option) =
                 match nvs with
                 | None -> None
                 | Some nvs ->
@@ -561,11 +557,7 @@ module Models =
                         mw
                         |> Option.bind (fun (mp3, mm, mp97) ->
                             fw
-                            |> Option.map (fun (fp3, fm, fp97) ->
-                                (fp3 + mp3) / 2.
-                                , (fm + mm) / 2.
-                                , (fp97 + mp97) / 2.
-                            )
+                            |> Option.map (fun (fp3, fm, fp97) -> (fp3 + mp3) / 2., (fm + mm) / 2., (fp97 + mp97) / 2.)
                         )
                     | _ ->
                         if pat.Gender = Female then "F" else "M"
@@ -584,13 +576,9 @@ module Models =
                             |> nearest pcAgeInWeeks
                             |> Option.map (fun (p3, m, p97) ->
                                 let m =
-                                    wghts
-                                    |> List.nearestIndex (int m)
-                                    |> fun idx -> wghts[idx]
-                                    |> Measures.toGram
-                                int p3 * 1<gram>,
-                                m,
-                                int p97 * 1<gram>
+                                    wghts |> List.nearestIndex (int m) |> (fun idx -> wghts[idx]) |> Measures.toGram
+
+                                int p3 * 1<gram>, m, int p97 * 1<gram>
                             )
 
                         let height =
@@ -598,13 +586,9 @@ module Models =
                             |> nearest pcAgeInWeeks
                             |> Option.map (fun (p3, m, p97) ->
                                 let m =
-                                    hghts
-                                    |> List.nearestIndex (int m)
-                                    |> fun idx -> hghts[idx]
-                                    |> Measures.toCm
-                                int p3 * 1<cm>,
-                                m,
-                                int p97 * 1<cm>
+                                    hghts |> List.nearestIndex (int m) |> (fun idx -> hghts[idx]) |> Measures.toCm
+
+                                int p3 * 1<cm>, m, int p97 * 1<cm>
                             )
 
                         weight, height
@@ -620,9 +604,8 @@ module Models =
                                     |> List.nearestIndex (int (m * 1000.))
                                     |> fun idx -> wghts[idx]
                                     |> Measures.toGram
-                                int p3 * 1000<gram>,
-                                m,
-                                int p97 * 1000<gram>
+
+                                int p3 * 1000<gram>, m, int p97 * 1000<gram>
                             )
 
                         let height =
@@ -630,13 +613,9 @@ module Models =
                             |> nearest ageInYears
                             |> Option.map (fun (p3, m, p97) ->
                                 let m =
-                                    hghts
-                                    |> List.nearestIndex (int m)
-                                    |> fun idx -> hghts[idx]
-                                    |> Measures.toCm
-                                int p3 * 1<cm>,
-                                m,
-                                int p97 * 1<cm>
+                                    hghts |> List.nearestIndex (int m) |> (fun idx -> hghts[idx]) |> Measures.toCm
+
+                                int p3 * 1<cm>, m, int p97 * 1<cm>
                             )
 
                         weight, height
@@ -659,12 +638,9 @@ module Models =
             }
 
 
-        let setYear s (p : Patient option) =
+        let setYear s (p: Patient option) =
             match p with
-            | None ->
-                create
-                    (s |> Option.bind tryParse)
-                    None None None None None None None UnknownGender [] None None
+            | None -> create (s |> Option.bind tryParse) None None None None None None None UnknownGender [] None None
             | Some p ->
                 create
                     (s |> Option.bind tryParse)
@@ -681,13 +657,9 @@ module Models =
                     p.Department
 
 
-        let setMonth s (p : Patient option) =
+        let setMonth s (p: Patient option) =
             match p with
-            | None ->
-                create
-                    None
-                    (s |> Option.bind tryParse)
-                    None None None None None None UnknownGender [] None None
+            | None -> create None (s |> Option.bind tryParse) None None None None None None UnknownGender [] None None
             | Some p ->
                 create
                     (p |> getAgeYears)
@@ -704,13 +676,9 @@ module Models =
                     p.Department
 
 
-        let setWeek s (p : Patient option) =
+        let setWeek s (p: Patient option) =
             match p with
-            | None ->
-                create
-                    None None
-                    (s |> Option.bind tryParse)
-                    None None None None None UnknownGender [] None None
+            | None -> create None None (s |> Option.bind tryParse) None None None None None UnknownGender [] None None
             | Some p ->
                 create
                     (p |> getAgeYears)
@@ -727,13 +695,9 @@ module Models =
                     p.Department
 
 
-        let setDay s (p : Patient option) =
+        let setDay s (p: Patient option) =
             match p with
-            | None ->
-                create
-                    None None None
-                    (s |> Option.bind tryParse)
-                    None None None None UnknownGender [] None None
+            | None -> create None None None (s |> Option.bind tryParse) None None None None UnknownGender [] None None
             | Some p ->
                 create
                     (p |> getAgeYears)
@@ -750,13 +714,9 @@ module Models =
                     p.Department
 
 
-        let setWeight s (p : Patient option) =
+        let setWeight s (p: Patient option) =
             match p with
-            | None ->
-                create
-                    None None None None
-                    (s |> Option.bind tryParse)
-                    None None None UnknownGender [] None None
+            | None -> create None None None None (s |> Option.bind tryParse) None None None UnknownGender [] None None
             | Some p ->
                 create
                     (p |> getAgeYears)
@@ -773,13 +733,9 @@ module Models =
                     p.Department
 
 
-        let setHeight s (p : Patient option) =
+        let setHeight s (p: Patient option) =
             match p with
-            | None ->
-                create
-                    None None None None None
-                    (s |> Option.bind tryParse)
-                    None None UnknownGender [] None None
+            | None -> create None None None None None (s |> Option.bind tryParse) None None UnknownGender [] None None
             | Some p ->
                 create
                     (p |> getAgeYears)
@@ -796,20 +752,30 @@ module Models =
                     p.Department
 
 
-        let setGAWeek s (p : Patient option) =
+        let setGAWeek s (p: Patient option) =
             match p with
             | None ->
                 create
-                    None None None None None None
+                    None
+                    None
+                    None
+                    None
+                    None
+                    None
                     (s |> Option.bind tryParse |> Option.map int)
-                    None UnknownGender [] None None
+                    None
+                    UnknownGender
+                    []
+                    None
+                    None
             | Some p ->
                 create
                     (p |> getAgeYears)
                     (p |> getAgeMonths)
                     (p |> getAgeWeeks)
                     (p |> getAgeDays)
-                    None None
+                    None
+                    None
                     (s |> Option.bind tryParse |> Option.map int)
                     (p |> getGADays)
                     p.Gender
@@ -818,20 +784,30 @@ module Models =
                     p.Department
 
 
-        let setGADay s (p : Patient option) =
+        let setGADay s (p: Patient option) =
             match p with
             | None ->
                 create
-                    None None None None None None None
+                    None
+                    None
+                    None
+                    None
+                    None
+                    None
+                    None
                     (s |> Option.bind tryParse |> Option.map int)
-                    UnknownGender [] None None
+                    UnknownGender
+                    []
+                    None
+                    None
             | Some p ->
                 create
                     (p |> getAgeYears)
                     (p |> getAgeMonths)
                     (p |> getAgeWeeks)
                     (p |> getAgeDays)
-                    None None
+                    None
+                    None
                     (p |> getGAWeeks)
                     (s |> Option.bind tryParse |> Option.map int)
                     p.Gender
@@ -842,7 +818,9 @@ module Models =
 
         let toString terms lang markDown (pat: Patient) =
             let getTerm = Localization.getTerm terms lang
-            let toStr s n = n |> Option.map (Math.fixPrecision 3 >> string >> fun s' -> $"{s}{s'}")
+
+            let toStr s n =
+                n |> Option.map (Math.fixPrecision 3 >> string >> (fun s' -> $"{s}{s'}"))
 
             let bold s =
                 s |> Option.map (fun s -> if markDown then $"**{s}**" else s)
@@ -851,16 +829,12 @@ module Models =
                 s |> Option.map (fun s -> if markDown then $"*{s}*" else s)
 
             let isAdult =
-                pat.Age
-                |> Option.map (fun a -> a.Years >= 18)
-                |> Option.defaultValue false
+                pat.Age |> Option.map (fun a -> a.Years >= 18) |> Option.defaultValue false
 
             [
                 match pat.Gender with
-                | Male ->
-                    if isAdult then Some "Man" else Some "Jongen"
-                | Female ->
-                    if isAdult then Some "Vrouw" else Some "Meisje"
+                | Male -> if isAdult then Some "Man" else Some "Jongen"
+                | Female -> if isAdult then Some "Vrouw" else Some "Meisje"
                 | UnknownGender -> Some "Onbekend geslacht"
                 |> bold
 
@@ -885,8 +859,7 @@ module Models =
                     let capt = $"{Terms.``Patient Estimated`` |> getTerm}: "
                     let p3 = float p3 / 1000. |> Math.fixPrecision 3
                     let p97 = float p97 / 1000. |> Math.fixPrecision 3
-                    $"{capt}({p3} - {p97} kg)"
-                    |> Some
+                    $"{capt}({p3} - {p97} kg)" |> Some
                 | _ ->
                     pat.Weight.Estimated
                     |> Option.map (fun x -> float x / 1000.)
@@ -908,8 +881,7 @@ module Models =
                     let capt = $"{Terms.``Patient Estimated`` |> getTerm}: "
                     let p3 = float p3 |> Math.fixPrecision 3
                     let p97 = float p97 |> Math.fixPrecision 3
-                    $"{capt}({p3} - {p97} cm)"
-                    |> Some
+                    $"{capt}({p3} - {p97} cm)" |> Some
                 | _ ->
                     pat.Height.Estimated
                     |> Option.map float
@@ -982,13 +954,14 @@ module Models =
 
         let calcDoseVol kg doserPerKg conc min max =
             let d =
-                if min = max && min > 0. then min
+                if min = max && min > 0. then
+                    min
                 else
                     kg * doserPerKg
                     |> fun d ->
-                    if max > 0. && d > max then max
-                    else if min > 0. && d < min then min
-                    else d
+                        if max > 0. && d > max then max
+                        else if min > 0. && d < min then min
+                        else d
 
             let v =
                 d / conc
@@ -1024,7 +997,7 @@ module Models =
                 $"%s{m - 0.5 |> toStr} - %s{m |> toStr} - %s{m + 0.5 |> toStr}"
 
             let formula age =
-                n + age / 4. |> Math.roundBy0_5 |> fun m -> if m > 7. then 7. else m
+                n + age / 4. |> Math.roundBy0_5 |> (fun m -> if m > 7. then 7. else m)
 
             calcIntervention
                 ""
@@ -1064,11 +1037,7 @@ module Models =
                 SubstanceDoseText = $"%s{d |> toStr} ml NaCl 0.9%%"
                 SubstanceDoseAdjust = d / wght |> Math.fixPrecision 1 |> Some
                 SubstanceDoseAdjustUnit = "ml/kg"
-                Text =
-                    if wght < 3. then
-                        "20 ml/kg"
-                    else
-                        "10 ml/kg (max 500 ml)"
+                Text = if wght < 3. then "20 ml/kg" else "10 ml/kg (max 500 ml)"
             }
 
 
@@ -1094,6 +1063,7 @@ module Models =
 
         let calcBolusMedication wght (bolus: BolusMedication) =
             let toStr = decimal >> Decimal.toStringNumberNLWithoutTrailingZeros
+
             let d, v, c =
                 let d, v =
                     calcDoseVol wght bolus.NormDose bolus.Concentration bolus.MinDose bolus.MaxDose
@@ -1111,8 +1081,10 @@ module Models =
                     match bolus.MinDose = 0., bolus.MaxDose = 0. with
                     | true, true -> $"%s{bolus.NormDose |> toStr} %s{bolus.Unit}/kg"
 
-                    | true, false -> $"%s{bolus.NormDose |> toStr} %s{bolus.Unit}/kg (max %A{bolus.MaxDose} %s{bolus.Unit})"
-                    | false, true -> $"%s{bolus.NormDose |> toStr} %s{bolus.Unit}/kg (min %A{bolus.MinDose} %s{bolus.Unit})"
+                    | true, false ->
+                        $"%s{bolus.NormDose |> toStr} %s{bolus.Unit}/kg (max %A{bolus.MaxDose} %s{bolus.Unit})"
+                    | false, true ->
+                        $"%s{bolus.NormDose |> toStr} %s{bolus.Unit}/kg (min %A{bolus.MinDose} %s{bolus.Unit})"
                     | false, false ->
                         if bolus.MinDose = bolus.MaxDose then
                             $"%s{bolus.MinDose |> toStr} %s{bolus.Unit}"
@@ -1134,14 +1106,20 @@ module Models =
                 SubstanceMaxDose = if bolus.MaxDose = 0. then None else Some bolus.MaxDose
                 SubstanceDoseUnit = bolus.Unit
                 SubstanceDoseAdjust =
-                    if bolus.MinDose = bolus.MaxDose && bolus.MinDose > 0. then None
-                    else Some(d / wght |> Math.fixPrecision 1)
+                    if bolus.MinDose = bolus.MaxDose && bolus.MinDose > 0. then
+                        None
+                    else
+                        Some(d / wght |> Math.fixPrecision 1)
                 SubstanceNormDoseAdjust =
-                    if bolus.MinDose = bolus.MaxDose && bolus.MinDose > 0. then None
-                    else Some bolus.NormDose
+                    if bolus.MinDose = bolus.MaxDose && bolus.MinDose > 0. then
+                        None
+                    else
+                        Some bolus.NormDose
                 SubstanceDoseAdjustUnit =
-                    if bolus.MinDose = bolus.MaxDose && bolus.MinDose > 0. then ""
-                    else $"{bolus.Unit}/kg"
+                    if bolus.MinDose = bolus.MaxDose && bolus.MinDose > 0. then
+                        ""
+                    else
+                        $"{bolus.Unit}/kg"
                 SubstanceDoseText =
                     if bolus.MinDose = bolus.MaxDose && bolus.MinDose > 0. then
                         $"%s{d |> toStr} {bolus.Unit}"
@@ -1178,9 +1156,7 @@ module Models =
                     let getString n =
                         Csv.getStringColumn cms sl n |> String.trim
 
-                    let getFloat =
-                        Csv.getFloatOptionColumn cms sl
-                        >> Option.defaultValue 0.
+                    let getFloat = Csv.getFloatOptionColumn cms sl >> Option.defaultValue 0.
 
                     createBolus
                         (getString "hospital")
@@ -1306,7 +1282,9 @@ module Models =
                 else
                     bolusMed
                     |> List.filter (fun m -> m.Generic = "adrenaline" |> not)
-                    |> List.filter (fun m -> m.MinWeight <= weight.Value && (weight.Value < m.MaxWeight || m.MaxWeight = 0.))
+                    |> List.filter (fun m ->
+                        m.MinWeight <= weight.Value && (weight.Value < m.MaxWeight || m.MaxWeight = 0.)
+                    )
                     |> List.map (calcBolusMedication weight.Value)
                 |> List.append xs
                 |> List.distinct
@@ -1424,7 +1402,8 @@ module Models =
                 d, doseU
 
 
-            let printAdv min max unit = $"%s{min |> toStr} - %s{max |> toStr} %s{unit}"
+            let printAdv min max unit =
+                $"%s{min |> toStr} - %s{max |> toStr} %s{unit}"
 
             contMeds
             |> List.filter (fun m -> m.MinWeight <= wght && (wght < m.MaxWeight || m.MaxWeight = 0.))
@@ -1552,7 +1531,7 @@ module Models =
                 }
 
 
-            (*
+        (*
             /// <summary>
             /// Get the user readable string version in Dutch with verbosity short and
             /// value as decimal with a fixed precision
@@ -1578,7 +1557,6 @@ module Models =
 
                 vs + " " + us
             *)
-
 
 
         module Variable =
@@ -1631,16 +1609,17 @@ module Models =
 
 
             let isNavigable (ovar: OrderVariable) =
-                if ovar |> isSolved then false
+                if ovar |> isSolved then
+                    false
                 else
                     // note that an ordervariable with an increment always has a
                     // min value by definition as all order variables are initialized to
                     // be non-zero positive and a min value is always a multiple of an
                     // increment
-                    (ovar.Variable.Max.IsSome && ovar.DefinedConstraints.Incr.IsSome) ||
-                    ovar.Variable.Vals
-                    |> Option.map (_.Value >> Array.length >> fun c -> c > 1)
-                    |> Option.defaultValue false
+                    (ovar.Variable.Max.IsSome && ovar.DefinedConstraints.Incr.IsSome)
+                    || ovar.Variable.Vals
+                       |> Option.map (_.Value >> Array.length >> (fun c -> c > 1))
+                       |> Option.defaultValue false
 
 
             let displayString (ovar: OrderVariable) =
@@ -1666,38 +1645,40 @@ module Models =
             let (|NonNavigable|Navigable|Selectable|Stepable|) (ovar: OrderVariable) =
                 let var = ovar.Variable
                 let def = ovar.DefinedConstraints
+
                 let valsCount =
                     var.Vals
                     |> Option.map (fun vu -> vu.Value |> Array.length)
                     |> Option.defaultValue 0
 
-                if valsCount > 1 then Selectable
-                elif valsCount = 1 && def.Incr.IsSome then Stepable
-                elif def.Incr.IsSome && var.Min.IsSome && var.Max.IsSome then Navigable
-                else NonNavigable
+                if valsCount > 1 then
+                    Selectable
+                elif valsCount = 1 && def.Incr.IsSome then
+                    Stepable
+                elif def.Incr.IsSome && var.Min.IsSome && var.Max.IsSome then
+                    Navigable
+                else
+                    NonNavigable
 
 
-            let setVu s (vu : Types.ValueUnit option) =
+            let setVu s (vu: Types.ValueUnit option) =
                 match vu with
                 | Some vu ->
                     { vu with
                         Value =
                             vu.Value
-                            |> Array.tryFind (fun (v, _) ->
-                                v = (s |> Option.defaultValue "")
-                            )
+                            |> Array.tryFind (fun (v, _) -> v = (s |> Option.defaultValue ""))
                             |> Option.map Array.singleton
                             |> Option.defaultValue vu.Value
-                    } |> Some
+                    }
+                    |> Some
                 | None -> None
 
 
-            let setVar (s : string option) (var : Variable) =
+            let setVar (s: string option) (var: Variable) =
                 { var with
                     IsNonZeroPositive = s.IsNone
-                    Vals =
-                        if s.IsNone then None
-                        else var.Vals |> setVu s
+                    Vals = if s.IsNone then None else var.Vals |> setVu s
                 }
 
 
@@ -1794,7 +1775,7 @@ module Models =
             }
 
 
-        let isSolved (ord : Order) =
+        let isSolved (ord: Order) =
             [
                 yield! ord.Orderable.Components |> Array.map _.OrderableQuantity
                 ord.Orderable.OrderableQuantity
@@ -1855,47 +1836,51 @@ module Models =
 
 
         // Intake substance row definitions
-        let intakeRows = [|
-            [| "volume"; ""; "ml/kg/dag" |]
-            [| "energie"; ""; "kCal/kg/dag" |]
-            [| "koolhydraat"; ""; "mg/kg/min" |]
-            [| "eiwit"; ""; "g/kg/dag" |]
-            [| "vet"; ""; "g/kg/dag" |]
-            [| "natrium"; ""; "mmol/kg/dag" |]
-            [| "kalium"; ""; "mmol/kg/dag" |]
-            [| "chloride"; ""; "mmol/kg/dag" |]
-            [| "calcium"; ""; "mmol/kg/dag" |]
-            [| "magnesium"; ""; "mmol/kg/dag" |]
-            [| "fosfaat"; ""; "mmol/kg/dag" |]
-            [| "ijzer"; ""; "mmol/kg/dag" |]
-            [| "vit D"; ""; "mmol/kg/dag" |]
-            [| "ethanol"; ""; "mg/kg/dag" |]
-            [| "propyleenglycol"; ""; "mg/kg/dag" |]
-            [| "boorzuur"; ""; "mmol/kg/dag" |]
-            [| "benzylalcohol"; ""; "mmol/kg/dag" |]
-        |]
+        let intakeRows =
+            [|
+                [| "volume"; ""; "ml/kg/dag" |]
+                [| "energie"; ""; "kCal/kg/dag" |]
+                [| "koolhydraat"; ""; "mg/kg/min" |]
+                [| "eiwit"; ""; "g/kg/dag" |]
+                [| "vet"; ""; "g/kg/dag" |]
+                [| "natrium"; ""; "mmol/kg/dag" |]
+                [| "kalium"; ""; "mmol/kg/dag" |]
+                [| "chloride"; ""; "mmol/kg/dag" |]
+                [| "calcium"; ""; "mmol/kg/dag" |]
+                [| "magnesium"; ""; "mmol/kg/dag" |]
+                [| "fosfaat"; ""; "mmol/kg/dag" |]
+                [| "ijzer"; ""; "mmol/kg/dag" |]
+                [| "vit D"; ""; "mmol/kg/dag" |]
+                [| "ethanol"; ""; "mg/kg/dag" |]
+                [| "propyleenglycol"; ""; "mg/kg/dag" |]
+                [| "boorzuur"; ""; "mmol/kg/dag" |]
+                [| "benzylalcohol"; ""; "mmol/kg/dag" |]
+            |]
 
 
         // Map a substance name to the corresponding Totals field
-        let substanceToField (intake: Totals) = function
-            | "volume"      -> intake.Volume
-            | "energie"     -> intake.Energy
+        let substanceToField (intake: Totals) =
+            function
+            | "volume" -> intake.Volume
+            | "energie" -> intake.Energy
             | "koolhydraat" -> intake.Carbohydrate
-            | "eiwit"       -> intake.Protein
-            | "vet"         -> intake.Fat
-            | "natrium"     -> intake.Sodium
-            | "kalium"      -> intake.Potassium
-            | "chloride"    -> intake.Chloride
-            | "calcium"     -> intake.Calcium
-            | "magnesium"   -> intake.Magnesium
-            | "phosphaat" | "fosfaat" -> intake.Phosphate
-            | "ijzer"       -> intake.Iron
-            | "vitamine D" | "vit D" -> intake.VitaminD
-            | "ethanol"     -> intake.Ethanol
+            | "eiwit" -> intake.Protein
+            | "vet" -> intake.Fat
+            | "natrium" -> intake.Sodium
+            | "kalium" -> intake.Potassium
+            | "chloride" -> intake.Chloride
+            | "calcium" -> intake.Calcium
+            | "magnesium" -> intake.Magnesium
+            | "phosphaat"
+            | "fosfaat" -> intake.Phosphate
+            | "ijzer" -> intake.Iron
+            | "vitamine D"
+            | "vit D" -> intake.VitaminD
+            | "ethanol" -> intake.Ethanol
             | "propyleenglycol" -> intake.Propyleenglycol
-            | "boorzuur"    -> intake.BoricAcid
+            | "boorzuur" -> intake.BoricAcid
             | "benzylalcohol" -> intake.BenzylAlcohol
-            | _             -> [||]
+            | _ -> [||]
 
 
     module OrderScenario =
@@ -1925,8 +1910,7 @@ module Models =
             }
 
 
-        let eqs (sc1 : OrderScenario) (sc2 : OrderScenario) =
-            sc1.Order.Id = sc2.Order.Id
+        let eqs (sc1: OrderScenario) (sc2: OrderScenario) = sc1.Order.Id = sc2.Order.Id
 
 
     module DoseType =
@@ -2052,7 +2036,7 @@ module Models =
             }
 
 
-        let indicationChange s (ctx : OrderContext) : OrderContext =
+        let indicationChange s (ctx: OrderContext) : OrderContext =
             if s |> Option.isNone then
                 { ctx with
                     Filter =
@@ -2065,15 +2049,10 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with
-                    Filter =
-                        { ctx.Filter with
-                            Indication = s
-                        }
-                }
+                { ctx with Filter = { ctx.Filter with Indication = s } }
 
 
-        let medicationChange s (ctx : OrderContext) : OrderContext =
+        let medicationChange s (ctx: OrderContext) : OrderContext =
             if s |> Option.isNone then
                 { ctx with
                     Filter =
@@ -2086,15 +2065,10 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with
-                    Filter =
-                        { ctx.Filter with
-                            Generic = s
-                        }
-                }
+                { ctx with Filter = { ctx.Filter with Generic = s } }
 
 
-        let routeChange s (ctx : OrderContext) : OrderContext =
+        let routeChange s (ctx: OrderContext) : OrderContext =
             if s |> Option.isNone then
                 { ctx with
                     Filter =
@@ -2107,15 +2081,10 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with
-                    Filter =
-                        { ctx.Filter with
-                            Route = s
-                        }
-                }
+                { ctx with Filter = { ctx.Filter with Route = s } }
 
 
-        let formChange s (ctx : OrderContext) : OrderContext =
+        let formChange s (ctx: OrderContext) : OrderContext =
             if s |> Option.isNone then
                 { ctx with
                     Filter =
@@ -2128,27 +2097,18 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with
-                    Filter =
-                        { ctx.Filter with
-                            Form = s
-                        }
-                }
+                { ctx with Filter = { ctx.Filter with Form = s } }
 
 
-        let diluentChange s (ctx : OrderContext) : OrderContext =
-            { ctx with
-                Filter = { ctx.Filter with Diluent = s }
-            }
+        let diluentChange s (ctx: OrderContext) : OrderContext =
+            { ctx with Filter = { ctx.Filter with Diluent = s } }
 
 
-        let componentsChange cs (ctx : OrderContext) : OrderContext =
-            { ctx with
-                Filter = { ctx.Filter with SelectedComponents = cs }
-            }
+        let componentsChange cs (ctx: OrderContext) : OrderContext =
+            { ctx with Filter = { ctx.Filter with SelectedComponents = cs } }
 
 
-        let doseTypeChange (dt : DoseType option) (ctx : OrderContext) : OrderContext =
+        let doseTypeChange (dt: DoseType option) (ctx: OrderContext) : OrderContext =
             if dt |> Option.isNone then
                 { ctx with
                     Filter =
@@ -2159,63 +2119,80 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with
-                    Filter =
-                        { ctx.Filter with
-                            DoseType = dt
-                        }
-                }
+                { ctx with Filter = { ctx.Filter with DoseType = dt } }
 
 
         let syncFilterToFormulary (filter: Filter) (form: Formulary) : Formulary =
             { form with
-                Indication = filter.Indication; Generic = filter.Generic
-                Route = filter.Route; Form = filter.Form; DoseType = filter.DoseType }
+                Indication = filter.Indication
+                Generic = filter.Generic
+                Route = filter.Route
+                Form = filter.Form
+                DoseType = filter.DoseType
+            }
 
 
         let syncFilterToParenteralia (filter: Filter) (par: Parenteralia) : Parenteralia =
-            { par with Generic = filter.Generic; Form = filter.Form; Route = filter.Route }
+            { par with
+                Generic = filter.Generic
+                Form = filter.Form
+                Route = filter.Route
+            }
 
 
         let syncFormularyToFilter (form: Formulary) (ctx: OrderContext) : OrderContext =
             let unchanged =
-                form.Indication = ctx.Filter.Indication &&
-                form.Generic = ctx.Filter.Generic &&
-                form.Route = ctx.Filter.Route &&
-                form.Form = ctx.Filter.Form
+                form.Indication = ctx.Filter.Indication
+                && form.Generic = ctx.Filter.Generic
+                && form.Route = ctx.Filter.Route
+                && form.Form = ctx.Filter.Form
+
             { ctx with
                 Filter =
                     { ctx.Filter with
-                        Indication = form.Indication; Generic = form.Generic
-                        Form = form.Form; Route = form.Route; DoseType = form.DoseType
+                        Indication = form.Indication
+                        Generic = form.Generic
+                        Form = form.Form
+                        Route = form.Route
+                        DoseType = form.DoseType
                         Diluent = if unchanged then ctx.Filter.Diluent else None
-                        SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||] }
-                Scenarios = [||] }
+                        SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||]
+                    }
+                Scenarios = [||]
+            }
 
 
         let syncParenteraliaToFilter (par: Parenteralia) (ctx: OrderContext) : OrderContext =
             let unchanged =
-                par.Generic = ctx.Filter.Generic &&
-                par.Route = ctx.Filter.Route &&
-                par.Form = ctx.Filter.Form
+                par.Generic = ctx.Filter.Generic
+                && par.Route = ctx.Filter.Route
+                && par.Form = ctx.Filter.Form
+
             { ctx with
                 Filter =
                     { ctx.Filter with
-                        Indication = None; Generic = par.Generic
-                        Form = par.Form; Route = par.Route; DoseType = None
+                        Indication = None
+                        Generic = par.Generic
+                        Form = par.Form
+                        Route = par.Route
+                        DoseType = None
                         Diluent = if unchanged then ctx.Filter.Diluent else None
-                        SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||] }
-                Scenarios = [||] }
+                        SelectedComponents = if unchanged then ctx.Filter.SelectedComponents else [||]
+                    }
+                Scenarios = [||]
+            }
 
 
     module TextBlock =
 
-        let maxTb (xs: TextBlock [][]) =
-            if xs |> Array.isEmpty then Valid
+        let maxTb (xs: TextBlock[][]) =
+            if xs |> Array.isEmpty then
+                Valid
             else
                 xs
                 |> Array.collect (fun tbs ->
-                    if tbs |> Array.isEmpty then [| 0 |]
+                    if tbs |> Array.isEmpty then
+                        [| 0 |]
                     else
                         tbs
                         |> Array.map (fun tb ->
@@ -2228,38 +2205,38 @@ module Models =
                 )
                 |> Array.max
                 |> function
-                | 0 -> Valid
-                | 1 -> Caution
-                | 2 -> Warning
-                | 3 -> Alert
-                | i -> failwith $"not a valid textblock: {i}"
+                    | 0 -> Valid
+                    | 1 -> Caution
+                    | 2 -> Warning
+                    | 3 -> Alert
+                    | i -> failwith $"not a valid textblock: {i}"
 
 
         /// Flatten TextBlock[][] to a single-row TextBlock[][] for compact display.
         /// Joins rows with " + " separators and uses the max severity level.
-        let flatten (blocks: TextBlock [][]) : TextBlock [][] =
-            if blocks |> Array.isEmpty then blocks
+        let flatten (blocks: TextBlock[][]) : TextBlock[][] =
+            if blocks |> Array.isEmpty then
+                blocks
             else
                 let getItems tb =
                     match tb with
                     | Valid itms
                     | Caution itms
                     | Warning itms
-                    | Alert itms ->
-                        itms
-                        |> Array.append [| " " |> Normal |]
+                    | Alert itms -> itms |> Array.append [| " " |> Normal |]
 
                 let add xs =
                     let plus = [| [| " + " |> Normal |] |]
 
                     xs
-                    |> Array.fold (fun acc x ->
-                        if acc |> Array.isEmpty then x
-                        else
-                            x
-                            |> Array.append plus
-                            |> Array.append acc
-                    ) [||]
+                    |> Array.fold
+                        (fun acc x ->
+                            if acc |> Array.isEmpty then
+                                x
+                            else
+                                x |> Array.append plus |> Array.append acc
+                        )
+                        [||]
                     |> Array.collect id
 
                 blocks
@@ -2296,17 +2273,19 @@ module Models =
 
     module NutritionPlan =
 
-        let empty : NutritionPlan = {
-            Patient = Patient.empty
-            NutritionContexts = [||]
-            Totals = Totals.empty
-        }
+        let empty: NutritionPlan =
+            {
+                Patient = Patient.empty
+                NutritionContexts = [||]
+                Totals = Totals.empty
+            }
 
-        let create patient contexts : NutritionPlan = {
-            Patient = patient
-            NutritionContexts = contexts
-            Totals = Totals.empty
-        }
+        let create patient contexts : NutritionPlan =
+            {
+                Patient = patient
+                NutritionContexts = contexts
+                Totals = Totals.empty
+            }
 
 
     module Formulary =

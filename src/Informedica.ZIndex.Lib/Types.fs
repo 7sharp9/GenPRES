@@ -8,11 +8,17 @@ module Types =
     module Names =
 
         /// Different types of names
-        type Name = Full | Short | Memo | Label
+        type Name =
+            | Full
+            | Short
+            | Memo
+            | Label
 
 
         /// The length of the name
-        type Length = TwentyFive | Fifty
+        type Length =
+            | TwentyFive
+            | Fifty
 
 
         /// Naming items
@@ -37,23 +43,23 @@ module Types =
     type Substance =
         {
             /// The Id of the Substance
-            Id : int
+            Id: int
             /// The Id for the full Generic Substance Name
-            Pk : int
+            Pk: int
             /// The name of the substance
-            Name : string
+            Name: string
             /// The molar mass of the substance
             /// https://www.z-index.nl/documentatie/bestandsbeschrijvingen/veld?veldnaam=GNMOLS
-            Mole : float
+            Mole: float
             /// The molar mass of the real substance
             /// https://www.z-index.nl/documentatie/bestandsbeschrijvingen/veld?veldnaam=GNMOLE
-            MoleReal : float
+            MoleReal: float
             /// The chemical formula of the substance
-            Formula : string
+            Formula: string
             /// The unit of the substance
-            Unit : string
+            Unit: string
             /// The density of the substance
-            Density : float
+            Density: float
         }
 
 
@@ -61,28 +67,28 @@ module Types =
     type ProductSubstance =
         {
             /// The id of the substance.
-            SubstanceId : int
+            SubstanceId: int
             /// The order in which the substances are listed
             /// in a GenericProduct and GenPresProduct name.
-            SortOrder : int
+            SortOrder: int
             /// The name of the substance.
             /// For example: 'NORADRENALINE'
-            SubstanceName : string
+            SubstanceName: string
             /// The quantity of the substance.
-            SubstanceQuantity : float
+            SubstanceQuantity: float
             /// The unit of the substance.
-            SubstanceUnit : string
+            SubstanceUnit: string
             /// The id of the generic substance (salt form).
-            GenericId : int
+            GenericId: int
             /// The full name (salt form) of the substance.
             /// For example: 'NORADRENALINE WATERSTOFTARTRAAT-1-WATER'
-            GenericName : string
+            GenericName: string
             /// The quantity of the generic substance (salt form).
-            GenericQuantity : float
+            GenericQuantity: float
             /// The unit of the generic substance (salt form).
-            GenericUnit : string
+            GenericUnit: string
             /// The pharmaceutical form unit in which the substance is contained.
-            FormUnit : string
+            FormUnit: string
             /// Is the substance additional
             IsAdditional: bool
         }
@@ -98,12 +104,12 @@ module Types =
     /// </remarks>
     type ConsumerProduct =
         {
-            Id : int
-            Name : string
-            Label : string
-            Quantity : float
-            Container : string
-            BarCodes : string []
+            Id: int
+            Name: string
+            Label: string
+            Quantity: float
+            Container: string
+            BarCodes: string[]
         }
 
 
@@ -117,15 +123,15 @@ module Types =
     type TradeProduct =
         {
             Id: int
-            Name : string
-            Label : string
-            Brand : string
-            Company : string
-            Denominator : int
-            UnitWeight : float
-            Route : string []
-            Substances: ProductSubstance []
-            ConsumerProducts : ConsumerProduct []
+            Name: string
+            Label: string
+            Brand: string
+            Company: string
+            Denominator: int
+            UnitWeight: float
+            Route: string[]
+            Substances: ProductSubstance[]
+            ConsumerProducts: ConsumerProduct[]
         }
 
 
@@ -139,19 +145,19 @@ module Types =
     type PrescriptionProduct =
         {
             /// The id of the prescription product, i.e. PRK.
-            Id : int
+            Id: int
             /// The full name of the product.
-            Name : string
+            Name: string
             /// The label of the product.
-            Label  : string
+            Label: string
             /// The pharmaceutical form quantity of the product.
-            Quantity : float
+            Quantity: float
             /// The pharmaceutical form unit of the product.
-            Unit : string
+            Unit: string
             /// The container of the product.
-            Container : string
+            Container: string
             /// The trade products of the prescription product.
-            TradeProducts : TradeProduct []
+            TradeProducts: TradeProduct[]
         }
 
 
@@ -168,24 +174,24 @@ module Types =
     type GenericProduct =
         {
             /// The id of the generic product,i.e. GPK.
-            Id : int
+            Id: int
             /// The full name of the product.
-            Name : string
+            Name: string
             /// The label of the product.
-            Label : string
+            Label: string
             /// The ATC-5 code of the product.
             /// The code is a string of 7 characters.
-            ATC : string
+            ATC: string
             /// The ATC-5 name of the product.
-            ATCName : string
+            ATCName: string
             /// The pharmaceutical form of the product.
-            Form : string
+            Form: string
             /// The route of administration of the product.
-            Route : string []
+            Route: string[]
             /// The substances of the product.
-            Substances : ProductSubstance []
+            Substances: ProductSubstance[]
             /// The prescription products of the generic product.
-            PrescriptionProducts : PrescriptionProduct []
+            PrescriptionProducts: PrescriptionProduct[]
         }
 
 
@@ -198,161 +204,165 @@ module Types =
     /// </remarks>
     type GenPresProduct =
         {
-            Name : string
-            Form : string
-            Routes : string []
-            PharmacologicalGroups : string []
-            GenericProducts : GenericProduct []
+            Name: string
+            Form: string
+            Routes: string[]
+            PharmacologicalGroups: string[]
+            GenericProducts: GenericProduct[]
             DisplayName: string
-            Unit : string
-            Synonyms: string []
+            Unit: string
+            Synonyms: string[]
         }
 
 
     /// A Z-Index rule Frequency.
-    type RuleFrequency = { Frequency: float; Time: string }
+    type RuleFrequency =
+        {
+            Frequency: float
+            Time: string
+        }
 
 
     /// A Z-Index rule MinMax.
-    type RuleMinMax = { Min: float Option; Max: float Option }
+    type RuleMinMax =
+        {
+            Min: float Option
+            Max: float Option
+        }
 
 
     /// A Z-Index dose rule.
     type DoseRule =
         {
             /// The id of the DoseRule
-            Id : int
+            Id: int
             /// The care group the DoseRule applies to
             /// this is either 'intensieve' or 'niet-intensieve' or 'all'
-            CareGroup : string
+            CareGroup: string
             /// This is the usage of the dose rule, can be therapeutic or
             /// prophylactic.
-            Usage : string
+            Usage: string
             /// The dose type, 'standaard' means that the dose rule applies without
             /// a specific indication, 'verbyzondering' means the dose rule needs
             /// an indication other than 'Algemeen'.
-            DoseType : string
+            DoseType: string
             /// The list of generic products for which the dose rule applies
-            GenericProduct : RuleGenericProduct[]
+            GenericProduct: RuleGenericProduct[]
             /// The list of prescription products for which the dose rule applies
-            PrescriptionProduct : RuleProduct[]
+            PrescriptionProduct: RuleProduct[]
             /// The list of trade products for which the dose rule applies
-            TradeProduct : RuleProduct[]
+            TradeProduct: RuleProduct[]
             /// The route for which the dose rule applies
-            Routes : string []
+            Routes: string[]
             /// The indication id for which the dose rule applies.
             /// The indications are coded by ICPC/ICD-10
-            IndicationId : int
+            IndicationId: int
             /// The indication text for which the dose rule applies.
             /// The indications are coded by ICPC/ICD-10
-            Indication : string
+            Indication: string
             /// If high risk, than the dose margins are smaller
-            HighRisk : bool
+            HighRisk: bool
             /// Gender is either 'man', 'vrouw' or an empty string.
             /// When gender is empty the dose rule can apply to either
             /// gender.
-            Gender : string
+            Gender: string
             /// The optional minimum or maximum age limits for the dose rule
-            Age : RuleMinMax
+            Age: RuleMinMax
             /// The optional minimum or maximum weight limits for which the dose
             /// rule applies
-            Weight : RuleMinMax
+            Weight: RuleMinMax
             /// The optional BSA min/max for which the dose rule applies
-            BSA : RuleMinMax
+            BSA: RuleMinMax
             /// The frequency of the dose rule. The total dose can be calculated
             /// by multiplying the dose by the frequency.
-            Freq : RuleFrequency
+            Freq: RuleFrequency
             /// The normal optional min/max of the unadjusted dose
-            Norm : RuleMinMax
+            Norm: RuleMinMax
             /// The absolute optional min/max of the unadjusted dose
-            Abs : RuleMinMax
+            Abs: RuleMinMax
             /// The normal optional min/max of the dose adjusted by weight
-            NormKg : RuleMinMax
+            NormKg: RuleMinMax
             /// The absolute optional min/max of the dose adjusted by weight
-            AbsKg : RuleMinMax
+            AbsKg: RuleMinMax
             /// The absolute optional min/max of the dose adjusted by BSA
-            NormM2 : RuleMinMax
+            NormM2: RuleMinMax
             /// The absolute optional min/max of the dose adjusted by BSA
-            AbsM2 : RuleMinMax
+            AbsM2: RuleMinMax
             /// The unit in which the dose is measured
-            Unit : string
+            Unit: string
         }
 
-        static member Weight_ :
-            (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
-            _.Weight ,
-            (fun mm dr -> { dr with Weight = mm })
+        static member Weight_: (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
+            _.Weight, (fun mm dr -> { dr with Weight = mm })
 
-        static member BSA_ :
-            (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
-            _.BSA ,
-            (fun mm dr -> { dr with BSA = mm })
+        static member BSA_: (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
+            _.BSA, (fun mm dr -> { dr with BSA = mm })
 
-        static member Norm_ :
-            (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
-            _.Norm ,
-            (fun mm dr -> { dr with Norm = mm })
+        static member Norm_: (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
+            _.Norm, (fun mm dr -> { dr with Norm = mm })
 
-        static member Abs_ :
-            (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
-            _.Abs ,
-            (fun mm dr -> { dr with Abs = mm })
+        static member Abs_: (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
+            _.Abs, (fun mm dr -> { dr with Abs = mm })
 
-        static member NormKg_ :
-            (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
-            _.NormKg ,
-            (fun mm dr -> { dr with NormKg = mm })
+        static member NormKg_: (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
+            _.NormKg, (fun mm dr -> { dr with NormKg = mm })
 
-        static member AbsKg_ :
-            (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
-            _.AbsKg ,
-            (fun mm dr -> { dr with AbsKg = mm })
+        static member AbsKg_: (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
+            _.AbsKg, (fun mm dr -> { dr with AbsKg = mm })
 
-        static member NormM2_ :
-            (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
-            _.NormM2 ,
-            (fun mm dr -> { dr with NormM2 = mm })
+        static member NormM2_: (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
+            _.NormM2, (fun mm dr -> { dr with NormM2 = mm })
 
-        static member AbsM2_ :
-            (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
-            _.AbsM2 ,
-            (fun mm dr -> { dr with AbsM2 = mm })
+        static member AbsM2_: (DoseRule -> RuleMinMax) * (RuleMinMax -> DoseRule -> DoseRule) =
+            _.AbsM2, (fun mm dr -> { dr with AbsM2 = mm })
+
     /// A Z-Index trade or consumer product that is part of a dose rule.
-    and RuleProduct = { Id: int; Name: string }
+    and RuleProduct =
+        {
+            Id: int
+            Name: string
+        }
+
     /// A Z-Index generic product that is part of a dose rule.
     and RuleGenericProduct =
         {
             Id: int
             Name: string
-            Route: string []
+            Route: string[]
             Unit: string
-            Substances : RuleSubstance []
+            Substances: RuleSubstance[]
         }
+
     /// A Z-Index substance that is part of a RuleGenericProduct.
-    and RuleSubstance = { Name: string; Quantity: float; Unit: string }
+    and RuleSubstance =
+        {
+            Name: string
+            Quantity: float
+            Unit: string
+        }
 
 
     /// The ATC group coding
     type ATCGroup =
         {
-            ATC1 : string
-            AnatomicalGroup : string
-            AnatomicalGroupEng : string
-            ATC2 : string
-            TherapeuticMainGroup : string
-            TherapeuticMainGroupEng : string
-            ATC3 : string
-            TherapeuticSubGroup : string
-            TherapeuticSubGroupEng : string
-            ATC4 : string
-            PharmacologicalGroup : string
-            PharmacologicalGroupEng : string
-            ATC5 : string
-            Substance : string
-            SubstanceEng : string
-            Generic : string
-            Form : string
-            Routes : string
+            ATC1: string
+            AnatomicalGroup: string
+            AnatomicalGroupEng: string
+            ATC2: string
+            TherapeuticMainGroup: string
+            TherapeuticMainGroupEng: string
+            ATC3: string
+            TherapeuticSubGroup: string
+            TherapeuticSubGroupEng: string
+            ATC4: string
+            PharmacologicalGroup: string
+            PharmacologicalGroupEng: string
+            ATC5: string
+            Substance: string
+            SubstanceEng: string
+            Generic: string
+            Form: string
+            Routes: string
         }
 
 
@@ -401,9 +411,10 @@ module Types =
     type RuleResult =
         {
             Product: GenPresProduct
-            DoseRules: string []
-            Doses: FreqDose []
+            DoseRules: string[]
+            Doses: FreqDose[]
         }
+
     and FreqDose =
         {
             /// The frequency of the dose rule

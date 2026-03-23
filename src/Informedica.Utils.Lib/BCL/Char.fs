@@ -17,11 +17,11 @@ module Char =
 
 
     /// Array of all small caps letters
-    let letters = [|'a'..'z'|]
+    let letters = [| 'a' .. 'z' |]
 
 
     /// Array of all capital letters
-    let capitals = [|'A'..'Z'|]
+    let capitals = [| 'A' .. 'Z' |]
 
 
     /// Checks if a `Char` is a capital letter
@@ -38,17 +38,15 @@ module Char =
 
     /// Checks if a `Char` is a letter
     let isLetter c =
-        letters
-        |> Seq.exists ((=) (c |> toLower))
+        letters |> Seq.exists ((=) (c |> toLower))
 
 
     /// Checks if a `Char` is a small caps letter
     let isLower c =
-        if c |> isLetter |> not then false
+        if c |> isLetter |> not then
+            false
         else
-            c
-            |> isCapital
-            |> not
+            c |> isCapital |> not
 
 
     module Tests =
@@ -69,13 +67,11 @@ module Char =
 
 
         // Test toLower
-        let testToLower () =
-            test <@ 'A' |> toLower = 'a' @>
+        let testToLower () = test <@ 'A' |> toLower = 'a' @>
 
 
         // Test toUpper
-        let testToUpper () =
-            test <@ 'a' |> toUpper = 'A' @>
+        let testToUpper () = test <@ 'a' |> toUpper = 'A' @>
 
 
         // Test isLower
@@ -87,9 +83,8 @@ module Char =
 
         // Test all
         let testAll () =
-            testIsCapital()
-            testIsLetter()
-            testToLower()
-            testToUpper()
-            testIsLower()
-
+            testIsCapital ()
+            testIsLetter ()
+            testToLower ()
+            testToUpper ()
+            testIsLower ()

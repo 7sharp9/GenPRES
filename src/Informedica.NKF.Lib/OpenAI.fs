@@ -11,70 +11,81 @@ module OpenAI =
     open Informedica.GenUnits.Lib
 
 
-    type Message = {
-        role: string
-        content: string
-    }
+    type Message =
+        {
+            role: string
+            content: string
+        }
 
-    type Choice = {
-        index: int
-        message: Message
-        logprobs: Nullable<float> option
-        finish_reason: string
-    }
+    type Choice =
+        {
+            index: int
+            message: Message
+            logprobs: Nullable<float> option
+            finish_reason: string
+        }
 
-    type Usage = {
-        prompt_tokens: int
-        completion_tokens: int
-        total_tokens: int
-    }
+    type Usage =
+        {
+            prompt_tokens: int
+            completion_tokens: int
+            total_tokens: int
+        }
 
-    type ChatCompletion = {
-        id: string
-        object: string
-        created: int64
-        model: string
-        choices: Choice list
-        usage: Usage
-        system_fingerprint: string option
-    }
+    type ChatCompletion =
+        {
+            id: string
+            object: string
+            created: int64
+            model: string
+            choices: Choice list
+            usage: Usage
+            system_fingerprint: string option
+        }
 
 
     let tryCreateAbsMaxDose s =
-        if s |> String.IsNullOrEmpty then None
+        if s |> String.IsNullOrEmpty then
+            None
         else
             try
                 match s |> String.split " " with
-                | [v;u] when u |> String.split "/" |> List.length = 2 ->
+                | [ v; u ] when u |> String.split "/" |> List.length = 2 ->
                     let v = v |> String.replace "." "" |> String.replace "," "."
-                    match v |> Double.tryParse |> Option.bind BigRational.fromFloat,
-                          $"{u}[Time]" |> Units.fromString with
+
+                    match
+                        v |> Double.tryParse |> Option.bind BigRational.fromFloat, $"{u}[Time]" |> Units.fromString
+                    with
                     | Some v, Some u -> v |> ValueUnit.singleWithUnit u |> Some
                     | _ -> None
                 | _ -> None
-            with
-            | _ -> None
+            with _ ->
+                None
 
 
     let tryCreateMaxDose s =
-        if s |> String.IsNullOrEmpty then None
+        if s |> String.IsNullOrEmpty then
+            None
         else
             try
                 match s |> String.split " " with
-                | [v;u] ->
+                | [ v; u ] ->
                     let v = v |> String.replace "." "" |> String.replace "," "."
+
                     let u =
                         match u |> String.split "/" with
-                        | [u]
-                        | [u; _] -> Some u
+                        | [ u ]
+                        | [ u; _ ] -> Some u
                         | _ -> None
-                    match v |> Double.tryParse |> Option.bind BigRational.fromFloat,
-                          u |> Option.bind Units.fromString with
+
+                    match
+                        v |> Double.tryParse |> Option.bind BigRational.fromFloat, u |> Option.bind Units.fromString
+                    with
                     | Some v, Some u -> v |> ValueUnit.singleWithUnit u |> Some
                     | _ -> None
                 | _ -> None
-            with
-            | _ -> None
+            with _ ->
+                None
 
 
     // Define the API key and endpoint
@@ -91,6 +102,7 @@ module OpenAI =
         // Set up the request headers
         client.DefaultRequestHeaders.Authorization <-
             System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey)
+
         client.DefaultRequestHeaders.Add("User-Agent", "F# OpenAI Client")
 
         // Define the request body
@@ -109,7 +121,8 @@ module OpenAI =
                             content = msg
                         |}
                     ]
-            |} |> JsonConvert.SerializeObject
+            |}
+            |> JsonConvert.SerializeObject
 
         let content = new StringContent(requestBody, Encoding.UTF8, "application/json")
 
@@ -123,18 +136,19 @@ module OpenAI =
 
     let getAbsMaxDose doseText =
         async {
-            let! response = callAI $"wat is de maximale absolute dosering, geef alleen de dosering als antwoord: {doseText}"
+            let! response =
+                callAI $"wat is de maximale absolute dosering, geef alleen de dosering als antwoord: {doseText}"
+
             return
                 try
                     response
-                        |> Informedica.ZIndex.Lib.Json.deSerialize<ChatCompletion>
-                        |> fun compl ->
-                            compl.choices
-                            |> List.tryHead
-                            |> Option.map _.message
-                            |> Option.bind (fun m -> m.content |> tryCreateAbsMaxDose)
-                with
-                | e ->
+                    |> Informedica.ZIndex.Lib.Json.deSerialize<ChatCompletion>
+                    |> fun compl ->
+                        compl.choices
+                        |> List.tryHead
+                        |> Option.map _.message
+                        |> Option.bind (fun m -> m.content |> tryCreateAbsMaxDose)
+                with e ->
                     printfn $"an error occurred:\n{response}"
                     None
         }
@@ -142,7 +156,10 @@ module OpenAI =
 
     let getMaxDose doseText =
         async {
-            let! response = callAI $"wat is de maximale dosering die per keer gegeven kan worden, geef alleen de dosering als antwoord: {doseText}"
+            let! response =
+                callAI
+                    $"wat is de maximale dosering die per keer gegeven kan worden, geef alleen de dosering als antwoord: {doseText}"
+
             return
                 try
                     response
@@ -152,8 +169,7 @@ module OpenAI =
                         |> List.tryHead
                         |> Option.map _.message
                         |> Option.bind (fun m -> m.content |> tryCreateMaxDose)
-                with
-                | e ->
+                with e ->
                     printfn $"an error occurred:\n{response}"
                     None
         }
@@ -161,7 +177,10 @@ module OpenAI =
 
     let getDoseType doseText =
         async {
-            let! response = callAI $"is dit een start of een eenmalige dosering: geef alleen 'start' of 'eenmalig' als antwoord: {doseText}"
+            let! response =
+                callAI
+                    $"is dit een start of een eenmalige dosering: geef alleen 'start' of 'eenmalig' als antwoord: {doseText}"
+
             return
                 try
                     response
@@ -176,9 +195,7 @@ module OpenAI =
                             | s when s |> String.equalsCapInsens "eenmalig" -> "eenmalig" |> Some
                             | _ -> None
                         )
-                with
-                | e ->
+                with e ->
                     printfn $"an error occurred:\n{response}"
                     None
         }
-

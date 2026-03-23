@@ -98,12 +98,10 @@ module Mapping =
     /// Mapping of long Z-index route names to short names
     let routeMapping =
         let dataUrlId = Web.getDataUrlIdGenPres ()
+
         Web.getDataFromSheet dataUrlId "Routes"
         |> fun data ->
-            let getColumn =
-                data
-                |> Array.head
-                |> Csv.getStringColumn
+            let getColumn = data |> Array.head |> Csv.getStringColumn
 
             data
             |> Array.tail
@@ -121,12 +119,10 @@ module Mapping =
     /// Mapping of long Z-index unit names to short names
     let unitMapping =
         let dataUrlId = Web.getDataUrlIdGenPres ()
+
         Web.getDataFromSheet dataUrlId "Units"
         |> fun data ->
-            let getColumn =
-                data
-                |> Array.head
-                |> Csv.getStringColumn
+            let getColumn = data |> Array.head |> Csv.getStringColumn
 
             data
             |> Array.tail
@@ -143,15 +139,13 @@ module Mapping =
 
 
     let mapUnit s =
-        if s |> String.isNullOrWhiteSpace then None
+        if s |> String.isNullOrWhiteSpace then
+            None
         else
             let s = s |> String.toLower |> String.trim
+
             unitMapping
-            |> Array.tryFind (fun r ->
-                r.Long = s ||
-                r.Short = s ||
-                r.MV = s
-            )
+            |> Array.tryFind (fun r -> r.Long = s || r.Short = s || r.MV = s)
             |> function
                 | Some r -> $"{r.Short}[{r.Group}]" |> Units.fromString
                 | None -> None
@@ -161,15 +155,16 @@ module Mapping =
     let mapRoute rte =
         routeMapping
         |> Array.tryFind (fun r ->
-            r.long |> String.equalsCapInsens rte ||
-            r.short |> String.equalsCapInsens rte ||
-            r.kinderFormularium |> String.equalsCapInsens rte
+            r.long |> String.equalsCapInsens rte
+            || r.short |> String.equalsCapInsens rte
+            || r.kinderFormularium |> String.equalsCapInsens rte
         )
         |> Option.map _.long
 
 
     let eqsRoute r1 r2 =
-        if r1 |> Option.isNone then true
+        if r1 |> Option.isNone then
+            true
         else
             match r1.Value |> mapRoute, r2 |> mapRoute with
             | Some r1, Some r2 -> r1 = r2
@@ -178,12 +173,10 @@ module Mapping =
 
     let productMapping =
         let dataUrlId = Web.getDataUrlIdGenPres ()
+
         Web.getDataFromSheet dataUrlId "Kinderformularium"
         |> fun data ->
-            let getColumn =
-                data
-                |> Array.head
-                |> Csv.getStringColumn
+            let getColumn = data |> Array.head |> Csv.getStringColumn
 
             data
             |> Array.tail
@@ -199,5 +192,3 @@ module Mapping =
                     brand = get "Brand"
                 |}
             )
-
-

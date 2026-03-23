@@ -1,7 +1,6 @@
 namespace Informedica.GenOrder.Lib
 
 
-
 module Patient =
 
 
@@ -20,7 +19,7 @@ module Patient =
     /// <summary>
     /// And empty Patient
     /// </summary>
-    let patient : Patient =
+    let patient: Patient =
         {
             Location = None
             Department = None
@@ -53,14 +52,16 @@ module Patient =
         /// <param name="ags">The Age values</param>
         let ageToValueUnit ags =
             ags
-            |> List.fold (fun acc a ->
-                match a with
-                | Years x -> (x |> decimal) * 365m
-                | Months x -> (x |> decimal) * 30m
-                | Weeks x -> (x |> decimal) * 7m
-                | Days x -> (x |> decimal)
-                |> fun x -> acc + x
-            ) 0m
+            |> List.fold
+                (fun acc a ->
+                    match a with
+                    | Years x -> (x |> decimal) * 365m
+                    | Months x -> (x |> decimal) * 30m
+                    | Weeks x -> (x |> decimal) * 7m
+                    | Days x -> (x |> decimal)
+                    |> fun x -> acc + x
+                )
+                0m
             |> BigRational.fromDecimal
             |> ValueUnit.singleWithUnit Units.Time.day
 
@@ -69,29 +70,36 @@ module Patient =
         /// Converts a decimal representing the number of days to a list of Age values
         /// </summary>
         /// <param name="vu">The age ValueUnit</param>
-        let ageFromValueUnit (vu : ValueUnit) =
+        let ageFromValueUnit (vu: ValueUnit) =
             let vu =
                 vu
                 |> ValueUnit.convertTo Units.Time.day
                 |> ValueUnit.getValue
                 |> Array.head
                 |> BigRational.toDecimal
+
             let yrs = (vu / 365m) |> int
             let mos = ((vu - (365 * yrs |> decimal)) / 30m) |> int
             let wks = (vu - (365 * yrs |> decimal) - (30 * mos |> decimal)) / 7m |> int
-            let dys = (vu - (365 * yrs |> decimal) - (30 * mos |> decimal) - (7 * wks |> decimal)) |> int
+
+            let dys =
+                (vu - (365 * yrs |> decimal) - (30 * mos |> decimal) - (7 * wks |> decimal))
+                |> int
+
             [
-                if yrs > 0 then yrs |> Years
-                if mos > 0 then mos |> Months
-                if wks > 0 then wks |> Weeks
-                if dys > 0 then dys |> Days
+                if yrs > 0 then
+                    yrs |> Years
+                if mos > 0 then
+                    mos |> Months
+                if wks > 0 then
+                    wks |> Weeks
+                if dys > 0 then
+                    dys |> Days
             ]
 
         // Helper method for the Optics below
         let ageAgeList =
-            Option.map ageFromValueUnit
-            >> (Option.defaultValue []),
-            (ageToValueUnit >> Some)
+            Option.map ageFromValueUnit >> (Option.defaultValue []), (ageToValueUnit >> Some)
 
 
         let age_ = Patient.Age_ >-> ageAgeList
@@ -104,12 +112,12 @@ module Patient =
                 |> ageFromValueUnit
                 |> List.filter (fun a ->
                     match a with
-                    | Years _ | Months _ -> false
+                    | Years _
+                    | Months _ -> false
                     | _ -> true
                 )
-            Option.map ageFromDec
-            >> (Option.defaultValue []),
-            (ageToValueUnit >> Some)
+
+            Option.map ageFromDec >> (Option.defaultValue []), (ageToValueUnit >> Some)
 
 
         let gestAge_ = Patient.GestAge_ >-> gestPMAgeList
@@ -117,7 +125,9 @@ module Patient =
         let pmAge_ = Patient.PMAge_ >-> gestPMAgeList
 
 
-        type Weight = | Kilogram of decimal | Gram of int
+        type Weight =
+            | Kilogram of decimal
+            | Gram of int
 
 
         let vuWeight =
@@ -137,14 +147,15 @@ module Patient =
                 |> BigRational.fromDecimal
                 |> ValueUnit.singleWithUnit Units.Weight.gram
 
-            Option.map get,
-            Option.map set
+            Option.map get, Option.map set
 
 
         let weight_ = Patient.Weight_ >-> vuWeight
 
 
-        type Height = | Meter of decimal | Centimeter of int
+        type Height =
+            | Meter of decimal
+            | Centimeter of int
 
 
         let vuHeight =
@@ -164,8 +175,7 @@ module Patient =
                 |> BigRational.fromDecimal
                 |> ValueUnit.singleWithUnit Units.Height.centiMeter
 
-            Option.map get,
-            Option.map set
+            Option.map get, Option.map set
 
 
         let height_ = Patient.Height_ >-> vuHeight
@@ -213,10 +223,9 @@ module Patient =
     let setDepartment = Optic.set Patient.Department_
 
 
-
     let premature =
         patient
-        |> setAge [ 1 |> Weeks]
+        |> setAge [ 1 |> Weeks ]
         |> setGestAge [ 32 |> Weeks ]
         |> setWeight (1200 |> Gram |> Some)
         |> setHeight (45 |> Centimeter |> Some)
@@ -225,7 +234,7 @@ module Patient =
 
     let newBorn =
         patient
-        |> setAge [ 1 |> Weeks]
+        |> setAge [ 1 |> Weeks ]
         |> setWeight (3.5m |> Kilogram |> Some)
         |> setHeight (60 |> Centimeter |> Some)
         |> setDepartment (Some "ICK")
@@ -233,7 +242,7 @@ module Patient =
 
     let infant =
         patient
-        |> setAge [ 1 |> Years]
+        |> setAge [ 1 |> Years ]
         |> setWeight (11.5m |> Kilogram |> Some)
         |> setHeight (70 |> Centimeter |> Some)
         |> setDepartment (Some "ICK")
@@ -241,7 +250,7 @@ module Patient =
 
     let toddler =
         patient
-        |> setAge [ 3 |> Years]
+        |> setAge [ 3 |> Years ]
         |> setWeight (15m |> Kilogram |> Some)
         |> setHeight (90 |> Centimeter |> Some)
         |> setDepartment (Some "ICK")
@@ -249,16 +258,16 @@ module Patient =
 
     let child =
         patient
-        |> setAge [ 4 |> Years]
+        |> setAge [ 4 |> Years ]
         |> setWeight (17m |> Kilogram |> Some)
         |> setHeight (100 |> Centimeter |> Some)
         |> setDepartment (Some "ICK")
-        |> fun p -> { p with Access = [CVL]}
+        |> fun p -> { p with Access = [ CVL ] }
 
 
     let teenager =
         patient
-        |> setAge [ 12 |> Years]
+        |> setAge [ 12 |> Years ]
         |> setWeight (40m |> Kilogram |> Some)
         |> setHeight (150 |> Centimeter |> Some)
         |> setDepartment (Some "ICK")
@@ -266,7 +275,7 @@ module Patient =
 
     let adult =
         patient
-        |> setAge [ 18 |> Years]
+        |> setAge [ 18 |> Years ]
         |> setWeight (70m |> Kilogram |> Some)
         |> setHeight (180 |> Centimeter |> Some)
         |> setDepartment (Some "ICK")

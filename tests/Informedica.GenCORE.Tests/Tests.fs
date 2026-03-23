@@ -1,8 +1,6 @@
 namespace Informedica.GenCore.Tests
 
 
-
-
 module Tests =
 
     open System
@@ -18,7 +16,6 @@ module Tests =
     open Informedica.GenCore.Lib.Patients
 
     open Informedica.Utils.Lib.BCL
-
 
 
     module CalculationTests =
@@ -64,9 +61,7 @@ module Tests =
                         [
 
                             test "renal function using creat 2009 formula" {
-                                let creat =
-                                    181.<microMol/L>
-                                    |> Calculations.Renal.CreatinineMicroMolePerLiter
+                                let creat = 181.<microMol / L> |> Calculations.Renal.CreatinineMicroMolePerLiter
 
                                 let age = 57.<year>
                                 let gend = Calculations.Renal.Female
@@ -78,9 +73,7 @@ module Tests =
                             }
 
                             test "renal function using creat 2021 formula" {
-                                let creat =
-                                    181.<microMol/L>
-                                    |> Calculations.Renal.CreatinineMicroMolePerLiter
+                                let creat = 181.<microMol / L> |> Calculations.Renal.CreatinineMicroMolePerLiter
 
                                 let age = 57.<year>
                                 let gend = Calculations.Renal.Female
@@ -91,13 +84,9 @@ module Tests =
                             }
 
                             test "renal function using cystatin creatinine 2012 formula" {
-                                let creat =
-                                    181.<microMol/L>
-                                    |> Calculations.Renal.CreatinineMicroMolePerLiter
+                                let creat = 181.<microMol / L> |> Calculations.Renal.CreatinineMicroMolePerLiter
 
-                                let cystatin =
-                                    1.5<mg/L>
-                                    |> Calculations.Renal.CystatinMilligramPerLiter
+                                let cystatin = 1.5<mg / L> |> Calculations.Renal.CystatinMilligramPerLiter
 
                                 let age = 57.<year>
                                 let gend = Calculations.Renal.Female
@@ -109,13 +98,9 @@ module Tests =
                             }
 
                             test "renal function using cystatin creatinine 2021 formula" {
-                                let creat =
-                                    181.<microMol/L>
-                                    |> Calculations.Renal.CreatinineMicroMolePerLiter
+                                let creat = 181.<microMol / L> |> Calculations.Renal.CreatinineMicroMolePerLiter
 
-                                let cystatin =
-                                    1.5<mg/L>
-                                    |> Calculations.Renal.CystatinMilligramPerLiter
+                                let cystatin = 1.5<mg / L> |> Calculations.Renal.CystatinMilligramPerLiter
 
                                 let age = 57.<year>
                                 let gend = Calculations.Renal.Female
@@ -127,9 +112,7 @@ module Tests =
                             }
 
                             test "renal function using cystatin only formula" {
-                                let cystatin =
-                                    1.5<mg/L>
-                                    |> Calculations.Renal.CystatinMilligramPerLiter
+                                let cystatin = 1.5<mg / L> |> Calculations.Renal.CystatinMilligramPerLiter
 
                                 let age = 57.<year>
                                 let gend = Calculations.Renal.Female
@@ -141,9 +124,7 @@ module Tests =
                             }
 
                             test "renal function using MDRD" {
-                                let creat =
-                                    181.<microMol/L>
-                                    |> Calculations.Renal.CreatinineMicroMolePerLiter
+                                let creat = 181.<microMol / L> |> Calculations.Renal.CreatinineMicroMolePerLiter
 
                                 let age = 57.<year>
                                 let gend = Calculations.Renal.Female
@@ -155,9 +136,7 @@ module Tests =
                             }
 
                             test "renal function using pediatric Schwartz" {
-                                let creat =
-                                    181.<microMol/L>
-                                    |> Calculations.Renal.CreatinineMicroMolePerLiter
+                                let creat = 181.<microMol / L> |> Calculations.Renal.CreatinineMicroMolePerLiter
 
                                 let height = 100.<cm>
 
@@ -167,17 +146,11 @@ module Tests =
                             }
 
                             test "renal function using KCID" {
-                                let creat =
-                                    100.<microMol/L>
-                                    |> Calculations.Renal.CreatinineMicroMolePerLiter
+                                let creat = 100.<microMol / L> |> Calculations.Renal.CreatinineMicroMolePerLiter
                                 // printfn $"{100.<microMol/L> |>  Conversions.Creatinine.toMilliGramPerDeciLiter} mg/dl"
-                                let cyst =
-                                    1.5<mg/L>
-                                    |> Calculations.Renal.CystatinMilligramPerLiter
+                                let cyst = 1.5<mg / L> |> Calculations.Renal.CystatinMilligramPerLiter
 
-                                let bun =
-                                    15.<mmol/L>
-                                    |> Calculations.Renal.UreaMilliMolePerLiter
+                                let bun = 15.<mmol / L> |> Calculations.Renal.UreaMilliMolePerLiter
                                 // printfn $"{15.<mmol/L> |> Conversions.Urea.toMilliGramPerDeciLiter}"
                                 let height = 1.<m>
 
@@ -197,20 +170,15 @@ module Tests =
                 ]
 
 
-
     module MinMaxTests =
 
         module Calculator = MinMax.Calculator
 
 
         let minGTmax (maxIncl, max) (minIncl, min) =
-            if minIncl && maxIncl then
-                min > max
-            else
-                min >= max
+            if minIncl && maxIncl then min > max else min >= max
 
-        let validate (min : (bool * BigRational) option) max =
-            Calculator.validate minGTmax min max
+        let validate (min: (bool * BigRational) option) max = Calculator.validate minGTmax min max
 
         let tests =
             testList
@@ -218,54 +186,47 @@ module Tests =
                 [
                     fun min max ->
                         let min =
-                            min
-                            |> Option.map (fun (minIncl, min) -> minIncl, min |> BigRational.fromInt)
+                            min |> Option.map (fun (minIncl, min) -> minIncl, min |> BigRational.fromInt)
 
                         let max =
-                            max
-                            |> Option.map (fun (maxIncl, max) -> maxIncl, max |> BigRational.fromInt)
+                            max |> Option.map (fun (maxIncl, max) -> maxIncl, max |> BigRational.fromInt)
 
                         try
                             validate min max
                             |> function
                                 | Error _ -> ()
-                                | Ok (min, max) ->
+                                | Ok(min, max) ->
                                     let toBrStr =
-                                        BigRational.toFloat
-                                        >> Double.toStringNumberNLWithoutTrailingZerosFixPrecision 3
+                                        BigRational.toFloat >> Double.toStringNumberNLWithoutTrailingZerosFixPrecision 3
 
                                     Calculator.toString toBrStr min max |> ignore //printfn "Pass: %s"
 
                             true
-                        with
-                        | _ -> false
+                        with _ ->
+                            false
                     |> Generators.testProp "with simple integers never throws an exception"
 
 
                     fun min max ->
                         let min =
-                            min
-                            |> Option.map (fun (minIncl, min) -> minIncl, min |> BigRational.fromInt)
+                            min |> Option.map (fun (minIncl, min) -> minIncl, min |> BigRational.fromInt)
 
                         let max =
-                            max
-                            |> Option.map (fun (maxIncl, max) -> maxIncl, max |> BigRational.fromInt)
+                            max |> Option.map (fun (maxIncl, max) -> maxIncl, max |> BigRational.fromInt)
 
                         try
                             validate min max
                             |> function
                                 | Error _ -> ()
-                                | Ok (min, max) ->
+                                | Ok(min, max) ->
                                     let toBrStr =
-                                        BigRational.toFloat
-                                        >> Double.toStringNumberNLWithoutTrailingZerosFixPrecision 3
+                                        BigRational.toFloat >> Double.toStringNumberNLWithoutTrailingZerosFixPrecision 3
 
-                                    Calculator.toStringNL toBrStr min max
-                                    |> ignore // printfn "Pass: %s"
+                                    Calculator.toStringNL toBrStr min max |> ignore // printfn "Pass: %s"
 
                             true
-                        with
-                        | _ -> false
+                        with _ ->
+                            false
                     |> Generators.testProp "with simple integers dutch version never throws an exception"
 
 
@@ -273,22 +234,21 @@ module Tests =
                         try
                             Calculator.validate min incr max |> ignore
                             true
-                        with
-                        | _ -> false
+                        with _ ->
+                            false
                     |> Generators.testProp "never throws an exception"
 
 
                     fun min max ->
                         validate min max
                         |> function
-                            | Ok (Some min, Some max) ->
+                            | Ok(Some min, Some max) ->
                                 let min = min |> snd
                                 let max = max |> snd
                                 min <= max
                             | _ -> true
                     |> Generators.testProp "min always is equal or less than max"
                 ]
-
 
 
     module MinMaxTests2 =
@@ -320,46 +280,31 @@ module Tests =
         let mg10, mg20 =
             createValueUnit 10.m "mg[Mass]" |> Option.get, createValueUnit 20.m "mg[Mass]" |> Option.get
 
-        let mgIncl10, mgIncl20 =
-            mg10 |> Limit.inclusive, mg20 |> Limit.inclusive
+        let mgIncl10, mgIncl20 = mg10 |> Limit.inclusive, mg20 |> Limit.inclusive
 
-        let mgExcl10, mgExcl20 =
-            mg10 |> Limit.exclusive, mg20 |> Limit.exclusive
+        let mgExcl10, mgExcl20 = mg10 |> Limit.exclusive, mg20 |> Limit.exclusive
 
         let mg30, mg40 =
             createValueUnit 30.m "mg[Mass]" |> Option.get, createValueUnit 40.m "mg[Mass]" |> Option.get
 
-        let mgIncl30, mgIncl40 =
-            mg30 |> Limit.inclusive, mg40 |> Limit.inclusive
+        let mgIncl30, mgIncl40 = mg30 |> Limit.inclusive, mg40 |> Limit.inclusive
 
 
         let toString () =
             MinMax.empty
-            |> MinMax.setMin (
-                createValueUnit 1.m "mg[Mass]"
-                |> Option.get
-                |> Inclusive
-            )
-            |> MinMax.setMax (
-                createValueUnit 10.m "mg[Mass]"
-                |> Option.get
-                |> Inclusive
-            )
+            |> MinMax.setMin (createValueUnit 1.m "mg[Mass]" |> Option.get |> Inclusive)
+            |> MinMax.setMax (createValueUnit 10.m "mg[Mass]" |> Option.get |> Inclusive)
             |> mmToStr
 
 
         let fromDecimal (v: decimal) u =
-            v
-            |> BigRational.fromDecimal
-            |> ValueUnit.createSingle u
+            v |> BigRational.fromDecimal |> ValueUnit.createSingle u
 
 
-        let ageInMo =
-            (fun n -> fromDecimal n Units.Time.month)
+        let ageInMo = (fun n -> fromDecimal n Units.Time.month)
 
 
-        let ageInYr =
-            (fun n -> fromDecimal n Units.Time.year)
+        let ageInYr = (fun n -> fromDecimal n Units.Time.year)
 
 
         let ageInclOneMo, ageExclOneYr =
@@ -367,9 +312,7 @@ module Tests =
 
 
         let ageRange =
-            MinMax.empty
-            |> MinMax.setMin ageInclOneMo
-            |> MinMax.setMax ageExclOneYr
+            MinMax.empty |> MinMax.setMin ageInclOneMo |> MinMax.setMax ageExclOneYr
 
 
         let valueComp =
@@ -421,18 +364,10 @@ module Tests =
                     MinMax.empty |> MinMax.setMin mgIncl20
                     MinMax.empty |> MinMax.setMax mgIncl30
                     MinMax.empty |> MinMax.setMax mgIncl40
-                    MinMax.empty
-                    |> MinMax.setMin mgIncl10
-                    |> MinMax.setMax mgIncl30
-                    MinMax.empty
-                    |> MinMax.setMin mgIncl20
-                    |> MinMax.setMax mgIncl30
-                    MinMax.empty
-                    |> MinMax.setMin mgIncl30
-                    |> MinMax.setMax mgIncl30
-                    MinMax.empty
-                    |> MinMax.setMin mgIncl40
-                    |> MinMax.setMax mgIncl40
+                    MinMax.empty |> MinMax.setMin mgIncl10 |> MinMax.setMax mgIncl30
+                    MinMax.empty |> MinMax.setMin mgIncl20 |> MinMax.setMax mgIncl30
+                    MinMax.empty |> MinMax.setMin mgIncl30 |> MinMax.setMax mgIncl30
+                    MinMax.empty |> MinMax.setMin mgIncl40 |> MinMax.setMax mgIncl40
                 ]
 
             mms |> maximize |> mmToStr, mms |> minimize |> mmToStr
@@ -441,16 +376,11 @@ module Tests =
         let inRange =
             let mm1 = MinMax.empty
 
-            let mm2 =
-                MinMax.empty |> MinMax.setMin mgIncl10
+            let mm2 = MinMax.empty |> MinMax.setMin mgIncl10
 
-            let mm3 =
-                MinMax.empty |> MinMax.setMax mgIncl40
+            let mm3 = MinMax.empty |> MinMax.setMax mgIncl40
 
-            let mm4 =
-                MinMax.empty
-                |> MinMax.setMin mgIncl20
-                |> MinMax.setMax mgIncl30
+            let mm4 = MinMax.empty |> MinMax.setMin mgIncl20 |> MinMax.setMax mgIncl30
 
             [
                 (mg10, mm1, true)
@@ -472,130 +402,135 @@ module Tests =
             ]
 
 
-
         let tests =
-            testList "MinMax2" [
-                    test "minGTmax" {
-                        mgIncl20
-                        |> Limit.minGTmax mgIncl10
-                        |> Expect.isTrue $"{mgIncl20} > {mgIncl10}"
-                    }
+            testList
+                "MinMax2"
+                [
+                    test "minGTmax" { mgIncl20 |> Limit.minGTmax mgIncl10 |> Expect.isTrue $"{mgIncl20} > {mgIncl10}" }
 
-                    test "toString" {
-                        toString ()
-                        |> Expect.equal "should equal" "1 mg - 10 mg"
-                    }
+                    test "toString" { toString () |> Expect.equal "should equal" "1 mg - 10 mg" }
 
-                    testList "Parse from string" [
-                        test "empty string returns empty MinMax" {
-                            ""
-                            |> MinMax.parseMinMax
-                            |> Expect.equal "should be Ok empty" (Ok MinMax.empty)
-                        }
+                    testList
+                        "Parse from string"
+                        [
+                            test "empty string returns empty MinMax" {
+                                "" |> MinMax.parseMinMax |> Expect.equal "should be Ok empty" (Ok MinMax.empty)
+                            }
 
-                        test "whitespace string returns empty MinMax" {
-                            "   "
-                            |> MinMax.parseMinMax
-                            |> Expect.equal "should be Ok empty" (Ok MinMax.empty)
-                        }
+                            test "whitespace string returns empty MinMax" {
+                                "   "
+                                |> MinMax.parseMinMax
+                                |> Expect.equal "should be Ok empty" (Ok MinMax.empty)
+                            }
 
-                        test "exact value '15 mg/kg'" {
-                            "15 mg/kg"
-                            |> MinMax.parseMinMax
-                            |> Result.map (fun mm ->
-                                match mm.Min, mm.Max with
-                                | Some (Inclusive minVu), Some (Inclusive maxVu) ->
-                                    minVu |> ValueUnit.getValue |> Expect.equal "min should be 15" [|15N|]
-                                    maxVu |> ValueUnit.getValue |> Expect.equal "max should be 15" [|15N|]
-                                | _ -> failwith "Expected both min and max to be Inclusive"
-                            )
-                            |> Expect.isOk "should parse successfully"
-                        }
+                            test "exact value '15 mg/kg'" {
+                                "15 mg/kg"
+                                |> MinMax.parseMinMax
+                                |> Result.map (fun mm ->
+                                    match mm.Min, mm.Max with
+                                    | Some(Inclusive minVu), Some(Inclusive maxVu) ->
+                                        minVu |> ValueUnit.getValue |> Expect.equal "min should be 15" [| 15N |]
+                                        maxVu |> ValueUnit.getValue |> Expect.equal "max should be 15" [| 15N |]
+                                    | _ -> failwith "Expected both min and max to be Inclusive"
+                                )
+                                |> Expect.isOk "should parse successfully"
+                            }
 
-                        test "range with unit only on max '10 - 20 mg/kg'" {
-                            "10 - 20 mg/kg"
-                            |> MinMax.parseMinMax
-                            |> Result.map (fun mm ->
-                                match mm.Min, mm.Max with
-                                | Some (Inclusive minVu), Some (Inclusive maxVu) ->
-                                    minVu |> ValueUnit.getValue |> Expect.equal "min should be 10" [|10N|]
-                                    maxVu |> ValueUnit.getValue |> Expect.equal "max should be 20" [|20N|]
-                                    minVu |> ValueUnit.getUnit |> Expect.equal "units should match" (maxVu |> ValueUnit.getUnit)
-                                | _ -> failwith "Expected both min and max to be Inclusive"
-                            )
-                            |> Expect.isOk "should parse successfully"
-                        }
+                            test "range with unit only on max '10 - 20 mg/kg'" {
+                                "10 - 20 mg/kg"
+                                |> MinMax.parseMinMax
+                                |> Result.map (fun mm ->
+                                    match mm.Min, mm.Max with
+                                    | Some(Inclusive minVu), Some(Inclusive maxVu) ->
+                                        minVu |> ValueUnit.getValue |> Expect.equal "min should be 10" [| 10N |]
+                                        maxVu |> ValueUnit.getValue |> Expect.equal "max should be 20" [| 20N |]
 
-                        test "range with units on both parts '10 mg/kg - 20 mg/kg'" {
-                            "10 mg/kg - 20 mg/kg"
-                            |> MinMax.parseMinMax
-                            |> Result.map (fun mm ->
-                                match mm.Min, mm.Max with
-                                | Some (Inclusive minVu), Some (Inclusive maxVu) ->
-                                    minVu |> ValueUnit.getValue |> Expect.equal "min should be 10" [|10N|]
-                                    maxVu |> ValueUnit.getValue |> Expect.equal "max should be 20" [|20N|]
-                                    minVu |> ValueUnit.getUnit |> Expect.equal "units should match" (maxVu |> ValueUnit.getUnit)
-                                | _ -> failwith "Expected both min and max to be Inclusive"
-                            )
-                            |> Expect.isOk "should parse successfully"
-                        }
+                                        minVu
+                                        |> ValueUnit.getUnit
+                                        |> Expect.equal "units should match" (maxVu |> ValueUnit.getUnit)
+                                    | _ -> failwith "Expected both min and max to be Inclusive"
+                                )
+                                |> Expect.isOk "should parse successfully"
+                            }
 
-                        test "min only 'min 10 mg/kg'" {
-                            "min 10 mg/kg"
-                            |> MinMax.parseMinMax
-                            |> Result.map (fun mm ->
-                                match mm.Min, mm.Max with
-                                | Some (Inclusive minVu), None ->
-                                    minVu |> ValueUnit.getValue |> Expect.equal "min should be 10" [|10N|]
-                                | _ -> failwith "Expected min to be Inclusive and max to be None"
-                            )
-                            |> Expect.isOk "should parse successfully"
-                        }
+                            test "range with units on both parts '10 mg/kg - 20 mg/kg'" {
+                                "10 mg/kg - 20 mg/kg"
+                                |> MinMax.parseMinMax
+                                |> Result.map (fun mm ->
+                                    match mm.Min, mm.Max with
+                                    | Some(Inclusive minVu), Some(Inclusive maxVu) ->
+                                        minVu |> ValueUnit.getValue |> Expect.equal "min should be 10" [| 10N |]
+                                        maxVu |> ValueUnit.getValue |> Expect.equal "max should be 20" [| 20N |]
 
-                        test "max only 'max 50 mg/kg'" {
-                            "max 50 mg/kg"
-                            |> MinMax.parseMinMax
-                            |> Result.map (fun mm ->
-                                match mm.Min, mm.Max with
-                                | None, Some (Inclusive maxVu) ->
-                                    maxVu |> ValueUnit.getValue |> Expect.equal "max should be 50" [|50N|]
-                                | _ -> failwith "Expected min to be None and max to be Inclusive"
-                            )
-                            |> Expect.isOk "should parse successfully"
-                        }
+                                        minVu
+                                        |> ValueUnit.getUnit
+                                        |> Expect.equal "units should match" (maxVu |> ValueUnit.getUnit)
+                                    | _ -> failwith "Expected both min and max to be Inclusive"
+                                )
+                                |> Expect.isOk "should parse successfully"
+                            }
 
-                        test "range with complex units '5 mg/kg/day - 10 mg/kg/day'" {
-                            "5 mg/kg/day - 10 mg/kg/day"
-                            |> MinMax.parseMinMax
-                            |> Result.map (fun mm ->
-                                match mm.Min, mm.Max with
-                                | Some (Inclusive minVu), Some (Inclusive maxVu) ->
-                                    minVu |> ValueUnit.getValue |> Expect.equal "min should be 5" [|5N|]
-                                    maxVu |> ValueUnit.getValue |> Expect.equal "max should be 10" [|10N|]
-                                | _ -> failwith "Expected both min and max to be Inclusive"
-                            )
-                            |> Expect.isOk "should parse successfully"
-                        }
+                            test "min only 'min 10 mg/kg'" {
+                                "min 10 mg/kg"
+                                |> MinMax.parseMinMax
+                                |> Result.map (fun mm ->
+                                    match mm.Min, mm.Max with
+                                    | Some(Inclusive minVu), None ->
+                                        minVu |> ValueUnit.getValue |> Expect.equal "min should be 10" [| 10N |]
+                                    | _ -> failwith "Expected min to be Inclusive and max to be None"
+                                )
+                                |> Expect.isOk "should parse successfully"
+                            }
 
-                        test "range with different value formats '10.5 - 20.5 mg'" {
-                            "10.5 - 20.5 mg"
-                            |> MinMax.parseMinMax
-                            |> Result.map (fun mm ->
-                                match mm.Min, mm.Max with
-                                | Some (Inclusive minVu), Some (Inclusive maxVu) ->
-                                    minVu |> ValueUnit.getValue |> Array.head |> Expect.equal "min should be 10.5" (21N / 2N)
-                                    maxVu |> ValueUnit.getValue |> Array.head |> Expect.equal "max should be 20.5" (41N / 2N)
-                                | _ -> failwith "Expected both min and max to be Inclusive"
-                            )
-                            |> Expect.isOk "should parse successfully"
-                        }
+                            test "max only 'max 50 mg/kg'" {
+                                "max 50 mg/kg"
+                                |> MinMax.parseMinMax
+                                |> Result.map (fun mm ->
+                                    match mm.Min, mm.Max with
+                                    | None, Some(Inclusive maxVu) ->
+                                        maxVu |> ValueUnit.getValue |> Expect.equal "max should be 50" [| 50N |]
+                                    | _ -> failwith "Expected min to be None and max to be Inclusive"
+                                )
+                                |> Expect.isOk "should parse successfully"
+                            }
 
-                        test "invalid format returns Error" {
-                            "10 - 20 - 30 mg"
-                            |> MinMax.parseMinMax
-                            |> Expect.isError "should fail to parse"
-                        }
-                    ]
+                            test "range with complex units '5 mg/kg/day - 10 mg/kg/day'" {
+                                "5 mg/kg/day - 10 mg/kg/day"
+                                |> MinMax.parseMinMax
+                                |> Result.map (fun mm ->
+                                    match mm.Min, mm.Max with
+                                    | Some(Inclusive minVu), Some(Inclusive maxVu) ->
+                                        minVu |> ValueUnit.getValue |> Expect.equal "min should be 5" [| 5N |]
+                                        maxVu |> ValueUnit.getValue |> Expect.equal "max should be 10" [| 10N |]
+                                    | _ -> failwith "Expected both min and max to be Inclusive"
+                                )
+                                |> Expect.isOk "should parse successfully"
+                            }
+
+                            test "range with different value formats '10.5 - 20.5 mg'" {
+                                "10.5 - 20.5 mg"
+                                |> MinMax.parseMinMax
+                                |> Result.map (fun mm ->
+                                    match mm.Min, mm.Max with
+                                    | Some(Inclusive minVu), Some(Inclusive maxVu) ->
+                                        minVu
+                                        |> ValueUnit.getValue
+                                        |> Array.head
+                                        |> Expect.equal "min should be 10.5" (21N / 2N)
+
+                                        maxVu
+                                        |> ValueUnit.getValue
+                                        |> Array.head
+                                        |> Expect.equal "max should be 20.5" (41N / 2N)
+                                    | _ -> failwith "Expected both min and max to be Inclusive"
+                                )
+                                |> Expect.isOk "should parse successfully"
+                            }
+
+                            test "invalid format returns Error" {
+                                "10 - 20 - 30 mg" |> MinMax.parseMinMax |> Expect.isError "should fail to parse"
+                            }
+                        ]
 
                     testList
                         "Validate"
@@ -604,9 +539,7 @@ module Tests =
                                 { ageRange with Max = Some mgIncl10 }
                                 |> MinMax.validate
                                 |> function
-                                    | Ok mm ->
-                                        false
-                                        |> Expect.isTrue $"{mm |> mmToStr} is not valid!"
+                                    | Ok mm -> false |> Expect.isTrue $"{mm |> mmToStr} is not valid!"
                                     | Error msg -> true |> Expect.isTrue $"{msg}"
                             }
                         ]
@@ -618,17 +551,11 @@ module Tests =
                             for v1, v2, cp, exp in valueComp do
                                 test
                                     $"comparing {v1 |> Limit.toString true} {cp |> Limit.cmpToStr} {v2 |> Limit.toString false}" {
-                                    v1 |> cp <| v2
-                                    |> Expect.equal $"should be {exp}" exp
+                                    v1 |> cp <| v2 |> Expect.equal $"should be {exp}" exp
                                 }
                         ]
 
-                    test "minimize, maximize" {
-                        testFold ()
-                        |> Expect.equal
-                            "should equal"
-                            ("10 mg - 40 mg", "30 mg")
-                    }
+                    test "minimize, maximize" { testFold () |> Expect.equal "should equal" ("10 mg - 40 mg", "30 mg") }
 
                     testList
                         "in range"
@@ -636,8 +563,7 @@ module Tests =
                             for v, mm, b in inRange do
                                 test
                                     $"%s{v |> ValueUnit.toStringDecimalDutchShortWithPrec 0} in range: %s{mm |> mmToStr} = %A{MinMax.inRange v mm}" {
-                                    MinMax.inRange v mm
-                                    |> Expect.equal $"should be {b}" b
+                                    MinMax.inRange v mm |> Expect.equal $"should be {b}" b
                                 }
                         ]
                 ]
@@ -658,12 +584,8 @@ module Tests =
                             dto ()
                             |> Dto.fromDto
                             |> function
-                                | Some mm ->
-                                    mm
-                                    |> Expect.equal "should be an empty mm" MinMax.empty
-                                | None ->
-                                    false
-                                    |> Expect.isTrue "could not create an empty dto"
+                                | Some mm -> mm |> Expect.equal "should be an empty mm" MinMax.empty
+                                | None -> false |> Expect.isTrue "could not create an empty dto"
                         }
 
                         test "MinMax dto setting min and max" {
@@ -682,9 +604,7 @@ module Tests =
                             dto
                             |> Dto.fromDto
                             |> function
-                                | Some _ ->
-                                    true
-                                    |> Expect.isTrue "can create dto with min and max"
+                                | Some _ -> true |> Expect.isTrue "can create dto with min and max"
                                 | None -> false |> Expect.isTrue "cannot set min and max"
                         }
 
@@ -705,13 +625,10 @@ module Tests =
                             |> Dto.fromDto
                             |> Option.bind (Dto.toDto >> Some)
                             |> function
-                                | Some _ ->
-                                    false
-                                    |> Expect.isTrue "can create dto with min and max"
+                                | Some _ -> false |> Expect.isTrue "can create dto with min and max"
                                 | None -> true |> Expect.isTrue "cannot set min > than max"
                         }
                     ]
-
 
 
     module PatientTests =
@@ -743,18 +660,14 @@ module Tests =
                             test $"can create without a name {noName |> f}" {
                                 let s = noName |> f |> Department.toString
 
-                                s
-                                |> Department.fromString
-                                |> Expect.isOk "should be ok"
+                                s |> Department.fromString |> Expect.isOk "should be ok"
                             }
 
                         for f in deps do
                             test $"can create with a name {name |> f}" {
                                 let s = name |> f |> Department.toString
 
-                                s
-                                |> Department.fromString
-                                |> Expect.isOk "should be ok"
+                                s |> Department.fromString |> Expect.isOk "should be ok"
                             }
 
                     ]
@@ -781,15 +694,11 @@ module Tests =
                     [
                         for i, ea in samples do
                             test $"{i} can create enteral access {ea}" {
-                                ea
-                                |> EnteralAccess.fromString
-                                |> Expect.isOk "should be ok"
+                                ea |> EnteralAccess.fromString |> Expect.isOk "should be ok"
                             }
 
                         test "cannot create enteral access from xxx" {
-                            "xxx"
-                            |> EnteralAccess.fromString
-                            |> Expect.isError "should not be ok"
+                            "xxx" |> EnteralAccess.fromString |> Expect.isError "should not be ok"
                         }
                     ]
 
@@ -801,13 +710,7 @@ module Tests =
 
             let samples =
                 venousAccessGenerator 10
-                |> List.mapi (fun i ea ->
-                    i,
-                    if ea = UnknownVenous then
-                        ""
-                    else
-                        $"{ea}" |> String.toLower
-                )
+                |> List.mapi (fun i ea -> i, if ea = UnknownVenous then "" else $"{ea}" |> String.toLower)
 
             let tests =
                 testList
@@ -815,15 +718,11 @@ module Tests =
                     [
                         for i, va in samples do
                             test $"{i} can create venous access {va}" {
-                                va
-                                |> VenousAccess.fromString
-                                |> Expect.isOk "should be ok"
+                                va |> VenousAccess.fromString |> Expect.isOk "should be ok"
                             }
 
                         test "cannot create venous access from xxx" {
-                            "xxx"
-                            |> VenousAccess.fromString
-                            |> Expect.isError "should not be ok"
+                            "xxx" |> VenousAccess.fromString |> Expect.isError "should not be ok"
                         }
                     ]
 
@@ -842,9 +741,7 @@ module Tests =
                             dto
                             |> AgeValue.Dto.fromDto
                             |> function
-                                | Ok a ->
-                                    a.Years.Value <= AgeValue.Validation.maxYear
-                                    && a.Years.Value >= 0<year>
+                                | Ok a -> a.Years.Value <= AgeValue.Validation.maxYear && a.Years.Value >= 0<year>
                                 | Error _ -> true
                         |> Generators.testProp "years should never be > 120 years"
 
@@ -855,9 +752,7 @@ module Tests =
                             dto
                             |> AgeValue.Dto.fromDto
                             |> function
-                                | Ok a ->
-                                    a.Months.Value <= 11<month>
-                                    && a.Months.Value >= 0<month>
+                                | Ok a -> a.Months.Value <= 11<month> && a.Months.Value >= 0<month>
                                 | Error _ -> true
                         |> Generators.testProp "months should never be > 11"
 
@@ -868,9 +763,7 @@ module Tests =
                             dto
                             |> AgeValue.Dto.fromDto
                             |> function
-                                | Ok a ->
-                                    a.Weeks.Value <= 4<week>
-                                    && a.Weeks.Value >= 0<week>
+                                | Ok a -> a.Weeks.Value <= 4<week> && a.Weeks.Value >= 0<week>
                                 | Error _ -> true
                         |> Generators.testProp "weeks should never be > 4"
 
@@ -900,10 +793,7 @@ module Tests =
                                     let y, m, w, d = a |> AgeValue.get
 
                                     Calculations.Age.yearsMonthsWeeksToDaysOpt y m w d
-                                    |> fun n ->
-                                        n
-                                        <= (Constants.daysInYear * 120
-                                            |> Conversions.dayFromInt)
+                                    |> fun n -> n <= (Constants.daysInYear * 120 |> Conversions.dayFromInt)
                                 | Error _ -> true
                         |> Generators.testProp "should never be > 120 years"
                     ]
@@ -940,30 +830,25 @@ module Tests =
                                         try
                                             let y = ymd.Year |> int
 
-                                            let m =
-                                                ymd.Month |> Option.defaultValue 1<month> |> int
+                                            let m = ymd.Month |> Option.defaultValue 1<month> |> int
 
-                                            let d =
-                                                ymd.Day |> Option.defaultValue 1<day> |> int
+                                            let d = ymd.Day |> Option.defaultValue 1<day> |> int
 
                                             DateTime(y, m, d) |> ignore
                                             true
-                                        with
-                                        | _ ->
+                                        with _ ->
                                             printfn $"cannot create datetime with {dto.Year}-{dto.Month}-{dto.Day}"
                                             false
                                     | Error _ -> true
 
                                 )
-                            with
-                            | _ -> true
+                            with _ ->
+                                true
                             |> Expect.isTrue "should never fail"
                         }
 
                         fun (dto: BirthDate.Dto.Dto) ->
-                            let y =
-                                intGenerator 2200 1
-                                |> List.filter (fun x -> x >= 1900)
+                            let y = intGenerator 2200 1 |> List.filter (fun x -> x >= 1900)
 
                             dto.Year <- y |> List.tryHead |> Option.defaultValue 2000
 
@@ -1164,9 +1049,7 @@ module Tests =
                     }
 
                     test "newborn patient" {
-                        let newBorn =
-                            NewBorn
-                            |> Patient.fromAgeType UnknownGender DateTime.Now
+                        let newBorn = NewBorn |> Patient.fromAgeType UnknownGender DateTime.Now
 
                         newBorn
                         |> Patient.Dto.toDto

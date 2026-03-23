@@ -66,11 +66,11 @@ printfn "  NutritionPlanPort  = { initNutritionPlan; addNutritionContext; ... }"
 printfn "  AppEnv             = { formulary; orderContext; orderPlan; nutritionPlan; requireLoaded }"
 
 // Verify the types are available from the compiled DLLs
-let _ : FormularyPort -> unit = ignore
-let _ : OrderContextPort -> unit = ignore
-let _ : OrderPlanPort -> unit = ignore
-let _ : NutritionPlanPort -> unit = ignore
-let _ : AppEnv -> unit = ignore
+let _: FormularyPort -> unit = ignore
+let _: OrderContextPort -> unit = ignore
+let _: OrderPlanPort -> unit = ignore
+let _: NutritionPlanPort -> unit = ignore
+let _: AppEnv -> unit = ignore
 printfn "  [OK] All port types resolved from compiled server"
 
 
@@ -83,34 +83,44 @@ printfn "=== 3. Stub Adapters (no provider needed) ==="
 printfn ""
 
 let emptyCtx = Models.OrderContext.empty
-let emptyFormulary : Formulary =
+
+let emptyFormulary: Formulary =
     {
-        Generics = [||]; Indications = [||]; Routes = [||]; Forms = [||]
-        DoseTypes = [||]; PatientCategories = [||]; Products = [||]
-        Generic = None; Indication = None; Route = None; Form = None
-        DoseType = None; PatientCategory = None; Patient = None; Markdown = ""
+        Generics = [||]
+        Indications = [||]
+        Routes = [||]
+        Forms = [||]
+        DoseTypes = [||]
+        PatientCategories = [||]
+        Products = [||]
+        Generic = None
+        Indication = None
+        Route = None
+        Form = None
+        DoseType = None
+        PatientCategory = None
+        Patient = None
+        Markdown = ""
     }
 
-let stubFormulary : FormularyPort =
+let stubFormulary: FormularyPort =
     {
         getFormulary = fun form -> async { return Ok { form with Markdown = "stubbed formulary" } }
         getParenteralia = fun par -> async { return Ok par }
     }
 
-let stubOrderContext : OrderContextPort =
-    {
-        evaluate = fun _cmd ctx -> async { return Ok ctx }
-    }
+let stubOrderContext: OrderContextPort =
+    { evaluate = fun _cmd ctx -> async { return Ok ctx } }
 
-let stubOrderPlan : OrderPlanPort =
+let stubOrderPlan: OrderPlanPort =
     {
         updateOrderPlan = fun tp _ -> async { return Ok tp }
         filterOrderPlan = fun tp -> async { return Ok tp }
     }
 
-let stubNutritionPlan : NutritionPlanPort =
+let stubNutritionPlan: NutritionPlanPort =
     {
-        initNutritionPlan = fun pat -> async { return Ok (Models.NutritionPlan.create pat [||]) }
+        initNutritionPlan = fun pat -> async { return Ok(Models.NutritionPlan.create pat [||]) }
         addNutritionContext = fun (plan, _) -> async { return Ok plan }
         removeNutritionContext = fun (plan, _) -> async { return Ok plan }
         updateNutritionOrderContext = fun (plan, _, _) -> async { return Ok plan }
@@ -118,7 +128,7 @@ let stubNutritionPlan : NutritionPlanPort =
         navigateNutritionOrderContext = fun (plan, _, _, _) -> async { return Ok plan }
     }
 
-let stubEnv : AppEnv =
+let stubEnv: AppEnv =
     {
         formulary = stubFormulary
         orderContext = stubOrderContext
@@ -144,25 +154,20 @@ let testFormularyCmd () =
         |> Async.RunSynchronously
 
     match result with
-    | Ok (Api.FormularyResp f) ->
-        printfn $"  FormularyCmd -> Ok (Markdown = \"{f.Markdown}\")"
-    | other ->
-        printfn $"  FormularyCmd -> UNEXPECTED: {other}"
+    | Ok(Api.FormularyResp f) -> printfn $"  FormularyCmd -> Ok (Markdown = \"{f.Markdown}\")"
+    | other -> printfn $"  FormularyCmd -> UNEXPECTED: {other}"
 
 let testOrderContextCmd () =
     let result =
-        Command.processCmd stubEnv (Api.OrderContextCmd (Api.UpdateOrderContext, emptyCtx))
+        Command.processCmd stubEnv (Api.OrderContextCmd(Api.UpdateOrderContext, emptyCtx))
         |> Async.RunSynchronously
 
     match result with
-    | Ok (Api.OrderContextResp (Api.OrderContextResult _)) ->
-        printfn "  OrderContextCmd -> Ok (OrderContextResult)"
-    | other ->
-        printfn $"  OrderContextCmd -> UNEXPECTED: {other}"
+    | Ok(Api.OrderContextResp(Api.OrderContextResult _)) -> printfn "  OrderContextCmd -> Ok (OrderContextResult)"
+    | other -> printfn $"  OrderContextCmd -> UNEXPECTED: {other}"
 
 let testRequireLoadedGuard () =
-    let notLoadedEnv =
-        { stubEnv with requireLoaded = fun () -> Some [| "not ready" |] }
+    let notLoadedEnv = { stubEnv with requireLoaded = fun () -> Some [| "not ready" |] }
 
     let result =
         Command.processCmd notLoadedEnv (Api.FormularyCmd emptyFormulary)
@@ -172,8 +177,7 @@ let testRequireLoadedGuard () =
     | Error msgs ->
         let s = msgs |> String.concat ", "
         printfn $"  requireLoaded guard -> Error: {s}"
-    | Ok _ ->
-        printfn "  requireLoaded guard -> UNEXPECTED: should have returned Error"
+    | Ok _ -> printfn "  requireLoaded guard -> UNEXPECTED: should have returned Error"
 
 testFormularyCmd ()
 testOrderContextCmd ()
@@ -206,8 +210,7 @@ let testErrorPropagation () =
     | Error msgs ->
         let s = msgs |> String.concat ", "
         printfn $"  Error propagated: {s}"
-    | Ok _ ->
-        printfn "  UNEXPECTED: should have returned Error"
+    | Ok _ -> printfn "  UNEXPECTED: should have returned Error"
 
 testErrorPropagation ()
 

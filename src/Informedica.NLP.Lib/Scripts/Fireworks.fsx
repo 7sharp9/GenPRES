@@ -1,5 +1,3 @@
-
-
 #r "nuget: Newtonsoft.Json"
 #r "nuget: NJsonSchema"
 
@@ -19,8 +17,7 @@ open Informedica.OpenAI.Lib
 open Fireworks.Operators
 
 
-let models =
-    Fireworks.list ()
+let models = Fireworks.list ()
 
 let model = "accounts/fireworks/models/llama-v2-13b-chat"
 
@@ -36,12 +33,7 @@ Fireworks.Chat.defaultChatInput
 |> Fireworks.chat
 |> Async.RunSynchronously
 |> function
-    | Ok resp ->
-        resp.Response.choices
-        |> List.last
-        |> _.message
-        |> _.content
-        |> printfn "%s"
+    | Ok resp -> resp.Response.choices |> List.last |> _.message |> _.content |> printfn "%s"
     | Error err -> printfn $"{err}"
 
 
@@ -57,7 +49,6 @@ Fireworks.Chat.defaultChatInput
 |> Async.RunSynchronously
 
 
-
 """
 Why is the sky blue?
 """
@@ -67,9 +58,8 @@ Why is the sky blue?
 
 
 let extractDoseQuantities model text =
-        Texts.systemDoseQuantityExpert
-        |> init model
-        >>? $"""
+    Texts.systemDoseQuantityExpert |> init model
+    >>? $"""
 The text between the ''' describes dose quantities for a
 substance:
 
@@ -78,31 +68,31 @@ substance:
 For which substance?
 Give the answer as Substance : ?
 """
-        >>? """
+    >>? """
 What is the unit used for the substance, the substance unit?
 Give the answer as SubstanceUnit : ?
 """
-        >>? """
+    >>? """
 What is the unit to adjust the dose for?
 Give the answer as AdjustUnit : ?
 """
-        >>? """
+    >>? """
 What is the time unit for the dose frequency?
 Give the answer as TimeUnit : ?
 """
-        >>? """
+    >>? """
 What is the maximum dose per time in SubstanceUnit/TimeUnit?
 Give the answer as MaximumDosePerTime: ?
 """
-        >>? """
+    >>? """
 What is the dose, adjusted for weight in SubstanceUnit/AdjustUnit/TimeUnit?
 Give the answer as AdjustedDosePerTime: ?
 """
-        >>? """
+    >>? """
 What is the number of doses per TimeUnit?
 Give the answer as Frequency: ?
 """
-        >>? """
+    >>? """
 Summarize the previous answers as:
 
 - Substance: ?
@@ -119,11 +109,9 @@ Summarize the previous answers as:
 let testModel model =
 
     printfn $"\n\n# Running: {model}\n\n"
+
     for text in Texts.testTexts do
-        extractDoseQuantities model text
-        |> Conversation.print
-
-
+        extractDoseQuantities model text |> Conversation.print
 
 
 module BNFC =
@@ -152,18 +140,11 @@ Child 6–23 months
         ]
 
 
-
-"You are a helpful assistant"
-|> init model
->>? "Why is the sky blue?"
+"You are a helpful assistant" |> init model >>? "Why is the sky blue?"
 |> Conversation.print
 
 
-
-BNFC.paracetamolPO[0]
-|> extractDoseQuantities model
-|> Conversation.print
-
+BNFC.paracetamolPO[0] |> extractDoseQuantities model |> Conversation.print
 
 
 """
@@ -213,14 +194,18 @@ Je geeft alle uitleg en antwoorden in het Nederlands.
 |> Async.RunSynchronously
 
 
-
 """"
 What is the minimal age for a neonate 28 weeks to 32 weeks corrected gestational age
 Reply just in one JSON.
 """
 |> Message.user
 |> fun msg -> Fireworks.Chat.defaultChatInput model msg []
-|> Fireworks.chatJson<{| number: int; unit: string |}>
+|> Fireworks.chatJson<
+    {|
+        number: int
+        unit: string
+    |}
+    >
 |> Async.RunSynchronously
 
 
@@ -228,6 +213,4 @@ let test = {| name = "test" |}
 
 open Informedica.Utils.Lib.BCL
 
-"{| name: string |}"
-|> String.replace "|" ""
-|> String.replace ";" ","
+"{| name: string |}" |> String.replace "|" "" |> String.replace ";" ","

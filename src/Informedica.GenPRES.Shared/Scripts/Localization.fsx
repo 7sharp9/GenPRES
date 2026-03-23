@@ -50,6 +50,7 @@ type TranslationMap = Map<string, Map<Localization.Locales, string>>
 /// for unknown names instead of throwing an exception (unlike `fromString`).
 let tryLocaleFromString (s: string) : Localization.Locales option =
     let s = s.Trim().ToLower()
+
     match s with
     | "english" -> Some Localization.English
     | "nederlands" -> Some Localization.Dutch
@@ -80,7 +81,7 @@ let parseLocalizationCSV (csv: string[][]) : TranslationMap =
         let headers = csv.[0]
 
         // Identify which column indices correspond to which locale
-        let localeColumns : (int * Localization.Locales) array =
+        let localeColumns: (int * Localization.Locales) array =
             headers
             |> Array.mapi (fun i header -> i, tryLocaleFromString header)
             |> Array.choose (fun (i, opt) -> opt |> Option.map (fun l -> i, l))
@@ -95,13 +96,13 @@ let parseLocalizationCSV (csv: string[][]) : TranslationMap =
                     localeColumns
                     |> Array.choose (fun (colIdx, locale) ->
                         if colIdx < row.Length && not (String.IsNullOrWhiteSpace row.[colIdx]) then
-                            Some (locale, row.[colIdx].Trim())
+                            Some(locale, row.[colIdx].Trim())
                         else
                             None
                     )
                     |> Map.ofArray
 
-                Some (termKey, translations)
+                Some(termKey, translations)
             else
                 None
         )
@@ -116,9 +117,7 @@ let parseLocalizationCSV (csv: string[][]) : TranslationMap =
 /// Returns `None` when the term or locale is absent (no silent mis-indexing).
 let getTerm (translations: TranslationMap) (locale: Localization.Locales) (term: Terms) : string option =
     let key = $"{term}".Trim()
-    translations
-    |> Map.tryFind key
-    |> Option.bind (Map.tryFind locale)
+    translations |> Map.tryFind key |> Option.bind (Map.tryFind locale)
 
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -131,7 +130,7 @@ let getTerm (translations: TranslationMap) (locale: Localization.Locales) (term:
 ///
 /// Extend this list as new `Terms` cases are added to keep offline support
 /// complete.
-let staticTranslations : (Terms * (Localization.Locales * string) list) list =
+let staticTranslations: (Terms * (Localization.Locales * string) list) list =
     let en = Localization.English
     let nl = Localization.Dutch
     let fr = Localization.French
@@ -140,7 +139,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
     let it = Localization.Italian
 
     [
-        Terms.``Patient enter patient data``, [
+        Terms.``Patient enter patient data``,
+        [
             en, "Enter patient data ..."
             nl, "Voer patient gegevens in ..."
             fr, "Saisir les données du patient..."
@@ -148,7 +148,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Ingrese los datos del paciente..."
             it, "Inserisci i dati del paziente..."
         ]
-        Terms.``Patient Age``, [
+        Terms.``Patient Age``,
+        [
             en, "Age"
             nl, "Leeftijd"
             fr, "Âge"
@@ -156,7 +157,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Edad"
             it, "Età"
         ]
-        Terms.``Patient GA Age``, [
+        Terms.``Patient GA Age``,
+        [
             en, "Gest. Age"
             nl, "Zwangerschapstermijn"
             fr, "Âge gestationnel"
@@ -164,7 +166,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Edad gestacional"
             it, "Età gestazionale"
         ]
-        Terms.``Patient Age year``, [
+        Terms.``Patient Age year``,
+        [
             en, "year"
             nl, "jaar"
             fr, "an"
@@ -172,7 +175,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "año"
             it, "anno"
         ]
-        Terms.``Patient Age years``, [
+        Terms.``Patient Age years``,
+        [
             en, "years"
             nl, "jaren"
             fr, "ans"
@@ -180,7 +184,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "años"
             it, "anni"
         ]
-        Terms.``Patient Age month``, [
+        Terms.``Patient Age month``,
+        [
             en, "month"
             nl, "maand"
             fr, "mois"
@@ -188,7 +193,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "mes"
             it, "mese"
         ]
-        Terms.``Patient Age months``, [
+        Terms.``Patient Age months``,
+        [
             en, "months"
             nl, "maanden"
             fr, "mois"
@@ -196,7 +202,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "meses"
             it, "mesi"
         ]
-        Terms.``Patient Age week``, [
+        Terms.``Patient Age week``,
+        [
             en, "week"
             nl, "week"
             fr, "semaine"
@@ -204,7 +211,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "semana"
             it, "settimana"
         ]
-        Terms.``Patient Age weeks``, [
+        Terms.``Patient Age weeks``,
+        [
             en, "weeks"
             nl, "weken"
             fr, "semaines"
@@ -212,7 +220,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "semanas"
             it, "settimane"
         ]
-        Terms.``Patient Age day``, [
+        Terms.``Patient Age day``,
+        [
             en, "day"
             nl, "dag"
             fr, "jour"
@@ -220,7 +229,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "día"
             it, "giorno"
         ]
-        Terms.``Patient Age days``, [
+        Terms.``Patient Age days``,
+        [
             en, "days"
             nl, "dagen"
             fr, "jours"
@@ -228,7 +238,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "días"
             it, "giorni"
         ]
-        Terms.``Patient Estimated``, [
+        Terms.``Patient Estimated``,
+        [
             en, "Estimated"
             nl, "Geschat"
             fr, "Estimé"
@@ -236,7 +247,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Estimado"
             it, "Stimato"
         ]
-        Terms.``Patient Years``, [
+        Terms.``Patient Years``,
+        [
             en, "Years"
             nl, "Jaren"
             fr, "Années"
@@ -244,7 +256,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Años"
             it, "Anni"
         ]
-        Terms.``Patient Months``, [
+        Terms.``Patient Months``,
+        [
             en, "Months"
             nl, "Maanden"
             fr, "Mois"
@@ -252,7 +265,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Meses"
             it, "Mesi"
         ]
-        Terms.``Patient Weeks``, [
+        Terms.``Patient Weeks``,
+        [
             en, "Weeks"
             nl, "Weken"
             fr, "Semaines"
@@ -260,7 +274,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Semanas"
             it, "Settimane"
         ]
-        Terms.``Patient Days``, [
+        Terms.``Patient Days``,
+        [
             en, "Days"
             nl, "Dagen"
             fr, "Jours"
@@ -268,7 +283,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Días"
             it, "Giorni"
         ]
-        Terms.``Patient Weight``, [
+        Terms.``Patient Weight``,
+        [
             en, "Weight"
             nl, "Gewicht"
             fr, "Poids"
@@ -276,7 +292,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Peso"
             it, "Peso"
         ]
-        Terms.``Patient Length``, [
+        Terms.``Patient Length``,
+        [
             en, "Length"
             nl, "Lengte"
             fr, "Taille"
@@ -284,7 +301,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Talla"
             it, "Altezza"
         ]
-        Terms.``Patient remove patient data``, [
+        Terms.``Patient remove patient data``,
+        [
             en, "Remove patient data"
             nl, "Verwijder patient gegevens"
             fr, "Supprimer les données du patient"
@@ -292,7 +310,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Eliminar datos del paciente"
             it, "Rimuovi i dati del paziente"
         ]
-        Terms.``Emergency List``, [
+        Terms.``Emergency List``,
+        [
             en, "Emergency List"
             nl, "Noodlijst"
             fr, "Liste d'urgence"
@@ -300,7 +319,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Lista de emergencia"
             it, "Lista di emergenza"
         ]
-        Terms.``Emergency List show when patient data``, [
+        Terms.``Emergency List show when patient data``,
+        [
             en, "Show when patient data is available"
             nl, "Toon wanneer patiëntgegevens beschikbaar zijn"
             fr, "Afficher lorsque les données du patient sont disponibles"
@@ -308,7 +328,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Mostrar cuando los datos del paciente estén disponibles"
             it, "Mostra quando i dati del paziente sono disponibili"
         ]
-        Terms.``Emergency List Catagory``, [
+        Terms.``Emergency List Catagory``,
+        [
             en, "Category"
             nl, "Categorie"
             fr, "Catégorie"
@@ -316,7 +337,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Categoría"
             it, "Categoria"
         ]
-        Terms.``Emergency List Intervention``, [
+        Terms.``Emergency List Intervention``,
+        [
             en, "Intervention"
             nl, "Interventie"
             fr, "Intervention"
@@ -324,7 +346,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Intervención"
             it, "Intervento"
         ]
-        Terms.``Emergency List Calculated``, [
+        Terms.``Emergency List Calculated``,
+        [
             en, "Calculated"
             nl, "Berekend"
             fr, "Calculé"
@@ -332,7 +355,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Calculado"
             it, "Calcolato"
         ]
-        Terms.``Emergency List Preparation``, [
+        Terms.``Emergency List Preparation``,
+        [
             en, "Preparation"
             nl, "Bereiding"
             fr, "Préparation"
@@ -340,7 +364,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Preparación"
             it, "Preparazione"
         ]
-        Terms.``Emergency List Advice``, [
+        Terms.``Emergency List Advice``,
+        [
             en, "Advice"
             nl, "Advies"
             fr, "Conseil"
@@ -348,7 +373,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Consejo"
             it, "Consiglio"
         ]
-        Terms.``Continuous Medication List``, [
+        Terms.``Continuous Medication List``,
+        [
             en, "Continuous Medication"
             nl, "Continue Medicatie"
             fr, "Médicaments continus"
@@ -356,7 +382,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Medicación continua"
             it, "Farmaci continui"
         ]
-        Terms.``Continuous Medication List show when patient data``, [
+        Terms.``Continuous Medication List show when patient data``,
+        [
             en, "Show when patient data is available"
             nl, "Toon wanneer patiëntgegevens beschikbaar zijn"
             fr, "Afficher lorsque les données du patient sont disponibles"
@@ -364,7 +391,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Mostrar cuando los datos del paciente estén disponibles"
             it, "Mostra quando i dati del paziente sono disponibili"
         ]
-        Terms.``Continuous Medication Catagory``, [
+        Terms.``Continuous Medication Catagory``,
+        [
             en, "Category"
             nl, "Categorie"
             fr, "Catégorie"
@@ -372,7 +400,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Categoría"
             it, "Categoria"
         ]
-        Terms.``Continuous Medication Medication``, [
+        Terms.``Continuous Medication Medication``,
+        [
             en, "Medication"
             nl, "Medicatie"
             fr, "Médicament"
@@ -380,7 +409,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Medicación"
             it, "Farmaco"
         ]
-        Terms.``Continuous Medication Quantity``, [
+        Terms.``Continuous Medication Quantity``,
+        [
             en, "Quantity"
             nl, "Hoeveelheid"
             fr, "Quantité"
@@ -388,7 +418,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Cantidad"
             it, "Quantità"
         ]
-        Terms.``Continuous Medication Solution``, [
+        Terms.``Continuous Medication Solution``,
+        [
             en, "Solution"
             nl, "Oplossing"
             fr, "Solution"
@@ -396,7 +427,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Solución"
             it, "Soluzione"
         ]
-        Terms.``Continuous Medication Dose``, [
+        Terms.``Continuous Medication Dose``,
+        [
             en, "Dose"
             nl, "Dosis"
             fr, "Dose"
@@ -404,7 +436,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Dosis"
             it, "Dose"
         ]
-        Terms.``Continuous Medication Advice``, [
+        Terms.``Continuous Medication Advice``,
+        [
             en, "Advice"
             nl, "Advies"
             fr, "Conseil"
@@ -412,7 +445,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Consejo"
             it, "Consiglio"
         ]
-        Terms.``Prescribe``, [
+        Terms.``Prescribe``,
+        [
             en, "Prescribe"
             nl, "Voorschrijven"
             fr, "Prescrire"
@@ -420,7 +454,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Prescribir"
             it, "Prescrivere"
         ]
-        Terms.``Prescribe Scenarios``, [
+        Terms.``Prescribe Scenarios``,
+        [
             en, "Scenarios"
             nl, "Scenario's"
             fr, "Scénarios"
@@ -428,7 +463,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Escenarios"
             it, "Scenari"
         ]
-        Terms.``Prescribe Indications``, [
+        Terms.``Prescribe Indications``,
+        [
             en, "Indications"
             nl, "Indicaties"
             fr, "Indications"
@@ -436,7 +472,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Indicaciones"
             it, "Indicazioni"
         ]
-        Terms.``Prescribe Medications``, [
+        Terms.``Prescribe Medications``,
+        [
             en, "Medications"
             nl, "Medicaties"
             fr, "Médicaments"
@@ -444,7 +481,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Medicamentos"
             it, "Farmaci"
         ]
-        Terms.``Prescribe Routes``, [
+        Terms.``Prescribe Routes``,
+        [
             en, "Routes"
             nl, "Toedieningswegen"
             fr, "Voies d'administration"
@@ -452,7 +490,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Vías de administración"
             it, "Vie di somministrazione"
         ]
-        Terms.``Prescribe Prescription``, [
+        Terms.``Prescribe Prescription``,
+        [
             en, "Prescription"
             nl, "Voorschrift"
             fr, "Prescription"
@@ -460,7 +499,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Prescripción"
             it, "Prescrizione"
         ]
-        Terms.``Prescribe Preparation``, [
+        Terms.``Prescribe Preparation``,
+        [
             en, "Preparation"
             nl, "Bereiding"
             fr, "Préparation"
@@ -468,7 +508,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Preparación"
             it, "Preparazione"
         ]
-        Terms.``Prescribe Administration``, [
+        Terms.``Prescribe Administration``,
+        [
             en, "Administration"
             nl, "Toediening"
             fr, "Administration"
@@ -476,7 +517,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Administración"
             it, "Somministrazione"
         ]
-        Terms.``Order``, [
+        Terms.``Order``,
+        [
             en, "Order"
             nl, "Order"
             fr, "Ordre"
@@ -484,7 +526,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Orden"
             it, "Ordine"
         ]
-        Terms.``Order Frequency``, [
+        Terms.``Order Frequency``,
+        [
             en, "Frequency"
             nl, "Frequentie"
             fr, "Fréquence"
@@ -492,7 +535,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Frecuencia"
             it, "Frequenza"
         ]
-        Terms.``Order Dose``, [
+        Terms.``Order Dose``,
+        [
             en, "Dose"
             nl, "Dosis"
             fr, "Dose"
@@ -500,7 +544,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Dosis"
             it, "Dose"
         ]
-        Terms.``Order Adjusted dose``, [
+        Terms.``Order Adjusted dose``,
+        [
             en, "Adjusted dose"
             nl, "Aangepaste dosis"
             fr, "Dose ajustée"
@@ -508,7 +553,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Dosis ajustada"
             it, "Dose adattata"
         ]
-        Terms.``Order Quantity``, [
+        Terms.``Order Quantity``,
+        [
             en, "Quantity"
             nl, "Hoeveelheid"
             fr, "Quantité"
@@ -516,7 +562,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Cantidad"
             it, "Quantità"
         ]
-        Terms.``Order Concentration``, [
+        Terms.``Order Concentration``,
+        [
             en, "Concentration"
             nl, "Concentratie"
             fr, "Concentration"
@@ -524,7 +571,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Concentración"
             it, "Concentrazione"
         ]
-        Terms.``Order Drip rate``, [
+        Terms.``Order Drip rate``,
+        [
             en, "Drip rate"
             nl, "Druppelsnelheid"
             fr, "Débit de perfusion"
@@ -532,7 +580,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Velocidad de goteo"
             it, "Velocità di infusione"
         ]
-        Terms.``Order Administration time``, [
+        Terms.``Order Administration time``,
+        [
             en, "Administration time"
             nl, "Toedieningstijd"
             fr, "Durée d'administration"
@@ -540,7 +589,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Tiempo de administración"
             it, "Tempo di somministrazione"
         ]
-        Terms.``Nutrition``, [
+        Terms.``Nutrition``,
+        [
             en, "Nutrition"
             nl, "Voeding"
             fr, "Nutrition"
@@ -548,7 +598,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Nutrición"
             it, "Nutrizione"
         ]
-        Terms.``Treatment Plan``, [
+        Terms.``Treatment Plan``,
+        [
             en, "Treatment Plan"
             nl, "Behandelplan"
             fr, "Plan de traitement"
@@ -556,7 +607,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Plan de tratamiento"
             it, "Piano di trattamento"
         ]
-        Terms.``Formulary``, [
+        Terms.``Formulary``,
+        [
             en, "Formulary"
             nl, "Formularium"
             fr, "Formulaire"
@@ -564,7 +616,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Formulario"
             it, "Formulario"
         ]
-        Terms.``Formulary Medications``, [
+        Terms.``Formulary Medications``,
+        [
             en, "Medications"
             nl, "Medicaties"
             fr, "Médicaments"
@@ -572,7 +625,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Medicamentos"
             it, "Farmaci"
         ]
-        Terms.``Formulary Indications``, [
+        Terms.``Formulary Indications``,
+        [
             en, "Indications"
             nl, "Indicaties"
             fr, "Indications"
@@ -580,7 +634,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Indicaciones"
             it, "Indicazioni"
         ]
-        Terms.``Formulary Routes``, [
+        Terms.``Formulary Routes``,
+        [
             en, "Routes"
             nl, "Toedieningswegen"
             fr, "Voies d'administration"
@@ -588,7 +643,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Vías de administración"
             it, "Vie di somministrazione"
         ]
-        Terms.``Formulary Patients``, [
+        Terms.``Formulary Patients``,
+        [
             en, "Patients"
             nl, "Patiënten"
             fr, "Patients"
@@ -596,7 +652,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Pacientes"
             it, "Pazienti"
         ]
-        Terms.``Parenteralia``, [
+        Terms.``Parenteralia``,
+        [
             en, "Parenteralia"
             nl, "Parenteralia"
             fr, "Parentéraux"
@@ -604,7 +661,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Parenterales"
             it, "Preparazioni parenterali"
         ]
-        Terms.``Delete``, [
+        Terms.``Delete``,
+        [
             en, "Delete"
             nl, "Verwijder"
             fr, "Supprimer"
@@ -612,7 +670,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Eliminar"
             it, "Elimina"
         ]
-        Terms.``Edit``, [
+        Terms.``Edit``,
+        [
             en, "Edit"
             nl, "Bewerk"
             fr, "Modifier"
@@ -620,7 +679,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Editar"
             it, "Modifica"
         ]
-        Terms.``Ok ``, [
+        Terms.``Ok ``,
+        [
             en, "Ok"
             nl, "Ok"
             fr, "Ok"
@@ -628,7 +688,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Ok"
             it, "Ok"
         ]
-        Terms.``Sort By``, [
+        Terms.``Sort By``,
+        [
             en, "Sort by"
             nl, "Sorteer op"
             fr, "Trier par"
@@ -636,7 +697,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Ordenar por"
             it, "Ordina per"
         ]
-        Terms.``Disclaimer``, [
+        Terms.``Disclaimer``,
+        [
             en, "Disclaimer"
             nl, "Disclaimer"
             fr, "Avertissement"
@@ -644,7 +706,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Aviso legal"
             it, "Avvertenza"
         ]
-        Terms.``Disclaimer text``, [
+        Terms.``Disclaimer text``,
+        [
             en, "This application is for informational purposes only..."
             nl, "Deze applicatie is uitsluitend bedoeld voor informatieve doeleinden..."
             fr, "Cette application est uniquement à titre informatif..."
@@ -652,7 +715,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Esta aplicación es solo para fines informativos..."
             it, "Questa applicazione è solo a scopo informativo..."
         ]
-        Terms.``Disclaimer accept``, [
+        Terms.``Disclaimer accept``,
+        [
             en, "I accept"
             nl, "Ik accepteer"
             fr, "J'accepte"
@@ -660,7 +724,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Acepto"
             it, "Accetto"
         ]
-        Terms.Settings, [
+        Terms.Settings,
+        [
             en, "Settings"
             nl, "Instellingen"
             fr, "Paramètres"
@@ -668,7 +733,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Configuración"
             it, "Impostazioni"
         ]
-        Terms.``Reload resources``, [
+        Terms.``Reload resources``,
+        [
             en, "Reload resources"
             nl, "Herlaad bronnen"
             fr, "Recharger les ressources"
@@ -676,7 +742,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Recargar recursos"
             it, "Ricarica risorse"
         ]
-        Terms.``Enter password``, [
+        Terms.``Enter password``,
+        [
             en, "Enter password"
             nl, "Voer wachtwoord in"
             fr, "Entrer le mot de passe"
@@ -684,7 +751,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Introducir contraseña"
             it, "Inserisci la password"
         ]
-        Terms.Password, [
+        Terms.Password,
+        [
             en, "Password"
             nl, "Wachtwoord"
             fr, "Mot de passe"
@@ -692,7 +760,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Contraseña"
             it, "Password"
         ]
-        Terms.``Invalid password``, [
+        Terms.``Invalid password``,
+        [
             en, "Invalid password"
             nl, "Ongeldig wachtwoord"
             fr, "Mot de passe invalide"
@@ -700,7 +769,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Contraseña no válida"
             it, "Password non valida"
         ]
-        Terms.Cancel, [
+        Terms.Cancel,
+        [
             en, "Cancel"
             nl, "Annuleer"
             fr, "Annuler"
@@ -708,7 +778,8 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
             es, "Cancelar"
             it, "Annulla"
         ]
-        Terms.Confirm, [
+        Terms.Confirm,
+        [
             en, "Confirm"
             nl, "Bevestig"
             fr, "Confirmer"
@@ -720,12 +791,9 @@ let staticTranslations : (Terms * (Localization.Locales * string) list) list =
 
 
 /// Builds a `TranslationMap` from the static fallback list.
-let staticTranslationMap : TranslationMap =
+let staticTranslationMap: TranslationMap =
     staticTranslations
-    |> List.map (fun (term, pairs) ->
-        $"{term}".Trim(),
-        pairs |> Map.ofList
-    )
+    |> List.map (fun (term, pairs) -> $"{term}".Trim(), pairs |> Map.ofList)
     |> Map.ofList
 
 
@@ -738,20 +806,28 @@ let staticTranslationMap : TranslationMap =
 /// Terms missing from `remote` are kept from `fallback` unchanged.
 let mergeTranslations (fallback: TranslationMap) (remote: TranslationMap) : TranslationMap =
     remote
-    |> Map.fold (fun acc termKey remoteLocales ->
-        let merged =
-            match Map.tryFind termKey acc with
-            | None -> remoteLocales
-            | Some fallbackLocales ->
-                Map.fold (fun m locale txt -> Map.add locale txt m) fallbackLocales remoteLocales
-        Map.add termKey merged acc
-    ) fallback
+    |> Map.fold
+        (fun acc termKey remoteLocales ->
+            let merged =
+                match Map.tryFind termKey acc with
+                | None -> remoteLocales
+                | Some fallbackLocales ->
+                    Map.fold (fun m locale txt -> Map.add locale txt m) fallbackLocales remoteLocales
+
+            Map.add termKey merged acc
+        )
+        fallback
 
 
 /// Looks up a term, falling back to `defVal` when absent.
-let getTermOrFallback (translations: TranslationMap) (locale: Localization.Locales) (defVal: string) (term: Terms) : string =
-    getTerm translations locale term
-    |> Option.defaultValue defVal
+let getTermOrFallback
+    (translations: TranslationMap)
+    (locale: Localization.Locales)
+    (defVal: string)
+    (term: Terms)
+    : string
+    =
+    getTerm translations locale term |> Option.defaultValue defVal
 
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -765,100 +841,117 @@ open Expecto.Flip
 
 
 let localizationTests =
-    testList "Localization improvements" [
+    testList
+        "Localization improvements"
+        [
 
-        test "tryLocaleFromString returns Some for known locales" {
-            tryLocaleFromString "English"    |> Expect.equal "english" (Some Localization.English)
-            tryLocaleFromString "Nederlands" |> Expect.equal "dutch"   (Some Localization.Dutch)
-            tryLocaleFromString "Français"   |> Expect.equal "french"  (Some Localization.French)
-            tryLocaleFromString "Deutsch"    |> Expect.equal "german"  (Some Localization.German)
-            tryLocaleFromString "Español"    |> Expect.equal "spanish" (Some Localization.Spanish)
-            tryLocaleFromString "Italiano"   |> Expect.equal "italian" (Some Localization.Italian)
-        }
+            test "tryLocaleFromString returns Some for known locales" {
+                tryLocaleFromString "English"
+                |> Expect.equal "english" (Some Localization.English)
 
-        test "tryLocaleFromString returns None for unknown strings" {
-            tryLocaleFromString "Klingon"   |> Expect.equal "unknown" None
-            tryLocaleFromString ""          |> Expect.equal "empty"   None
-        }
+                tryLocaleFromString "Nederlands"
+                |> Expect.equal "dutch" (Some Localization.Dutch)
 
-        test "staticTranslationMap contains all Terms cases" {
-            let allTerms =
-                Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(typeof<Terms>)
-                |> Array.map (fun c -> c.Name.Trim())
+                tryLocaleFromString "Français"
+                |> Expect.equal "french" (Some Localization.French)
 
-            for term in allTerms do
-                staticTranslationMap
-                |> Map.containsKey term
-                |> Expect.isTrue $"static map should contain term '{term}'"
-        }
+                tryLocaleFromString "Deutsch"
+                |> Expect.equal "german" (Some Localization.German)
 
-        test "getTerm returns correct translation from static map" {
-            getTerm staticTranslationMap Localization.English Terms.``Patient Age``
-            |> Expect.equal "English patient age" (Some "Age")
+                tryLocaleFromString "Español"
+                |> Expect.equal "spanish" (Some Localization.Spanish)
 
-            getTerm staticTranslationMap Localization.Dutch Terms.``Patient Age``
-            |> Expect.equal "Dutch patient age" (Some "Leeftijd")
+                tryLocaleFromString "Italiano"
+                |> Expect.equal "italian" (Some Localization.Italian)
+            }
 
-            getTerm staticTranslationMap Localization.French Terms.``Patient Age``
-            |> Expect.equal "French patient age" (Some "Âge")
-        }
+            test "tryLocaleFromString returns None for unknown strings" {
+                tryLocaleFromString "Klingon" |> Expect.equal "unknown" None
+                tryLocaleFromString "" |> Expect.equal "empty" None
+            }
 
-        test "parseLocalizationCSV parses header row to identify locale columns" {
-            // Simulate a CSV with columns in a different order than expected
-            let csv =
-                [|
-                    // Header row: term key, then languages in unexpected order
-                    [| "Term"; "Deutsch"; "English"; "Nederlands" |]
-                    [| "Patient Age"; "Alter"; "Age"; "Leeftijd" |]
-                    [| "Patient Weight"; "Gewicht"; "Weight"; "Gewicht" |]
-                |]
+            test "staticTranslationMap contains all Terms cases" {
+                let allTerms =
+                    Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(typeof<Terms>)
+                    |> Array.map (fun c -> c.Name.Trim())
 
-            let map = parseLocalizationCSV csv
+                for term in allTerms do
+                    staticTranslationMap
+                    |> Map.containsKey term
+                    |> Expect.isTrue $"static map should contain term '{term}'"
+            }
 
-            // English is in column 2 (not the hardcoded 1 of the old system)
-            getTerm map Localization.English Terms.``Patient Age``
-            |> Expect.equal "English age from reordered CSV" (Some "Age")
+            test "getTerm returns correct translation from static map" {
+                getTerm staticTranslationMap Localization.English Terms.``Patient Age``
+                |> Expect.equal "English patient age" (Some "Age")
 
-            getTerm map Localization.Dutch Terms.``Patient Age``
-            |> Expect.equal "Dutch age from reordered CSV" (Some "Leeftijd")
+                getTerm staticTranslationMap Localization.Dutch Terms.``Patient Age``
+                |> Expect.equal "Dutch patient age" (Some "Leeftijd")
 
-            getTerm map Localization.German Terms.``Patient Age``
-            |> Expect.equal "German age from reordered CSV" (Some "Alter")
-        }
+                getTerm staticTranslationMap Localization.French Terms.``Patient Age``
+                |> Expect.equal "French patient age" (Some "Âge")
+            }
 
-        test "mergeTranslations overlays remote over fallback" {
-            let fallback =
-                [ "Patient Age",
-                    [ Localization.English, "Age (fallback)"
-                      Localization.Dutch,   "Leeftijd" ]
-                    |> Map.ofList ]
-                |> Map.ofList
+            test "parseLocalizationCSV parses header row to identify locale columns" {
+                // Simulate a CSV with columns in a different order than expected
+                let csv =
+                    [|
+                        // Header row: term key, then languages in unexpected order
+                        [| "Term"; "Deutsch"; "English"; "Nederlands" |]
+                        [| "Patient Age"; "Alter"; "Age"; "Leeftijd" |]
+                        [| "Patient Weight"; "Gewicht"; "Weight"; "Gewicht" |]
+                    |]
 
-            let remote =
-                [ "Patient Age",
-                    [ Localization.English, "Age (remote)" ]
-                    |> Map.ofList ]
-                |> Map.ofList
+                let map = parseLocalizationCSV csv
 
-            let merged = mergeTranslations fallback remote
+                // English is in column 2 (not the hardcoded 1 of the old system)
+                getTerm map Localization.English Terms.``Patient Age``
+                |> Expect.equal "English age from reordered CSV" (Some "Age")
 
-            // Remote value wins for English
-            getTerm merged Localization.English Terms.``Patient Age``
-            |> Expect.equal "remote wins" (Some "Age (remote)")
+                getTerm map Localization.Dutch Terms.``Patient Age``
+                |> Expect.equal "Dutch age from reordered CSV" (Some "Leeftijd")
 
-            // Fallback value retained for Dutch (not present in remote)
-            getTerm merged Localization.Dutch Terms.``Patient Age``
-            |> Expect.equal "fallback retained" (Some "Leeftijd")
-        }
+                getTerm map Localization.German Terms.``Patient Age``
+                |> Expect.equal "German age from reordered CSV" (Some "Alter")
+            }
 
-        test "getTermOrFallback returns defVal when term is absent" {
-            let emptyMap : TranslationMap = Map.empty
-            getTermOrFallback emptyMap Localization.English "default" Terms.``Patient Age``
-            |> Expect.equal "default value used" "default"
-        }
+            test "mergeTranslations overlays remote over fallback" {
+                let fallback =
+                    [
+                        "Patient Age",
+                        [
+                            Localization.English, "Age (fallback)"
+                            Localization.Dutch, "Leeftijd"
+                        ]
+                        |> Map.ofList
+                    ]
+                    |> Map.ofList
 
-    ]
+                let remote =
+                    [
+                        "Patient Age", [ Localization.English, "Age (remote)" ] |> Map.ofList
+                    ]
+                    |> Map.ofList
+
+                let merged = mergeTranslations fallback remote
+
+                // Remote value wins for English
+                getTerm merged Localization.English Terms.``Patient Age``
+                |> Expect.equal "remote wins" (Some "Age (remote)")
+
+                // Fallback value retained for Dutch (not present in remote)
+                getTerm merged Localization.Dutch Terms.``Patient Age``
+                |> Expect.equal "fallback retained" (Some "Leeftijd")
+            }
+
+            test "getTermOrFallback returns defVal when term is absent" {
+                let emptyMap: TranslationMap = Map.empty
+
+                getTermOrFallback emptyMap Localization.English "default" Terms.``Patient Age``
+                |> Expect.equal "default value used" "default"
+            }
+
+        ]
 
 
-runTestsWithCLIArgs [] [||] localizationTests
-|> ignore
+runTestsWithCLIArgs [] [||] localizationTests |> ignore

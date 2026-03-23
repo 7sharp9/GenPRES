@@ -17,6 +17,7 @@ module Memoization =
     /// </remarks>
     let inline memoize f =
         let cache = ref Map.empty
+
         fun x ->
             match cache.Value.TryFind(x) with
             | Some r -> r
@@ -27,6 +28,7 @@ module Memoization =
 
     let inline memoizeOne f =
         let dic = Dictionary<_, _>()
+
         let memoized par =
             if dic.ContainsKey(par) then
                 dic[par]
@@ -39,8 +41,10 @@ module Memoization =
 
     let inline memoize2Int f =
         let dic = Dictionary<int * int, _>()
+
         let memoized p1 p2 =
             let hash = p1.GetHashCode(), p2.GetHashCode()
+
             if dic.ContainsKey(hash) then
                 dic[hash]
             else
@@ -70,10 +74,11 @@ module Memoization =
         let testMemoizationSpeed () =
             // create a function that takes a long time to compute
             // for example a Fibonacci function
-            let rec fib(n: int):int =
+            let rec fib (n: int) : int =
                 match n with
-                | 0 | 1 -> n
-                | n -> fib (n-1) + fib (n - 2)
+                | 0
+                | 1 -> n
+                | n -> fib (n - 1) + fib (n - 2)
 
             // create a memoized version of the function
             let f' = memoize fib
@@ -88,6 +93,7 @@ module Memoization =
                 sw.ElapsedMilliseconds
 
             sw.Reset()
+
             let r2 =
                 sw.Start()
                 f' 37 |> ignore

@@ -1,5 +1,3 @@
-
-
 #time
 
 #load "load.fsx"
@@ -40,12 +38,11 @@ open Informedica.GenForm.Lib
 module GenFormResult =
 
     let defaultValue value res =
-        res
-        |> Result.map fst
-        |> Result.defaultValue value
+        res |> Result.map fst |> Result.defaultValue value
 
 
-let provider : Resources.IResourceProvider = Api.getCachedProviderWithDataUrlId FormLogging.noOp dataUrlId
+let provider: Resources.IResourceProvider =
+    Api.getCachedProviderWithDataUrlId FormLogging.noOp dataUrlId
 
 
 provider.GetFormRoutes()
@@ -58,41 +55,38 @@ provider.GetFormRoutes()
 |> Array.filter (_.Form >> ((=) "poeder voor oplossing voor infusie"))
 
 
-provider.GetDoseRules ()
+provider.GetDoseRules()
 |> Array.filter (_.DoseType >> _.IsOnce)
 |> Array.filter (_.Generic >> ((=) "albutrepenonacog alfa"))
 
 
-provider.GetDoseRules ()
+provider.GetDoseRules()
 |> Array.filter (_.DoseType >> _.IsOnce)
 |> Array.filter (_.Generic >> ((=) "vancomycine"))
 
 
-provider.GetDoseRules ()
+provider.GetDoseRules()
 |> Array.filter (_.DoseType >> _.IsOnce)
-|> Array.filter (_.ComponentLimits >> Array.exists (fun cl -> cl.Products |> Array.exists _.RequiresReconstitution))
+|> Array.filter (
+    _.ComponentLimits
+    >> Array.exists (fun cl -> cl.Products |> Array.exists _.RequiresReconstitution)
+)
 
 // Usage
-provider.GetProducts ()
-|> Array.filter (fun p -> p.Generic = "zoledroninezuur")
+provider.GetProducts() |> Array.filter (fun p -> p.Generic = "zoledroninezuur")
 
 
 let dr =
-    provider.GetDoseRules ()
-    |> Api.filterDoseRules provider
+    provider.GetDoseRules()
+    |> Api.filterDoseRules
+        provider
         { Filter.doseFilter with
             Patient =
                 { Patient.patient with
-                    Access =  [ CVL ]
+                    Access = [ CVL ]
                     Department = Some "ICK"
-                    Age =
-                        Units.Time.year
-                        |> ValueUnit.singleWithValue 1N
-                        |> Some
-                    Weight =
-                      Units.Weight.kiloGram
-                      |> ValueUnit.singleWithValue 10N
-                      |> Some
+                    Age = Units.Time.year |> ValueUnit.singleWithValue 1N |> Some
+                    Weight = Units.Weight.kiloGram |> ValueUnit.singleWithValue 10N |> Some
                 }
             Generic = Some "zoledroninezuur"
             Form = None
@@ -101,31 +95,23 @@ let dr =
     |> Array.head
 
 
-
 dr
-|> DoseRule.addFormLimits
-    (provider.GetRouteMappings ())
-    (provider.GetFormRoutes ())
+|> DoseRule.addFormLimits (provider.GetRouteMappings()) (provider.GetFormRoutes())
 
 
-let doseRuleData =
-    DoseRule.getData dataUrlId
-    |> GenFormResult.defaultValue [||]
+let doseRuleData = DoseRule.getData dataUrlId |> GenFormResult.defaultValue [||]
 
 
 doseRuleData
-|> Array.filter (fun dr ->
-    dr.Generic = "zoledroninezuur"
-)
+|> Array.filter (fun dr -> dr.Generic = "zoledroninezuur")
 |> Array.map DoseRule.doseRuleDataIsValid
 
 
-
-provider.GetSolutionRules ()
+provider.GetSolutionRules()
 |> Array.filter (fun sr ->
-    sr.Generic = "amikacine" &&
-    sr.Route =  "intraveneus" &&
-    sr.PatientCategory.Department = Some "ICK"
+    sr.Generic = "amikacine"
+    && sr.Route = "intraveneus"
+    && sr.PatientCategory.Department = Some "ICK"
 )
 
 
@@ -138,15 +124,9 @@ let pr =
         Patient =
             { Patient.patient with
                 Department = Some "ICK"
-                Age =
-                    Units.Time.year
-                    |> ValueUnit.singleWithValue 10N
-                    |> Some
-                Weight =
-                  Units.Weight.kiloGram
-                  |> ValueUnit.singleWithValue 40N
-                  |> Some
-//                RenalFunction = EGFR(Some 5, Some 5) |> Some
+                Age = Units.Time.year |> ValueUnit.singleWithValue 10N |> Some
+                Weight = Units.Weight.kiloGram |> ValueUnit.singleWithValue 40N |> Some
+            //                RenalFunction = EGFR(Some 5, Some 5) |> Some
             }
     }
     |> Api.filterPrescriptionRules provider
@@ -158,16 +138,10 @@ pr.SolutionRules
 
 
 { Patient.patient with
-    Access =  [ CVL ]
+    Access = [ CVL ]
     Department = Some "ICK"
-    Age =
-        Units.Time.year
-        |> ValueUnit.singleWithValue 6N
-        |> Some
-    Weight =
-      Units.Weight.kiloGram
-      |> ValueUnit.singleWithValue 22N
-      |> Some
+    Age = Units.Time.year |> ValueUnit.singleWithValue 6N |> Some
+    Weight = Units.Weight.kiloGram |> ValueUnit.singleWithValue 22N |> Some
 //                RenalFunction = EGFR(Some 5, Some 5) |> Some
 }
 |> Api.getPrescriptionRules provider
@@ -183,10 +157,8 @@ let printAllDoseRules () =
         |> GenFormResult.defaultValue [||]
         |> Array.map _.DoseRule
 
-    let gs (rs : DoseRule[]) =
-        rs
-        |> Array.map _.Generic
-        |> Array.distinct
+    let gs (rs: DoseRule[]) =
+        rs |> Array.map _.Generic |> Array.distinct
 
     DoseRule.Print.printGenerics gs rs
 
@@ -198,29 +170,18 @@ printAllDoseRules ()
 |> File.writeTextToFile "doserules.html"
 
 
-provider.GetSolutionRules ()
+provider.GetSolutionRules()
 |> Array.filter (fun sr -> sr.Generic = "adrenaline")
 |> SolutionRule.Print.toMarkdown ""
 
 
-{ Patient.patient with
-    Age =
-        Units.Time.year
-        |> ValueUnit.singleWithValue 16N
-        |> Some
-}
+{ Patient.patient with Age = Units.Time.year |> ValueUnit.singleWithValue 16N |> Some }
 |> Api.getPrescriptionRules provider
 |> GenFormResult.defaultValue [||]
 |> Array.filter (_.SolutionRules >> Array.isEmpty >> not)
 |> Array.item 1
-|> fun pr ->
-    pr.SolutionRules
-    |> SolutionRule.Print.toMarkdown "\n"
+|> fun pr -> pr.SolutionRules |> SolutionRule.Print.toMarkdown "\n"
 
 
-provider.GetDoseRules ()
-|> DoseRule.filter
-    (provider.GetRouteMappings ())
-    { Filter.doseFilter with
-        Route = Some "oraal"
-    }
+provider.GetDoseRules()
+|> DoseRule.filter (provider.GetRouteMappings()) { Filter.doseFilter with Route = Some "oraal" }

@@ -21,14 +21,9 @@ module PrescriptionProduct =
 
     let _get id =
         Zindex.BST052T.records ()
-        |> Array.filter (fun r ->
-            r.MUTKOD <> 1 &&
-            r.GPKODE = id
-        )
+        |> Array.filter (fun r -> r.MUTKOD <> 1 && r.GPKODE = id)
         |> Array.map (fun r ->
-            let p =
-                Zindex.BST052T.records ()
-                |> Array.find (fun r' -> r'.PRKODE = r.PRKODE)
+            let p = Zindex.BST052T.records () |> Array.find (fun r' -> r'.PRKODE = r.PRKODE)
             let nm = Names.getName p.PRNMNR Names.Full
             let lb = Names.getName p.PRNMNR Names.Label
             let un = Names.getThes r.PREENH Names.GenericUnit Names.Fifty
@@ -45,4 +40,4 @@ module PrescriptionProduct =
     /// <remarks>
     /// This function is memoized.
     /// </remarks>
-    let get : int -> PrescriptionProduct [] = Memoization.memoize _get
+    let get: int -> PrescriptionProduct[] = Memoization.memoize _get

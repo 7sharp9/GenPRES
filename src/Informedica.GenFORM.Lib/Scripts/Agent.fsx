@@ -39,8 +39,8 @@ type GenFormCommand =
     | GetRenalRules
     | GetResourceInfo
     // Filtered access
-    | FilterPrescriptionRules  of filter: PrescriptionRule.Filter
-    | GetPrescriptionRules     of patient: PatientCategory
+    | FilterPrescriptionRules of filter: PrescriptionRule.Filter
+    | GetPrescriptionRules of patient: PatientCategory
     // Cache management
     | ReloadCache
 
@@ -48,13 +48,13 @@ type GenFormCommand =
 /// Responses returned by the GenFORM agent
 [<RequireQualifiedAccess>]
 type GenFormResponse =
-    | DoseRules         of DoseRule array
-    | SolutionRules     of SolutionRule array
-    | RenalRules        of RenalRule array
-    | ResourceInfo      of Resources.ResourceInfo
+    | DoseRules of DoseRule array
+    | SolutionRules of SolutionRule array
+    | RenalRules of RenalRule array
+    | ResourceInfo of Resources.ResourceInfo
     | PrescriptionRules of Result<PrescriptionRule array, Message list>
     | CacheReloaded
-    | Error             of string list
+    | Error of string list
 
 
 // ============================================================
@@ -77,17 +77,13 @@ type GenFormState = IResourceProvider
 let processCommand (logger: Logger) (state: GenFormState) (cmd: GenFormCommand) : GenFormResponse * GenFormState =
     let response =
         match cmd with
-        | GenFormCommand.GetDoseRules ->
-            GenFormResponse.DoseRules (state.GetDoseRules())
+        | GenFormCommand.GetDoseRules -> GenFormResponse.DoseRules(state.GetDoseRules())
 
-        | GenFormCommand.GetSolutionRules ->
-            GenFormResponse.SolutionRules (state.GetSolutionRules())
+        | GenFormCommand.GetSolutionRules -> GenFormResponse.SolutionRules(state.GetSolutionRules())
 
-        | GenFormCommand.GetRenalRules ->
-            GenFormResponse.RenalRules (state.GetRenalRules())
+        | GenFormCommand.GetRenalRules -> GenFormResponse.RenalRules(state.GetRenalRules())
 
-        | GenFormCommand.GetResourceInfo ->
-            GenFormResponse.ResourceInfo (state.GetResourceInfo())
+        | GenFormCommand.GetResourceInfo -> GenFormResponse.ResourceInfo(state.GetResourceInfo())
 
         | GenFormCommand.FilterPrescriptionRules filter ->
             let result = Api.filterPrescriptionRules state filter
@@ -95,13 +91,13 @@ let processCommand (logger: Logger) (state: GenFormState) (cmd: GenFormCommand) 
 
         | GenFormCommand.GetPrescriptionRules patient ->
             let rules = Api.getPrescriptionRules state patient
-            GenFormResponse.PrescriptionRules (Ok rules)
+            GenFormResponse.PrescriptionRules(Ok rules)
 
         | GenFormCommand.ReloadCache ->
             Api.reloadCache logger state
             GenFormResponse.CacheReloaded
 
-    response, state   // provider reference is unchanged; its internal state may be refreshed
+    response, state // provider reference is unchanged; its internal state may be refreshed
 
 
 // ============================================================
@@ -114,10 +110,7 @@ let processCommand (logger: Logger) (state: GenFormState) (cmd: GenFormCommand) 
 /// <param name="dataUrlId">GENPRES_URL_ID environment variable value</param>
 let createGenFormAgent (logger: Logger) (dataUrlId: string) =
     let provider = Api.getCachedProviderWithDataUrlId logger dataUrlId
-    Agent.createStatefulReply<GenFormCommand, GenFormResponse, GenFormState>(
-        provider,
-        processCommand logger
-    )
+    Agent.createStatefulReply<GenFormCommand, GenFormResponse, GenFormState> (provider, processCommand logger)
 
 
 // ============================================================
@@ -128,7 +121,7 @@ let createGenFormAgent (logger: Logger) (dataUrlId: string) =
 // ============================================================
 
 let withAuditLog (logger: Logger) (inner: Agent<GenFormCommand * AsyncReplyChannel<GenFormResponse>>) =
-    Agent.createReply<GenFormCommand, GenFormResponse>(fun cmd ->
+    Agent.createReply<GenFormCommand, GenFormResponse> (fun cmd ->
         Logging.logInfo logger $"[AUDIT] GenForm ← {cmd}"
         let response = inner |> Agent.postAndReply cmd
         Logging.logInfo logger $"[AUDIT] GenForm → {response}"
@@ -140,8 +133,7 @@ let withAuditLog (logger: Logger) (inner: Agent<GenFormCommand * AsyncReplyChann
 // Helpers
 // ============================================================
 
-let ask (agent: Agent<GenFormCommand * AsyncReplyChannel<GenFormResponse>>) cmd =
-    agent |> Agent.postAndReply cmd
+let ask (agent: Agent<GenFormCommand * AsyncReplyChannel<GenFormResponse>>) cmd = agent |> Agent.postAndReply cmd
 
 let askAsync (agent: Agent<GenFormCommand * AsyncReplyChannel<GenFormResponse>>) cmd =
     agent |> Agent.postAndAsyncReply cmd
@@ -163,41 +155,35 @@ if dataUrlId |> String.isNullOrWhiteSpace then
 
 let noOpLogger = FormLogging.noOp
 
-let agent    = createGenFormAgent noOpLogger dataUrlId
-let audited  = withAuditLog noOpLogger agent
+let agent = createGenFormAgent noOpLogger dataUrlId
+let audited = withAuditLog noOpLogger agent
 
 
 // 1. Resource info
 printfn "1. Resource info:"
+
 match audited |> ask GenFormCommand.GetResourceInfo with
-| GenFormResponse.ResourceInfo info ->
-    printfn $"   Loaded: {info.IsLoaded}  Last updated: {info.LastUpdated}"
-| GenFormResponse.Error msgs ->
-    msgs |> List.iter (eprintfn "   Error: %s")
-| other ->
-    printfn $"   Unexpected: {other}"
+| GenFormResponse.ResourceInfo info -> printfn $"   Loaded: {info.IsLoaded}  Last updated: {info.LastUpdated}"
+| GenFormResponse.Error msgs -> msgs |> List.iter (eprintfn "   Error: %s")
+| other -> printfn $"   Unexpected: {other}"
 
 
 // 2. Dose rules count
 printfn "\n2. Dose rules:"
+
 match audited |> ask GenFormCommand.GetDoseRules with
-| GenFormResponse.DoseRules drs ->
-    printfn $"   {drs.Length} dose rules loaded"
-| GenFormResponse.Error msgs ->
-    msgs |> List.iter (eprintfn "   Error: %s")
-| other ->
-    printfn $"   Unexpected: {other}"
+| GenFormResponse.DoseRules drs -> printfn $"   {drs.Length} dose rules loaded"
+| GenFormResponse.Error msgs -> msgs |> List.iter (eprintfn "   Error: %s")
+| other -> printfn $"   Unexpected: {other}"
 
 
 // 3. Solution rules count
 printfn "\n3. Solution rules:"
+
 match audited |> ask GenFormCommand.GetSolutionRules with
-| GenFormResponse.SolutionRules srs ->
-    printfn $"   {srs.Length} solution rules loaded"
-| GenFormResponse.Error msgs ->
-    msgs |> List.iter (eprintfn "   Error: %s")
-| other ->
-    printfn $"   Unexpected: {other}"
+| GenFormResponse.SolutionRules srs -> printfn $"   {srs.Length} solution rules loaded"
+| GenFormResponse.Error msgs -> msgs |> List.iter (eprintfn "   Error: %s")
+| other -> printfn $"   Unexpected: {other}"
 
 
 // 4. Filter prescription rules for a minimal patient context
@@ -206,14 +192,10 @@ printfn "\n4. Prescription rules (unfiltered — may take a moment):"
 let emptyFilter = PrescriptionRule.emptyFilter
 
 match audited |> ask (GenFormCommand.FilterPrescriptionRules emptyFilter) with
-| GenFormResponse.PrescriptionRules (Ok rules) ->
-    printfn $"   {rules.Length} prescription rules"
-| GenFormResponse.PrescriptionRules (Error msgs) ->
-    msgs |> List.iter (fun m -> eprintfn $"   Error: {m}")
-| GenFormResponse.Error msgs ->
-    msgs |> List.iter (eprintfn "   Error: %s")
-| other ->
-    printfn $"   Unexpected: {other}"
+| GenFormResponse.PrescriptionRules(Ok rules) -> printfn $"   {rules.Length} prescription rules"
+| GenFormResponse.PrescriptionRules(Error msgs) -> msgs |> List.iter (fun m -> eprintfn $"   Error: {m}")
+| GenFormResponse.Error msgs -> msgs |> List.iter (eprintfn "   Error: %s")
+| other -> printfn $"   Unexpected: {other}"
 
 
 // 5. Async call example
@@ -221,11 +203,10 @@ printfn "\n5. Async call for renal rules:"
 
 async {
     let! response = audited |> askAsync GenFormCommand.GetRenalRules
+
     match response with
-    | GenFormResponse.RenalRules rrs ->
-        printfn $"   {rrs.Length} renal rules"
-    | other ->
-        printfn $"   Unexpected: {other}"
+    | GenFormResponse.RenalRules rrs -> printfn $"   {rrs.Length} renal rules"
+    | other -> printfn $"   Unexpected: {other}"
 }
 |> Async.RunSynchronously
 

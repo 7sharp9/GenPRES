@@ -42,6 +42,7 @@ module ImprovedGoogleSheets =
 
                 if not resp.IsSuccessStatusCode then
                     let status = int resp.StatusCode
+
                     return
                         Error
                             $"HTTP {status} ({resp.StatusCode}) downloading sheet.\n\
@@ -70,9 +71,7 @@ module ImprovedGoogleSheets =
 
             return
                 result
-                |> Result.mapError (fun err ->
-                    $"Failed to load sheet '{sheet}' using URL ID '{dataUrlId}'.\n{err}"
-                )
+                |> Result.mapError (fun err -> $"Failed to load sheet '{sheet}' using URL ID '{dataUrlId}'.\n{err}")
                 |> Result.bind (fun data ->
                     try
                         Ok(parser data)
@@ -97,10 +96,8 @@ module ImprovedGoogleSheets =
             let! result = getDataFromSheetResult id dummyUrlId dummySheet
 
             match result with
-            | Ok data ->
-                printfn "Unexpected success (test with real ID?): %d bytes" data.Length
-            | Error msg ->
-                printfn "Got expected error (demonstrates improved message):\n%s" msg
+            | Ok data -> printfn "Unexpected success (test with real ID?): %d bytes" data.Length
+            | Error msg -> printfn "Got expected error (demonstrates improved message):\n%s" msg
         }
         |> Async.RunSynchronously
 

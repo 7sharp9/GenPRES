@@ -1,4 +1,3 @@
-
 #r "nuget: MathNet.Numerics.FSharp"
 #r "nuget: FParsec"
 
@@ -25,13 +24,11 @@ open System
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
 
-
 module Expecto =
 
     open Expecto
 
     let run = runTestsWithCLIArgs [] [| "--summary" |]
-
 
 
 //Tests.tests

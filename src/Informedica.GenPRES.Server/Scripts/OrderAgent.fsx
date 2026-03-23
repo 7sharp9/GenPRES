@@ -10,9 +10,9 @@ open Shared.Api
 
 type OrderAgent =
     {
-        Start : unit -> unit
-        Restart : unit -> unit
-        ProcessCommand : Command -> Async<Result<Response, string[]>>
+        Start: unit -> unit
+        Restart: unit -> unit
+        ProcessCommand: Command -> Async<Result<Response, string[]>>
     }
 
 
@@ -24,38 +24,41 @@ type OrderAgentMessage =
     | ReloadResources of AsyncReplyChannel<unit>
 
 
-let private createAgent (serverApi: IServerApi) = MailboxProcessor.Start(fun inbox ->
-    let rec messageLoop() = async {
-        let! msg = inbox.Receive()
-        match msg with
-        | Start reply ->
-            // Initialize resources if needed
-            reply.Reply()
-            return! messageLoop()
+let private createAgent (serverApi: IServerApi) =
+    MailboxProcessor.Start(fun inbox ->
+        let rec messageLoop () =
+            async {
+                let! msg = inbox.Receive()
 
-        | Stop reply ->
-            reply.Reply()
-            return ()
+                match msg with
+                | Start reply ->
+                    // Initialize resources if needed
+                    reply.Reply()
+                    return! messageLoop ()
 
-        | ProcessCommand (cmd, reply) ->
-            try
-                let! result = serverApi.processCommand cmd
-                reply.Reply result
-            with
-            | ex ->
-                reply.Reply(Error [| ex.Message |])
-            return! messageLoop()
+                | Stop reply ->
+                    reply.Reply()
+                    return ()
 
-        | ReloadResources reply ->
-            // Trigger resource reload if implemented
-            reply.Reply()
-            return! messageLoop()
-    }
+                | ProcessCommand(cmd, reply) ->
+                    try
+                        let! result = serverApi.processCommand cmd
+                        reply.Reply result
+                    with ex ->
+                        reply.Reply(Error [| ex.Message |])
 
-    messageLoop()
-)
+                    return! messageLoop ()
 
-let mutable private agentOpt : MailboxProcessor<OrderAgentMessage> option = None
+                | ReloadResources reply ->
+                    // Trigger resource reload if implemented
+                    reply.Reply()
+                    return! messageLoop ()
+            }
+
+        messageLoop ()
+    )
+
+let mutable private agentOpt: MailboxProcessor<OrderAgentMessage> option = None
 
 
 let private getOrCreateAgent (serverApi: IServerApi) =
@@ -73,8 +76,7 @@ let createOrderAgent (serverApi: IServerApi) : OrderAgent =
         Start =
             fun () ->
                 let agent = getOrCreateAgent serverApi
-                agent.PostAndAsyncReply Start
-                |> Async.RunSynchronously
+                agent.PostAndAsyncReply Start |> Async.RunSynchronously
 
         Restart =
             fun () ->
@@ -88,10 +90,9 @@ let createOrderAgent (serverApi: IServerApi) : OrderAgent =
             fun cmd ->
                 async {
                     let agent = getOrCreateAgent serverApi
-                    return! agent.PostAndAsyncReply(fun reply -> ProcessCommand (cmd, reply))
+                    return! agent.PostAndAsyncReply(fun reply -> ProcessCommand(cmd, reply))
                 }
     }
-
 
 
 // Create the ServerApi instance properly
@@ -105,16 +106,12 @@ let provider =
 let serverApi = ServerApi.ApiImpl.createServerApi provider
 
 
-
 // Usage example
 let orderAgent = createOrderAgent serverApi
 
 
-
-
 open Shared
 open Shared.Types
-
 
 
 // Initialize the agent
@@ -127,78 +124,72 @@ let testFormulary = Models.Formulary.empty
 
 // Test the new command processing
 async {
-    let! result = orderAgent.ProcessCommand (FormularyCmd testFormulary)
+    let! result = orderAgent.ProcessCommand(FormularyCmd testFormulary)
+
     match result with
-    | Ok (FormularyResp formulary) ->
+    | Ok(FormularyResp formulary) ->
         printfn "Successfully processed formulary command"
         printfn $"Found %d{formulary.Generics |> Array.length} generics"
-    | Ok _ ->
-        printfn "Unexpected response type"
-    | Error errs ->
-        printfn "Error: %A" errs
-} |> Async.RunSynchronously
+    | Ok _ -> printfn "Unexpected response type"
+    | Error errs -> printfn "Error: %A" errs
+}
+|> Async.RunSynchronously
 
 
 // Test with OrderContext command
-let testPatient : Patient = {
-    Models.Patient.empty with
+let testPatient: Patient =
+    { Models.Patient.empty with
         Department = Some "ICK"
         Age = Some Models.Patient.Age.ageZero
         Gender = Male
-}
+    }
 
 
-let testOrderContext = {
-    Patient = testPatient
-    Filter = Models.OrderContext.filter
-    Scenarios = [||]
-    Intake = Models.Totals.empty
-    DemoVersion = false
-}
+let testOrderContext =
+    {
+        Patient = testPatient
+        Filter = Models.OrderContext.filter
+        Scenarios = [||]
+        Intake = Models.Totals.empty
+        DemoVersion = false
+    }
 
 
 async {
-    let! result = orderAgent.ProcessCommand (
-        testOrderContext
-        |> UpdateOrderContext
-        |> OrderContextCmd
-    )
+    let! result = orderAgent.ProcessCommand(testOrderContext |> UpdateOrderContext |> OrderContextCmd)
+
     match result with
-    | Ok (OrderContextResp (OrderContextUpdated ctx)) ->
+    | Ok(OrderContextResp(OrderContextUpdated ctx)) ->
         printfn "Successfully processed order context command"
         printfn "Updated context with %d scenarios" ctx.Scenarios.Length
-    | Ok _ ->
-        printfn "Unexpected response type"
-    | Error errs ->
-        printfn "Error processing order context: %A" errs
-} |> Async.RunSynchronously
+    | Ok _ -> printfn "Unexpected response type"
+    | Error errs -> printfn "Error processing order context: %A" errs
+}
+|> Async.RunSynchronously
 
 
 // Test TreatmentPlan command
-let testTreatmentPlan = {
-    Patient = testPatient
-    Scenarios = [||]
-    Selected = None
-    Filtered = [||]
-    Totals = Models.Totals.empty
-}
+let testTreatmentPlan =
+    {
+        Patient = testPatient
+        Scenarios = [||]
+        Selected = None
+        Filtered = [||]
+        Totals = Models.Totals.empty
+    }
 
 
 async {
-    let! result = orderAgent.ProcessCommand (
-        testTreatmentPlan
-        |> UpdateTreatmentPlan
-        |> TreatmentPlanCmd
-    )
+    let! result = orderAgent.ProcessCommand(testTreatmentPlan |> UpdateTreatmentPlan |> TreatmentPlanCmd)
+
     match result with
-    | Ok (TreatmentPlanResp (TreatmentPlanUpdated tp)) ->
+    | Ok(TreatmentPlanResp(TreatmentPlanUpdated tp)) ->
         printfn "Successfully processed treatment plan command"
         printfn "Treatment plan has %d scenarios" tp.Scenarios.Length
-    | Ok _ ->
-        printfn "Unexpected response type"
-    | Error errs ->
-        printfn "Error processing treatment plan: %A" errs
-} |> Async.RunSynchronously
+    | Ok _ -> printfn "Unexpected response type"
+    | Error errs -> printfn "Error processing treatment plan: %A" errs
+}
+|> Async.RunSynchronously
 
 
 // Test Parenteralia command
@@ -206,16 +197,16 @@ let testParenteralia = Models.Parenteralia.empty
 
 
 async {
-    let! result = orderAgent.ProcessCommand (ParenteraliaCmd testParenteralia)
+    let! result = orderAgent.ProcessCommand(ParenteraliaCmd testParenteralia)
+
     match result with
-    | Ok (ParentaraliaResp par) ->
+    | Ok(ParentaraliaResp par) ->
         printfn "Successfully processed parenteralia command"
         printfn $"Found %d{par.Generics.Length} generics"
-    | Ok _ ->
-        printfn "Unexpected response type"
-    | Error errs ->
-        printfn "Error processing parenteralia: %A" errs
-} |> Async.RunSynchronously
+    | Ok _ -> printfn "Unexpected response type"
+    | Error errs -> printfn "Error processing parenteralia: %A" errs
+}
+|> Async.RunSynchronously
 
 
 printfn "OrderAgent testing completed!"

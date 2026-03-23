@@ -1,7 +1,6 @@
 namespace Informedica.GenForm.Lib
 
 
-
 module Filter =
 
 
@@ -38,20 +37,11 @@ module Filter =
     /// <param name="pat">The Patient</param>
     /// <param name="filter">The Filter</param>
     /// <returns>The Filter with the Patient applied</returns>
-    let setPatient (pat : Patient) (filter : DoseFilter) =
-        let pat =
-            pat
-            |> Patient.correctAdjustUnit
-            |> Patient.calcPMAge
+    let setPatient (pat: Patient) (filter: DoseFilter) =
+        let pat = pat |> Patient.correctAdjustUnit |> Patient.calcPMAge
 
-        { filter with
-            Patient = pat
-        }
+        { filter with Patient = pat }
 
 
-    let calcPMAge (filter : DoseFilter) =
-        { filter with
-            Patient =
-                filter.Patient
-                |> Patient.calcPMAge
-        }
+    let calcPMAge (filter: DoseFilter) =
+        { filter with Patient = filter.Patient |> Patient.calcPMAge }

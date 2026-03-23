@@ -8,14 +8,29 @@ module Types =
     open System
 
 
-    [<Measure>] type gram
-    [<Measure>] type cm
-    [<Measure>] type m
-    [<Measure>] type kg
-    [<Measure>] type day
-    [<Measure>] type week
-    [<Measure>] type month
-    [<Measure>] type year
+    [<Measure>]
+    type gram
+
+    [<Measure>]
+    type cm
+
+    [<Measure>]
+    type m
+
+    [<Measure>]
+    type kg
+
+    [<Measure>]
+    type day
+
+    [<Measure>]
+    type week
+
+    [<Measure>]
+    type month
+
+    [<Measure>]
+    type year
 
 
     type DataType =
@@ -38,19 +53,20 @@ module Types =
 
     type NormalValue =
         {
-            Sex : string
-            Age : float
-            P3 : float
-            Mean : float
-            P97 : float
+            Sex: string
+            Age: float
+            P3: float
+            Mean: float
+            P97: float
         }
 
-    type NormalValues = {
-        Weights : NormalValue list
-        Heights : NormalValue list
-        NeoWeights : NormalValue list
-        NeoHeights : NormalValue list
-    }
+    type NormalValues =
+        {
+            Weights: NormalValue list
+            Heights: NormalValue list
+            NeoWeights: NormalValue list
+            NeoHeights: NormalValue list
+        }
 
 
     type Ranges =
@@ -72,7 +88,11 @@ module Types =
                 Days: int
             }
 
-        type GestationalAge = { Weeks: int; Days: int }
+        type GestationalAge =
+            {
+                Weeks: int
+                Days: int
+            }
 
 
     type Age = Patient.Age
@@ -129,7 +149,7 @@ module Types =
 
     type ValueUnit =
         {
-            Value: (string * decimal) []
+            Value: (string * decimal)[]
             Unit: string
             Group: string
             Short: bool
@@ -159,7 +179,12 @@ module Types =
             Variable: Variable
             Level: Level
         }
-    and Level = | IsNormal | IsCaution | IsWarning | IsAlert
+
+    and Level =
+        | IsNormal
+        | IsCaution
+        | IsWarning
+        | IsAlert
 
 
     type Schedule =
@@ -223,7 +248,7 @@ module Types =
             OrderCount: OrderVariable
             DoseCount: OrderVariable
             Dose: Dose
-            Components: Component []
+            Components: Component[]
         }
 
 
@@ -306,10 +331,10 @@ module Types =
 
 
     type TextBlock =
-        | Valid of TextItem []
-        | Caution of TextItem []
-        | Warning of TextItem []
-        | Alert of TextItem []
+        | Valid of TextItem[]
+        | Caution of TextItem[]
+        | Warning of TextItem[]
+        | Alert of TextItem[]
 
 
     type Intervention =
@@ -389,66 +414,66 @@ module Types =
 
     type Filter =
         {
-            Indications: string []
-            Generics: string []
-            Routes: string []
-            Forms: string []
-            DoseTypes: DoseType []
-            Diluents: string []
-            Components: string []
+            Indications: string[]
+            Generics: string[]
+            Routes: string[]
+            Forms: string[]
+            DoseTypes: DoseType[]
+            Diluents: string[]
+            Components: string[]
             Indication: string option
             Generic: string option
             Form: string option
             Route: string option
             DoseType: DoseType option
             Diluent: string option
-            SelectedComponents : string []
+            SelectedComponents: string[]
         }
 
 
     type Totals =
         {
-            Volume: TextItem []
-            Energy: TextItem []
-            Protein: TextItem []
-            Carbohydrate: TextItem []
-            Fat: TextItem []
-            Sodium: TextItem []
-            Potassium: TextItem []
-            Chloride: TextItem []
-            Calcium: TextItem []
-            Phosphate: TextItem []
-            Magnesium: TextItem []
-            Iron: TextItem []
-            VitaminD: TextItem []
-            Ethanol: TextItem []
-            Propyleenglycol: TextItem []
-            BoricAcid: TextItem []
-            BenzylAlcohol: TextItem []
+            Volume: TextItem[]
+            Energy: TextItem[]
+            Protein: TextItem[]
+            Carbohydrate: TextItem[]
+            Fat: TextItem[]
+            Sodium: TextItem[]
+            Potassium: TextItem[]
+            Chloride: TextItem[]
+            Calcium: TextItem[]
+            Phosphate: TextItem[]
+            Magnesium: TextItem[]
+            Iron: TextItem[]
+            VitaminD: TextItem[]
+            Ethanol: TextItem[]
+            Propyleenglycol: TextItem[]
+            BoricAcid: TextItem[]
+            BenzylAlcohol: TextItem[]
         }
 
 
     type OrderScenario =
         {
-            Name : string
+            Name: string
             Indication: string
             Form: string
             Route: string
             DoseType: DoseType
-            Diluent : string option
+            Diluent: string option
             Component: string option
             Item: string option
-            Diluents : string []
-            Components: string []
-            Items: string []
-            Prescription: TextBlock [][]
-            Preparation: TextBlock [][]
-            Administration: TextBlock [][]
+            Diluents: string[]
+            Components: string[]
+            Items: string[]
+            Prescription: TextBlock[][]
+            Preparation: TextBlock[][]
+            Administration: TextBlock[][]
             Order: Order
             UseAdjust: bool
             UseRenalRule: bool
             RenalRule: string option
-            ProductIds: string []
+            ProductIds: string[]
         }
 
 
@@ -457,7 +482,7 @@ module Types =
             DemoVersion: bool
             Filter: Filter
             Patient: Patient
-            Scenarios: OrderScenario []
+            Scenarios: OrderScenario[]
             Intake: Totals
         }
 
@@ -465,11 +490,11 @@ module Types =
     type OrderPlan =
         {
             Patient: Patient
-            Selected : OrderScenario option
-            Filtered : OrderScenario []
+            Selected: OrderScenario option
+            Filtered: OrderScenario[]
             // NOTE: maybe use ordercontext to preserve full info
             // so, OrderContexts: OrderContext []
-            Scenarios: OrderScenario []
+            Scenarios: OrderScenario[]
             Totals: Totals
         }
 
@@ -493,27 +518,28 @@ module Types =
         }
 
 
-    type NutritionPlan = {
-        Patient: Patient
-        NutritionContexts: NutritionContext []
-        Totals: Totals
-    }
+    type NutritionPlan =
+        {
+            Patient: Patient
+            NutritionContexts: NutritionContext[]
+            Totals: Totals
+        }
 
 
     type Formulary =
         {
-            Generics: string []
-            Indications: string []
-            Routes: string []
-            Forms : string []
-            DoseTypes: DoseType []
-            PatientCategories: string []
-            Products: string []
+            Generics: string[]
+            Indications: string[]
+            Routes: string[]
+            Forms: string[]
+            DoseTypes: DoseType[]
+            PatientCategories: string[]
+            Products: string[]
             Generic: string option
             Indication: string option
             Route: string option
             Form: string option
-            DoseType : DoseType option
+            DoseType: DoseType option
             PatientCategory: string option
             Patient: Patient option
             Markdown: string
@@ -522,10 +548,10 @@ module Types =
 
     type Parenteralia =
         {
-            Generics: string []
-            Forms: string []
-            Routes: string []
-            PatientCategories: string []
+            Generics: string[]
+            Forms: string[]
+            Routes: string[]
+            PatientCategories: string[]
             Generic: string option
             Form: string option
             Route: string option

@@ -13,5 +13,4 @@ let main argv =
     // Teardown is handled by a ProcessExit handler registered in FixtureSetup.
     let _fixtureResult = Informedica.ZIndex.Tests.FixtureSetup.fixtureCreatedFiles
 
-    Informedica.ZIndex.Tests.Tests.tests
-    |> runTestsWithCLIArgs [] argv
+    Informedica.ZIndex.Tests.Tests.tests |> runTestsWithCLIArgs [] argv

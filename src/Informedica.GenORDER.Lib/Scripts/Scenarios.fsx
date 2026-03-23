@@ -1,4 +1,3 @@
-
 #time
 
 // load demo or product cache
@@ -26,21 +25,13 @@ open Patient.Optics
 module GenFormResult =
 
     let defaultValue value res =
-        res
-        |> Result.map fst
-        |> Result.defaultValue value
+        res |> Result.map fst |> Result.defaultValue value
 
-    let get res =
-        res
-        |> Result.map fst
-        |> Result.get
+    let get res = res |> Result.map fst |> Result.get
 
 
-let provider : Resources.IResourceProvider =
-    Api.getCachedProviderWithDataUrlId
-        OrderLogging.noOp
-        (Environment.GetEnvironmentVariable("GENPRES_URL_ID"))
-
+let provider: Resources.IResourceProvider =
+    Api.getCachedProviderWithDataUrlId OrderLogging.noOp (Environment.GetEnvironmentVariable("GENPRES_URL_ID"))
 
 
 // TODO: could be used to precalc all possible
@@ -49,20 +40,16 @@ let createScenarios (ctx: OrderContext) =
     let getRules filter =
         { ctx with Filter = filter }
         |> OrderContext.getRules OrderLogging.noOp provider
-        |> fun (ctx, res) ->
-            ctx,
-            res
-            |> GenFormResult.get
+        |> fun (ctx, res) -> ctx, res |> GenFormResult.get
 
     let noEval ctx =
         let g = ctx.Filter.Generic
         let i = ctx.Filter.Indication
         let r = ctx.Filter.Route
         let d = ctx.Filter.DoseType
-        ($"=== no evaluation of {g} {i} {r} {d} ===", ctx)
-        |> Error
+        ($"=== no evaluation of {g} {i} {r} {d} ===", ctx) |> Error
 
-    let eval ctx (s : string) =
+    let eval ctx (s: string) =
         // printfn $"evaluating {s}"
         try
             let ctx =
@@ -72,12 +59,12 @@ let createScenarios (ctx: OrderContext) =
                 |> GenFormResult.get
                 |> OrderContext.Command.get
 
-            if ctx.Scenarios |> Array.isEmpty |> not then Ok ctx
-            else ctx |> noEval
-        with
-        | e ->
-            ($"\n=== ERROR\n{e}===\n", ctx)
-            |> Error
+            if ctx.Scenarios |> Array.isEmpty |> not then
+                Ok ctx
+            else
+                ctx |> noEval
+        with e ->
+            ($"\n=== ERROR\n{e}===\n", ctx) |> Error
 
     [
         for g in ctx.Filter.Generics do
@@ -112,8 +99,7 @@ let createScenarios (ctx: OrderContext) =
     ]
 
 
-
-let printScenarios path pat (scs: Result<OrderContext,(string * OrderContext)> list) =
+let printScenarios path pat (scs: Result<OrderContext, (string * OrderContext)> list) =
     let append s = File.appendTextToFile path $"{s}\n"
 
     let printMd sl =
@@ -133,7 +119,11 @@ let printScenarios path pat (scs: Result<OrderContext,(string * OrderContext)> l
         | Ok ctx -> ctx.Scenarios |> Array.length > 0
         | _ -> false
     )
-    |> List.map (function | Ok ctx -> ctx | Error _ -> failwith "no ctx")
+    |> List.map (
+        function
+        | Ok ctx -> ctx
+        | Error _ -> failwith "no ctx"
+    )
     |> List.toArray
     |> Array.collect _.Scenarios
     |> Array.groupBy _.Name
@@ -169,7 +159,7 @@ let printScenarios path pat (scs: Result<OrderContext,(string * OrderContext)> l
                                                                 |> Array.map (fun sc ->
                                                                     {|
                                                                         pres = sc.Prescription |> printMd
-                                                                        prep = sc.Preparation |>  printMd
+                                                                        prep = sc.Preparation |> printMd
                                                                         adms = sc.Administration |> printMd
                                                                     |}
                                                                 )
@@ -234,10 +224,18 @@ let printScenarios path pat (scs: Result<OrderContext,(string * OrderContext)> l
                         r.orders
                         |> Array.iter (fun r ->
                             "" |> append
-                            if r.pres |> String.notEmpty then $"- 💊 {r.pres}" |> append
-                            if r.prep |> String.notEmpty then $"- 🧪 {r.prep}" |> append
-                            if r.adms |> String.notEmpty then $"- 💉 {r.adms}" |> append
-                            "" |> append                        )
+
+                            if r.pres |> String.notEmpty then
+                                $"- 💊 {r.pres}" |> append
+
+                            if r.prep |> String.notEmpty then
+                                $"- 🧪 {r.prep}" |> append
+
+                            if r.adms |> String.notEmpty then
+                                $"- 💉 {r.adms}" |> append
+
+                            "" |> append
+                        )
                     )
                 )
 
@@ -250,35 +248,22 @@ let printScenarios path pat (scs: Result<OrderContext,(string * OrderContext)> l
 
 let scenarios =
     [
-        "Newborn",
-        Patient.newBorn
-        |> Patient.setWeight (3m |> Kilogram |> Some)
+        "Newborn", Patient.newBorn |> Patient.setWeight (3m |> Kilogram |> Some)
 
-        "Infant",
-        Patient.infant
-        |> Patient.setWeight (10m |> Kilogram |> Some)
+        "Infant", Patient.infant |> Patient.setWeight (10m |> Kilogram |> Some)
 
-        "Toddler",
-        Patient.toddler
+        "Toddler", Patient.toddler
 
-        "Child",
-        Patient.child
-        |> Patient.setWeight (20m |> Kilogram |> Some)
+        "Child", Patient.child |> Patient.setWeight (20m |> Kilogram |> Some)
 
-        "Teenager",
-        Patient.teenager
+        "Teenager", Patient.teenager
 
-        "Adult",
-        Patient.adult
+        "Adult", Patient.adult
     ]
     |> List.map (fun (s, p) ->
         async {
-            let scs =
-                p
-                |> OrderContext.create OrderLogging.noOp provider
-                |> createScenarios
-            return
-                s, scs
+            let scs = p |> OrderContext.create OrderLogging.noOp provider |> createScenarios
+            return s, scs
         }
     )
     |> Async.Parallel
@@ -289,44 +274,31 @@ scenarios
 |> Array.iter (fun (n, ctxs) ->
     let pat =
         match n with
-        | _ when n = "Newborn" ->
-            Patient.newBorn
-            |> Patient.setWeight (3m |> Kilogram |> Some)
-        | _ when n = "Infant" ->
-            Patient.infant
-            |> Patient.setWeight (10m |> Kilogram |> Some)
-        | _ when n = "Toddler" ->
-            Patient.toddler
-        | _ when n = "Child" ->
-            Patient.child
-            |> Patient.setWeight (20m |> Kilogram |> Some)
-        | _ when n = "Teenager" ->
-            Patient.teenager
-        | _ when n = "Adult" ->
-            Patient.adult
+        | _ when n = "Newborn" -> Patient.newBorn |> Patient.setWeight (3m |> Kilogram |> Some)
+        | _ when n = "Infant" -> Patient.infant |> Patient.setWeight (10m |> Kilogram |> Some)
+        | _ when n = "Toddler" -> Patient.toddler
+        | _ when n = "Child" -> Patient.child |> Patient.setWeight (20m |> Kilogram |> Some)
+        | _ when n = "Teenager" -> Patient.teenager
+        | _ when n = "Adult" -> Patient.adult
         | _ -> failwith $"not recognized: {n}"
 
-    ctxs
-    |> printScenarios $"{n}.md" pat
+    ctxs |> printScenarios $"{n}.md" pat
 )
 
 
-let pickScenario n (ctx : OrderContext) =
+let pickScenario n (ctx: OrderContext) =
     { ctx with
         Scenarios =
             if ctx.Scenarios |> Array.length < n then
                 ctx.Scenarios |> Array.tryLast
             else
-                ctx.Scenarios
-                |> Array.tryItem n
+                ctx.Scenarios |> Array.tryItem n
             |> Option.map Array.singleton
             |> Option.defaultValue ctx.Scenarios
     }
 
 
-
 let printCtx = OrderContext.toString
-
 
 
 // shadow the original function to just get the result
@@ -334,16 +306,18 @@ module Order =
 
     module Dto =
 
-        let fromDto : (Order.Dto.Dto -> Order) = Order.Dto.fromDto >> (function | Ok ord -> ord | Error _ -> failwith "couldn not get result")
+        let fromDto: (Order.Dto.Dto -> Order) =
+            Order.Dto.fromDto
+            >> (function
+            | Ok ord -> ord
+            | Error _ -> failwith "couldn not get result")
 
 
 let dro =
     Patient.newBorn
     |> Api.getPrescriptionRules provider
     |> GenFormResult.get
-    |> Array.filter (fun pr ->
-        pr.DoseRule.Generic |> String.equalsCapInsens "MM met BMF"
-    )
+    |> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "MM met BMF")
     |> Array.head
     |> Medication.fromRule Logging.noOp
     |> Array.head
@@ -356,9 +330,7 @@ let ord =
     Patient.newBorn
     |> Api.getPrescriptionRules provider
     |> GenFormResult.get
-    |> Array.filter (fun pr ->
-        pr.DoseRule.Generic |> String.equalsCapInsens "MM met BMF"
-    )
+    |> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "MM met BMF")
     |> Array.head
     |> Medication.fromRule Logging.noOp
     |> Array.head
@@ -373,9 +345,7 @@ Patient.teenager
 |> Patient.setWeight (33m |> Kilogram |> Some)
 |> Api.getPrescriptionRules provider
 |> GenFormResult.get
-|> Array.filter (fun pr ->
-    pr.DoseRule.Generic |> String.equalsCapInsens "piperacilline/tazobactam"
-)
+|> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "piperacilline/tazobactam")
 |> Array.head
 |> Medication.fromRule Logging.noOp
 |> Array.head
@@ -385,14 +355,11 @@ Patient.teenager
 |> ignore
 
 
-
 Patient.teenager
 |> Patient.setWeight (33m |> Kilogram |> Some)
-    |> Api.getPrescriptionRules provider
-    |> GenFormResult.get
-|> Array.filter (fun pr ->
-    pr.DoseRule.Generic |> String.equalsCapInsens "noradrenaline"
-)
+|> Api.getPrescriptionRules provider
+|> GenFormResult.get
+|> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "noradrenaline")
 |> Array.head
 |> Medication.fromRule Logging.noOp
 |> Array.head
@@ -405,20 +372,10 @@ Patient.teenager
 Patient.infant
 |> Patient.setWeight (6m |> Kilogram |> Some)
 |> OrderContext.create OrderLogging.noOp provider
-|> fun ctx ->
-    { ctx with
-        OrderContext.Filter.Generic = Some "Samenstelling B"
-    }
+|> fun ctx -> { ctx with OrderContext.Filter.Generic = Some "Samenstelling B" }
 |> OrderContext.UpdateOrderContext
 |> OrderContext.evaluate OrderLogging.noOp provider
 |> fun res ->
-    let ctx =
-        res
-        |> GenFormResult.get
-        |> OrderContext.Command.get
+    let ctx = res |> GenFormResult.get |> OrderContext.Command.get
 
-    ctx.Scenarios
-    |> Array.item 0
-    |> _.Order
-    |> Order.print
-    |> ignore
+    ctx.Scenarios |> Array.item 0 |> _.Order |> Order.print |> ignore

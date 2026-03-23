@@ -45,7 +45,7 @@ open Informedica.Agents.Lib
 [<RequireQualifiedAccess>]
 type OrderContextResponse =
     | OrderContextResult of OrderContext
-    | Error              of string list
+    | Error of string list
 
 
 // ============================================================
@@ -57,21 +57,21 @@ type OrderContextResponse =
 /// Top-level command for the GenORDER agent
 [<RequireQualifiedAccess>]
 type GenOrderCommand =
-    | OrderCtxCmd        of OrderContext.Command
+    | OrderCtxCmd of OrderContext.Command
     | CreateOrderContext of Patient
-    | GetIndications     of OrderContext
-    | GetGenerics        of OrderContext
-    | GetRoutes          of OrderContext
-    | GetForms           of OrderContext
-    | GetDiluents        of OrderContext
+    | GetIndications of OrderContext
+    | GetGenerics of OrderContext
+    | GetRoutes of OrderContext
+    | GetForms of OrderContext
+    | GetDiluents of OrderContext
 
 
 /// Top-level response from the GenORDER agent
 [<RequireQualifiedAccess>]
 type GenOrderResponse =
     | OrderContextResult of Result<OrderContext, string list>
-    | StringArray        of string array
-    | Error              of string list
+    | StringArray of string array
+    | Error of string list
 
 
 // ============================================================
@@ -85,7 +85,7 @@ type GenOrderResponse =
 
 type GenOrderState =
     {
-        Logger:   Logger
+        Logger: Logger
         Provider: IResourceProvider
     }
 
@@ -96,7 +96,12 @@ type GenOrderState =
 
 /// Apply an OrderContext.Command to a context, returning the updated context.
 /// This mirrors the logic in ServerApi.OrderContext.evaluate.
-let applyOrderContextCmd (logger: Logger) (provider: IResourceProvider) (cmd: OrderContext.Command) : Result<OrderContext, string list> =
+let applyOrderContextCmd
+    (logger: Logger)
+    (provider: IResourceProvider)
+    (cmd: OrderContext.Command)
+    : Result<OrderContext, string list>
+    =
     let ctx = OrderContext.Command.get cmd
 
     // Delegate to the library functions based on command type.
@@ -128,12 +133,10 @@ let applyOrderContextCmd (logger: Logger) (provider: IResourceProvider) (cmd: Or
 
             // Property adjustments: currently handled in ServerApi.
             // The agent stubs them out — full migration moves the logic here.
-            | _ ->
-                ctx
+            | _ -> ctx
 
         Ok updatedCtx
-    with
-    | ex ->
+    with ex ->
         Error [ ex.Message ]
 
 
@@ -146,7 +149,7 @@ let processCommand (state: GenOrderState) (cmd: GenOrderCommand) : GenOrderRespo
 
         | GenOrderCommand.CreateOrderContext patient ->
             let ctx = OrderContext.create state.Logger state.Provider patient
-            GenOrderResponse.OrderContextResult (Ok ctx)
+            GenOrderResponse.OrderContextResult(Ok ctx)
 
         | GenOrderCommand.GetIndications ctx ->
             let indications = Filters.getIndications state.Logger state.Provider ctx.Patient
@@ -166,7 +169,7 @@ let processCommand (state: GenOrderState) (cmd: GenOrderCommand) : GenOrderRespo
 
         | GenOrderCommand.GetDiluents ctx ->
             // filterDiluents expects a GenFORM DoseFilter, construct one from the OrderContext
-            let doseFilter : Informedica.GenForm.Lib.Types.DoseFilter =
+            let doseFilter: Informedica.GenForm.Lib.Types.DoseFilter =
                 {
                     Indication = ctx.Filter.Indication
                     Generic = ctx.Filter.Generic
@@ -177,10 +180,11 @@ let processCommand (state: GenOrderState) (cmd: GenOrderCommand) : GenOrderRespo
                     Components = ctx.Filter.SelectedComponents |> Array.toList
                     Patient = ctx.Patient
                 }
+
             let diluents = Filters.filterDiluents state.Logger state.Provider doseFilter
             GenOrderResponse.StringArray diluents
 
-    response, state   // state (logger + provider) is always unchanged
+    response, state // state (logger + provider) is always unchanged
 
 
 // ============================================================
@@ -192,11 +196,13 @@ let processCommand (state: GenOrderState) (cmd: GenOrderCommand) : GenOrderRespo
 /// <param name="logger">Logger for diagnostic output</param>
 /// <param name="provider">Loaded GenFORM resource provider</param>
 let createGenOrderAgent (logger: Logger) (provider: IResourceProvider) =
-    let state = { Logger = logger; Provider = provider }
-    Agent.createStatefulReply<GenOrderCommand, GenOrderResponse, GenOrderState>(
-        state,
-        processCommand
-    )
+    let state =
+        {
+            Logger = logger
+            Provider = provider
+        }
+
+    Agent.createStatefulReply<GenOrderCommand, GenOrderResponse, GenOrderState> (state, processCommand)
 
 
 // ============================================================
@@ -204,7 +210,7 @@ let createGenOrderAgent (logger: Logger) (provider: IResourceProvider) =
 // ============================================================
 
 let withAuditLog (logger: Logger) (inner: Agent<GenOrderCommand * AsyncReplyChannel<GenOrderResponse>>) =
-    Agent.createReply<GenOrderCommand, GenOrderResponse>(fun cmd ->
+    Agent.createReply<GenOrderCommand, GenOrderResponse> (fun cmd ->
         Informedica.Logging.Lib.Logging.logInfo logger $"[AUDIT] GenOrder ← {cmd}"
         let response = inner |> Agent.postAndReply cmd
         Informedica.Logging.Lib.Logging.logInfo logger $"[AUDIT] GenOrder → {response}"
@@ -216,8 +222,7 @@ let withAuditLog (logger: Logger) (inner: Agent<GenOrderCommand * AsyncReplyChan
 // Helpers
 // ============================================================
 
-let ask (agent: Agent<GenOrderCommand * AsyncReplyChannel<GenOrderResponse>>) cmd =
-    agent |> Agent.postAndReply cmd
+let ask (agent: Agent<GenOrderCommand * AsyncReplyChannel<GenOrderResponse>>) cmd = agent |> Agent.postAndReply cmd
 
 let askAsync (agent: Agent<GenOrderCommand * AsyncReplyChannel<GenOrderResponse>>) cmd =
     agent |> Agent.postAndAsyncReply cmd
@@ -233,63 +238,59 @@ Env.loadDotEnv () |> ignore
 Environment.SetEnvironmentVariable("GENPRES_PROD", "0")
 
 let noOpLogger = FormLogging.noOp
-let dataUrlId  = Environment.GetEnvironmentVariable "GENPRES_URL_ID"
+let dataUrlId = Environment.GetEnvironmentVariable "GENPRES_URL_ID"
 
 // Create resource provider (GenFORM layer)
 let provider = Api.getCachedProviderWithDataUrlId noOpLogger dataUrlId
 
 // Create the GenORDER agent
-let agent   = createGenOrderAgent noOpLogger provider
+let agent = createGenOrderAgent noOpLogger provider
 let audited = withAuditLog noOpLogger agent
 
 
 // 1. Create an order context for a test patient
 printfn "1. Create order context for a test patient:"
 
-let testPatient : Patient =
-    {
-        Patient.empty with
-            Age      = Some (ValueUnit.singleWithUnit Units.Time.year 5.)
-            Weight   = Some (ValueUnit.singleWithUnit Units.Weight.kiloGram 20.)
-            Height   = Some (ValueUnit.singleWithUnit Units.Height.centiMeter 110.)
-            Department = Some "ICU"
-            Location = Some "NICU"
+let testPatient: Patient =
+    { Patient.empty with
+        Age = Some(ValueUnit.singleWithUnit Units.Time.year 5.)
+        Weight = Some(ValueUnit.singleWithUnit Units.Weight.kiloGram 20.)
+        Height = Some(ValueUnit.singleWithUnit Units.Height.centiMeter 110.)
+        Department = Some "ICU"
+        Location = Some "NICU"
     }
 
 match audited |> ask (GenOrderCommand.CreateOrderContext testPatient) with
-| GenOrderResponse.OrderContextResult (Ok ctx) ->
+| GenOrderResponse.OrderContextResult(Ok ctx) ->
     printfn $"   Context created for patient (department: {ctx.Patient.Department})"
     printfn $"   Available generics: {ctx.Filter.Generics.Length}"
 
     // 2. Get available routes for this context
     printfn "\n2. Get routes available for this patient:"
+
     match audited |> ask (GenOrderCommand.GetRoutes ctx) with
     | GenOrderResponse.StringArray routes ->
         let routeStr = routes |> String.concat ", "
         printfn $"   Routes: {routeStr}"
-    | GenOrderResponse.Error msgs ->
-        msgs |> List.iter (eprintfn "   Error: %s")
-    | other ->
-        printfn $"   Unexpected: {other}"
+    | GenOrderResponse.Error msgs -> msgs |> List.iter (eprintfn "   Error: %s")
+    | other -> printfn $"   Unexpected: {other}"
 
     // 3. Apply an UpdateOrderContext command (existing Command DU)
     printfn "\n3. Apply OrderContext.Command.UpdateOrderContext:"
-    match audited |> ask (GenOrderCommand.OrderCtxCmd (OrderContext.Command.UpdateOrderContext ctx)) with
-    | GenOrderResponse.OrderContextResult (Ok updated) ->
-        printfn $"   Updated context — scenarios: {updated.Scenarios.Length}"
-    | GenOrderResponse.OrderContextResult (Error msgs) ->
-        msgs |> List.iter (eprintfn "   Error: %s")
-    | GenOrderResponse.Error msgs ->
-        msgs |> List.iter (eprintfn "   Error: %s")
-    | other ->
-        printfn $"   Unexpected: {other}"
 
-| GenOrderResponse.OrderContextResult (Error msgs) ->
-    msgs |> List.iter (eprintfn "Error: %s")
-| GenOrderResponse.Error msgs ->
-    msgs |> List.iter (eprintfn "Error: %s")
-| other ->
-    printfn $"Unexpected: {other}"
+    match
+        audited
+        |> ask (GenOrderCommand.OrderCtxCmd(OrderContext.Command.UpdateOrderContext ctx))
+    with
+    | GenOrderResponse.OrderContextResult(Ok updated) ->
+        printfn $"   Updated context — scenarios: {updated.Scenarios.Length}"
+    | GenOrderResponse.OrderContextResult(Error msgs) -> msgs |> List.iter (eprintfn "   Error: %s")
+    | GenOrderResponse.Error msgs -> msgs |> List.iter (eprintfn "   Error: %s")
+    | other -> printfn $"   Unexpected: {other}"
+
+| GenOrderResponse.OrderContextResult(Error msgs) -> msgs |> List.iter (eprintfn "Error: %s")
+| GenOrderResponse.Error msgs -> msgs |> List.iter (eprintfn "Error: %s")
+| other -> printfn $"Unexpected: {other}"
 
 
 // 4. Async interaction
@@ -297,11 +298,11 @@ printfn "\n4. Async creation of a second context:"
 
 async {
     let! response = audited |> askAsync (GenOrderCommand.CreateOrderContext testPatient)
+
     match response with
-    | GenOrderResponse.OrderContextResult (Ok ctx) ->
+    | GenOrderResponse.OrderContextResult(Ok ctx) ->
         printfn $"   Async context: {ctx.Filter.Generics.Length} generics available"
-    | other ->
-        printfn $"   Unexpected: {other}"
+    | other -> printfn $"   Unexpected: {other}"
 }
 |> Async.RunSynchronously
 

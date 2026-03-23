@@ -13,8 +13,7 @@ module Json =
     type BigRationalConverter() =
         inherit JsonConverter()
 
-        override this.CanConvert(objectType: Type) =
-            objectType = typeof<BigRational>
+        override this.CanConvert(objectType: Type) = objectType = typeof<BigRational>
 
         override this.WriteJson(writer: JsonWriter, value: obj, _: JsonSerializer) =
             let bigRational = value :?> BigRational
@@ -41,10 +40,10 @@ module Json =
         converters.Add(BigRationalConverter())
 
         JsonSerializerSettings(
-        TypeNameHandling = TypeNameHandling.Auto,
-        NullValueHandling = NullValueHandling.Ignore,
-        Converters = converters
-    )
+            TypeNameHandling = TypeNameHandling.Auto,
+            NullValueHandling = NullValueHandling.Ignore,
+            Converters = converters
+        )
 
 
     /// <summary>
@@ -62,8 +61,6 @@ module Json =
     let deSerialize<'T> (s: string) =
         try
             JsonConvert.DeserializeObject<'T>(s, settings)
-        with
-        | e ->
+        with e ->
             printfn $"cannot deserialize {s}:\n{e.ToString()}"
             raise e
-

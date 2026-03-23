@@ -24,12 +24,7 @@ module List =
     /// the original list is returned unchanged.
     let remove pred xs =
         match xs |> List.tryFindIndex pred with
-        | Some ind ->
-            xs
-            |> List.mapi (fun i x ->
-                if i = ind then None else Some x
-            )
-            |> List.choose id
+        | Some ind -> xs |> List.mapi (fun i x -> if i = ind then None else Some x) |> List.choose id
         | None -> xs
 
 
@@ -43,7 +38,7 @@ module List =
         | Some ind ->
             let before = xs |> List.take ind
             let after = xs |> List.skip (ind + 1)
-            before @ [x] @ after
+            before @ [ x ] @ after
         | None -> xs
 
 
@@ -61,13 +56,15 @@ module List =
 
 
     let removeFirst pred =
-        List.fold (fun acc x ->
-            let b, xs = acc
-            if b then (true, x::(acc |> snd))
-            else
-                if x |> pred then (true, xs)
-                else (false, x::(acc |> snd))
-        ) (false, [])
+        List.fold
+            (fun acc x ->
+                let b, xs = acc
+
+                if b then (true, x :: (acc |> snd))
+                else if x |> pred then (true, xs)
+                else (false, x :: (acc |> snd))
+            )
+            (false, [])
         >> snd
 
 
@@ -95,22 +92,24 @@ module List =
     /// </example>
     let rotations xs =
         let n = xs |> List.length
-        if n <= 1 then [ xs ]
-        elif n = 2 then [ [xs[0]; xs[1] ]; [xs[1]; xs[0]] ]
+
+        if n <= 1 then
+            [ xs ]
+        elif n = 2 then
+            [ [ xs[0]; xs[1] ]; [ xs[1]; xs[0] ] ]
         else
             let y = xs[0]
             let xs = xs |> List.tail
             let n = n - 2
+
             [
-                y::xs
+                y :: xs
                 for i in 0..n do
                     match i with
-                    | 0            -> xs[0]::y::xs[1..n]
-                    | _ when i = n -> xs[n]::y::xs[0..n-1]
-                    | _            ->
-                        xs[i]::y::xs[0..i-1] @ xs[i+1..n]
+                    | 0 -> xs[0] :: y :: xs[1..n]
+                    | _ when i = n -> xs[n] :: y :: xs[0 .. n - 1]
+                    | _ -> xs[i] :: y :: xs[0 .. i - 1] @ xs[i + 1 .. n]
             ]
-
 
 
     //----------------------------------------------------------------------------
@@ -118,9 +117,7 @@ module List =
     //----------------------------------------------------------------------------
 
     let hasExactlyOne pred xs =
-        xs
-        |> List.filter pred
-        |> List.length = 1
+        xs |> List.filter pred |> List.length = 1
 
 
     //----------------------------------------------------------------------------
@@ -129,9 +126,7 @@ module List =
 
 
     let tryFindInList pred xs =
-        xs
-        |> List.collect id
-        |> List.tryFind pred
+        xs |> List.collect id |> List.tryFind pred
 
     /// Try to find the first element with **n**
     /// in a list of list **xsl**
@@ -139,18 +134,21 @@ module List =
     /// get **n** from an element
     let tryFindFirst get n xs =
         let pred x = x |> get = n
+
         match xs |> List.filter (fun xs -> xs |> List.exists pred) with
         | [] -> None
-        | xs::_ -> xs |> List.find pred |> Some
+        | xs :: _ -> xs |> List.find pred |> Some
 
 
     let tryFindRest pred xs =
         let rec find x xs notx =
             match xs with
             | [] -> x, notx
-            | h::tail ->
-                if h |> pred then find (Some h) tail notx
-                else find x tail ([h] |> List.append notx)
+            | h :: tail ->
+                if h |> pred then
+                    find (Some h) tail notx
+                else
+                    find x tail ([ h ] |> List.append notx)
 
         find None xs []
 
@@ -163,26 +161,30 @@ module List =
     let headTail xs =
         match xs with
         | [] -> (None, None)
-        | h::tail ->
+        | h :: tail ->
             match tail |> List.rev with
-            | []   -> (Some h, None)
-            | t::_ -> (Some h, Some t)
+            | [] -> (Some h, None)
+            | t :: _ -> (Some h, Some t)
 
 
     let inline isConsecutive zero diff xs =
         match xs with
-        | []  | [_] -> false
+        | []
+        | [ _ ] -> false
         | _ ->
             xs
             |> List.sort
-            |> List.fold (fun acc x ->
-                let isC, prev = acc
+            |> List.fold
+                (fun acc x ->
+                    let isC, prev = acc
 
-                if prev = zero then (true, x)
-                else
-                    (x - prev = diff && isC, x)
+                    if prev = zero then
+                        (true, x)
+                    else
+                        (x - prev = diff && isC, x)
 
-            ) (true, zero)
+                )
+                (true, zero)
             |> fst
 
 
@@ -194,9 +196,9 @@ module List =
         |> List.sortBy (fun (k, _) ->
             try
                 xs1 |> List.findIndex ((=) k)
-            with
-            | _ ->
-                xs1 |> String.concat ", "
+            with _ ->
+                xs1
+                |> String.concat ", "
                 |> sprintf "countByList couldn't find %s in %s" k
                 |> failwith
         )
@@ -205,11 +207,7 @@ module List =
         match ns with
         | [] -> n
         | _ ->
-            let n =
-                if n > (ns |> List.max) then
-                    ns |> List.max
-                else
-                    n
+            let n = if n > (ns |> List.max) then ns |> List.max else n
 
             ns
             |> List.sort
@@ -229,7 +227,8 @@ module List =
             []
 
 
-    let distinct xs = xs |> Seq.ofList |> Seq.distinct |> Seq.toList
+    let distinct xs =
+        xs |> Seq.ofList |> Seq.distinct |> Seq.toList
 
 
     let replaceOrAdd pred x xs =
@@ -239,10 +238,10 @@ module List =
             x :: xs
 
 
-    let someIfOne = function
-        | [x] -> Some x
-        | _   -> None
-
+    let someIfOne =
+        function
+        | [ x ] -> Some x
+        | _ -> None
 
 
     //----------------------------------------------------------------------------
@@ -253,11 +252,8 @@ module List =
         match xs with
         | [] -> "[]"
         | _ ->
-            let s =
-                xs
-                |> List.fold (fun s x -> s + string x + ";") "["
-            (s
-            |> String.subString 0 ((s |> String.length) - 1)) + "]"
+            let s = xs |> List.fold (fun s x -> s + string x + ";") "["
+            (s |> String.subString 0 ((s |> String.length) - 1)) + "]"
 
 
     let inline toString2 xs =

@@ -1,4 +1,3 @@
-
 open System
 
 
@@ -18,23 +17,18 @@ Environment.CurrentDirectory
 module File =
     open System.IO
 
-    let getFileInfo (f: string) =
-        new FileInfo(f)
+    let getFileInfo (f: string) = new FileInfo(f)
 
-    let timeStamp s =
-        s
-        |> getFileInfo
-        |> _.LastWriteTime
+    let timeStamp s = s |> getFileInfo |> _.LastWriteTime
 
 // File
 File.exists <| FilePath.GStandPath + "BST000T"
 File.timeStamp <| (FilePath.GStandPath + "BST000T")
 
 // Check the product cache
-FilePath.productCache false
-|> File.exists
+FilePath.productCache false |> File.exists
 
-FilePath.useDemo()
+FilePath.useDemo ()
 
 // Clear the cache
 Json.clearCache (FilePath.useDemo ())
@@ -56,18 +50,15 @@ GenPresProduct.getRoutes ()
 |> Array.iter (printfn "%s")
 
 
-DoseRule.routes ()
-|> Array.sortBy String.toLower
-|> Array.iter (printfn "%s")
+DoseRule.routes () |> Array.sortBy String.toLower |> Array.iter (printfn "%s")
 
 
 // load demo cache
 Environment.SetEnvironmentVariable(FilePath.GENPRES_PROD, "0")
-FilePath.useDemo()
+FilePath.useDemo ()
 
 // Check the demo cache
-FilePath.productCache (FilePath.useDemo ())
-|> File.exists
+FilePath.productCache (FilePath.useDemo ()) |> File.exists
 
 Json.clearCache (FilePath.useDemo ())
 
@@ -395,9 +386,7 @@ GenPresProduct.filter "ZOLEDRONINEZUUR" "" "intraveneus"
 |> Array.collect _.GenericProducts
 |> Array.map (fun gp ->
     let subst = gp.Substances |> Array.distinctBy _.SubstanceId
-    gp.Id, gp.Name, gp.Form, gp.Route,
-    subst[0].GenericName,
-    $"{subst[0].SubstanceQuantity} {subst[0].GenericUnit}"
+    gp.Id, gp.Name, gp.Form, gp.Route, subst[0].GenericName, $"{subst[0].SubstanceQuantity} {subst[0].GenericUnit}"
 )
 |> Array.iter (fun (id, lbl, shp, rte, sn, sq) ->
     let rte = rte |> String.concat ", "
@@ -420,23 +409,17 @@ GenPresProduct.filter "natriumchloride" "" ""
         )
     )
 )
-|> Array.map (fun gp ->
-    gp.Name, gp.Form
-)
+|> Array.map (fun gp -> gp.Name, gp.Form)
 |> Array.distinct
 |> Array.sortBy (fun (lbl, shp) -> lbl)
-|> Array.iter (fun (lbl, shp) ->
-    printfn $"{lbl}\t{shp}"
-)
+|> Array.iter (fun (lbl, shp) -> printfn $"{lbl}\t{shp}")
 
 
 GenPresProduct.findByBrand "Picoprep"
 |> Array.collect _.GenericProducts
 |> Array.map (fun gp ->
     let subst = gp.Substances |> Array.distinctBy _.SubstanceId
-    gp.Id, gp.Name, gp.Form, gp.Route,
-    subst[0].SubstanceName,
-    $"{subst[0].GenericQuantity} {subst[0].GenericUnit}"
+    gp.Id, gp.Name, gp.Form, gp.Route, subst[0].SubstanceName, $"{subst[0].GenericQuantity} {subst[0].GenericUnit}"
 )
 |> Array.iter (fun (id, lbl, shp, rte, sn, sq) ->
     let rte = rte |> String.concat ", "
@@ -446,13 +429,12 @@ GenPresProduct.findByBrand "Picoprep"
 
 GenPresProduct.findByGPK 121614
 
-GenPresProduct.getGPKS []
-|> Array.tryFind ((=) 121614)
+GenPresProduct.getGPKS [] |> Array.tryFind ((=) 121614)
 
 GenPresProduct.get []
 |> Array.filter (fun gpp ->
-    gpp.DisplayName |> String.notEmpty &&
-    gpp.Name |> String.equalsCapInsens gpp.DisplayName |> not
+    gpp.DisplayName |> String.notEmpty
+    && gpp.Name |> String.equalsCapInsens gpp.DisplayName |> not
 )
 |> Array.map (fun gpp -> gpp.Name, gpp.DisplayName)
 |> Array.length
@@ -472,11 +454,12 @@ GenPresProduct.get []
             |> Array.exists (fun tp ->
                 [
                     2892057
-                    //2600919
+                //2600919
                 ]
                 |> List.exists (fun id ->
                     if tp.Id = id then
                         printfn $"{tp.Name}"
+
                     id = tp.Id
                 )
             )
@@ -488,9 +471,7 @@ GenPresProduct.get []
     gp.Substances
     |> Array.distinctBy _.SubstanceId
     |> Array.map (fun subst ->
-        gp.Id, gp.Name, gp.Form, gp.Route,
-        subst.SubstanceName,
-        $"{subst.SubstanceQuantity} {subst.SubstanceUnit}"
+        gp.Id, gp.Name, gp.Form, gp.Route, subst.SubstanceName, $"{subst.SubstanceQuantity} {subst.SubstanceUnit}"
     )
 )
 |> Array.distinct
@@ -505,10 +486,7 @@ GenPresProduct.get []
     gpp.GenericProducts
     |> Array.exists (fun gp ->
         gp.Substances
-        |> Array.exists (fun gs ->
-            gs.GenericName <> gs.SubstanceName &&
-            gs.GenericQuantity <> gs.SubstanceQuantity
-        )
+        |> Array.exists (fun gs -> gs.GenericName <> gs.SubstanceName && gs.GenericQuantity <> gs.SubstanceQuantity)
     )
 )
 |> Array.map _.Name
@@ -519,16 +497,10 @@ GenPresProduct.get []
 GenPresProduct.get []
 |> Array.filter (fun gpp ->
     gpp.GenericProducts
-    |> Array.exists (fun gp ->
-        gp.Substances
-        |> Array.exists _.IsAdditional
-    )
+    |> Array.exists (fun gp -> gp.Substances |> Array.exists _.IsAdditional)
 )
 |> Array.collect _.GenericProducts
-|> Array.filter (fun gp ->
-    gp.Substances
-    |> Array.exists _.IsAdditional
-)
+|> Array.filter (fun gp -> gp.Substances |> Array.exists _.IsAdditional)
 |> Array.head
 
 
@@ -542,10 +514,7 @@ GenPresProduct.get []
             gp.PrescriptionProducts
             |> Array.collect (fun pp ->
                 pp.TradeProducts
-                |> Array.collect (fun tp ->
-                    tp.Substances
-                    |> Array.filter _.IsAdditional
-                )
+                |> Array.collect (fun tp -> tp.Substances |> Array.filter _.IsAdditional)
             )
         )
     )
@@ -560,20 +529,19 @@ GenPresProduct.get []
 let gps = GenericProduct.get []
 gps.Length
 
-gps
-|> Array.filter (fun gp -> gp.Name |> String.startsWith "ZOLEDRONINEZUUR")
+gps |> Array.filter (fun gp -> gp.Name |> String.startsWith "ZOLEDRONINEZUUR")
 
 open GenericProduct
 
 
 Zindex.BST711T.records ()
 |> Array.filter (fun gp ->
-    gp.GPKODE = 137367 &&
-    gp.MUTKOD <> 1 &&
-    gp.GPKTVR <> 980 && // filter form <> "NIET VAN TOEPASSING"
-    (gpks |> List.isEmpty ||
-     gpks
-     |> List.exists ((=) gp.GPKODE)))
+    gp.GPKODE = 137367
+    && gp.MUTKOD <> 1
+    && gp.GPKTVR <> 980
+    && // filter form <> "NIET VAN TOEPASSING"
+    (gpks |> List.isEmpty || gpks |> List.exists ((=) gp.GPKODE))
+)
 |> Array.map (fun gp ->
     let nm = Names.getName gp.GPNMNR Names.Full
     let lb = Names.getName gp.GPNMNR Names.Label
@@ -581,12 +549,11 @@ Zindex.BST711T.records ()
     let an =
         match
             Zindex.BST801T.records ()
-            |> Array.tryFind (fun atc ->
-                atc.MUTKOD <> 1 &&
-                atc.ATCODE = gp.ATCODE
-            ) with
+            |> Array.tryFind (fun atc -> atc.MUTKOD <> 1 && atc.ATCODE = gp.ATCODE)
+        with
         | Some atc' -> atc'.ATOMS
-        | None      -> ""
+        | None -> ""
+
     let sh = Names.getThes gp.GPKTVR Names.Form Names.Fifty
     let rt = getRoutes gp
     let ps = PrescriptionProduct.get gp.GPKODE
@@ -594,11 +561,9 @@ Zindex.BST711T.records ()
 
     let ss =
         ps
-        |> Array.collect (fun pp ->
-            pp.TradeProducts
-            |> Array.map _.Id
-        )
+        |> Array.collect (fun pp -> pp.TradeProducts |> Array.map _.Id)
         |> getSubstances un gp
+
     printfn $"creating: {nm}"
     create gp.GPKODE nm lb (gp.ATCODE.Trim()) an sh rt ss ps
 )

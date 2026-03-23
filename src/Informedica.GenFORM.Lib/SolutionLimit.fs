@@ -9,10 +9,17 @@ module SolutionLimit =
 
     /// Field labels for deterministic parsing
     module FieldLabels =
-        let [<Literal>] Quantity = "[qty]"
-        let [<Literal>] QuantityAdjust = "[qty-adj]"
-        let [<Literal>] Quantities = "[qts]"
-        let [<Literal>] Concentration = "[conc]"
+        [<Literal>]
+        let Quantity = "[qty]"
+
+        [<Literal>]
+        let QuantityAdjust = "[qty-adj]"
+
+        [<Literal>]
+        let Quantities = "[qts]"
+
+        [<Literal>]
+        let Concentration = "[conc]"
 
 
     /// An empty SolutionLimit.
@@ -38,17 +45,24 @@ module SolutionLimit =
                 "max "
 
         [
-                let qty = sl.Quantity |> mmToStr
-                if not (String.IsNullOrWhiteSpace qty) then $"{FieldLabels.Quantity} {qty}"
-                let qtyAdj = sl.QuantityAdj |> mmToStr
-                if not (String.IsNullOrWhiteSpace qtyAdj) then $"{FieldLabels.QuantityAdjust} {qtyAdj}"
+            let qty = sl.Quantity |> mmToStr
 
-                sl.Quantities
-                |> Option.map (fun vu ->
-                    $"{FieldLabels.Quantities} {vu |> ValueUnit.toStringDecimalEngShortWithoutGroup}"
+            if not (String.IsNullOrWhiteSpace qty) then
+                $"{FieldLabels.Quantity} {qty}"
 
-                ) |> Option.defaultValue ""
+            let qtyAdj = sl.QuantityAdj |> mmToStr
 
-                let conc = sl.Concentration |> mmToStr
-                if not (String.IsNullOrWhiteSpace conc) then $"{FieldLabels.Concentration} {conc}"
+            if not (String.IsNullOrWhiteSpace qtyAdj) then
+                $"{FieldLabels.QuantityAdjust} {qtyAdj}"
+
+            sl.Quantities
+            |> Option.map (fun vu -> $"{FieldLabels.Quantities} {vu |> ValueUnit.toStringDecimalEngShortWithoutGroup}"
+
+            )
+            |> Option.defaultValue ""
+
+            let conc = sl.Concentration |> mmToStr
+
+            if not (String.IsNullOrWhiteSpace conc) then
+                $"{FieldLabels.Concentration} {conc}"
         ]

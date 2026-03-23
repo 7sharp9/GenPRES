@@ -1,7 +1,6 @@
 namespace Informedica.GenOrder.Lib
 
 
-
 module Totals =
 
     open Informedica.Utils.Lib
@@ -13,12 +12,10 @@ module Totals =
     open Informedica.GenForm.Lib.Utils
 
 
-    let isVolume (var : Variable) =
+    let isVolume (var: Variable) =
         var
         |> Variable.getUnit
-        |> Option.map (fun u ->
-            u |> Units.hasGroup Units.Volume.liter
-        )
+        |> Option.map (fun u -> u |> Units.hasGroup Units.Volume.liter)
         |> Option.defaultValue false
 
 
@@ -45,50 +42,44 @@ module Totals =
                 |> OrderVariable.Quantity.toOrdVar
                 |> OrderVariable.getVar
 
-            let unt =
-                var
-                |> Variable.getUnit
-                |> Option.map (fun u -> u |> Units.per tu)
+            let unt = var |> Variable.getUnit |> Option.map (fun u -> u |> Units.per tu)
 
             unt
-            |> Option.map (fun u ->
-                var
-                |> Variable.setUnit u
-            )
+            |> Option.map (fun u -> var |> Variable.setUnit u)
             |> Option.defaultValue var
 
 
     /// Get the volume
     let getVolume tu pres (dose: Dose) =
         // TODO this is maybe too simplistic
-        if dose
-           |> Order.Orderable.Dose.toOrdVars
-           |> List.map _.Variable
-           |> List.exists isVolume then
-            getDosePerTime Units.Volume.milliLiter tu pres dose
-            |> Some
-        else None
+        if
+            dose
+            |> Order.Orderable.Dose.toOrdVars
+            |> List.map _.Variable
+            |> List.exists isVolume
+        then
+            getDosePerTime Units.Volume.milliLiter tu pres dose |> Some
+        else
+            None
 
 
-    let calc (ords : Order[]) wght name fu tu =
+    let calc (ords: Order[]) wght name fu tu =
         match wght with
         | None -> [||]
         | Some w ->
             let w =
-                Name.create ["wght"]
+                Name.create [ "wght" ]
                 |> Variable.empty
                 |> fun var ->
                     var
-                    |> Variable.setValueRange (
-                        w
-                        |> Variable.ValueRange.ValueSet.create
-                        |> ValSet
-                    )
+                    |> Variable.setValueRange (w |> Variable.ValueRange.ValueSet.create |> ValSet)
 
             [|
                 for o in ords do
                     let vol = getVolume tu o.Schedule o.Orderable.Dose
-                    if vol.IsSome then "volume", vol.Value
+
+                    if vol.IsSome then
+                        "volume", vol.Value
 
                     for cmp in o.Orderable.Components do
                         for itm in cmp.Items do
@@ -96,15 +87,10 @@ module Totals =
                                 itm.Name |> Name.toString, getDosePerTime fu tu o.Schedule itm.Dose
             |]
             |> Array.groupBy fst
-            |> Array.map (fun (item, xs) ->
-                item,
-                xs
-                |> Array.map snd
-                |> Array.reduce (@+)
-            )
+            |> Array.map (fun (item, xs) -> item, xs |> Array.map snd |> Array.reduce (@+))
             |> Array.choose (fun (n, tot) ->
                 match tot |> Variable.getUnit with
-                | None   -> None
+                | None -> None
                 | Some u ->
                     let u =
                         u
@@ -113,26 +99,23 @@ module Totals =
                         |> Units.per Units.Weight.kiloGram
                         |> Units.per tu
 
-                    (n,
-                    tot ^/ w
-                    |> Variable.setUnit u)
-                    |> Some
+                    (n, tot ^/ w |> Variable.setUnit u) |> Some
             )
 
 
     let totals =
         let urlId =
             Env.loadDotEnv () |> ignore
+
             Env.getItem Utils.Constants.GENPRES_URL_ID
             |> Option.defaultWith (fun () -> failwith $"No valid {Utils.Constants.GENPRES_URL_ID}")
 
-        Web.GoogleSheets.getCsvDataFromSheetSync
-            urlId
-            "Totals"
+        Web.GoogleSheets.getCsvDataFromSheetSync urlId "Totals"
         |> Result.defaultValue [||]
 
         |> fun data ->
-            if data.Length <= 1 then [||]
+            if data.Length <= 1 then
+                [||]
             else
                 let getColumn = data |> Array.head |> Csv.getStringColumn
 
@@ -159,18 +142,21 @@ module Totals =
                 )
 
 
-
-    let getTotals (age: Informedica.GenUnits.Lib.ValueUnit option) (wght : Informedica.GenUnits.Lib.ValueUnit option) (dtos: Order.Dto.Dto []) : Totals =
-        let ords =
-            dtos
-            |> Array.choose (Order.Dto.fromDto >> Result.toOption)
+    let getTotals
+        (age: Informedica.GenUnits.Lib.ValueUnit option)
+        (wght: Informedica.GenUnits.Lib.ValueUnit option)
+        (dtos: Order.Dto.Dto[])
+        : Totals
+        =
+        let ords = dtos |> Array.choose (Order.Dto.fromDto >> Result.toOption)
 
         let calc = calc ords wght
 
         let totals =
             totals
             |> Array.filter (fun t ->
-                if wght.IsNone then true
+                if wght.IsNone then
+                    true
                 else
                     let w =
                         wght.Value
@@ -179,16 +165,14 @@ module Totals =
                         |> Array.head
 
                     match t.MinWeight, t.MaxWeight with
-                    | Some min, Some max ->
-                        min <= w && w < max
-                    | Some min, None ->
-                        min <= w
-                    | None, Some max ->
-                        max > w
+                    | Some min, Some max -> min <= w && w < max
+                    | Some min, None -> min <= w
+                    | None, Some max -> max > w
                     | None, None -> true
             )
             |> Array.filter (fun t ->
-                if age.IsNone then true
+                if age.IsNone then
+                    true
                 else
                     let a =
                         age.Value
@@ -197,12 +181,9 @@ module Totals =
                         |> Array.head
 
                     match t.MinAge, t.MaxAge with
-                    | Some min, Some max ->
-                        min <= a && a < max
-                    | Some min, None ->
-                        min <= a
-                    | None, Some max ->
-                        max > a
+                    | Some min, Some max -> min <= a && a < max
+                    | Some min, None -> min <= a
+                    | None, Some max -> max > a
                     | None, None -> true
             )
 
@@ -210,8 +191,7 @@ module Totals =
             totals
             |> Array.collect (fun t ->
                 match t.Unit, t.TimeUnit with
-                | Some fu, Some tu ->
-                    calc t.Name fu tu
+                | Some fu, Some tu -> calc t.Name fu tu
                 | _ -> [||]
             )
 

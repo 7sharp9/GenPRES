@@ -19,7 +19,22 @@ module BST001T =
     /// <summary>
     /// Position of the fields in the record
     /// </summary>
-    let posl = [ 0004; 0001; 0020; 0003; 0010; 0050; 0008; 0002; 0001; 0004; 0002; 0006; 0017 ]
+    let posl =
+        [
+            0004
+            0001
+            0020
+            0003
+            0010
+            0050
+            0008
+            0002
+            0001
+            0004
+            0002
+            0006
+            0017
+        ]
 
 
     /// Tabel: BST001T: Bestand 001 Rubrieken
@@ -57,7 +72,7 @@ module BST001T =
     let create mk tb vn nm bs ke tp ln dc fm =
         {
             MUTKOD = mk
-            MDBST  = tb
+            MDBST = tb
             MDVNR = vn
             MDRNAM = nm
             MDROMS = bs
@@ -72,7 +87,7 @@ module BST001T =
     /// <summary>
     /// Picklist of fields to use
     /// </summary>
-    let pickList = [1..5] @ [7..11]
+    let pickList = [ 1..5 ] @ [ 7..11 ]
 
 
     let data _ =
@@ -93,7 +108,8 @@ module BST001T =
             let vn = Int32.Parse d[2]
             let ln = Int32.Parse d[7]
             let dc = Int32.Parse d[8]
-            create d[0] d[1] vn d[3] d[4] d[5] d[6] ln dc d[9])
+            create d[0] d[1] vn d[3] d[4] d[5] d[6] ln dc d[9]
+        )
         |> Array.filter (fun r -> r.MUTKOD <> "1")
         |> Array.sortBy (fun r -> r.MDBST, r.MDVNR)
 
@@ -117,9 +133,7 @@ module BST001T =
     /// </summary>
     /// <param name="n">The name of the file</param>
     let recordLength n =
-        _records
-        |> Seq.filter (fun r -> r.MDBST = n)
-        |> Seq.sumBy (fun r -> r.MDRLEN)
+        _records |> Seq.filter (fun r -> r.MDBST = n) |> Seq.sumBy (fun r -> r.MDRLEN)
 
 
     /// <summary>
@@ -145,16 +159,26 @@ module BST001T =
         let tab = "    "
         let s = $"type %s{n} =\n"
         let s = s + $"%s{tab}%s{tab}%s{tab}{{\n"
+
         let s =
-            s + (
-                columns n
-                |> Seq.pickSeq pl
-                |> Seq.fold (fun s c ->
-                    let t =
-                        if c.MDRTYP = "N" then
-                            if c.MDROPM |> Parser.isDecimalFormat then "float" else "int"
-                        else "string"
-                    s + $"%s{tab}%s{tab}%s{tab}%s{tab}%s{c.MDRNAM} : %s{t}\n") "")
+            s
+            + (columns n
+               |> Seq.pickSeq pl
+               |> Seq.fold
+                   (fun s c ->
+                       let t =
+                           if c.MDRTYP = "N" then
+                               if c.MDROPM |> Parser.isDecimalFormat then
+                                   "float"
+                               else
+                                   "int"
+                           else
+                               "string"
+
+                       s + $"%s{tab}%s{tab}%s{tab}%s{tab}%s{c.MDRNAM} : %s{t}\n"
+                   )
+                   "")
+
         s + $"%s{tab}%s{tab}%s{tab}}}\n"
 
 
@@ -166,28 +190,32 @@ module BST001T =
     /// <param name="pl">The picklist of fields to use</param>
     let createString n pl =
         let tab = "    "
-        let cs =
-            columns n
-            |> Seq.pickSeq pl
-        let args =
-            cs
-            |> Seq.fold (fun s c ->
-                s + c.MDRNAM.ToLower() + " " ) ""
+        let cs = columns n |> Seq.pickSeq pl
+        let args = cs |> Seq.fold (fun s c -> s + c.MDRNAM.ToLower() + " ") ""
 
         let s = $"let create %s{args} =\n"
         let s = s + $"%s{tab}%s{tab}%s{tab}{{\n"
+
         let s =
-            s + (
-                cs
-                |> Seq.fold (fun s c ->
-                let m =
-                    if c.MDRTYP = "N" then
-                        let typ, opm = "\"" + c.MDRTYP + "\"", "\"" + c.MDROPM + "\""
-                        if c.MDROPM |> Parser.isDecimalFormat then
-                            $"|> ((Parser.parseValue %s{typ} %s{opm}) >> Double.parse)"
-                        else
-                            $"|> ((Parser.parseValue %s{typ} %s{opm}) >> Int32.parse)"
-                    elif c.MDRNAM = "ATCODE" then ""
-                    else "|> String.trim"
-                s + $"%s{tab}%s{tab}%s{tab}%s{tab}%s{c.MDRNAM} = %s{c.MDRNAM.ToLower()} %s{m}\n") "")
+            s
+            + (cs
+               |> Seq.fold
+                   (fun s c ->
+                       let m =
+                           if c.MDRTYP = "N" then
+                               let typ, opm = "\"" + c.MDRTYP + "\"", "\"" + c.MDROPM + "\""
+
+                               if c.MDROPM |> Parser.isDecimalFormat then
+                                   $"|> ((Parser.parseValue %s{typ} %s{opm}) >> Double.parse)"
+                               else
+                                   $"|> ((Parser.parseValue %s{typ} %s{opm}) >> Int32.parse)"
+                           elif c.MDRNAM = "ATCODE" then
+                               ""
+                           else
+                               "|> String.trim"
+
+                       s + $"%s{tab}%s{tab}%s{tab}%s{tab}%s{c.MDRNAM} = %s{c.MDRNAM.ToLower()} %s{m}\n"
+                   )
+                   "")
+
         s + $"%s{tab}%s{tab}%s{tab}}}\n"

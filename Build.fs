@@ -12,7 +12,7 @@ let sln = "GenPRES.sln"
 let sharedPath = Path.getFullName "src/Informedica.GenPRES.Shared"
 let serverPath = Path.getFullName "src/Informedica.GenPRES.Server"
 let clientPath = Path.getFullName "src/Informedica.GenPRES.Client"
-let dataPath = Path.getFullName   "src/Informedica.GenPRES.Server/data"
+let dataPath = Path.getFullName "src/Informedica.GenPRES.Server/data"
 
 let deployPath = Path.getFullName "deploy"
 
@@ -39,7 +39,7 @@ Target.create
             dotnet
                 [
                     "fable"
-//                    "--test:MSBuildCracker"
+                    //                    "--test:MSBuildCracker"
                     "-o"
                     "output"
                     "-s"
@@ -77,7 +77,20 @@ Target.create
         [
             "server", dotnet [ "run"; "--no-restore" ] serverPath
             "client",
-            dotnet [ "fable"; "watch"; (*"--test:MSBuildCracker";*) "-o"; "output"; "-s"; "-e"; ".jsx"; "--run"; "npx"; "vite" ] clientPath
+            dotnet
+                [
+                    "fable"
+                    "watch" (*"--test:MSBuildCracker";*)
+                    "-o"
+                    "output"
+                    "-s"
+                    "-e"
+                    ".jsx"
+                    "--run"
+                    "npx"
+                    "vite"
+                ]
+                clientPath
         ]
         |> runParallel
     )
@@ -97,32 +110,62 @@ Target.create
             if line.Contains("Passed:") && line.Contains("Failed:") && line.Contains("Total:") then
                 let grab (key: string) =
                     let i = line.IndexOf(key)
+
                     if i >= 0 then
                         let start = i + key.Length
-                        line.Substring(start).TrimStart().Split([|','; ' '|], System.StringSplitOptions.RemoveEmptyEntries)
+
+                        line
+                            .Substring(start)
+                            .TrimStart()
+                            .Split([| ','; ' ' |], System.StringSplitOptions.RemoveEmptyEntries)
                         |> Array.tryHead
-                        |> Option.bind (fun s -> match System.Int32.TryParse(s) with true, n -> Some n | _ -> None)
+                        |> Option.bind (fun s ->
+                            match System.Int32.TryParse(s) with
+                            | true, n -> Some n
+                            | _ -> None
+                        )
                         |> Option.defaultValue 0
-                    else 0
-                totalFailed.Value  <- totalFailed.Value  + grab "Failed:"
-                totalPassed.Value  <- totalPassed.Value  + grab "Passed:"
+                    else
+                        0
+
+                totalFailed.Value <- totalFailed.Value + grab "Failed:"
+                totalPassed.Value <- totalPassed.Value + grab "Passed:"
                 totalSkipped.Value <- totalSkipped.Value + grab "Skipped:"
-                totalTests.Value   <- totalTests.Value   + grab "Total:"
+                totalTests.Value <- totalTests.Value + grab "Total:"
+
                 if not started.Value then
                     started.Value <- true
                     printf "Running tests "
+
                 printf "."
 
-        dotnet [ "test"; sln; "--no-restore"; "--verbosity"; "quiet"; "--logger"; "console;verbosity=minimal" ] "."
+        dotnet
+            [
+                "test"
+                sln
+                "--no-restore"
+                "--verbosity"
+                "quiet"
+                "--logger"
+                "console;verbosity=minimal"
+            ]
+            "."
         |> CreateProcess.redirectOutputIfNotRedirected
         |> CreateProcess.withOutputEventsNotNull parseLine (eprintfn "%s")
         |> Proc.run
         |> fun result ->
             printfn ""
             printfn "====================================================================="
-            printfn "Test Summary: %d passed, %d failed, %d skipped, %d total"
-                totalPassed.Value totalFailed.Value totalSkipped.Value totalTests.Value
+
+            printfn
+                "Test Summary: %d passed, %d failed, %d skipped, %d total"
+                totalPassed.Value
+                totalFailed.Value
+                totalSkipped.Value
+                totalTests.Value
+
             printfn "====================================================================="
+
             if result.ExitCode <> 0 then
                 failwithf "Tests failed with exit code %d" result.ExitCode
     )
@@ -132,7 +175,21 @@ Target.create
     "TestHeadless"
     (fun _ ->
         run dotnet [ "test"; sln; "--no-build"; "--no-restore" ] "."
-        run dotnet [ "fable"; "-o"; "output"; "-s"; "-e"; ".jsx"; "--run"; "npx"; "vite" ] clientPath
+
+        run
+            dotnet
+            [
+                "fable"
+                "-o"
+                "output"
+                "-s"
+                "-e"
+                ".jsx"
+                "--run"
+                "npx"
+                "vite"
+            ]
+            clientPath
 
     //    run dotnet [ "fable"; "-o"; "output"; "-e"; ".jsx" ] clientTestsPath
     //    run npx [ "mocha"; "output" ] clientTestsPath
@@ -145,7 +202,20 @@ Target.create
         [
             //        "server", dotnet [ "watch"; "run"; "--no-restore" ] serverTestsPath
             "client",
-            dotnet [ "fable"; "watch"; "-o"; "output"; "-s"; "-e"; ".jsx"; "--run"; "npx"; "vite" ] clientTestsPath
+            dotnet
+                [
+                    "fable"
+                    "watch"
+                    "-o"
+                    "output"
+                    "-s"
+                    "-e"
+                    ".jsx"
+                    "--run"
+                    "npx"
+                    "vite"
+                ]
+                clientTestsPath
         ]
         |> runParallel
     )
@@ -164,7 +234,7 @@ Target.create
     )
 
 
-Target.create "DockerRun" (fun _ -> run docker [ "run"; "-it"; "p"; "8080:8085"; "halcwb/genpres"] ".")
+Target.create "DockerRun" (fun _ -> run docker [ "run"; "-it"; "p"; "8080:8085"; "halcwb/genpres" ] ".")
 
 
 open Fake.Core.TargetOperators

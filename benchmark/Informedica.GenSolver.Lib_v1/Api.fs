@@ -21,7 +21,7 @@ module Api =
         let notEmpty = String.IsNullOrWhiteSpace >> not
         let prodEqs, sumEqs = eqs |> List.partition (String.contains "*")
         let createProdEqs = List.map (EQD.createProd >> EQD.fromDto)
-        let createSumEqs  = List.map (EQD.createSum  >> EQD.fromDto)
+        let createSumEqs = List.map (EQD.createSum >> EQD.fromDto)
 
         let parse eqs op =
             eqs
@@ -38,12 +38,8 @@ module Api =
         eqs
         |> List.collect (Equation.findName n)
         |> function
-        | [] -> None
-        | var::_ ->
-            p
-            |> Property.toValueRange
-            |> Variable.setValueRange onlyMinIncrMax var
-            |> Some
+            | [] -> None
+            | var :: _ -> p |> Property.toValueRange |> Variable.setValueRange onlyMinIncrMax var |> Some
 
 
     let solveAll = Solver.solveAll
@@ -60,31 +56,22 @@ module Api =
         eqs
         |> setVariableValues onlyMinIncrMax n p
         |> function
-        | None -> eqs |> Ok
-        | Some var ->
-            eqs
-            |> Solver.solveVariable onlyMinIncrMax log sortQue var
+            | None -> eqs |> Ok
+            | Some var -> eqs |> Solver.solveVariable onlyMinIncrMax log sortQue var
 
 
     /// Make a list of `EQD`
     /// to contain only positive
     /// values as solutions
     let nonZeroNegative eqs =
-        eqs
-        |> List.map Equation.nonZeroOrNegative
+        eqs |> List.map Equation.nonZeroOrNegative
 
 
     let applyConstraints onlyMinIncrMax log eqs cs =
         let apply = Constraint.apply onlyMinIncrMax log
 
         cs
-        |> List.fold (fun acc c ->
-            acc
-            |> apply c
-            |> fun var ->
-                acc
-                |> List.map (Equation.replace var)
-        ) eqs
+        |> List.fold (fun acc c -> acc |> apply c |> (fun var -> acc |> List.map (Equation.replace var))) eqs
 
 
     let solveConstraints onlyMinIncrMax log cs eqs =

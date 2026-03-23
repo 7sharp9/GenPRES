@@ -1,4 +1,3 @@
-
 #time
 
 #load "load.fsx"
@@ -12,7 +11,6 @@ Environment.SetEnvironmentVariable("GENPRES_DEBUG", "0")
 Environment.SetEnvironmentVariable("GENPRES_PROD", "1")
 
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
-
 
 
 open MathNet.Numerics
@@ -35,8 +33,7 @@ module HelperFunctions =
 
 
     let inline printOrderTable order =
-        order
-        |> Result.iter (Order.printTable ConsoleTables.Format.Minimal)
+        order |> Result.iter (Order.printTable ConsoleTables.Format.Minimal)
 
         order
 
@@ -44,39 +41,32 @@ module HelperFunctions =
     let solveOrder order =
         match order with
         | Error e -> $"Error solving order: {e}" |> failwith
-        | Ok o ->
-            o
-            |> Order.solveMinMax "Solve Order" true OrderLogging.noOp
+        | Ok o -> o |> Order.solveMinMax "Solve Order" true OrderLogging.noOp
 
 
     let run logger med cmds =
-        let logger, usePrintTable = logger |> Option.defaultValue OrderLogging.noOp, logger.IsNone
+        let logger, usePrintTable =
+            logger |> Option.defaultValue OrderLogging.noOp, logger.IsNone
+
         let rec loop cmds ord =
             match cmds with
-            | [] ->
-                ord
-                |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
+            | [] -> ord |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
 
-            | cmd::rest ->
+            | cmd :: rest ->
                 match ord with
-                | Error (_, msgs) ->
-                    failwith $"Errors occured: {msgs}"
-                | Ok ord ->
-                    ord
-                    |> cmd
-                    |> OrderProcessor.processPipeline logger
-                    |> loop rest
+                | Error(_, msgs) -> failwith $"Errors occured: {msgs}"
+                | Ok ord -> ord |> cmd |> OrderProcessor.processPipeline logger |> loop rest
 
         med
         |> Informedica.GenOrder.Lib.Medication.toOrderDto
         |> Order.Dto.fromDto
         |> function
-          | Error msg -> failwith $"{msg}"
-          | Ok ord ->
-              ord
-              |> Ok
-              |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
-              |> loop cmds
+            | Error msg -> failwith $"{msg}"
+            | Ok ord ->
+                ord
+                |> Ok
+                |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
+                |> loop cmds
 
 
 module GenFormResult = Utils.GenFormResult
@@ -88,7 +78,8 @@ module UnitValidation = Medication.UnitValidation
 module FeedingTexts =
 
 
-    let feedingWithPowder = """
+    let feedingWithPowder =
+        """
 Id: 4f6671d8-30f2-4bcc-a9a3-76bb931f15e5
 Name: mm met bmf
 Quantity:
@@ -151,13 +142,7 @@ module FeedingScenarios =
         test txt {
             txt
             |> Medication.fromString
-            |> Result.bind (fun med ->
-                [
-                    OrderCommand.CalcMinMax
-                ]
-                |> run logger med
-                |> Result.mapError (fun _ -> [])
-            )
+            |> Result.bind (fun med -> [ OrderCommand.CalcMinMax ] |> run logger med |> Result.mapError (fun _ -> []))
             |> function
                 | Ok _ -> true
                 | Error _ -> false
@@ -165,20 +150,22 @@ module FeedingScenarios =
         }
 
     let scenarioTests logger =
-        testList "Scenario Tests" [
-            yield! [
-                FeedingTexts.feedingWithPowder
-            ] |> List.map (createTest logger)
-        ]
+        testList
+            "Scenario Tests"
+            [
+                yield! [ FeedingTexts.feedingWithPowder ] |> List.map (createTest logger)
+            ]
 
 
 let logger = OrderLogging.createConsoleLogger ()
 
 
-testList "Feeding" [
-    //MedicationTests.tests
-    FeedingScenarios.scenarioTests (Some logger)
-]
+testList
+    "Feeding"
+    [
+        //MedicationTests.tests
+        FeedingScenarios.scenarioTests (Some logger)
+    ]
 |> runTestsWithCLIArgs [ CLIArguments.Sequenced ] [||]
 
 
@@ -187,7 +174,8 @@ FeedingTexts.feedingWithPowder
 |> function
     | Error _ -> "cannot create feeding" |> failwith
     | Ok med ->
-        let dto = med |> Medication.OrderDtoHelpers.calculateDivisibility (Some med.Components[1])
+        let dto =
+            med |> Medication.OrderDtoHelpers.calculateDivisibility (Some med.Components[1])
+
         dto |> Option.map _.Unit |> printfn "%A"
-        [ OrderCommand.CalcMinMax ]
-        |> HelperFunctions.run (Some logger) med
+        [ OrderCommand.CalcMinMax ] |> HelperFunctions.run (Some logger) med

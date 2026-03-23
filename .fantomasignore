@@ -1,1 +1,6 @@
-*.*
+src/Informedica.GenPRES.Client/
+obj/
+# Fantomas bug: formatting these files produces invalid F# code
+tests/Informedica.Agents.Tests/Tests.fs
+src/Informedica.GenSOLVER.Lib/Scripts/Parallel.fsx
+src/Informedica.GenUNITS.Lib/Scripts/TypesSplit.fsx

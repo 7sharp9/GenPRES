@@ -1,7 +1,6 @@
 namespace Informedica.GenOrder.Lib
 
 
-
 /// Helper functions to
 /// facilitate the use of the
 /// `Informedica.GenSolver.Lib`
@@ -27,8 +26,8 @@ module Solver =
         eqs
         |> List.map (fun eq ->
             match eq with
-            | OrderProductEquation (y, xs) -> (y.Variable, xs |> List.map _.Variable) |> ProductEquation
-            | OrderSumEquation     (y, xs) -> (y.Variable, xs |> List.map _.Variable) |> SumEquation
+            | OrderProductEquation(y, xs) -> (y.Variable, xs |> List.map _.Variable) |> ProductEquation
+            | OrderSumEquation(y, xs) -> (y.Variable, xs |> List.map _.Variable) |> SumEquation
         )
         |> List.map Equation.nonZeroOrNegative
 
@@ -43,24 +42,16 @@ module Solver =
     /// The new list of OrderEquations
     /// </returns>
     let mapToOrderEqs ordEqs eqs =
-        let vars =
-            eqs
-            |> List.collect Equation.toVars
+        let vars = eqs |> List.collect Equation.toVars
+
         let repl v =
-            { v with
-                Variable =
-                    vars
-                    |> List.find (Variable.getName >> (=) v.Variable.Name)
-            }
+            { v with Variable = vars |> List.find (Variable.getName >> (=) v.Variable.Name) }
+
         ordEqs
         |> List.map (fun eq ->
             match eq with
-            | OrderProductEquation (y, xs) ->
-                (y |> repl, xs |> List.map repl)
-                |> OrderProductEquation
-            | OrderSumEquation (y, xs) ->
-                (y |> repl, xs |> List.map repl)
-                |> OrderSumEquation
+            | OrderProductEquation(y, xs) -> (y |> repl, xs |> List.map repl) |> OrderProductEquation
+            | OrderSumEquation(y, xs) -> (y |> repl, xs |> List.map repl) |> OrderSumEquation
         )
 
 

@@ -1,4 +1,5 @@
 ﻿namespace System
+
 open System.Reflection
 
 [<assembly: AssemblyTitleAttribute("Informedica.GenSolver.Lib")>]
@@ -10,4 +11,5 @@ open System.Reflection
 do ()
 
 module internal AssemblyVersionInformation =
-    let [<Literal>] Version = "0.2.2"
+    [<Literal>]
+    let Version = "0.2.2"

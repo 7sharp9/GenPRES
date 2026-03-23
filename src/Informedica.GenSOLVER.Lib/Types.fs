@@ -84,7 +84,11 @@ module rec Types =
     /// a `Values` described by the
     /// `ValueRange`.
     /// </summary>
-    type Variable = { Name: Name; Values: ValueRange }
+    type Variable =
+        {
+            Name: Name
+            Values: ValueRange
+        }
 
 
     /// <summary>
@@ -148,15 +152,12 @@ module rec Types =
             | ValueRangeMaxOverFlow of Maximum
             | ValueRangeMinMaxException of string
             | VariableCannotSetValueRange of Variable * ValueRange
-            | VariableCannotCalcVariables of
-                v1: Variable *
-                op: (ValueRange -> ValueRange -> ValueRange) *
-                v2: Variable
+            | VariableCannotCalcVariables of v1: Variable * op: (ValueRange -> ValueRange -> ValueRange) * v2: Variable
             | EquationDuplicateVariables of duplicateVars: Variable list
             | EquationEmptyVariableList
             | ConstraintVariableNotFound of Constraint * Equation list
             | SolverInvalidEquations of Equation list
-            | SolverTooManyLoops of loopCount : int * Equation list
+            | SolverTooManyLoops of loopCount: int * Equation list
             | SolverErrored of loopCount: int * Message list * Equation list
             | UnexpectedException of ex: exn
             | ValueRangeBoundaryShouldHaveOneValue of ValueUnit
@@ -171,7 +172,7 @@ module rec Types =
                 op2: (Variable -> Variable -> Variable) *
                 y: Variable *
                 xs: Variable List
-            | EquationFinishedCalculation of Variable list * changed : bool
+            | EquationFinishedCalculation of Variable list * changed: bool
             | EquationCouldNotBeSolved of Equation
             | EquationFinishedSolving of Equation * SolveResult
             | SolverStartSolving of minmax: bool * Equation list
@@ -190,4 +191,5 @@ module rec Types =
         type SolverMessage =
             | ExceptionMessage of Exceptions.Message
             | SolverEventMessage of Events.Event
+
             interface IMessage

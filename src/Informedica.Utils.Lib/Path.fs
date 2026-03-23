@@ -16,8 +16,7 @@ module Path =
 
     /// Combines two paths p1 and p2 into a single path.
     /// Example: "c:\temp" |> combineWith "test.txt" -> "c:\temp\test.txt"
-    let combineWith p2 p1 =
-        Path.Combine(p1, p2)
+    let combineWith p2 p1 = Path.Combine(p1, p2)
 
 
     let getFullPath = Path.GetFullPath
@@ -29,7 +28,7 @@ module Path =
 
 
         // Test normalize
-        let testNormalize() =
+        let testNormalize () =
             let sep = Path.DirectorySeparatorChar.ToString()
             test <@ @".\temp" |> normalize = $".{sep}temp" @>
             test <@ @".\temp\test.txt" |> normalize = $".{sep}temp{sep}test.txt" @>
@@ -37,11 +36,11 @@ module Path =
 
 
         // Test combineWith
-        let testCombineWith() =
+        let testCombineWith () =
             test <@ @"c:\temp" |> combineWith "test.txt" |> normalize = normalize @"c:\temp\test.txt" @>
 
 
         // Test all
-        let testAll() =
-            testNormalize()
-            testCombineWith()
+        let testAll () =
+            testNormalize ()
+            testCombineWith ()

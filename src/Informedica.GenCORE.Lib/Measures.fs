@@ -5,76 +5,102 @@ namespace Informedica.GenCore.Lib
 module Measures =
 
 
-    [<Measure>] type cm
+    [<Measure>]
+    type cm
 
-    [<Measure>] type m
+    [<Measure>]
+    type m
 
-    [<Measure>] type bsa = m^2
+    [<Measure>]
+    type bsa = m^2
 
-    [<Measure>] type kg
+    [<Measure>]
+    type kg
 
-    [<Measure>] type gram
+    [<Measure>]
+    type gram
 
-    [<Measure>] type min
+    [<Measure>]
+    type min
 
-    [<Measure>] type day
+    [<Measure>]
+    type day
 
-    [<Measure>] type week
+    [<Measure>]
+    type week
 
-    [<Measure>] type month
+    [<Measure>]
+    type month
 
-    [<Measure>] type year
+    [<Measure>]
+    type year
 
-    [<Measure>] type mg
+    [<Measure>]
+    type mg
 
-    [<Measure>] type mL
+    [<Measure>]
+    type mL
 
-    [<Measure>] type dL
+    [<Measure>]
+    type dL
 
-    [<Measure>] type L
+    [<Measure>]
+    type L
 
-    [<Measure>] type mmol
+    [<Measure>]
+    type mmol
 
-    [<Measure>] type microMol
+    [<Measure>]
+    type microMol
 
-    [<Measure>] type normalM2
-
-
+    [<Measure>]
+    type normalM2
 
 
 module Constants =
 
 
-    let [<Literal>] fullTerm = 40<week>
+    [<Literal>]
+    let fullTerm = 40<week>
 
-    let [<Literal>] premature = 37<week>
+    [<Literal>]
+    let premature = 37<week>
 
-    let [<Literal>] daysInWeek = 7
+    [<Literal>]
+    let daysInWeek = 7
 
-    let [<Literal>] weeksInYear = 52
+    [<Literal>]
+    let weeksInYear = 52
 
-    let [<Literal>] monthsInYear = 12
+    [<Literal>]
+    let monthsInYear = 12
 
-    let [<Literal>] daysInYear = 365
+    [<Literal>]
+    let daysInYear = 365
 
-    let [<Literal>] kilo = 1000
+    [<Literal>]
+    let kilo = 1000
 
-    let [<Literal>] centi = 100
+    [<Literal>]
+    let centi = 100
 
-    let [<Literal>] milli = 1000
+    [<Literal>]
+    let milli = 1000
 
-    let [<Literal>] micro = 1000000
+    [<Literal>]
+    let micro = 1000000
 
-    let [<Literal>] deci = 10
+    [<Literal>]
+    let deci = 10
 
 
 module Conversions =
 
 
-    let fromInt (one: int<_>) (x :int) = x * one
+    let fromInt (one: int<_>) (x: int) = x * one
 
 
-    let fromDecimal (one: decimal<_>) (x : decimal) = x * one
+    let fromDecimal (one: decimal<_>) (x: decimal) = x * one
 
 
     let dayFromInt x : int<day> = x |> fromInt 1<day>
@@ -125,61 +151,41 @@ module Conversions =
 
 
     let weeksToDays (weeks: int<week>) =
-        weeks * Constants.daysInWeek
-        |> int
-        |> dayFromInt
+        weeks * Constants.daysInWeek |> int |> dayFromInt
 
 
     let daysToWeeks (days: int<day>) =
-        (int days) / Constants.daysInWeek |> weekFromInt,
-        (int days) % Constants.daysInWeek |> dayFromInt
+        (int days) / Constants.daysInWeek |> weekFromInt, (int days) % Constants.daysInWeek |> dayFromInt
 
 
-    let intYearsToDays (years : int<year>) =
-        years * Constants.daysInYear
-        |> int
-        |> dayFromInt
+    let intYearsToDays (years: int<year>) =
+        years * Constants.daysInYear |> int |> dayFromInt
 
 
-    let decimalYearsToIntDays (years : decimal<year>) =
-        years * (decimal Constants.daysInYear)
-        |> decimal |> int
-        |> dayFromInt
+    let decimalYearsToIntDays (years: decimal<year>) =
+        years * (decimal Constants.daysInYear) |> decimal |> int |> dayFromInt
 
 
-    let decimalKgToDecimalGram (kg : decimal<kg>) =
-        (decimal kg * kilo)
-        |> gramFromDecimal
+    let decimalKgToDecimalGram (kg: decimal<kg>) = (decimal kg * kilo) |> gramFromDecimal
 
 
-    let intGramToDecKg (gram : int<gram>) =
-        (decimal gram) / kilo
-        |> kgFromDecimal
+    let intGramToDecKg (gram: int<gram>) = (decimal gram) / kilo |> kgFromDecimal
 
 
-    let decKgToIntGram (kg : decimal<kg>) =
-        kg
-        |> decimalKgToDecimalGram
-        |> decimal
-        |> int
-        |> gramFromInt
+    let decKgToIntGram (kg: decimal<kg>) =
+        kg |> decimalKgToDecimalGram |> decimal |> int |> gramFromInt
 
 
-    let decMtoDecCm (m : decimal<m>) =
-        m * centi
-        |> decimal
-        |> cmFromDecimal
+    let decMtoDecCm (m: decimal<m>) = m * centi |> decimal |> cmFromDecimal
 
 
-    let decMtoIntCm (m : decimal<m>) =
-        m * centi
-        |> decimal
-        |> int
-        |> cmFromInt
+    let decMtoIntCm (m: decimal<m>) =
+        m * centi |> decimal |> int |> cmFromInt
 
 
     let inline intToString u1 u2 x =
         let x = int x
+
         match x with
         | _ when x |> abs = 0 -> $"{x} {u1}"
         | _ when x |> abs = 1 -> $"{x} {u1}"
@@ -187,59 +193,52 @@ module Conversions =
         | _ -> ""
 
 
-    let yearToString u1 u2 (y : int<year>) = intToString u1 u2 y
+    let yearToString u1 u2 (y: int<year>) = intToString u1 u2 y
 
-    let monthToString u1 u2 (m : int<month>) = intToString u1 u2 m
+    let monthToString u1 u2 (m: int<month>) = intToString u1 u2 m
 
-    let weekToString u1 u2 (w : int<week>) = intToString u1 u2 w
+    let weekToString u1 u2 (w: int<week>) = intToString u1 u2 w
 
-    let dayToString u1 u2 (d : int<day>) = intToString u1 u2 d
+    let dayToString u1 u2 (d: int<day>) = intToString u1 u2 d
 
 
     let milliLiterToLiter (x: decimal<mL>) =
-        x / (Constants.milli |> decimal)
-        |> decimal
-        |> literFromDecimal
+        x / (Constants.milli |> decimal) |> decimal |> literFromDecimal
 
 
-    let literToMilliLiter (x : decimal<L>) =
-        x * (Constants.milli |> decimal)
-        |> decimal
-        |> milliLiterFromDecimal
+    let literToMilliLiter (x: decimal<L>) =
+        x * (Constants.milli |> decimal) |> decimal |> milliLiterFromDecimal
 
 
     let deciLiterToLiter (x: decimal<dL>) =
-        x / (Constants.deci |> decimal)
-        |> decimal
-        |> literFromDecimal
+        x / (Constants.deci |> decimal) |> decimal |> literFromDecimal
 
 
-    let literToDeciLiter (x : decimal<dL>) =
-        x * (Constants.deci |> decimal)
-        |> decimal
-        |> deciLiterFromDecimal
+    let literToDeciLiter (x: decimal<dL>) =
+        x * (Constants.deci |> decimal) |> decimal |> deciLiterFromDecimal
 
 
     module Creatinine =
 
-        let kMicroMolePerLiter = 88.42<microMol/L>
+        let kMicroMolePerLiter = 88.42<microMol / L>
 
-        let kMilliGramPerDeciLiter = (1./kMicroMolePerLiter |> float) * 1.<mg/dL>
+        let kMilliGramPerDeciLiter = (1. / kMicroMolePerLiter |> float) * 1.<mg / dL>
 
 
-        let toMicroMolePerLiter (cr : float<mg/dL>) : float<microMol/L> = (cr  |> float) * kMicroMolePerLiter
+        let toMicroMolePerLiter (cr: float<mg / dL>) : float<microMol / L> = (cr |> float) * kMicroMolePerLiter
 
-        let toMilliGramPerDeciLiter (cr : float<microMol/L>) : float<mg/dL> = (cr  |> float) * kMilliGramPerDeciLiter
+        let toMilliGramPerDeciLiter (cr: float<microMol / L>) : float<mg / dL> = (cr |> float) * kMilliGramPerDeciLiter
 
 
     module Urea =
 
-        let kMilliGramPerDeciLiter = 1. / 0.3571 * 1.<mg/dL>
+        let kMilliGramPerDeciLiter = 1. / 0.3571 * 1.<mg / dL>
 
-        let kMilliMolePerLiter = 0.3571 * 1.<mmol/L>
-
-
-        let toMilliMolePerLiter (urea : float<mg/dL>) = (urea |> float) * kMilliMolePerLiter
+        let kMilliMolePerLiter = 0.3571 * 1.<mmol / L>
 
 
-        let toMilliGramPerDeciLiter (urea : float<mmol/L>) = (urea |> float) * kMilliGramPerDeciLiter
+        let toMilliMolePerLiter (urea: float<mg / dL>) = (urea |> float) * kMilliMolePerLiter
+
+
+        let toMilliGramPerDeciLiter (urea: float<mmol / L>) =
+            (urea |> float) * kMilliGramPerDeciLiter

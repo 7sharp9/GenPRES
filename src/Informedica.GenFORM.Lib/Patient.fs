@@ -7,11 +7,8 @@ module VenousAccess =
     let check location venousAccess =
         match location, venousAccess with
         | AnyAccess, _ -> true
-        | _, xs when xs |> List.isEmpty  -> true
-        | _ ->
-            venousAccess
-            |> List.exists ((=) location)
-
+        | _, xs when xs |> List.isEmpty -> true
+        | _ -> venousAccess |> List.exists ((=) location)
 
 
 module Gender =
@@ -19,10 +16,10 @@ module Gender =
     open Informedica.Utils.Lib.BCL
 
 
-
     /// Map a string to a Gender.
     let fromString s =
         let s = s |> String.toLower |> String.trim
+
         match s with
         | "man" -> Male
         | "vrouw" -> Female
@@ -30,7 +27,8 @@ module Gender =
 
 
     /// Get the string representation of a Gender.
-    let toString = function
+    let toString =
+        function
         | Male -> "man"
         | Female -> "vrouw"
         | AnyGender -> ""
@@ -44,10 +42,9 @@ module Gender =
         | _ -> filterGender = gender
 
 
-
     /// Check if a Filter contains a Gender.
     /// Note if AnyGender is specified, this will always return true.
-    let filter gender (filter : DoseFilter) =
+    let filter gender (filter: DoseFilter) =
         match filter.Patient.Gender, gender with
         | _, AnyGender -> true
         | _ -> filter.Patient.Gender = gender
@@ -69,7 +66,7 @@ module PatientCategory =
     open Utils
 
 
-    let empty : PatientCategory =
+    let empty: PatientCategory =
         {
             Location = None
             Department = None
@@ -83,7 +80,7 @@ module PatientCategory =
         }
 
 
-    let isEmpty (p : PatientCategory) =
+    let isEmpty (p: PatientCategory) =
         { empty with
             Department = p.Department
             Access = p.Access
@@ -101,8 +98,9 @@ module PatientCategory =
     /// - Post Menstrual Age
     /// The first will receive the highest weight and the last the lowest.
     /// </remarks>
-    let sortBy (pat : PatientCategory) =
-        let toInt def = function
+    let sortBy (pat: PatientCategory) =
+        let toInt def =
+            function
             | Some x ->
                 x
                 |> Limit.getValueUnit
@@ -113,10 +111,10 @@ module PatientCategory =
                     | Some x -> x |> BigRational.ToInt32
             | None -> def
 
-        (pat.Age.Min |> toInt 0 |> fun i -> if i > 0 then i + 300 else i) +
-        (pat.GestAge.Min |> toInt (7 * 39)) +
-        (pat.PMAge.Min |> toInt (7 * 39)) +
-        (pat.Weight.Min |> toInt 0 |> fun w -> w / 1000)
+        (pat.Age.Min |> toInt 0 |> (fun i -> if i > 0 then i + 300 else i))
+        + (pat.GestAge.Min |> toInt (7 * 39))
+        + (pat.PMAge.Min |> toInt (7 * 39))
+        + (pat.Weight.Min |> toInt 0 |> (fun w -> w / 1000))
 
 
     /// <summary>
@@ -125,7 +123,7 @@ module PatientCategory =
     /// </summary>
     /// <param name="filter">The Filter to filter the PatientCategory with</param>
     /// <param name="patCat">The Patient Category</param>
-    let filter (filter : DoseFilter) (patCat : PatientCategory) =
+    let filter (filter: DoseFilter) (patCat: PatientCategory) =
         let eqs a b =
             match a, b with
             | None, _
@@ -133,71 +131,68 @@ module PatientCategory =
             | Some a, Some b -> a = b
 
         ([| patCat |],
-        [|
-            // if either filter location or patient category location is None, pass; otherwise must match
-            fun (p: PatientCategory) -> filter.Patient.Location |> eqs p.Location
-            // if either filter department or patient category department is None, pass; otherwise must match
-            fun (p: PatientCategory) -> filter.Patient.Department |> eqs p.Department
-            // patient age must be within patient category age range (if specified)
-            fun (p: PatientCategory) -> filter.Patient.Age |> MinMax.inRange p.Age
-            // patient weight must be within patient category weight range (if specified)
-            fun (p: PatientCategory) -> filter.Patient.Weight |> MinMax.inRange p.Weight
-            // if both weight and height are given, calculate BSA and check if within patient category BSA range
-            fun (p: PatientCategory) ->
-                match filter.Patient.Weight, filter.Patient.Height with
-                | Some w, Some h ->
-                    Calculations.calcDuBois w h
-                    |> Some
-                    |> MinMax.inRange p.BSA
-                | _ -> true
-            if filter.Patient.Age |> Option.isSome then
-                yield! [|
-                    // gestational age check: if patient category is empty (all patients), pass;
-                    // if filter has gestational age < full term and patient category has no gest/pm age, filter out;
-                    // otherwise check if gestational age (defaulting to full term) is in patient category range
-                    fun (p: PatientCategory) ->
-                        // all patients rule
-                        if p |> isEmpty then true
-                        else
-                            // if gestational is set and < full term filter out all
-                            // dose rules with no gestational age or pm age
-                            if filter.Patient.GestAge.IsSome &&
-                               p.GestAge = MinMax.empty &&
-                               p.PMAge = MinMax.empty then
-                                filter.Patient.GestAge.Value >=? ValueUnit.ageFullTerm
-                            else
-                                filter.Patient.GestAge
-                                // if no gest age assume full term
-                                |> Option.defaultValue Utils.ValueUnit.ageFullTerm
-                                |> Some
-                                |> MinMax.inRange p.GestAge
-                    // post-menstrual age check: if patient category is empty (all patients), pass;
-                    // otherwise calculate PM age (age + gestational age, defaulting gestational to full term)
-                    // and check if within patient category PM age range
-                    fun (p: PatientCategory) ->
-                        // alle patients rule
-                        if p |> isEmpty then true
-                        else
-                            filter.Patient.PMAge
-                            // if no gest age assume full term
-                            |> Option.defaultValue (filter.Patient.Age.Value + Utils.ValueUnit.ageFullTerm)
-                            |> Some
-                            |> MinMax.inRange p.PMAge
-                |]
-            // patient gender must match patient category gender (or category allows any gender)
-            fun (p: PatientCategory) -> filter |> Gender.filter p.Gender
-            // patient venous access must be compatible with patient category access requirements
-            fun (p: PatientCategory) ->
-                VenousAccess.check p.Access filter.Patient.Access
-        |])
-        ||> Array.fold(fun acc pred ->
-            acc
-            |> Array.filter pred
-        )
+         [|
+             // if either filter location or patient category location is None, pass; otherwise must match
+             fun (p: PatientCategory) -> filter.Patient.Location |> eqs p.Location
+             // if either filter department or patient category department is None, pass; otherwise must match
+             fun (p: PatientCategory) -> filter.Patient.Department |> eqs p.Department
+             // patient age must be within patient category age range (if specified)
+             fun (p: PatientCategory) -> filter.Patient.Age |> MinMax.inRange p.Age
+             // patient weight must be within patient category weight range (if specified)
+             fun (p: PatientCategory) -> filter.Patient.Weight |> MinMax.inRange p.Weight
+             // if both weight and height are given, calculate BSA and check if within patient category BSA range
+             fun (p: PatientCategory) ->
+                 match filter.Patient.Weight, filter.Patient.Height with
+                 | Some w, Some h -> Calculations.calcDuBois w h |> Some |> MinMax.inRange p.BSA
+                 | _ -> true
+             if filter.Patient.Age |> Option.isSome then
+                 yield!
+                     [|
+                         // gestational age check: if patient category is empty (all patients), pass;
+                         // if filter has gestational age < full term and patient category has no gest/pm age, filter out;
+                         // otherwise check if gestational age (defaulting to full term) is in patient category range
+                         fun (p: PatientCategory) ->
+                             // all patients rule
+                             if p |> isEmpty then
+                                 true
+                             else if
+                                 // if gestational is set and < full term filter out all
+                                 // dose rules with no gestational age or pm age
+                                 filter.Patient.GestAge.IsSome
+                                 && p.GestAge = MinMax.empty
+                                 && p.PMAge = MinMax.empty
+                             then
+                                 filter.Patient.GestAge.Value >=? ValueUnit.ageFullTerm
+                             else
+                                 filter.Patient.GestAge
+                                 // if no gest age assume full term
+                                 |> Option.defaultValue Utils.ValueUnit.ageFullTerm
+                                 |> Some
+                                 |> MinMax.inRange p.GestAge
+                         // post-menstrual age check: if patient category is empty (all patients), pass;
+                         // otherwise calculate PM age (age + gestational age, defaulting gestational to full term)
+                         // and check if within patient category PM age range
+                         fun (p: PatientCategory) ->
+                             // alle patients rule
+                             if p |> isEmpty then
+                                 true
+                             else
+                                 filter.Patient.PMAge
+                                 // if no gest age assume full term
+                                 |> Option.defaultValue (filter.Patient.Age.Value + Utils.ValueUnit.ageFullTerm)
+                                 |> Some
+                                 |> MinMax.inRange p.PMAge
+                     |]
+             // patient gender must match patient category gender (or category allows any gender)
+             fun (p: PatientCategory) -> filter |> Gender.filter p.Gender
+             // patient venous access must be compatible with patient category access requirements
+             fun (p: PatientCategory) -> VenousAccess.check p.Access filter.Patient.Access
+         |])
+        ||> Array.fold (fun acc pred -> acc |> Array.filter pred)
         |> fun xs -> xs |> Array.length > 0
 
 
-    let filterPatient (pat : Patient) (patCat : PatientCategory) =
+    let filterPatient (pat: Patient) (patCat: PatientCategory) =
         let eqs a b =
             match a, b with
             | None, _
@@ -205,87 +200,78 @@ module PatientCategory =
             | Some a, Some b -> a = b
 
         ([| patCat |],
-        [|
-            fun (p: PatientCategory) -> pat.Department |> eqs p.Department
-            fun (p: PatientCategory) -> pat.Age |> MinMax.inRange p.Age
-            fun (p: PatientCategory) -> pat.Weight |> MinMax.inRange p.Weight
-            fun (p: PatientCategory) ->
-                match pat.Weight, pat.Height with
-                | Some w, Some h ->
-                    Calculations.calcDuBois w h
-                    |> Some
-                    |> MinMax.inRange p.BSA
-                | _ -> true
-            if pat.Age |> Option.isSome then
-                yield! [|
-                    // check gestational age
-                    fun (p: PatientCategory) ->
-                        // all patients rule
-                        if p |> isEmpty then true
-                        else
-                            // if gestational is set and < full term filter out all
-                            // dose rules with no gestational age or pm age
-                            if pat.GestAge.IsSome &&
-                               p.GestAge = MinMax.empty &&
-                               p.PMAge = MinMax.empty then
-                                pat.GestAge.Value >=? Utils.ValueUnit.ageFullTerm
-                            else
-                                pat.GestAge
-                                // if no gest age assume full term
-                                |> Option.defaultValue Utils.ValueUnit.ageFullTerm
-                                |> Some
-                                |> MinMax.inRange p.GestAge
-                    // check pm age
-                    fun (p: PatientCategory) ->
-                        // alle patients rule
-                        if p |> isEmpty then true
-                        else
-                            pat.PMAge
-                            // if no gest age assume full term
-                            |> Option.defaultValue (pat.Age.Value + Utils.ValueUnit.ageFullTerm)
-                            |> Some
-                            |> MinMax.inRange p.PMAge
-                |]
-//            fun (p: PatientCategory) -> filter |> Gender.filter p.Gender
-            fun (p: PatientCategory) ->
-                VenousAccess.check p.Access pat.Access
-        |])
-        ||> Array.fold(fun acc pred ->
-            acc
-            |> Array.filter pred
-        )
+         [|
+             fun (p: PatientCategory) -> pat.Department |> eqs p.Department
+             fun (p: PatientCategory) -> pat.Age |> MinMax.inRange p.Age
+             fun (p: PatientCategory) -> pat.Weight |> MinMax.inRange p.Weight
+             fun (p: PatientCategory) ->
+                 match pat.Weight, pat.Height with
+                 | Some w, Some h -> Calculations.calcDuBois w h |> Some |> MinMax.inRange p.BSA
+                 | _ -> true
+             if pat.Age |> Option.isSome then
+                 yield!
+                     [|
+                         // check gestational age
+                         fun (p: PatientCategory) ->
+                             // all patients rule
+                             if p |> isEmpty then
+                                 true
+                             else if
+                                 // if gestational is set and < full term filter out all
+                                 // dose rules with no gestational age or pm age
+                                 pat.GestAge.IsSome && p.GestAge = MinMax.empty && p.PMAge = MinMax.empty
+                             then
+                                 pat.GestAge.Value >=? Utils.ValueUnit.ageFullTerm
+                             else
+                                 pat.GestAge
+                                 // if no gest age assume full term
+                                 |> Option.defaultValue Utils.ValueUnit.ageFullTerm
+                                 |> Some
+                                 |> MinMax.inRange p.GestAge
+                         // check pm age
+                         fun (p: PatientCategory) ->
+                             // alle patients rule
+                             if p |> isEmpty then
+                                 true
+                             else
+                                 pat.PMAge
+                                 // if no gest age assume full term
+                                 |> Option.defaultValue (pat.Age.Value + Utils.ValueUnit.ageFullTerm)
+                                 |> Some
+                                 |> MinMax.inRange p.PMAge
+                     |]
+             //            fun (p: PatientCategory) -> filter |> Gender.filter p.Gender
+             fun (p: PatientCategory) -> VenousAccess.check p.Access pat.Access
+         |])
+        ||> Array.fold (fun acc pred -> acc |> Array.filter pred)
         |> fun xs -> xs |> Array.length > 0
 
 
     /// Check whether patCat2 is a match with patCat2
-    let isMatch (patCat1 : PatientCategory) (patCat2 : PatientCategory) =
+    let isMatch (patCat1: PatientCategory) (patCat2: PatientCategory) =
         let eqsOpt a b =
             match a, b with
             | None, _
             | _, None -> true
             | Some a, Some b -> a = b
 
-        let inRange (minMax1 : MinMax) minMax2 =
-            minMax1.Min |> Option.map Limit.getValueUnit |> MinMax.inRange minMax2 &&
-            minMax2.Max |> Option.map Limit.getValueUnit |> MinMax.inRange minMax2
+        let inRange (minMax1: MinMax) minMax2 =
+            minMax1.Min |> Option.map Limit.getValueUnit |> MinMax.inRange minMax2
+            && minMax2.Max |> Option.map Limit.getValueUnit |> MinMax.inRange minMax2
 
         ([| patCat2 |],
-        [|
-            fun (p: PatientCategory) -> patCat1.Department |> eqsOpt p.Department
-            fun (p: PatientCategory) -> p.Age |> inRange patCat1.Age
-            fun (p: PatientCategory) -> p.GestAge |> inRange patCat1.GestAge
-            fun (p: PatientCategory) -> p.PMAge |> inRange patCat1.PMAge
-            fun (p: PatientCategory) -> p.Weight |> inRange patCat1.Weight
-            fun (p: PatientCategory) -> p.BSA |> inRange patCat1.BSA
-            fun (p: PatientCategory) -> patCat1.Gender |> Gender.isMatch p.Gender
-            fun (p: PatientCategory) -> VenousAccess.check p.Access  [ patCat1.Access ]
-        |])
-        ||> Array.fold(fun acc pred ->
-            acc
-            |> Array.filter pred
-        )
+         [|
+             fun (p: PatientCategory) -> patCat1.Department |> eqsOpt p.Department
+             fun (p: PatientCategory) -> p.Age |> inRange patCat1.Age
+             fun (p: PatientCategory) -> p.GestAge |> inRange patCat1.GestAge
+             fun (p: PatientCategory) -> p.PMAge |> inRange patCat1.PMAge
+             fun (p: PatientCategory) -> p.Weight |> inRange patCat1.Weight
+             fun (p: PatientCategory) -> p.BSA |> inRange patCat1.BSA
+             fun (p: PatientCategory) -> patCat1.Gender |> Gender.isMatch p.Gender
+             fun (p: PatientCategory) -> VenousAccess.check p.Access [ patCat1.Access ]
+         |])
+        ||> Array.fold (fun acc pred -> acc |> Array.filter pred)
         |> fun xs -> xs |> Array.length > 0
-
 
 
     /// Prints an age in days as a string.
@@ -296,23 +282,20 @@ module PatientCategory =
             |> ValueUnit.getValue
             |> Array.tryHead
             |> Option.defaultValue 0N
+
         let a = age |> BigRational.ToInt32
+
         match a with
-        | _ when a < 7 ->
-            if a = 1 then $"%i{a} dag"
-            else $"%i{a} dagen"
+        | _ when a < 7 -> if a = 1 then $"%i{a} dag" else $"%i{a} dagen"
         | _ when a <= 30 ->
             let a = a / 7
-            if a = 1 then $"%i{a} week"
-            else $"%i{a} weken"
+            if a = 1 then $"%i{a} week" else $"%i{a} weken"
         | _ when a < 365 ->
             let a = a / 30
-            if a = 1 then $"%i{a} maand"
-            else $"%i{a} maanden"
+            if a = 1 then $"%i{a} maand" else $"%i{a} maanden"
         | _ ->
             let a = a / 365
-            if a = 1 then $"%A{a} jaar"
-            else $"%A{a} jaar"
+            if a = 1 then $"%A{a} jaar" else $"%A{a} jaar"
 
 
     /// Print days as weeks.
@@ -329,8 +312,9 @@ module PatientCategory =
 
 
     /// Print an MinMax age as a string.
-    let printAgeMinMax (age : MinMax) =
+    let printAgeMinMax (age: MinMax) =
         let printAge = Limit.getValueUnit >> printAge
+
         match age.Min, age.Max with
         | Some min, Some max ->
             let min = min |> printAge
@@ -345,9 +329,8 @@ module PatientCategory =
         | _ -> ""
 
 
-
     /// Print an PatientCategory as a string.
-    let toString (pat : PatientCategory) =
+    let toString (pat: PatientCategory) =
 
         let gender = pat.Gender |> Gender.toString
 
@@ -355,10 +338,13 @@ module PatientCategory =
 
         let neonate =
             let s =
-                if pat.GestAge.Max.IsSome &&
-                   pat.GestAge.Max.Value
-                   |> Limit.getValueUnit  <? Utils.ValueUnit.ageFullTerm then "prematuren"
-                else "neonaten"
+                if
+                    pat.GestAge.Max.IsSome
+                    && pat.GestAge.Max.Value |> Limit.getValueUnit <? Utils.ValueUnit.ageFullTerm
+                then
+                    "prematuren"
+                else
+                    "neonaten"
 
             let printDaysToWeeks = Limit.getValueUnit >> printDaysToWeeks
 
@@ -380,7 +366,9 @@ module PatientCategory =
                 $"{s} zwangerschapsduur %s{min} tot %s{max}"
             | Some min, None, _, _ ->
                 let min = min |> printDaysToWeeks
-                if s = "neonaten" then s
+
+                if s = "neonaten" then
+                    s
                 else
                     $"{s} zwangerschapsduur vanaf %s{min}"
             | None, Some max, _, _ ->
@@ -397,9 +385,9 @@ module PatientCategory =
 
             match pat.Weight.Min, pat.Weight.Max with
             | Some min, Some max -> $"gewicht %s{min |> toStr} tot %s{max |> toStr}"
-            | Some min, None     -> $"gewicht vanaf %s{min |> toStr}"
-            | None,     Some max -> $"gewicht tot %s{max |> toStr}"
-            | None,     None     -> ""
+            | Some min, None -> $"gewicht vanaf %s{min |> toStr}"
+            | None, Some max -> $"gewicht tot %s{max |> toStr}"
+            | None, None -> ""
 
         [
             pat.Department |> Option.defaultValue ""
@@ -411,7 +399,6 @@ module PatientCategory =
         |> List.filter String.notEmpty
         |> List.filter (String.isNullOrWhiteSpace >> not)
         |> String.concat ", "
-
 
 
 module Patient =
@@ -438,17 +425,13 @@ module Patient =
             Height = None
             GestAge = None
             PMAge = None
-            Access = [ ]
+            Access = []
             RenalFunction = None
         }
 
 
-    let correctAdjustUnit (pat : Patient) =
-        { pat with
-            Weight =
-                pat.Weight
-                |> Option.map (ValueUnit.convertTo Units.Weight.kiloGram)
-        }
+    let correctAdjustUnit (pat: Patient) =
+        { pat with Weight = pat.Weight |> Option.map (ValueUnit.convertTo Units.Weight.kiloGram) }
 
 
     let calcPMAge (pat: Patient) =
@@ -463,9 +446,7 @@ module Patient =
     /// Calculate the BSA of a Patient.
     let calcBSA (pat: Patient) =
         match pat.Weight, pat.Height with
-        | Some w, Some h ->
-            Calculations.calcDuBois w h
-            |> Some
+        | Some w, Some h -> Calculations.calcDuBois w h |> Some
         | _ -> None
 
 
@@ -474,16 +455,15 @@ module Patient =
         [
             pat.Department |> Option.defaultValue ""
             pat.Gender |> Gender.toString
-            pat.Age
-            |> Option.map PatientCategory.printAge
-            |> Option.defaultValue ""
+            pat.Age |> Option.map PatientCategory.printAge |> Option.defaultValue ""
 
             let printDaysToWeeks = PatientCategory.printDaysToWeeks
 
             let s =
-                if pat.GestAge.IsSome &&
-                   pat.GestAge.Value  < Utils.ValueUnit.ageFullTerm then "prematuren"
-                else "neonaten"
+                if pat.GestAge.IsSome && pat.GestAge.Value < Utils.ValueUnit.ageFullTerm then
+                    "prematuren"
+                else
+                    "neonaten"
 
             match pat.GestAge, pat.PMAge with
             | _, Some a ->
@@ -501,14 +481,14 @@ module Patient =
                     |> ValueUnit.getValue
                     |> Array.tryHead
                     |> Option.defaultValue 0N
-                if v.Denominator = 1I then v |> BigRational.ToInt32 |> sprintf "%i"
+
+                if v.Denominator = 1I then
+                    v |> BigRational.ToInt32 |> sprintf "%i"
                 else
-                    v
-                    |> BigRational.ToDouble
-                    |> sprintf "%A"
+                    v |> BigRational.ToDouble |> sprintf "%A"
 
             pat.Weight
-            |> Option.map (fun w -> $"gewicht %s{w |> toStr Units.Mass.kiloGram } kg")
+            |> Option.map (fun w -> $"gewicht %s{w |> toStr Units.Mass.kiloGram} kg")
             |> Option.defaultValue ""
 
             pat.Height
@@ -517,9 +497,7 @@ module Patient =
 
             pat
             |> calcBSA
-            |> Option.map (fun bsa ->
-                $"BSA {bsa |> Utils.ValueUnit.toString 3}"
-            )
+            |> Option.map (fun bsa -> $"BSA {bsa |> Utils.ValueUnit.toString 3}")
             |> Option.defaultValue ""
         ]
         |> List.filter String.notEmpty

@@ -14,16 +14,14 @@ module Json =
     /// Serializes an object to a JSON string
     /// </summary>
     /// <param name="x">The object to serialize</param>
-    let serialize x =
-        JsonConvert.SerializeObject(x)
+    let serialize x = JsonConvert.SerializeObject(x)
 
 
     /// <summary>
     /// Deserializes a JSON string to an object
     /// </summary>
     /// <param name="s">The JSON string to deserialize</param>
-    let deSerialize<'T> (s: string) =
-        JsonConvert.DeserializeObject<'T>(s)
+    let deSerialize<'T> (s: string) = JsonConvert.DeserializeObject<'T>(s)
 
 
     /// <summary>
@@ -33,9 +31,7 @@ module Json =
     /// <param name="p">The path to the file</param>
     /// <param name="o">The object to serialize</param>
     let cache p o =
-        o
-        |> serialize
-        |> File.writeTextToFile p
+        o |> serialize |> File.writeTextToFile p
 
 
     /// <summary>
@@ -57,6 +53,4 @@ module Json =
     let getCache<'T> p =
         writeInfoMessage $"Reading cache: %s{p}"
 
-        File.readAllLines p
-        |> String.concat ""
-        |> deSerialize<'T>
+        File.readAllLines p |> String.concat "" |> deSerialize<'T>

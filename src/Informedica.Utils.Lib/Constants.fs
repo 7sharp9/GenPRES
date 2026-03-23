@@ -28,5 +28,4 @@ module Constants =
 
         /// print all HTML code symbols
         let printAllSymbols () =
-            HTMLCodeSymbols
-            |> Map.iter (fun k v -> printfn $"%s{k}: %s{v}")
+            HTMLCodeSymbols |> Map.iter (fun k v -> printfn $"%s{k}: %s{v}")

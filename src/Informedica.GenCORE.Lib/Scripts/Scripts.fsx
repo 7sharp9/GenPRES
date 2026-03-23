@@ -1,4 +1,3 @@
-
 #load "load.fsx"
 
 
@@ -8,11 +7,12 @@ module MeasureScripts =
 
     open Informedica.GenCore.Lib
 
-    3.<mg/dL> |> Conversions.Creatinine.toMicroMolePerLiter
-              |> Conversions.Creatinine.toMilliGramPerDeciLiter
+    3.<mg / dL>
+    |> Conversions.Creatinine.toMicroMolePerLiter
+    |> Conversions.Creatinine.toMilliGramPerDeciLiter
 
-    1.<mg/dL> |> Conversions.Urea.toMilliMolePerLiter
-    1.<mmol/L> |> Conversions.Urea.toMilliGramPerDeciLiter
+    1.<mg / dL> |> Conversions.Urea.toMilliMolePerLiter
+    1.<mmol / L> |> Conversions.Urea.toMilliGramPerDeciLiter
 
 
 module PatientScripts =
@@ -23,14 +23,12 @@ module PatientScripts =
     let fromAgeType = Patient.fromAgeType UnknownGender DateTime.Now
 
 
-
     let ageDto = AgeValue.Dto.dto ()
 
     ageDto.Years <- Some 157
     ageDto.Days <- Some 8
 
-    ageDto
-    |> AgeValue.Dto.fromDto
+    ageDto |> AgeValue.Dto.fromDto
 
 
     let weightDto = WeightValue.Dto.dto ()
@@ -38,12 +36,10 @@ module PatientScripts =
     weightDto.Weight <- 300m
     weightDto.WeightInKg <- false
 
-    weightDto
-    |> WeightValue.Dto.fromDto
+    weightDto |> WeightValue.Dto.fromDto
 
 
-    WeightValue.Validation.maxWeightGram
-    |> decimal
+    WeightValue.Validation.maxWeightGram |> decimal
 
 
     VenousAccess.Validation.validate "VenousAcces" "central"
@@ -59,10 +55,7 @@ module PatientScripts =
             false
 
 
-
-    let patDto =
-        Patient.unknown
-        |> Patient.Dto.toDto
+    let patDto = Patient.unknown |> Patient.Dto.toDto
 
 
     patDto.Weight.Calculation <-
@@ -87,15 +80,10 @@ module PatientScripts =
         | Error _ -> None
 
 
-    Department.pediatricDepartment "WKZ"
-    |> Department.toString
+    Department.pediatricDepartment "WKZ" |> Department.toString
 
 
-
-    "UMCU"
-    |> Department.adultICU
-    |> Department.toString
-    |> Department.fromString
+    "UMCU" |> Department.adultICU |> Department.toString |> Department.fromString
 
 
     Calculations.Age.ageToStringNL None None None None
@@ -111,13 +99,10 @@ module PatientScripts =
     PatientAge.adult
 
 
-    NewBorn |> fromAgeType
-    |> Patient.BSA.calcMosteller
+    NewBorn |> fromAgeType |> Patient.BSA.calcMosteller
 
 
-    Adult |> fromAgeType
-    |> Patient.Dto.toDto
-    |> Patient.Dto.fromDto
+    Adult |> fromAgeType |> Patient.Dto.toDto |> Patient.Dto.fromDto
 
 
     FullTerm
@@ -133,12 +118,11 @@ module PatientScripts =
 
     FullTerm
     |> AgeWeeksDays.fromGestation
-    |> Option.map  AgeWeeksDays.SetGet.getWeeks
+    |> Option.map AgeWeeksDays.SetGet.getWeeks
 
     37<week> |> GestationType.fromWeeks
     GestationType.max
     GestationType.min
-
 
 
     NewBorn
@@ -150,22 +134,15 @@ module PatientScripts =
     //|> Patient.toString DateTime.Now
 
 
-    NewBorn
-    |> fromAgeType
-    |> Patient.SetGet.getAge
-    |> PatientAge.toString
+    NewBorn |> fromAgeType |> Patient.SetGet.getAge |> PatientAge.toString
 
 
-    AgeValue.create (Some 0<year>) None None None
-    |> AgeValue.toString
+    AgeValue.create (Some 0<year>) None None None |> AgeValue.toString
 
     Calculations.Age.ageToStringNL (Some 0<year>) None None None
 
 
-    let newBornDto =
-        NewBorn
-        |> fromAgeType
-        |> Patient.Dto.toDto
+    let newBornDto = NewBorn |> fromAgeType |> Patient.Dto.toDto
 
 
     newBornDto.Age.Value.Years <- 0 |> Some
@@ -181,20 +158,19 @@ module PatientScripts =
     newBornDto
     |> Patient.Dto.fromDto
     |> function
-    | Ok p ->
-        p
-        |> Patient.SetGet.getAgeValue DateTime.Now
-        |> Option.map AgeValue.getAgeInDays
-        |> printfn "%A"
-        p
-        |> Patient.toString DateTime.Now
-    | _  -> []
+        | Ok p ->
+            p
+            |> Patient.SetGet.getAgeValue DateTime.Now
+            |> Option.map AgeValue.getAgeInDays
+            |> printfn "%A"
+
+            p |> Patient.toString DateTime.Now
+        | _ -> []
 
 
     Calculations.Age.postMenstrualAge 97<day> 40<week> 0<day>
 
     AgeType.normalValues
-
 
 
 module ValueUnitScripts =
@@ -225,7 +201,7 @@ module ValueUnitScripts =
     let w2 = 70000N |> ValueUnit.singleWithUnit Units.Weight.gram
 
     let h1 = 180N |> ValueUnit.singleWithUnit Units.Height.centiMeter
-    let h2 = (180N/100N) |> ValueUnit.singleWithUnit Units.Height.meter
+    let h2 = (180N / 100N) |> ValueUnit.singleWithUnit Units.Height.meter
 
     ValueUnit.Calculations.BSA.calcDuBois w1 h1
     ValueUnit.Calculations.BSA.calcMosteller w1 h1
@@ -248,19 +224,19 @@ module ValueUnitScripts =
     ValueUnit.Calculations.Age.adjusted (DateTime.Now.AddDays(-7)) DateTime.Now ds ws
 
 
-
     Calculations.Age.adjustedAge 1<day> 34<week> (DateTime.Now.AddDays(-7)) DateTime.Now
 
     DateTime.dateDiff (DateTime.Now.AddDays(-7)) DateTime.Now
 
     7<day> - (34<week> |> Conversions.weeksToDays)
 
-    let y, m, w, d = ValueUnit.Calculations.Age.fromBirthDate (DateTime(1965, 12, 7)) DateTime.Now
+    let y, m, w, d =
+        ValueUnit.Calculations.Age.fromBirthDate (DateTime(1965, 12, 7)) DateTime.Now
 
 
     ValueUnit.Calculations.Age.ageToString None (Some m) (Some w) (Some d)
     ValueUnit.Calculations.Age.ageToStringNL (Some y) None (Some w) (Some d)
-    ValueUnit.Calculations.Age.ageToStringNLShort (Some y) None  (Some w) (Some d)
+    ValueUnit.Calculations.Age.ageToStringNLShort (Some y) None (Some w) (Some d)
     ValueUnit.Calculations.Age.ageToStringNLShort None (Some m) (Some w) (Some d)
 
 
@@ -274,29 +250,17 @@ let foldMaximize = MinMax.foldMaximize true true
 // a Minimum
 
 [
-    MinMax.create
-        None
-        None
-    MinMax.create
-        None
-        (Some (1N |> ValueUnit.singleWithUnit Units.Count.times |> Limit.exclusive))
+    MinMax.create None None
+    MinMax.create None (Some(1N |> ValueUnit.singleWithUnit Units.Count.times |> Limit.exclusive))
 ]
 |> foldMaximize
 
 
 [
-    MinMax.create
-        None
-        (Some (10N |> ValueUnit.singleWithUnit Units.Mass.gram |> Limit.exclusive))
-    MinMax.create
-        None
-        (Some (2N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
-    MinMax.create
-        None
-        (Some (1N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
-    MinMax.create
-        None
-        (Some (2N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.inclusive))
+    MinMax.create None (Some(10N |> ValueUnit.singleWithUnit Units.Mass.gram |> Limit.exclusive))
+    MinMax.create None (Some(2N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
+    MinMax.create None (Some(1N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
+    MinMax.create None (Some(2N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.inclusive))
 
 ]
 |> foldMaximize
@@ -304,17 +268,15 @@ let foldMaximize = MinMax.foldMaximize true true
 
 [
     MinMax.create
-        (Some (1N |> ValueUnit.singleWithUnit Units.Mass.gram |> Limit.exclusive))
-        (Some (10N |> ValueUnit.singleWithUnit Units.Mass.gram |> Limit.exclusive))
+        (Some(1N |> ValueUnit.singleWithUnit Units.Mass.gram |> Limit.exclusive))
+        (Some(10N |> ValueUnit.singleWithUnit Units.Mass.gram |> Limit.exclusive))
     MinMax.create
-        (Some (1N |> ValueUnit.singleWithUnit Units.Mass.gram |> Limit.inclusive))
-        (Some (2N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
+        (Some(1N |> ValueUnit.singleWithUnit Units.Mass.gram |> Limit.inclusive))
+        (Some(2N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
+    MinMax.create None (Some(1N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
     MinMax.create
-        None
-        (Some (1N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
-    MinMax.create
-        (Some (1N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
-        (Some (2N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.inclusive))
+        (Some(1N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.exclusive))
+        (Some(2N |> ValueUnit.singleWithUnit Units.Mass.kiloGram |> Limit.inclusive))
 
 ]
 |> foldMaximize

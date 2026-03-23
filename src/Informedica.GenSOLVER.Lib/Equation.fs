@@ -1,7 +1,6 @@
 namespace Informedica.GenSolver.Lib
 
 
-
 /// Functions that handle the `Equation` type that
 /// either represents a `ProductEquation` </br>
 /// y = x1 \* x2 * ... \* xn </br>
@@ -27,20 +26,18 @@ module Equation =
         /// <summary>
         /// Get the string representation of a SolveResult
         /// </summary>
-        let toString = function
+        let toString =
+            function
             | Unchanged -> "Unchanged"
             | Changed cs ->
-                let toStr (var : Variable, props)  =
+                let toStr (var: Variable, props) =
                     $"""changes: {var.Name |> Variable.Name.toStringReplace true}: {props |> Set.map (Property.toString false) |> String.concat ", "}"""
-                if cs |> List.isEmpty then ""
+
+                if cs |> List.isEmpty then
+                    ""
                 else
-                    cs
-                    |> List.map toStr
-                    |> String.concat ", "
-            | Errored ms ->
-                ms
-                |> List.map string
-                |> String.concat ", "
+                    cs |> List.map toStr |> String.concat ", "
+            | Errored ms -> ms |> List.map string |> String.concat ", "
 
 
     /// <summary>
@@ -51,16 +48,11 @@ module Equation =
     /// is determined by the constructor **c**.
     /// </summary>
     let create c succ fail (y, xs) =
-        y::xs
-        |> List.filter (fun v ->
-            y::xs
-            |> List.filter (Variable.eqName v) |> List.length > 1)
+        y :: xs
+        |> List.filter (fun v -> y :: xs |> List.filter (Variable.eqName v) |> List.length > 1)
         |> function
-        | [] -> (y, xs) |> c |> succ
-        | duplicates ->
-            duplicates
-            |> Exceptions.EquationDuplicateVariables
-            |> fail
+            | [] -> (y, xs) |> c |> succ
+            | duplicates -> duplicates |> Exceptions.EquationDuplicateVariables |> fail
 
 
     /// <summary>
@@ -99,9 +91,10 @@ module Equation =
     /// Apply **fp** to a `ProductEquation` and
     /// **fs** to a `SumEquation`.
     /// </summary>
-    let apply fp fs = function
-        | ProductEquation (y,xs) -> fp y xs
-        | SumEquation (y, xs)    -> fs y xs
+    let apply fp fs =
+        function
+        | ProductEquation(y, xs) -> fp y xs
+        | SumEquation(y, xs) -> fs y xs
 
 
     /// <summary>
@@ -120,7 +113,7 @@ module Equation =
     /// Turn an `Equation` into a list of `Variable`
     /// </summary>
     let toVars =
-        let f y xs = y::xs
+        let f y xs = y :: xs
         apply f f
 
 
@@ -131,44 +124,38 @@ module Equation =
     /// <param name="eq">The equation</param>
     let count onlyMinMax eq =
         let vars = eq |> toVars
-        if vars |> List.forall Variable.isSolved then Int32.MaxValue
+
+        if vars |> List.forall Variable.isSolved then
+            Int32.MaxValue
         else
             let b =
-                let n =
-                    vars
-                    |> List.filter Variable.isSolved
-                    |> List.length
+                let n = vars |> List.filter Variable.isSolved |> List.length
                 (vars |> List.length) - n = 1
-            if b then -100
-            else
-                if onlyMinMax then
-                    if vars |> List.length <= 1 then 0
-                    else
-                        let incrCount =
-                            vars
-                            |> List.skip 1
-                            |> List.filter (fun var ->
-                               // prioritize increment calculations
-                               // when only min max to avoid loops
-                               var.Values
-                               |> ValueRange.getIncr
-                               |> Option.isSome ||
-                               var |> Variable.isSolved
-                            )
-                            |> List.length
-                        if (vars |> List.length) - incrCount = 1 then -50
-                        else
-                            if vars |> List.exists Variable.isSolved then -20
-                            else
-                                vars
-                                |> List.fold (fun (acc : int) v ->
-                                    (+) (v |> Variable.count) acc
-                                ) 0
+
+            if b then
+                -100
+            else if onlyMinMax then
+                if vars |> List.length <= 1 then
+                    0
                 else
-                    vars
-                    |> List.fold (fun (acc : int) v ->
-                        (+) (v |> Variable.count) acc
-                    ) 0
+                    let incrCount =
+                        vars
+                        |> List.skip 1
+                        |> List.filter (fun var ->
+                            // prioritize increment calculations
+                            // when only min max to avoid loops
+                            var.Values |> ValueRange.getIncr |> Option.isSome || var |> Variable.isSolved
+                        )
+                        |> List.length
+
+                    if (vars |> List.length) - incrCount = 1 then
+                        -50
+                    else if vars |> List.exists Variable.isSolved then
+                        -20
+                    else
+                        vars |> List.fold (fun (acc: int) v -> (+) (v |> Variable.count) acc) 0
+            else
+                vars |> List.fold (fun (acc: int) v -> (+) (v |> Variable.count) acc) 0
 
 
     /// <summary>
@@ -180,10 +167,12 @@ module Equation =
         //| _ ->
         eq
         |> toVars
-        |> List.fold (fun acc v ->
-            let c = v |> Variable.count
-            (if c = 0 then 1 else c) * acc
-        ) 1
+        |> List.fold
+            (fun acc v ->
+                let c = v |> Variable.count
+                (if c = 0 then 1 else c) * acc
+            )
+            1
 
 
     /// <summary>
@@ -196,8 +185,7 @@ module Equation =
         match eq |> toVars with
         | [] -> ""
         | [ _ ] -> ""
-        | y::xs ->
-            $"""{y |> varToString} = {xs |> List.map varToString |> String.concat op}"""
+        | y :: xs -> $"""{y |> varToString} = {xs |> List.map varToString |> String.concat op}"""
 
 
     /// <summary>
@@ -210,8 +198,7 @@ module Equation =
         match eq |> toVars with
         | [] -> ""
         | [ _ ] -> ""
-        | y::xs ->
-            $"""{y |> varToString} = {xs |> List.map varToString |> String.concat op}"""
+        | y :: xs -> $"""{y |> varToString} = {xs |> List.map varToString |> String.concat op}"""
 
 
     /// <summary>
@@ -224,6 +211,7 @@ module Equation =
             let y = y |> Variable.setNonZeroAndPositive
             let xs = xs |> List.map Variable.setNonZeroAndPositive
             (y, xs) |> c
+
         let fp = set ProductEquation
         let fs = set SumEquation
         eq |> apply fp fs
@@ -233,7 +221,8 @@ module Equation =
     /// Check whether an `Equation` contains
     /// a `Variable` **v**
     /// </summary>
-    let contains v = toVars >> (List.exists (Variable.eqName v))
+    let contains v =
+        toVars >> (List.exists (Variable.eqName v))
 
 
     /// <summary>
@@ -243,10 +232,9 @@ module Equation =
     let equals eq1 eq2 =
         let vrs1 = eq1 |> toVars
         let vrs2 = eq2 |> toVars
-        vrs1 |> List.forall (fun vr ->
-            vrs2 |> List.exists (Variable.eqName vr)) &&
-        ((eq1 |> isProduct) && (eq2 |> isProduct) ||
-         (eq1 |> isSum)     && (eq2 |> isSum))
+
+        vrs1 |> List.forall (fun vr -> vrs2 |> List.exists (Variable.eqName vr))
+        && ((eq1 |> isProduct) && (eq2 |> isProduct) || (eq1 |> isSum) && (eq2 |> isSum))
 
 
     /// <summary>
@@ -266,9 +254,7 @@ module Equation =
     /// and return the result as a list
     /// </summary>
     let findName n eq =
-        eq
-        |> toVars
-        |> List.filter (fun vr -> vr |> Variable.getName = n)
+        eq |> toVars |> List.filter (fun vr -> vr |> Variable.getName = n)
 
 
     /// <summary>
@@ -278,20 +264,20 @@ module Equation =
     let replace var eq =
         let r c v vs =
             let vs = vs |> List.replace (Variable.eqName v) v
-            c id (fun _ -> eq) ((vs |> List.head), (vs|> List.tail))
-        let fp y xs = r createProductEq var (y::xs)
-        let fs y xs = r createSumEq var (y::xs)
-        eq |> apply fp fs
+            c id (fun _ -> eq) ((vs |> List.head), (vs |> List.tail))
 
+        let fp y xs = r createProductEq var (y :: xs)
+        let fs y xs = r createSumEq var (y :: xs)
+        eq |> apply fp fs
 
 
     /// <summary>
     /// Check whether an equation is solved
     /// </summary>
-    let isSolved = function
-        | ProductEquation (y, xs)
-        | SumEquation (y, xs) ->
-            y::xs |> List.forall Variable.isSolved
+    let isSolved =
+        function
+        | ProductEquation(y, xs)
+        | SumEquation(y, xs) -> y :: xs |> List.forall Variable.isSolved
 
 
     /// <summary>
@@ -300,14 +286,14 @@ module Equation =
     /// the variables are unrestricted, then the equation
     /// is not solvable but is also not solved.
     /// </summary>
-    let isSolvable = function
-        | ProductEquation (y, xs)
-        | SumEquation (y, xs) ->
-            let es = y::xs
-            es |> List.exists Variable.isSolvable &&
-            es |> List.filter Variable.isUnrestricted
-               |> List.length > 1
-               |> not
+    let isSolvable =
+        function
+        | ProductEquation(y, xs)
+        | SumEquation(y, xs) ->
+            let es = y :: xs
+
+            es |> List.exists Variable.isSolvable
+            && es |> List.filter Variable.isUnrestricted |> List.length > 1 |> not
 
 
     /// <summary>
@@ -316,40 +302,42 @@ module Equation =
     /// <param name="onlyMinIncrMax">Only calculate min/incr/max</param>
     /// <param name="eq">The equation</param>
     let check onlyMinIncrMax eq =
-        let isSub op (y : Variable) (xs : Variable list) =
+        let isSub op (y: Variable) (xs: Variable list) =
             match xs with
             | [] -> true
-            | _  ->
+            | _ ->
                 let toStr = ValueRange.toString true
-                if y |> Variable.isValSet &&
-                   xs |>  List.forall Variable.isValSet then
 
-                    let b =
-                        y.Values
-                        |> ValueRange.valueSetIsSubsetOf (xs |> List.reduce op).Values
+                if y |> Variable.isValSet && xs |> List.forall Variable.isValSet then
+
+                    let b = y.Values |> ValueRange.valueSetIsSubsetOf (xs |> List.reduce op).Values
+
                     if not b then
                         $"not a subset: y:{y.Values |> toStr}  xs:{(xs |> List.reduce op).Values |> toStr}"
                         |> writeErrorMessage
 
                     b
-                else true
+                else
+                    true
 
         if not onlyMinIncrMax && (eq |> isSolvable || eq |> isSolved) then
             match eq with
-            | ProductEquation (y, xs) -> xs |> isSub (^*) y
-            | SumEquation (y, xs) -> xs |> isSub (^+) y
+            | ProductEquation(y, xs) -> xs |> isSub (^*) y
+            | SumEquation(y, xs) -> xs |> isSub (^+) y
 
-        else true
+        else
+            true
 
 
     /// <summary>
     /// Get the string representation of a calculation
     /// </summary>
     let calculationToString b op1 op2 y xs =
-        let varToStr =
-            if b then Variable.toString b else Variable.toStringShort
+        let varToStr = if b then Variable.toString b else Variable.toStringShort
 
-        let opToStr op  = $" {op |> Variable.Operators.toString} "
+        let opToStr op =
+            $" {op |> Variable.Operators.toString} "
+
         let cost = xs |> List.map Variable.count |> List.reduce (*)
         let x1 = xs |> List.head
         let xs = xs |> List.filter (fun x -> x.Name <> x1.Name)
@@ -365,54 +353,50 @@ module Equation =
         // op1 = (+) and op2 = (-)
         let calc op1 op2 xs =
             match xs with
-            | []    -> None
+            | [] -> None
             | [ x ] -> Some x
-            | y::xs ->
-                y |> op2 <| (xs |> List.reduce op1)
-                |> Some
+            | y :: xs -> y |> op2 <| (xs |> List.reduce op1) |> Some
 
         // optimization to skip the most expensive calculation
         // let c = vars |> List.length
 
         vars
-        |> List.fold (fun (n, acc) vars ->
-            let n = n + 1
+        |> List.fold
+            (fun (n, acc) vars ->
+                let n = n + 1
 
-            if acc |> Option.isSome then n, acc
-            else
-                match vars with
-                | _, []
-                | _, [ _ ] -> n, acc
-                | i, y::xs ->
-                    // skip calculation if the variable is already solved
-                    // or if this is the last calculation (i.e., previous calculations
-                    // where unchanged)
-                    (*
+                if acc |> Option.isSome then
+                    n, acc
+                else
+                    match vars with
+                    | _, []
+                    | _, [ _ ] -> n, acc
+                    | i, y :: xs ->
+                        // skip calculation if the variable is already solved
+                        // or if this is the last calculation (i.e., previous calculations
+                        // where unchanged)
+                        (*
                     if y |> Variable.isSolved ||
                        n = c && c > 2 && y |> Variable.hasValues then None
                     *)
-                    if y |> Variable.isSolved then None
-                    else
-                        let op2 = if i = 0 then op1 else op2
-                        // log starting the calculation
-                        (op1, op2, y, xs)
-                        |> Events.EquationStartCalculation
-                        |> Logger.logDebug log
+                        if y |> Variable.isSolved then
+                            None
+                        else
+                            let op2 = if i = 0 then op1 else op2
+                            // log starting the calculation
+                            (op1, op2, y, xs) |> Events.EquationStartCalculation |> Logger.logDebug log
 
-                        xs
-                        |> calc op1 op2
-                    |> function
-                        | None ->
-                            // log finishing the calculation
-                            (y::xs, false)
-                            |> Events.EquationFinishedCalculation
-                            |> Logger.logDebug log
+                            xs |> calc op1 op2
+                        |> function
+                            | None ->
+                                // log finishing the calculation
+                                (y :: xs, false) |> Events.EquationFinishedCalculation |> Logger.logDebug log
 
-                            n, None
-                        | Some var ->
-                            let yNew = y @<- var
+                                n, None
+                            | Some var ->
+                                let yNew = y @<- var
 
-                            (*
+                                (*
                             let s = y.Name |> Name.toString
                             if s.Contains("samenstelling c.gluc 10%]_orb_qty") then
                                 printfn "\n=== comparing"
@@ -421,21 +405,18 @@ module Equation =
                                 printfn ""
                             *)
 
-                            if yNew <> y then
-                                // log finishing the calculation
-                                ([yNew], true)
-                                |> Events.EquationFinishedCalculation
-                                |> Logger.logDebug log
+                                if yNew <> y then
+                                    // log finishing the calculation
+                                    ([ yNew ], true) |> Events.EquationFinishedCalculation |> Logger.logDebug log
 
-                                n, Some yNew
-                            else
-                                // log finishing the calculation
-                                ([], false)
-                                |> Events.EquationFinishedCalculation
-                                |> Logger.logDebug log
+                                    n, Some yNew
+                                else
+                                    // log finishing the calculation
+                                    ([], false) |> Events.EquationFinishedCalculation |> Logger.logDebug log
 
-                                n, None
-        ) (0, None)
+                                    n, None
+            )
+            (0, None)
         |> snd
 
 
@@ -444,37 +425,26 @@ module Equation =
     [<TailCall>]
     let rec private loop log onlyMinIncrMax op1 op2 acc vars =
         let vars =
-            if onlyMinIncrMax then vars
+            if onlyMinIncrMax then
+                vars
             else
                 vars
-                |> List.sortBy(fun (_, xs) ->
-                    xs
-                    |> List.tail
-                    |> List.sumBy Variable.count
-                )
+                |> List.sortBy (fun (_, xs) -> xs |> List.tail |> List.sumBy Variable.count)
 
         match calcVars log op1 op2 vars with
         | None -> acc, vars
         | Some var ->
             let vars =
                 vars
-                |> List.map (fun (i, xs) ->
-                    i,
-                    xs |> List.replace (Variable.eqName var) var
-                )
+                |> List.map (fun (i, xs) -> i, xs |> List.replace (Variable.eqName var) var)
                 |> fun vars ->
-                    if onlyMinIncrMax then vars
+                    if onlyMinIncrMax then
+                        vars
                     else
                         vars
-                        |> List.sortBy(fun (_, xs) ->
-                            xs
-                            |> List.tail
-                            |> List.map Variable.count
-                            |> List.reduce (*)
-                        )
-            let acc =
-                acc
-                |> List.replaceOrAdd (Variable.eqName var) var
+                        |> List.sortBy (fun (_, xs) -> xs |> List.tail |> List.map Variable.count |> List.reduce (*))
+
+            let acc = acc |> List.replaceOrAdd (Variable.eqName var) var
 
             loop log onlyMinIncrMax op1 op2 acc vars
 
@@ -487,26 +457,25 @@ module Equation =
         // op1 for the first var and the reduced list
         // i.e., a = b + c + d -> b = a - (c + d)
         // op1 = (+) and op2 = (-)
-        if eq |> isSolved then eq, Unchanged
+        if eq |> isSolved then
+            eq, Unchanged
         else
             // log starting the equation solve
-            (onlyMinIncrMax, eq)
-            |> Events.EquationStartedSolving
-            |> Logger.logDebug log
+            (onlyMinIncrMax, eq) |> Events.EquationStartedSolving |> Logger.logDebug log
 
             // get the vars and the matching operators
             let vars, op1, op2 =
                 match eq with
-                | ProductEquation (y, xs) ->
+                | ProductEquation(y, xs) ->
                     if onlyMinIncrMax then
-                        y::xs, (@*), (@/)
+                        y :: xs, (@*), (@/)
                     else
-                        y::xs, (^*), (^/)
-                | SumEquation (y, xs) ->
+                        y :: xs, (^*), (^/)
+                | SumEquation(y, xs) ->
                     if onlyMinIncrMax then
-                        y::xs, (@+), (@-)
+                        y :: xs, (@+), (@-)
                     else
-                        y::xs, (^+), (^-)
+                        y :: xs, (^+), (^-)
             // reorder the vars such that
             // a = b + d becomes a list representing
             // [ a = b + d; b = a - d; d = a - b ]
@@ -516,40 +485,35 @@ module Equation =
             vars
             |> loop log onlyMinIncrMax op1 op2 []
             |> fun (changed, vars) ->
-                if changed |> List.isEmpty then eq, Unchanged
+                if changed |> List.isEmpty then
+                    eq, Unchanged
                 else
                     // calculate which vars are changed from the original eq
                     let solveResult =
                         let vars = eq |> toVars
+
                         changed
                         |> List.map (fun v2 ->
                             vars
                             |> List.tryFind (Variable.eqName v2)
                             |> function
-                            | Some v1 ->
-                                v2, v2.Values
-                                |> Variable.ValueRange.diffWith v1.Values
-                            | None ->
-                                $"cannot find {v2}! in {vars}!"
-                                |> failwith
+                                | Some v1 -> v2, v2.Values |> Variable.ValueRange.diffWith v1.Values
+                                | None -> $"cannot find {v2}! in {vars}!" |> failwith
                         )
                         |> List.filter (snd >> Set.isEmpty >> not)
                         |> Changed
 
                     let y, xs =
                         let vars = vars |> List.find (fst >> (=) 0) |> snd
-                        vars |> List.head,
-                        vars |> List.tail
+                        vars |> List.head, vars |> List.tail
 
                     (match eq with
-                    | ProductEquation _ -> createProductEqExc (y, xs)
-                    | SumEquation _ -> createSumEqExc (y, xs)
-                    , solveResult)
+                     | ProductEquation _ -> createProductEqExc (y, xs)
+                     | SumEquation _ -> createSumEqExc (y, xs)
+                     , solveResult)
                     |> fun (eq, sr) ->
                         // log finishing equation solving
-                        (eq, sr)
-                        |> Events.EquationFinishedSolving
-                        |> Logger.logDebug log
+                        (eq, sr) |> Events.EquationFinishedSolving |> Logger.logDebug log
 
                         eq, sr
 
@@ -566,13 +530,10 @@ module Equation =
     let solve onlyMinIncrMax log eq =
         try
             solve_ onlyMinIncrMax log eq
-        with
-        | Exceptions.SolverException errs ->
-            errs
-            |> List.iter (Logger.logError log)
+        with Exceptions.SolverException errs ->
+            errs |> List.iter (Logger.logError log)
 
             eq, Errored errs
-
 
 
     module Dto =
@@ -580,17 +541,25 @@ module Equation =
         type VariableDto = Variable.Dto.Dto
 
         /// `Dto` for an `Equation`
-        type Dto = { Vars: VariableDto[]; IsProdEq: bool }
+        type Dto =
+            {
+                Vars: VariableDto[]
+                IsProdEq: bool
+            }
 
         /// Create a `Dto` with `vars` (variable dto array)
         /// that is either a `ProductEquation` or a `SumEquation`
-        let create isProd vars  = { Vars = vars; IsProdEq = isProd }
+        let create isProd vars =
+            {
+                Vars = vars
+                IsProdEq = isProd
+            }
 
         /// Create a `ProductEquation` `Dto`
         let createProd = create true
 
         /// Create a `SumEquation` `Dto`
-        let createSum  = create false
+        let createSum = create false
 
         /// Return the `string` representation of a `Dto`
         let toString exact (dto: Dto) =
@@ -600,10 +569,11 @@ module Equation =
             match dto.Vars |> Array.toList with
             | [] -> ""
             | [ _ ] -> ""
-            | y::xs ->
+            | y :: xs ->
                 let s =
-                    $"%s{y |> varToString} = " +
-                    (xs |> List.fold (fun s v -> s + (v |> varToString) + " " + op + " ") "")
+                    $"%s{y |> varToString} = "
+                    + (xs |> List.fold (fun s v -> s + (v |> varToString) + " " + op + " ") "")
+
                 s.Substring(0, s.Length - 2)
 
 
@@ -614,21 +584,22 @@ module Equation =
 
             match dto.Vars |> Array.toList with
             | [] -> Exceptions.EquationEmptyVariableList |> fail
-            | y::xs ->
+            | y :: xs ->
                 let y = y |> Variable.Dto.fromDto
                 let e = (y, xs |> List.map Variable.Dto.fromDto)
 
                 if dto.IsProdEq then
-                    e
-                    |> createProductEq succ fail
+                    e |> createProductEq succ fail
                 else
-                    e
-                    |> createSumEq succ fail
+                    e |> createSumEq succ fail
 
         /// Create a `Dto` from an `Equation` **e**
         let toDto e =
             let c isProd y xs =
-                { Vars = y::xs |> List.map Variable.Dto.toDto |> List.toArray; IsProdEq = isProd }
+                {
+                    Vars = y :: xs |> List.map Variable.Dto.toDto |> List.toArray
+                    IsProdEq = isProd
+                }
 
             let fp = c true
             let fs = c false

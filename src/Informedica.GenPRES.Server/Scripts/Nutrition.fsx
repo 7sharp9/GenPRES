@@ -1,4 +1,3 @@
-
 #load "load.fsx"
 
 #time
@@ -12,8 +11,6 @@ open Informedica.ZIndex.Lib
 
 Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
 Environment.SetEnvironmentVariable(FilePath.GENPRES_PROD, "1")
-
-
 
 
 let dataUrl = "1rfOo5UjGoVHT5h-bJxR7FS-Qgz4faRrNGLeu2Yj8SS8" //Environment.GetEnvironmentVariable("GENPRES_URL_ID")
@@ -62,9 +59,9 @@ type AssortmentProduct =
         /// The generic name
         Generic: string
         /// The TallMan alternative name
-        TallMan : string
+        TallMan: string
         /// The Divisibility of the product
-        Divisible : int
+        Divisible: int
         /// Use generic name
         UseGenName: bool
         /// Use form

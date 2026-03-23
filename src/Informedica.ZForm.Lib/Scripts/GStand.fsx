@@ -1,5 +1,3 @@
-
-
 #load "load.fsx"
 
 #time
@@ -35,12 +33,21 @@ GStand.createDoseRules config None None None None "paracetamol" "zetpil" "rectaa
 open Informedica.ZIndex.Lib
 
 
-{ Patient = { Age = Some 12.
-              Weight = Some 10.
-              BSA = None }
-  Product = GenericFormRoute { Generic = "paracetamol"
-                               Form = "zetpil"
-                               Route = "rectaal" } }
+{
+    Patient =
+        {
+            Age = Some 12.
+            Weight = Some 10.
+            BSA = None
+        }
+    Product =
+        GenericFormRoute
+            {
+                Generic = "paracetamol"
+                Form = "zetpil"
+                Route = "rectaal"
+            }
+}
 |> RuleFinder.find []
 //|> Array.skip 1
 //|> Array.take 1

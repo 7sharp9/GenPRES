@@ -13,14 +13,17 @@ module Mapping =
 
     module Constants =
 
-        let [<Literal>] unitsSheet = "Units"
+        [<Literal>]
+        let unitsSheet = "Units"
 
-        let [<Literal>] routesSheet = "Routes"
+        [<Literal>]
+        let routesSheet = "Routes"
 
-        let [<Literal>] validFormsSheet = "ValidForms"
+        [<Literal>]
+        let validFormsSheet = "ValidForms"
 
-        let [<Literal>] formRouteSheet = "FormRoute"
-
+        [<Literal>]
+        let formRouteSheet = "FormRoute"
 
 
     let getData dataUrlId sheet f =
@@ -28,12 +31,7 @@ module Mapping =
             Web.getDataFromSheet dataUrlId sheet
             |> fun data ->
                 match data |> Array.tryHead with
-                | None ->
-                    [
-                        ("Sheet is empty or not found", None)
-                        |> ErrorMsg
-                    ]
-                    |> Error
+                | None -> [ ("Sheet is empty or not found", None) |> ErrorMsg ] |> Error
                 | Some h ->
                     let getStringColumn = Csv.getStringColumn h
                     let getFloatOptColumn = Csv.getFloatOptionColumn h
@@ -47,8 +45,8 @@ module Mapping =
                         f getString getFloat
                     )
                     |> Ok
-        with
-        | exn -> GenFormResult.createError "getData" exn
+        with exn ->
+            GenFormResult.createError "getData" exn
 
 
     let getRouteMapping dataUrlId =
@@ -59,7 +57,6 @@ module Mapping =
             }
         |> getData dataUrlId Constants.routesSheet
         |> GenFormResult.mapErrorSource "getRouteMapping"
-
 
 
     let getUnitMapping dataUrlId =
@@ -74,38 +71,39 @@ module Mapping =
         |> GenFormResult.mapErrorSource "getUnitMapping"
 
 
-
-    let mapUnit (mapping : UnitMapping array) s =
-        if s |> String.isNullOrWhiteSpace then None
+    let mapUnit (mapping: UnitMapping array) s =
+        if s |> String.isNullOrWhiteSpace then
+            None
         else
             let s = s |> String.trim
+
             mapping
             |> Array.tryFind (fun r ->
-                r.Long |> String.equalsCapInsens s ||
-                r.Short |> String.equalsCapInsens s ||
-                r.MV |> String.equalsCapInsens s
+                r.Long |> String.equalsCapInsens s
+                || r.Short |> String.equalsCapInsens s
+                || r.MV |> String.equalsCapInsens s
             )
             |> function
                 | Some r -> $"{r.Short}[{r.Group}]" |> Units.fromString
                 | None -> None
 
 
-    let mapRoute (mapping : RouteMapping array) s =
-        if s |> String.isNullOrWhiteSpace then None
+    let mapRoute (mapping: RouteMapping array) s =
+        if s |> String.isNullOrWhiteSpace then
+            None
         else
             let s = s |> String.trim
+
             mapping
-            |> Array.tryFind (fun r ->
-                r.Long |> String.equalsCapInsens s ||
-                r.Short |> String.equalsCapInsens s
-            )
+            |> Array.tryFind (fun r -> r.Long |> String.equalsCapInsens s || r.Short |> String.equalsCapInsens s)
             |> Option.map _.Long
 
 
     let eqsRoute routeMapping r1 r2 =
         let mapRoute = mapRoute routeMapping
 
-        if r1 |> Option.isNone then true
+        if r1 |> Option.isNone then
+            true
         else
             match r1.Value |> mapRoute, r2 |> mapRoute with
             | Some r1, Some r2 -> r1 = r2
@@ -125,19 +123,22 @@ module Mapping =
                 Unit = un
                 DoseUnit = getStr "DoseUnit" |> mapUnit |> Option.defaultValue NoUnit
                 MinDoseQty =
-                    if du = NoUnit then None
+                    if du = NoUnit then
+                        None
                     else
                         getFlt "MinDoseQty"
                         |> Option.bind BigRational.fromFloat
                         |> Option.map (ValueUnit.singleWithUnit du)
                 MaxDoseQty =
-                    if du = NoUnit then None
+                    if du = NoUnit then
+                        None
                     else
                         getFlt "MaxDoseQty"
                         |> Option.bind BigRational.fromFloat
                         |> Option.map (ValueUnit.singleWithUnit du)
                 MinDoseQtyPerKg =
-                    if du = NoUnit then None
+                    if du = NoUnit then
+                        None
                     else
                         let du = du |> Units.per Units.Weight.kiloGram
 
@@ -145,16 +146,15 @@ module Mapping =
                         |> Option.bind BigRational.fromFloat
                         |> Option.map (ValueUnit.singleWithUnit du)
                 MaxDoseQtyPerKg =
-                    if du = NoUnit then None
+                    if du = NoUnit then
+                        None
                     else
                         let du = du |> Units.per Units.Weight.kiloGram
 
                         getFlt "MaxDoseQtyKg"
                         |> Option.bind BigRational.fromFloat
                         |> Option.map (ValueUnit.singleWithUnit du)
-                Divisibility =
-                    getFlt "Divisible"
-                    |> Option.bind BigRational.fromFloat
+                Divisibility = getFlt "Divisible" |> Option.bind BigRational.fromFloat
                 Timed = getStr "Timed" |> String.equalsCapInsens "true"
                 Reconstitute = getStr "Reconstitute" |> String.equalsCapInsens "true"
                 IsSolution = getStr "IsSolution" |> String.equalsCapInsens "true"
@@ -163,34 +163,36 @@ module Mapping =
         |> GenFormResult.mapErrorSource "getFormRoutes"
 
 
-    let filterFormRoutes routeMapping (mapping : FormRoute []) rte form unt =
+    let filterFormRoutes routeMapping (mapping: FormRoute[]) rte form unt =
         let mapRoute = mapRoute routeMapping
 
         mapping
         |> Array.filter (fun sr ->
             let eqsRte =
-                rte |> String.isNullOrWhiteSpace ||
-                rte |> String.trim |> String.equalsCapInsens sr.Route ||
-                sr.Route |> mapRoute |> Option.map (String.equalsCapInsens (rte |> String.trim)) |> Option.defaultValue false
-            let eqsForm = form |> String.isNullOrWhiteSpace || form |> String.trim |> String.equalsCapInsens sr.Form
-            let eqsUnt =
-                unt = NoUnit ||
-                unt |> Units.eqsUnit sr.Unit
+                rte |> String.isNullOrWhiteSpace
+                || rte |> String.trim |> String.equalsCapInsens sr.Route
+                || sr.Route
+                   |> mapRoute
+                   |> Option.map (String.equalsCapInsens (rte |> String.trim))
+                   |> Option.defaultValue false
+
+            let eqsForm =
+                form |> String.isNullOrWhiteSpace
+                || form |> String.trim |> String.equalsCapInsens sr.Form
+
+            let eqsUnt = unt = NoUnit || unt |> Units.eqsUnit sr.Unit
             eqsRte && eqsForm && eqsUnt
         )
 
 
     let requiresReconstitution routeMapping formRoutes (rtes, unt, form) =
         rtes
-        |> Array.collect (fun rte ->
-            filterFormRoutes routeMapping formRoutes rte form unt
-        )
+        |> Array.collect (fun rte -> filterFormRoutes routeMapping formRoutes rte form unt)
         |> Array.map _.Reconstitute
         |> Array.exists id
 
 
     let getValidForms dataUrlId =
-        fun get _ ->
-            get "Form"
+        fun get _ -> get "Form"
         |> getData dataUrlId Constants.validFormsSheet
         |> GenFormResult.mapErrorSource "getValidFormResult"

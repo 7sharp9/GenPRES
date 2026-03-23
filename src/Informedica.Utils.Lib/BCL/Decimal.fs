@@ -16,24 +16,24 @@ module Decimal =
     let Ten = 10m
 
 
-
     //----------------------------------------------------------------------------
     // Parsing
     //----------------------------------------------------------------------------
 
     /// Get the double value of a string
     /// using `InvariantCulture`
-    let parse (s : string) = Decimal.Parse(s, CultureInfo.InvariantCulture)
+    let parse (s: string) =
+        Decimal.Parse(s, CultureInfo.InvariantCulture)
 
 
     /// Get a `float Option` from a string
-    let tryParse (s : string) =
+    let tryParse (s: string) =
         let style = NumberStyles.Any
         let cult = CultureInfo.InvariantCulture
+
         match Decimal.TryParse(s, style, cult) with
         | true, v -> Some v
         | false, _ -> None
-
 
 
     //----------------------------------------------------------------------------
@@ -61,10 +61,13 @@ module Decimal =
     /// If n < 0 then n = 0 is used.
     let getPrecision n (d: Decimal) =
         let n = if n < 0 then 0 else n
-        if d = 0m || n = 0 then n
+
+        if d = 0m || n = 0 then
+            n
         else
             let absF = abs d
             let s = absF.ToString("G", CultureInfo.InvariantCulture)
+
             if s.Contains "E" then
                 let eIndex = s.IndexOf("E") + 2
                 let h = int s[eIndex..]
@@ -74,7 +77,9 @@ module Decimal =
                 let leftPart = parts[0]
                 let p = n - (if leftPart = "0" then 0 else leftPart.Length)
                 let p = if p < 0 then 0 else p
-                if int leftPart > 0 then p
+
+                if int leftPart > 0 then
+                    p
                 else
                     let rightPart = parts[1]
                     let zeroCount = rightPart |> Seq.takeWhile (fun c -> c = '0') |> Seq.length
@@ -96,9 +101,7 @@ module Decimal =
     /// etc
     /// If n < 0 then the value is not changed.
     let fixPrecision n (d: decimal) =
-        if n < 0 then d
-        else
-            Math.Round(d, d |> getPrecision n)
+        if n < 0 then d else Math.Round(d, d |> getPrecision n)
 
 
     //----------------------------------------------------------------------------
@@ -107,23 +110,25 @@ module Decimal =
 
 
     /// Returns a string representation of a decimal in Dutch format
-    let toStringNumberNL p (d: decimal) = 
+    let toStringNumberNL p (d: decimal) =
         let invariantStr = d.ToString("F" + p, CultureInfo.InvariantCulture)
         let parts = invariantStr.Split('.')
         let integerPart = parts[0]
         let decimalPart = if parts.Length > 1 then parts[1] else ""
-        
+
         // Add thousands separators
-        let formattedInteger = 
+        let formattedInteger =
             integerPart
             |> Seq.rev
             |> Seq.chunkBySize 3
             |> Seq.map (Seq.rev >> Seq.map string >> String.concat "")
             |> Seq.rev
             |> String.concat " "
-        
-        if String.IsNullOrEmpty(decimalPart) then formattedInteger
-        else formattedInteger + "," + decimalPart
+
+        if String.IsNullOrEmpty(decimalPart) then
+            formattedInteger
+        else
+            formattedInteger + "," + decimalPart
 
     /// Returns a string representation of a decimal in Dutch format without trailing zeros
     let toStringNumberNLWithoutTrailingZeros =

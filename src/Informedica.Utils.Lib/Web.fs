@@ -1,7 +1,6 @@
 namespace Informedica.Utils.Lib
 
 
-
 module Web =
 
 
@@ -21,8 +20,6 @@ module Web =
             $"https://docs.google.com/spreadsheets/d/%s{id}/gviz/tq?tqx=out:csv&sheet=%s{sheet}"
 
 
-
-
         /// Download a sheet from a Google spreadsheet, returning an error string
         /// if the HTTP response is not successful (e.g. 404, 403, or redirect to
         /// Google sign-in when the spreadsheet is private or the ID is stale).
@@ -33,6 +30,7 @@ module Web =
 
                     if not resp.IsSuccessStatusCode then
                         let status = int resp.StatusCode
+
                         return
                             Error
                                 $"HTTP {status} ({resp.StatusCode}) downloading sheet.\n\
@@ -61,9 +59,7 @@ module Web =
 
                 return
                     result
-                    |> Result.mapError (fun err ->
-                        $"Failed to load sheet '{sheet}' using URL ID '{dataUrlId}'.\n{err}"
-                    )
+                    |> Result.mapError (fun err -> $"Failed to load sheet '{sheet}' using URL ID '{dataUrlId}'.\n{err}")
                     |> Result.bind (fun data ->
                         try
                             Ok(parser data)

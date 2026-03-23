@@ -15,8 +15,9 @@ module Parser =
     let splitRecord pl (s: string) =
         pl
         |> List.mapi (fun i p ->
-                let start = pl |> List.take i |> List.sum
-                s.Substring(start, p))
+            let start = pl |> List.take i |> List.sum
+            s.Substring(start, p)
+        )
         |> List.toArray
 
 
@@ -33,10 +34,10 @@ module Parser =
             |> Array.filter (String.length >> ((<) 10))
             |> Array.map (splitRecord posl)
 
-        if pick |> Seq.isEmpty then data
-        else
+        if pick |> Seq.isEmpty then
             data
-            |> Array.map (Array.pickArray pick)
+        else
+            data |> Array.map (Array.pickArray pick)
 
 
     /// <summary>
@@ -44,11 +45,13 @@ module Parser =
     /// </summary>
     let isDecimalFormat s =
         let s = s |> String.replace "(" "" |> String.replace ")" ""
+
         if s |> String.contains "," then
             match s |> String.splitAt ',' with
-            | [|_;d|] -> d |> Int32.parse > 0
+            | [| _; d |] -> d |> Int32.parse > 0
             | _ -> false
-        else false
+        else
+            false
 
 
     /// <summary>
@@ -60,19 +63,23 @@ module Parser =
     let parseValue st sf (s: string) =
         if st = "N" then
             let vf = sf |> String.replace "(" "" |> String.replace ")" ""
-            match vf |> String.splitAt ','  with
-            | [|n;d|] ->
+
+            match vf |> String.splitAt ',' with
+            | [| n; d |] ->
                 let n = n |> Int32.parse
                 let d = d |> Int32.parse
-                if d = 0 then s
+
+                if d = 0 then
+                    s
                 else
                     (s |> String.subString 0 n) + "." + (s |> String.subString n d)
             | _ ->
                 match vf |> String.splitAt '+' with
-                | [|n;d|] ->
+                | [| n; d |] ->
                     let n = n |> Int32.parse
                     let d = d |> Int32.parse
                     s |> String.subString d n
                 | _ -> s
 
-        else s
+        else
+            s

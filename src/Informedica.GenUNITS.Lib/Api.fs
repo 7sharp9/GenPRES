@@ -21,9 +21,9 @@ module Api =
     /// </example>
     let eval s =
         let addSpace s = " " + s + " "
-        let mults  = "*" |> addSpace
-        let divs   = "/" |> addSpace
-        let adds   = "+" |> addSpace
+        let mults = "*" |> addSpace
+        let divs = "/" |> addSpace
+        let adds = "+" |> addSpace
         let subtrs = "-" |> addSpace
 
         let del = "#"
@@ -32,10 +32,11 @@ module Api =
         let fromStr s =
             match s |> ValueUnit.fromString with
             | Ok vu -> Some vu
-            | Error _  -> None
+            | Error _ -> None
 
         let opts s =
             let s = s |> String.trim
+
             match s with
             | _ when s = "*" -> (*)
             | _ when s = "/" -> (/)
@@ -49,22 +50,22 @@ module Api =
             else
                 match terms with
                 | [] -> acc |> Option.get
-                | os::vus::rest ->
+                | os :: vus :: rest ->
                     let op = os |> opts
+
                     let vu =
                         match vus |> fromStr with
                         | Some vu -> ((acc |> Option.get) |> op <| vu) |> Some
                         | None -> None
 
-                    rest
-                    |> eval' vu
+                    rest |> eval' vu
 
                 | _ -> failwith <| sprintf "Cannot evaluate string %s" (terms |> String.concat ",")
 
         s
-        |> String.replace mults  (mults  |> addDel)
-        |> String.replace divs   (divs   |> addDel)
-        |> String.replace adds   (adds   |> addDel)
+        |> String.replace mults (mults |> addDel)
+        |> String.replace divs (divs |> addDel)
+        |> String.replace adds (adds |> addDel)
         |> String.replace subtrs (subtrs |> addDel)
         |> String.split del
         |> eval' None
@@ -82,8 +83,8 @@ module Api =
             s1
             |> ValueUnit.fromString
             |> function
-            | Error _ -> None
-            | Ok vu  -> vu |> Some
+                | Error _ -> None
+                | Ok vu -> vu |> Some
 
         match vu, s2 |> Units.fromString with
         | Some vu, Some u ->

@@ -1,5 +1,3 @@
-
-
 #load "../../../scripts/Expecto.fsx"
 #load "load.fsx"
 
@@ -15,9 +13,7 @@
 #load "../Tests.fs"
 
 
-
 open Expecto
 open Informedica.GenCore.Tests
 
-Tests.tests
-|> Expecto.run
+Tests.tests |> Expecto.run

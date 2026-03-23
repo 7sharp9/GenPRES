@@ -24,19 +24,16 @@ module Check =
     let unitToString = Units.toStringDutchShort >> String.removeBrackets
 
 
-    let checkAdjustUnit (mm1: MinMax) (mm2 : MinMax) =
+    let checkAdjustUnit (mm1: MinMax) (mm2: MinMax) =
         let getAdj mm =
-            match mm.Min |> Option.map Limit.getValueUnit,
-                  mm.Max |> Option.map Limit.getValueUnit with
+            match mm.Min |> Option.map Limit.getValueUnit, mm.Max |> Option.map Limit.getValueUnit with
             | Some vu, _
             | _, Some vu ->
                 match vu |> ValueUnit.getUnit |> ValueUnit.getUnits with
                 | [ _; adj ]
-                | [ _; adj; _ ] 
-                | [ _; _; adj ] when
-                    adj = Units.Weight.kiloGram ||
-                    adj = Units.Weight.gram ||
-                    adj = Units.BSA.m2 -> Some adj
+                | [ _; adj; _ ]
+                | [ _; _; adj ] when adj = Units.Weight.kiloGram || adj = Units.Weight.gram || adj = Units.BSA.m2 ->
+                    Some adj
                 | _ -> None
             | _ -> None
 
@@ -46,14 +43,17 @@ module Check =
                 mm2
                 |> getAdj
                 |> Option.map (ValueUnit.Group.eqsGroup adj)
-                |> Option.defaultValue false then Some adj
-            else None
+                |> Option.defaultValue false
+            then
+                Some adj
+            else
+                None
         | _ -> None
 
 
     let mapRouteWithMapping routeMapping s =
         routeMapping
-        |> Array.tryFind(fun r -> r.Short |> String.equalsCapInsens s)
+        |> Array.tryFind (fun r -> r.Short |> String.equalsCapInsens s)
         |> Option.map _.Long
         |> Option.defaultValue ""
 
@@ -66,10 +66,7 @@ module Check =
                 |> ValueUnit.convertTo Units.Time.month
                 |> ValueUnit.getValue
                 |> function
-                    | [|v|] ->
-                        v
-                        |> BigRational.toDouble
-                        |> Some
+                    | [| v |] -> v |> BigRational.toDouble |> Some
                     | _ -> None
             )
 
@@ -80,22 +77,16 @@ module Check =
                 |> ValueUnit.convertTo Units.Mass.kiloGram
                 |> ValueUnit.getValue
                 |> function
-                    | [|v|] ->
-                        v
-                        |> BigRational.toDouble
-                        |> Some
+                    | [| v |] -> v |> BigRational.toDouble |> Some
                     | _ -> None
             )
 
         rte
         |> mapRouteWithMapping routeMapping
-        |> GStand.createDoseRules
-            GStand.config
-            a w None None
-            gen frm
+        |> GStand.createDoseRules GStand.config a w None None gen frm
 
 
-    let setAdjustAndOrTimeUnit adjUn tu (mm : MinMax) =
+    let setAdjustAndOrTimeUnit adjUn tu (mm: MinMax) =
         let setUnits u =
             match adjUn, tu with
             | None, None -> u
@@ -105,198 +96,156 @@ module Check =
 
         {
             Min =
-                if mm.Min |> Option.isNone then mm.Min
+                if mm.Min |> Option.isNone then
+                    mm.Min
                 else
-                    let v, u =
-                        mm.Min.Value
-                        |> Limit.getValueUnit
-                        |> ValueUnit.get
+                    let v, u = mm.Min.Value |> Limit.getValueUnit |> ValueUnit.get
 
-                    u
-                    |> setUnits
-                    |> ValueUnit.withValue v
-                    |> Limit.inclusive
-                    |> Some
+                    u |> setUnits |> ValueUnit.withValue v |> Limit.inclusive |> Some
             Max =
-                if mm.Max |> Option.isNone then mm.Max
+                if mm.Max |> Option.isNone then
+                    mm.Max
                 else
-                    let v, u =
-                        mm.Max.Value
-                        |> Limit.getValueUnit
-                        |> ValueUnit.get
+                    let v, u = mm.Max.Value |> Limit.getValueUnit |> ValueUnit.get
 
-                    u
-                    |> setUnits
-                    |> ValueUnit.withValue v
-                    |> Limit.inclusive
-                    |> Some
+                    u |> setUnits |> ValueUnit.withValue v |> Limit.inclusive |> Some
         }
 
 
-    let checkInRangeOf sn (refRange : MinMax) (testRange : MinMax) =
+    let checkInRangeOf sn (refRange: MinMax) (testRange: MinMax) =
         let getTimeUnit mm =
-            match mm.Min |> Option.map Limit.getValueUnit,
-                  mm.Max |> Option.map Limit.getValueUnit with
+            match mm.Min |> Option.map Limit.getValueUnit, mm.Max |> Option.map Limit.getValueUnit with
             | Some vu, _
             | _, Some vu ->
                 match vu |> ValueUnit.getUnit |> ValueUnit.getUnits with
-                | [_; tu ]
-                | [_; _; tu ] when
-                    tu |> ValueUnit.Group.eqsGroup Units.Time.day -> Some tu
+                | [ _; tu ]
+                | [ _; _; tu ] when tu |> ValueUnit.Group.eqsGroup Units.Time.day -> Some tu
                 | _ -> None
             | _ -> None
             |> Option.map unitToString
             |> Option.defaultValue ""
 
-        ((testRange.Min |> Option.isNone ||
-        testRange.Min
-        |> Option.map Limit.getValueUnit
-        |> MinMax.inRange refRange) &&
-        (testRange.Max |> Option.isNone ||
-        testRange.Max
-        |> Option.map Limit.getValueUnit
-        |> MinMax.inRange refRange))
+        ((testRange.Min |> Option.isNone
+          || testRange.Min |> Option.map Limit.getValueUnit |> MinMax.inRange refRange)
+         && (testRange.Max |> Option.isNone
+             || testRange.Max |> Option.map Limit.getValueUnit |> MinMax.inRange refRange))
         |> fun b ->
             let u =
                 match testRange.Min, testRange.Max with
                 | Some l, _
-                | _, Some l ->
-                    l
-                    |> Limit.getValueUnit |> ValueUnit.getUnit
-                    |> Some
+                | _, Some l -> l |> Limit.getValueUnit |> ValueUnit.getUnit |> Some
                 | _ -> None
+
             let toStr mm =
-                if u |> Option.isNone then mm
+                if u |> Option.isNone then
+                    mm
                 else
                     let convert =
-                        Option.map (
-                            Limit.getValueUnit
-                            >> ValueUnit.convertTo u.Value
-                            >> Limit.inclusive
-                        )
+                        Option.map (Limit.getValueUnit >> ValueUnit.convertTo u.Value >> Limit.inclusive)
+
                     {
                         Min = mm.Min |> convert
                         Max = mm.Max |> convert
                     }
                 |> MinMax.toString "min " "min " "max " "max "
+
             b,
             $"""%s{sn} {testRange |> toStr} {if b then "" else "niet "}in bereik van {refRange |> toStr}"""
             |> String.replace "<TIMEUNIT>" (testRange |> getTimeUnit)
 
 
-    let maximizeDosages (dosages : Dosage list) =
+    let maximizeDosages (dosages: Dosage list) =
         let maximize = MinMax.foldMaximize true true
 
-        let maxRange (first : DoseRange) (rest : DoseRange list) =
+        let maxRange (first: DoseRange) (rest: DoseRange list) =
             rest
-            |> List.fold (fun (acc : DoseRange) (dr : DoseRange) ->
-                {
-                    Norm = maximize [dr.Norm; acc.Norm]
-                    NormWeight =
-                        [
-                            acc.NormWeight |> fst
-                            dr.NormWeight |> fst
-                        ] |> maximize,
-                        if acc.NormWeight |> snd = NoUnit then
-                            dr.NormWeight |> snd
-                        else
-                            acc.NormWeight |> snd
-                    NormBSA =
-                        [
-                            acc.NormBSA |> fst
-                            dr.NormBSA |> fst
-                        ] |> maximize,
-                        if acc.NormBSA |> snd = NoUnit then
-                            dr.NormBSA |> snd
-                        else
-                            acc.NormBSA |> snd
-                    Abs = maximize [dr.Norm; acc.Norm]
-                    AbsWeight =
-                        [
-                            acc.AbsWeight |> fst
-                            dr.AbsWeight |> fst
-                        ] |> maximize,
-                        if acc.AbsWeight |> snd = NoUnit then
-                            dr.AbsWeight |> snd
-                        else
-                            acc.AbsWeight |> snd
-                    AbsBSA =
-                        [
-                            acc.AbsBSA |> fst
-                            dr.AbsBSA |> fst
-                        ] |> maximize,
-                        if acc.AbsBSA |> snd = NoUnit then
-                            dr.AbsBSA |> snd
-                        else
-                            acc.AbsBSA |> snd
-                }
-            ) first
+            |> List.fold
+                (fun (acc: DoseRange) (dr: DoseRange) ->
+                    {
+                        Norm = maximize [ dr.Norm; acc.Norm ]
+                        NormWeight =
+                            [ acc.NormWeight |> fst; dr.NormWeight |> fst ] |> maximize,
+                            if acc.NormWeight |> snd = NoUnit then
+                                dr.NormWeight |> snd
+                            else
+                                acc.NormWeight |> snd
+                        NormBSA =
+                            [ acc.NormBSA |> fst; dr.NormBSA |> fst ] |> maximize,
+                            if acc.NormBSA |> snd = NoUnit then
+                                dr.NormBSA |> snd
+                            else
+                                acc.NormBSA |> snd
+                        Abs = maximize [ dr.Norm; acc.Norm ]
+                        AbsWeight =
+                            [ acc.AbsWeight |> fst; dr.AbsWeight |> fst ] |> maximize,
+                            if acc.AbsWeight |> snd = NoUnit then
+                                dr.AbsWeight |> snd
+                            else
+                                acc.AbsWeight |> snd
+                        AbsBSA =
+                            [ acc.AbsBSA |> fst; dr.AbsBSA |> fst ] |> maximize,
+                            if acc.AbsBSA |> snd = NoUnit then
+                                dr.AbsBSA |> snd
+                            else
+                                acc.AbsBSA |> snd
+                    }
+                )
+                first
 
         dosages
         |> function
             | [] -> None
-            | dosage::rest ->
+            | dosage :: rest ->
                 { dosage with
-                    SingleDosage =
-                        rest
-                        |> List.map _.SingleDosage
-                        |> maxRange dosage.SingleDosage
-                    StartDosage =
-                        rest
-                        |> List.map _.StartDosage
-                        |> maxRange dosage.StartDosage
+                    SingleDosage = rest |> List.map _.SingleDosage |> maxRange dosage.SingleDosage
+                    StartDosage = rest |> List.map _.StartDosage |> maxRange dosage.StartDosage
                     RateDosage =
-                        if dosage.RateDosage |> snd = NoUnit then dosage.RateDosage
+                        if dosage.RateDosage |> snd = NoUnit then
+                            dosage.RateDosage
                         else
                             rest
                             |> List.map _.RateDosage
                             |> List.filter (snd >> ((=) NoUnit) >> not)
                             |> List.map fst
-                            |> maxRange (dosage.RateDosage |> fst)
-                            , dosage.RateDosage |> snd
+                            |> maxRange (dosage.RateDosage |> fst),
+                            dosage.RateDosage |> snd
                     TotalDosage =
-                        if (dosage.TotalDosage |> snd).TimeUnit = NoUnit then dosage.TotalDosage
+                        if (dosage.TotalDosage |> snd).TimeUnit = NoUnit then
+                            dosage.TotalDosage
                         else
                             let rest =
                                 rest
                                 |> List.map _.TotalDosage
                                 |> List.filter (fun (_, fr) -> fr.TimeUnit = NoUnit |> not)
-                            rest
-                            |> List.map fst
-                            |> maxRange (dosage.TotalDosage |> fst)
-                            ,
+
+                            rest |> List.map fst |> maxRange (dosage.TotalDosage |> fst),
                             { (dosage.TotalDosage |> snd) with
                                 Frequencies =
                                     rest
                                     |> List.map snd
                                     |> List.collect _.Frequencies
-                                    |> List.append
-                                        (dosage.TotalDosage
-                                        |> snd
-                                        |> _.Frequencies)
+                                    |> List.append (dosage.TotalDosage |> snd |> _.Frequencies)
                                     |> List.distinct
                             }
-                    Rules =
-                        rest
-                        |> List.collect _.Rules
-                        |> List.append dosage.Rules
+                    Rules = rest |> List.collect _.Rules |> List.append dosage.Rules
                 }
                 |> Some
 
 
-    let filterPatient (pat : PatientCategory) (pdsg : Informedica.ZForm.Lib.Types.PatientDosage) =
+    let filterPatient (pat: PatientCategory) (pdsg: Informedica.ZForm.Lib.Types.PatientDosage) =
         // TODO need to map G-stand age in mo to days (1 mo = 30 days)
         let age =
-            pat.Age = MinMax.empty && pdsg.Patient.Age = MinMax.empty ||
-            (pdsg.Patient.Age |> MinMax.intersect pat.Age = MinMax.empty |> not)
+            pat.Age = MinMax.empty && pdsg.Patient.Age = MinMax.empty
+            || (pdsg.Patient.Age |> MinMax.intersect pat.Age = MinMax.empty |> not)
+
         let weight =
-            pat.Weight = MinMax.empty && pdsg.Patient.Weight = MinMax.empty ||
-            (pdsg.Patient.Weight |> MinMax.intersect pat.Weight = MinMax.empty |> not)
+            pat.Weight = MinMax.empty && pdsg.Patient.Weight = MinMax.empty
+            || (pdsg.Patient.Weight |> MinMax.intersect pat.Weight = MinMax.empty |> not)
 
         age && weight
 
 
-    let matchWithZIndex routeMapping (pat : Patient) (dr : DoseRule) =
+    let matchWithZIndex routeMapping (pat: Patient) (dr: DoseRule) =
         {|
             doseRule = dr
             zindex =
@@ -318,15 +267,28 @@ module Check =
                                     // TODO: hack avoid cmp err with diff dose units (filgrastim)
                                     try
                                         dsgs |> maximizeDosages
-                                    with
-                                    | _ -> None
+                                    with _ ->
+                                        None
                             |}
                         )
                 |}
         |}
 
 
-    let createMapping (r : {| doseRule: DoseRule; zindex: {| dosages: {| dosage: Dosage option; target: string |} list |} |}) =
+    let createMapping
+        (r:
+            {|
+                doseRule: DoseRule
+                zindex:
+                    {|
+                        dosages:
+                            {|
+                                dosage: Dosage option
+                                target: string
+                            |} list
+                    |}
+            |})
+        =
         {| r with
             mapping =
                 {|
@@ -340,7 +302,9 @@ module Check =
                                     ds
                                     |> Option.bind (fun ds ->
                                         let fr = ds.TotalDosage |> snd
-                                        if fr.TimeUnit = NoUnit then None
+
+                                        if fr.TimeUnit = NoUnit then
+                                            None
                                         else
                                             Units.Count.times
                                             |> Units.per fr.TimeUnit
@@ -350,153 +314,118 @@ module Check =
                                 )
                                 |> function
                                     | [] -> None
-                                    | vu::rest ->
+                                    | vu :: rest ->
                                         let u = vu |> ValueUnit.getUnit
-                                        let v =
-                                            vu::rest
-                                            |> List.toArray
-                                            |> Array.collect ValueUnit.getValue
-                                        ValueUnit.create u v
-                                        |> Some
+                                        let v = vu :: rest |> List.toArray |> Array.collect ValueUnit.getValue
+                                        ValueUnit.create u v |> Some
                         |}
                     doseLimits =
                         r.doseRule.ComponentLimits
                         |> Array.collect _.SubstanceLimits
                         |> Array.map (fun dl ->
                             {|
-                                genForm = 
+                                genForm =
                                     { dl with
                                         Types.DoseLimit.PerTimeAdjust =
-                                            if dl.PerTimeAdjust |> MinMax.isEmpty &&
-                                               dl.QuantityAdjust |> MinMax.isEmpty |> not then 
+                                            if
+                                                dl.PerTimeAdjust |> MinMax.isEmpty
+                                                && dl.QuantityAdjust |> MinMax.isEmpty |> not
+                                            then
                                                 match r.doseRule.Frequencies with
                                                 | None -> dl.PerTimeAdjust
                                                 | Some fr ->
-                                                    match fr |> ValueUnit.minValue,
-                                                          fr |> ValueUnit.maxValue with
+                                                    match fr |> ValueUnit.minValue, fr |> ValueUnit.maxValue with
                                                     | Some minFreq, Some maxFreq ->
-                                                        let maxPerTimeAdj = 
-                                                            dl.QuantityAdjust.Max 
+                                                        let maxPerTimeAdj =
+                                                            dl.QuantityAdjust.Max
                                                             |> Option.map Limit.getValueUnit
                                                             |> Option.map (fun vu -> vu * maxFreq)
-                                                        let minPerTimeAdj = 
-                                                            dl.QuantityAdjust.Min 
+
+                                                        let minPerTimeAdj =
+                                                            dl.QuantityAdjust.Min
                                                             |> Option.map Limit.getValueUnit
                                                             |> Option.map (fun vu -> vu * minFreq)
+
                                                         match minPerTimeAdj, maxPerTimeAdj with
-                                                        | Some min, Some max -> 
-                                                            MinMax.createInclIncl min max
+                                                        | Some min, Some max -> MinMax.createInclIncl min max
                                                         | _ -> dl.PerTimeAdjust
                                                     | _ -> dl.PerTimeAdjust
-                                            else dl.PerTimeAdjust
+                                            else
+                                                dl.PerTimeAdjust
 
                                     }
                                 gstand =
                                     r.zindex.dosages
                                     |> List.tryFind (fun g ->
-                                        dl.DoseLimitTarget
-                                        |> LimitTarget.toString
-                                        |> String.equalsCapInsens g.target
+                                        dl.DoseLimitTarget |> LimitTarget.toString |> String.equalsCapInsens g.target
                                     )
                                     |> Option.bind _.dosage
                                     |> Option.map (fun x ->
                                         let convert adjUn =
-                                            x.TotalDosage
-                                            |> snd
-                                            |> _.TimeUnit
-                                            |> Some
-                                            |> setAdjustAndOrTimeUnit adjUn
+                                            x.TotalDosage |> snd |> _.TimeUnit |> Some |> setAdjustAndOrTimeUnit adjUn
 
                                         {|
-                                            doseLimitTarget =
-                                                dl.DoseLimitTarget
-                                                |> LimitTarget.toString
+                                            doseLimitTarget = dl.DoseLimitTarget |> LimitTarget.toString
                                             quantityNorm =
-                                                if x.SingleDosage.Norm =
-                                                   MinMax.empty then x.StartDosage.Norm
-                                                else x.SingleDosage.Norm
+                                                if x.SingleDosage.Norm = MinMax.empty then
+                                                    x.StartDosage.Norm
+                                                else
+                                                    x.SingleDosage.Norm
                                             quantityAbs =
-                                                if x.SingleDosage.Abs =
-                                                   MinMax.empty then x.StartDosage.Abs
-                                                else x.SingleDosage.Abs
+                                                if x.SingleDosage.Abs = MinMax.empty then
+                                                    x.StartDosage.Abs
+                                                else
+                                                    x.SingleDosage.Abs
                                             quantityAdjustNorm =
                                                 if x.SingleDosage.NormWeight |> fst = MinMax.empty then
-                                                   if x.SingleDosage.NormBSA |> fst = MinMax.empty then MinMax.empty
-                                                   else
+                                                    if x.SingleDosage.NormBSA |> fst = MinMax.empty then
+                                                        MinMax.empty
+                                                    else
                                                         x.SingleDosage.NormBSA
-                                                       |> fst
-                                                       |> setAdjustAndOrTimeUnit
-                                                           (Some Units.BSA.m2)
-                                                           None
+                                                        |> fst
+                                                        |> setAdjustAndOrTimeUnit (Some Units.BSA.m2) None
                                                 else
                                                     x.SingleDosage.NormWeight
                                                     |> fst
-                                                    |> setAdjustAndOrTimeUnit
-                                                        (Some Units.Weight.kiloGram)
-                                                        None
+                                                    |> setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) None
                                             quantityAdjustAbs =
                                                 if x.SingleDosage.AbsWeight |> fst = MinMax.empty then
-                                                    if x.StartDosage.AbsBSA |> fst = MinMax.empty then MinMax.empty
+                                                    if x.StartDosage.AbsBSA |> fst = MinMax.empty then
+                                                        MinMax.empty
                                                     else
                                                         x.StartDosage.AbsBSA
                                                         |> fst
-                                                        |> setAdjustAndOrTimeUnit
-                                                            (Some Units.BSA.m2)
-                                                            None
+                                                        |> setAdjustAndOrTimeUnit (Some Units.BSA.m2) None
                                                 else
                                                     x.SingleDosage.AbsWeight
                                                     |> fst
-                                                    |> setAdjustAndOrTimeUnit
-                                                        (Some Units.Weight.kiloGram)
-                                                        None
-                                            perTimeNorm =
-                                                x.TotalDosage
-                                                |> fst
-                                                |> _.Norm
-                                                |> convert None
-                                            perTimeAbs =
-                                                x.TotalDosage
-                                                |> fst
-                                                |> _.Abs
-                                                |> convert None
+                                                    |> setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) None
+                                            perTimeNorm = x.TotalDosage |> fst |> _.Norm |> convert None
+                                            perTimeAbs = x.TotalDosage |> fst |> _.Abs |> convert None
                                             perTimeAdjustNorm =
-                                                let normWeight =
-                                                    x.TotalDosage
-                                                    |> fst
-                                                    |> _.NormWeight
+                                                let normWeight = x.TotalDosage |> fst |> _.NormWeight
+
                                                 if normWeight |> fst = MinMax.empty then
-                                                    let normBSA =
-                                                        x.TotalDosage
-                                                        |> fst
-                                                        |> _.NormBSA
-                                                    if normBSA |> fst = MinMax.empty then MinMax.empty
+                                                    let normBSA = x.TotalDosage |> fst |> _.NormBSA
+
+                                                    if normBSA |> fst = MinMax.empty then
+                                                        MinMax.empty
                                                     else
-                                                        normBSA
-                                                        |> fst
-                                                        |> convert (Some Units.BSA.m2)
+                                                        normBSA |> fst |> convert (Some Units.BSA.m2)
                                                 else
-                                                    normWeight
-                                                    |> fst
-                                                    |> convert (Some Units.Weight.kiloGram)
+                                                    normWeight |> fst |> convert (Some Units.Weight.kiloGram)
                                             perTimeAdjustAbs =
-                                                let absWeight =
-                                                    x.TotalDosage
-                                                    |> fst
-                                                    |> _.AbsWeight
+                                                let absWeight = x.TotalDosage |> fst |> _.AbsWeight
+
                                                 if absWeight |> fst = MinMax.empty then
-                                                    let absBSA =
-                                                        x.TotalDosage
-                                                        |> fst
-                                                        |> _.AbsBSA
-                                                    if absBSA |> fst = MinMax.empty then MinMax.empty
+                                                    let absBSA = x.TotalDosage |> fst |> _.AbsBSA
+
+                                                    if absBSA |> fst = MinMax.empty then
+                                                        MinMax.empty
                                                     else
-                                                        absBSA
-                                                        |> fst
-                                                        |> convert (Some Units.BSA.m2)
+                                                        absBSA |> fst |> convert (Some Units.BSA.m2)
                                                 else
-                                                    absWeight
-                                                    |> fst
-                                                    |> convert (Some Units.Weight.kiloGram)
+                                                    absWeight |> fst |> convert (Some Units.Weight.kiloGram)
                                         |}
                                     )
                             |}
@@ -505,11 +434,8 @@ module Check =
         |}
 
 
-    let checkDoseRule routeMapping (pat : Patient) (dr : DoseRule) =
-        let m =
-            dr
-            |> matchWithZIndex routeMapping pat
-            |> createMapping
+    let checkDoseRule routeMapping (pat: Patient) (dr: DoseRule) =
+        let m = dr |> matchWithZIndex routeMapping pat |> createMapping
 
         m.mapping.doseLimits
         |> Array.collect (fun dl ->
@@ -518,14 +444,11 @@ module Check =
             | Some gstand ->
                 let p = m.doseRule.PatientCategory |> PatientCategory.toString
                 let r = m.doseRule.Route
+
                 let inRangeOf m refRange testRange =
                     try
-                        checkInRangeOf
-                            $"{gstand.doseLimitTarget}\t{r}\t{p}\t{m}: "
-                            refRange
-                            testRange
-                    with
-                    | e ->
+                        checkInRangeOf $"{gstand.doseLimitTarget}\t{r}\t{p}\t{m}: " refRange testRange
+                    with e ->
                         writeErrorMessage $"{e}"
                         true, $"{gstand.doseLimitTarget}\t{r}\t{p}\t{m}: kan niet worden gechecked vanwege foutmelding"
 
@@ -533,11 +456,11 @@ module Check =
                     {
                         Min =
                             vuOpt
-                            |> Option.map ((*) ([|90N / 100N|] |> ValueUnit.withUnit Units.Count.times))
+                            |> Option.map ((*) ([| 90N / 100N |] |> ValueUnit.withUnit Units.Count.times))
                             |> Option.map Limit.inclusive
                         Max =
                             vuOpt
-                            |> Option.map ((*) ([|110N / 100N|] |> ValueUnit.withUnit Units.Count.times))
+                            |> Option.map ((*) ([| 110N / 100N |] |> ValueUnit.withUnit Units.Count.times))
                             |> Option.map Limit.inclusive
                     }
 
@@ -555,28 +478,27 @@ module Check =
                             m.mapping.frequencies.genform
                             |> Option.map (ValueUnit.toStringDecimalDutchShortWithPrec -1)
                             |> Option.defaultValue ""
+
                         let s2 =
                             m.mapping.frequencies.gstand
                             //|> Option.map (fun vu -> if u |> Option.isNone then vu else vu |> ValueUnit.convertTo u.Value)
                             |> Option.map (ValueUnit.toStringDecimalDutchShortWithPrec -1)
                             |> Option.defaultValue ""
+
                         if not b then
-                            b,
-                            $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} niet gelijk aan {s2}"
+                            b, $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} niet gelijk aan {s2}"
                         else
-                            b,
-                            $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} is subset van {s2}"
+                            b, $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} is subset van {s2}"
 
-                    dl.genForm.Quantity
-                    |> inRangeOf "keer dosering" gstand.quantityNorm
+                    dl.genForm.Quantity |> inRangeOf "keer dosering" gstand.quantityNorm
 
-                    dl.genForm.Quantity
-                    |> inRangeOf "keer dosering" gstand.quantityAbs
+                    dl.genForm.Quantity |> inRangeOf "keer dosering" gstand.quantityAbs
 
                     match dl.genForm.QuantityAdjust |> checkAdjustUnit gstand.quantityAdjustNorm with
                     | None -> ()
                     | Some adj ->
                         let adj = adj |> unitToString
+
                         dl.genForm.QuantityAdjust
                         |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustNorm
 
@@ -584,38 +506,33 @@ module Check =
                     | None -> ()
                     | Some adj ->
                         let adj = adj |> unitToString
+
                         dl.genForm.QuantityAdjust
                         |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
 
-                    let mm =
-                        dl.genForm.QuantityAdjust
-                        |> DoseLimit.getNormDose
-                        |> toMinMax
+                    let mm = dl.genForm.QuantityAdjust |> DoseLimit.getNormDose |> toMinMax
 
                     match mm |> checkAdjustUnit gstand.quantityAdjustNorm with
                     | None -> ()
                     | Some adj ->
                         let adj = adj |> unitToString
-                        mm
-                        |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustNorm
+                        mm |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustNorm
 
                     match mm |> checkAdjustUnit gstand.quantityAdjustAbs with
                     | None -> ()
                     | Some adj ->
                         let adj = adj |> unitToString
-                        mm
-                        |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
+                        mm |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
 
-                    dl.genForm.PerTime
-                    |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeNorm
+                    dl.genForm.PerTime |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeNorm
 
-                    dl.genForm.PerTime
-                    |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeAbs
+                    dl.genForm.PerTime |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeAbs
 
                     match dl.genForm.PerTimeAdjust |> checkAdjustUnit gstand.perTimeAdjustNorm with
                     | None -> ()
                     | Some adj ->
                         let adj = adj |> unitToString
+
                         dl.genForm.PerTimeAdjust
                         |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustNorm
 
@@ -623,44 +540,41 @@ module Check =
                     | None -> ()
                     | Some adj ->
                         let adj = adj |> unitToString
-                        dl.genForm.PerTimeAdjust
-                        |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>"  gstand.perTimeAdjustAbs
 
-                    let mm =
                         dl.genForm.PerTimeAdjust
-                        |> DoseLimit.getNormDose
-                        |> toMinMax
+                        |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustAbs
+
+                    let mm = dl.genForm.PerTimeAdjust |> DoseLimit.getNormDose |> toMinMax
 
                     match mm |> checkAdjustUnit gstand.perTimeAdjustNorm with
                     | None -> ()
                     | Some adj ->
                         let adj = adj |> unitToString
-                        mm
-                        |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>"  gstand.perTimeAdjustNorm
+                        mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustNorm
 
                     match mm |> checkAdjustUnit gstand.perTimeAdjustAbs with
                     | None -> ()
                     | Some adj ->
                         let adj = adj |> unitToString
-                        mm
-                        |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>"  gstand.perTimeAdjustAbs
+                        mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustAbs
                 |]
         )
         |> Array.partition (fst >> not)
         |> fun (didNot, did) ->
-            {| m with didNotPass = didNot |> Array.map snd; didPass = did |> Array.map snd |}
+            {| m with
+                didNotPass = didNot |> Array.map snd
+                didPass = did |> Array.map snd
+            |}
 
 
-    let checkAll routeMapping (pat : Patient) (drs : DoseRule[]) =
+    let checkAll routeMapping (pat: Patient) (drs: DoseRule[]) =
         drs
         |> Array.mapi (fun i dr ->
             writeInfoMessage $"{i}. checking {dr.Generic}\t{dr.Form}\t{dr.Route}"
 
             checkDoseRule routeMapping pat dr
         )
-        |> Array.filter (fun c ->
-            c.didNotPass |> Array.isEmpty |> not
-        )
+        |> Array.filter (fun c -> c.didNotPass |> Array.isEmpty |> not)
         |> Array.collect _.didNotPass
         |> Array.filter String.notEmpty
         |> Array.distinct

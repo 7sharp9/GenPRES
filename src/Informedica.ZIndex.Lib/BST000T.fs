@@ -53,7 +53,7 @@ module BST000T =
     let create mc nm ds rl st ua dl al nw tt =
         {
             MUTKOD = mc
-            MDBST  = nm
+            MDBST = nm
             MDOBST = ds
             MDRECL = rl
             MDSTAT = st
@@ -68,7 +68,7 @@ module BST000T =
     let posl = BST001T.getPosl name
 
 
-    let pickList = [1] @ [2; 3] @ [5] @ [9..14]
+    let pickList = [ 1 ] @ [ 2; 3 ] @ [ 5 ] @ [ 9..14 ]
 
 
     /// <summary>
@@ -84,7 +84,8 @@ module BST000T =
             let al = Int32.Parse d[7]
             let nw = Int32.Parse d[8]
             let tt = Int32.Parse d[9]
-            create d[0] d[1] d[2] rl d[4] ua dl al nw tt)
+            create d[0] d[1] d[2] rl d[4] ua dl al nw tt
+        )
 
 
     /// <summary>
@@ -92,8 +93,7 @@ module BST000T =
     /// </summary>
     /// <param name="n">The name of the table</param>
     let table n =
-        records ()
-        |> Array.find (fun r -> r.MDBST = n)
+        records () |> Array.find (fun r -> r.MDBST = n)
 
 
     /// <summary>
@@ -104,20 +104,30 @@ module BST000T =
     let commentString n pl =
         printfn $"processing: {n} {pl}"
         let tab = "    "
+
         let d =
             let t = table n
 
             if t.MDRECL <> BST001T.recordLength n then
                 $"Calculated record length: %i{t.MDRECL}, is not equal to table record length: %i{BST001T.recordLength n}"
                 |> failwith
+
             t.MDOBST
 
         let i = ref -1
         let s = $"\n%s{tab}/// <summary>"
-        let s = s + $"\n%s{tab}/// <para> Tabel: %s{n}: %s{d} </para>\n" + "    /// <para> --------------- </para>\n"
+
+        let s =
+            s
+            + $"\n%s{tab}/// <para> Tabel: %s{n}: %s{d} </para>\n"
+            + "    /// <para> --------------- </para>\n"
+
         (BST001T.columns n
-        |> Seq.pickSeq pl
-        |> Seq.fold (fun s c ->
-                i.Value <- i.Value + 1
-                s + $"%s{tab}/// <para> %i{i.Value}.\t%s{c.MDRNAM}: \t%s{c.MDROMS} </para>\n"
-            ) s) + "    /// </summary>"
+         |> Seq.pickSeq pl
+         |> Seq.fold
+             (fun s c ->
+                 i.Value <- i.Value + 1
+                 s + $"%s{tab}/// <para> %i{i.Value}.\t%s{c.MDRNAM}: \t%s{c.MDROMS} </para>\n"
+             )
+             s)
+        + "    /// </summary>"

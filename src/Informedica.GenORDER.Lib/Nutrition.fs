@@ -16,17 +16,16 @@ module Nutrition =
             OrderableDoseCount OrderVariable.Count.applyConstraints
             OrderableDose Order.Orderable.Dose.applyConstraints
 
-            ComponentOrderableQuantity ("", OrderVariable.Quantity.applyConstraints)
+            ComponentOrderableQuantity("", OrderVariable.Quantity.applyConstraints)
 
-            ItemComponentConcentration ("", "", OrderVariable.Concentration.applyConstraints)
-            ItemOrderableConcentration ("", "", OrderVariable.Concentration.applyConstraints)
+            ItemComponentConcentration("", "", OrderVariable.Concentration.applyConstraints)
+            ItemOrderableConcentration("", "", OrderVariable.Concentration.applyConstraints)
         ]
 
 
     let applyPropChange propChanges ord =
-        let ord =
-            ord
-            |> Order.OrderPropertyChange.proc propChanges
+        let ord = ord |> Order.OrderPropertyChange.proc propChanges
+
         ord
         |> Order.solveMinMax "Apply Prop Change" true Logging.noOp
         |> function
@@ -45,8 +44,13 @@ module Nutrition =
             |> Order.OrderPropertyChange.proc tpnConstraints
             |> Order.solveMinMax "Process Nutrition" true logger
             |> function
-            | Ok ord ->
-                let changes = changes |> List.map (fun (cmp, perc) -> ComponentOrderableQuantity (cmp, OrderVariable.Quantity.setPercValue perc))
-                ord |> applyPropChange changes
-            | Error (ord, _) -> ord
+                | Ok ord ->
+                    let changes =
+                        changes
+                        |> List.map (fun (cmp, perc) ->
+                            ComponentOrderableQuantity(cmp, OrderVariable.Quantity.setPercValue perc)
+                        )
+
+                    ord |> applyPropChange changes
+                | Error(ord, _) -> ord
         )

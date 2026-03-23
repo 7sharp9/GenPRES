@@ -1,4 +1,3 @@
-
 namespace Informedica.ZIndex.Lib
 
 /// <summary>
@@ -30,10 +29,7 @@ module Zindex =
     open Informedica.Utils.Lib.BCL
     open Informedica.Utils.Lib
 
-    
 
-
-    
     /// <summary>
     /// <para> Tabel: BST004T: Bestand 004 Artikelen </para>
     /// <para> --------------- </para>
@@ -50,16 +46,16 @@ module Zindex =
 
         type BST004T =
             {
-                MUTKOD : int
-                ATKODE : int
-                HPKODE : int
-                ATNMNR : int
-                VPDLOM : int
-                VPDLHV : float
+                MUTKOD: int
+                ATKODE: int
+                HPKODE: int
+                ATNMNR: int
+                VPDLOM: int
+                VPDLHV: float
             }
 
 
-        let create mutkod atkode hpkode atnmnr vpdlom vpdlhv  =
+        let create mutkod atkode hpkode atnmnr vpdlom vpdlhv =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 ATKODE = atkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -72,18 +68,23 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;11;12]
+        let pickList = [ 1; 2; 3; 4; 11; 12 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+            )
 
-        let records : unit -> BST004T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST004T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST020T: Bestand 020 Namen </para>
     /// <para> --------------- </para>
@@ -100,16 +101,16 @@ module Zindex =
 
         type BST020T =
             {
-                MUTKOD : int
-                NMNR : int
-                NMMEMO : string
-                NMETIK : string
-                NMNM40 : string
-                NMNAAM : string
+                MUTKOD: int
+                NMNR: int
+                NMMEMO: string
+                NMETIK: string
+                NMNM40: string
+                NMNAAM: string
             }
 
 
-        let create mutkod nmnr nmmemo nmetik nmnm40 nmnaam  =
+        let create mutkod nmnr nmmemo nmetik nmnm40 nmnaam =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 NMNR = nmnr |> ((Parser.parseValue "N" "") >> Int32.parse)
@@ -122,18 +123,23 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5;6]
+        let pickList = [ 1; 2; 3; 4; 5; 6 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+            )
 
-        let records : unit -> BST020T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST020T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST031T: Bestand 031 Handelsproducten </para>
     /// <para> --------------- </para>
@@ -158,24 +164,24 @@ module Zindex =
 
         type BST031T =
             {
-                MUTKOD : int
-                HPKODE : int
-                PRKODE : int
-                HPNAMN : int
-                MSNAAM : string
-                FSNAAM : string
-                HPSGEW : float
-                GRP001 : int
-                GRP002 : int
-                GRP003 : int
-                GRP004 : int
-                GRP005 : int
-                XSEENH : int
-                HPDEEL : int
+                MUTKOD: int
+                HPKODE: int
+                PRKODE: int
+                HPNAMN: int
+                MSNAAM: string
+                FSNAAM: string
+                HPSGEW: float
+                GRP001: int
+                GRP002: int
+                GRP003: int
+                GRP004: int
+                GRP005: int
+                XSEENH: int
+                HPDEEL: int
             }
 
 
-        let create mutkod hpkode prkode hpnamn msnaam fsnaam hpsgew grp001 grp002 grp003 grp004 grp005 xseenh hpdeel  =
+        let create mutkod hpkode prkode hpnamn msnaam fsnaam hpsgew grp001 grp002 grp003 grp004 grp005 xseenh hpdeel =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 HPKODE = hpkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -196,18 +202,31 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;5;6;7;10;18;19;20;21;22;30;38]
+        let pickList = [ 1; 2; 3; 5; 6; 7; 10; 18; 19; 20; 21; 22; 30; 38 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6) (xs |> Array.item 7) (xs |> Array.item 8) (xs |> Array.item 9) (xs |> Array.item 10) (xs |> Array.item 11) (xs |> Array.item 12) (xs |> Array.item 13))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+                    (xs |> Array.item 7)
+                    (xs |> Array.item 8)
+                    (xs |> Array.item 9)
+                    (xs |> Array.item 10)
+                    (xs |> Array.item 11)
+                    (xs |> Array.item 12)
+                    (xs |> Array.item 13)
+            )
 
-        let records : unit -> BST031T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST031T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST052T: Bestand 052 Voorschrijfproducten </para>
     /// <para> --------------- </para>
@@ -227,19 +246,19 @@ module Zindex =
 
         type BST052T =
             {
-                MUTKOD : int
-                PRKODE : int
-                PRNMNR : int
-                GPKODE : int
-                THEMBT : int
-                PREMBT : int
-                THPREH : int
-                PREENH : int
-                PRGALG : float
+                MUTKOD: int
+                PRKODE: int
+                PRNMNR: int
+                GPKODE: int
+                THEMBT: int
+                PREMBT: int
+                THPREH: int
+                PREENH: int
+                PRGALG: float
             }
 
 
-        let create mutkod prkode prnmnr gpkode thembt prembt thpreh preenh prgalg  =
+        let create mutkod prkode prnmnr gpkode thembt prembt thpreh preenh prgalg =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 PRKODE = prkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -255,18 +274,26 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;7;8;9;10;11]
+        let pickList = [ 1; 2; 3; 4; 7; 8; 9; 10; 11 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6) (xs |> Array.item 7) (xs |> Array.item 8))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+                    (xs |> Array.item 7)
+                    (xs |> Array.item 8)
+            )
 
-        let records : unit -> BST052T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST052T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST200T: Bestand 200 Relatie tussen ZI-nummer / HIBC </para>
     /// <para> --------------- </para>
@@ -282,15 +309,15 @@ module Zindex =
 
         type BST200T =
             {
-                MUTKOD : int
-                ATKODE : int
-                BARCOD : string
-                HPKODA : string
-                VPKODA : string
+                MUTKOD: int
+                ATKODE: int
+                BARCOD: string
+                HPKODA: string
+                VPKODA: string
             }
 
 
-        let create mutkod atkode barcod hpkoda vpkoda  =
+        let create mutkod atkode barcod hpkoda vpkoda =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 ATKODE = atkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -302,18 +329,22 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5]
+        let pickList = [ 1; 2; 3; 4; 5 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+            )
 
-        let records : unit -> BST200T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST200T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST360T: Bestand 360 t-tabel (tijdseenheid) </para>
     /// <para> --------------- </para>
@@ -327,13 +358,13 @@ module Zindex =
 
         type BST360T =
             {
-                MUTKOD : int
-                TTEHNR : int
-                TTEHOM : string
+                MUTKOD: int
+                TTEHNR: int
+                TTEHOM: string
             }
 
 
-        let create mutkod ttehnr ttehom  =
+        let create mutkod ttehnr ttehom =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 TTEHNR = ttehnr |> ((Parser.parseValue "N" "") >> Int32.parse)
@@ -343,18 +374,15 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;4]
+        let pickList = [ 1; 2; 4 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2))
+            |> Array.map (fun xs -> create (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2))
 
-        let records : unit -> BST360T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST360T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST380T: Bestand 380 ICPC - 1 </para>
     /// <para> --------------- </para>
@@ -368,13 +396,13 @@ module Zindex =
 
         type BST380T =
             {
-                MUTKOD : int
-                ICPCNR1 : int
-                ICPCTXT : string
+                MUTKOD: int
+                ICPCNR1: int
+                ICPCTXT: string
             }
 
 
-        let create mutkod icpcnr1 icpctxt  =
+        let create mutkod icpcnr1 icpctxt =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 ICPCNR1 = icpcnr1 |> ((Parser.parseValue "N" "") >> Int32.parse)
@@ -384,18 +412,15 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;4]
+        let pickList = [ 1; 2; 4 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2))
+            |> Array.map (fun xs -> create (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2))
 
-        let records : unit -> BST380T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST380T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST640T: Bestand 640 Doseringen Basis-Algemeen </para>
     /// <para> --------------- </para>
@@ -410,14 +435,14 @@ module Zindex =
 
         type BST640T =
             {
-                MUTKOD : int
-                GPKODE : int
-                GPDGST : int
-                GPRISC : string
+                MUTKOD: int
+                GPKODE: int
+                GPDGST: int
+                GPRISC: string
             }
 
 
-        let create mutkod gpkode gpdgst gprisc  =
+        let create mutkod gpkode gpdgst gprisc =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 GPKODE = gpkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -428,18 +453,17 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;6;8]
+        let pickList = [ 1; 2; 6; 8 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3))
+            |> Array.map (fun xs ->
+                create (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3)
+            )
 
-        let records : unit -> BST640T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST640T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST641T: Bestand 641 Doseringen Basis-Artikelkeuze </para>
     /// <para> --------------- </para>
@@ -457,17 +481,17 @@ module Zindex =
 
         type BST641T =
             {
-                MUTKOD : int
-                GPKODE : int
-                PRKODE : int
-                HPKODE : int
-                GPDCTH : int
-                GPDCOD : int
-                GPDBAS : int
+                MUTKOD: int
+                GPKODE: int
+                PRKODE: int
+                HPKODE: int
+                GPDCTH: int
+                GPDCOD: int
+                GPDBAS: int
             }
 
 
-        let create mutkod gpkode prkode hpkode gpdcth gpdcod gpdbas  =
+        let create mutkod gpkode prkode hpkode gpdcth gpdcod gpdbas =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 GPKODE = gpkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -481,18 +505,24 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5;6;7]
+        let pickList = [ 1; 2; 3; 4; 5; 6; 7 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+            )
 
-        let records : unit -> BST641T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST641T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST642T: Bestand 642 Doseringen Uitzonderingen op Basis </para>
     /// <para> --------------- </para>
@@ -512,19 +542,19 @@ module Zindex =
 
         type BST642T =
             {
-                MUTKOD : int
-                GPDBAS : int
-                GPDID1 : int
-                GPDZCO : int
-                ICPCNR1 : int
-                ICPCTO : int
-                GPKTTH : int
-                GPKTWG : int
-                GPDCAT : int
+                MUTKOD: int
+                GPDBAS: int
+                GPDID1: int
+                GPDZCO: int
+                ICPCNR1: int
+                ICPCTO: int
+                GPKTTH: int
+                GPKTWG: int
+                GPDCAT: int
             }
 
 
-        let create mutkod gpdbas gpdid1 gpdzco icpcnr1 icpcto gpktth gpktwg gpdcat  =
+        let create mutkod gpdbas gpdid1 gpdzco icpcnr1 icpcto gpktth gpktwg gpdcat =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 GPDBAS = gpdbas |> ((Parser.parseValue "N" "") >> Int32.parse)
@@ -540,18 +570,26 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;5;6;8;11;12;13]
+        let pickList = [ 1; 2; 3; 5; 6; 8; 11; 12; 13 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6) (xs |> Array.item 7) (xs |> Array.item 8))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+                    (xs |> Array.item 7)
+                    (xs |> Array.item 8)
+            )
 
-        let records : unit -> BST642T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST642T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST643T: Bestand 643 Categorieen </para>
     /// <para> --------------- </para>
@@ -575,23 +613,23 @@ module Zindex =
 
         type BST643T =
             {
-                MUTKOD : int
-                GPDCAT : int
-                GPDID2 : int
-                GPDLFM : float
-                GPDLFX : float
-                GPDKGM : float
-                GPDKGX : float
-                GPDM2M : float
-                GPDM2X : float
-                GPDFAA : float
-                GPDFEE : int
-                GPDDEN : string
-                GPDDNR : int
+                MUTKOD: int
+                GPDCAT: int
+                GPDID2: int
+                GPDLFM: float
+                GPDLFX: float
+                GPDKGM: float
+                GPDKGX: float
+                GPDM2M: float
+                GPDM2X: float
+                GPDFAA: float
+                GPDFEE: int
+                GPDDEN: string
+                GPDDNR: int
             }
 
 
-        let create mutkod gpdcat gpdid2 gpdlfm gpdlfx gpdkgm gpdkgx gpdm2m gpdm2x gpdfaa gpdfee gpdden gpddnr  =
+        let create mutkod gpdcat gpdid2 gpdlfm gpdlfx gpdkgm gpdkgx gpdm2m gpdm2x gpdfaa gpdfee gpdden gpddnr =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 GPDCAT = gpdcat |> ((Parser.parseValue "N" "") >> Int32.parse)
@@ -611,18 +649,30 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5;6;7;8;9;10;11;12;13]
+        let pickList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6) (xs |> Array.item 7) (xs |> Array.item 8) (xs |> Array.item 9) (xs |> Array.item 10) (xs |> Array.item 11) (xs |> Array.item 12))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+                    (xs |> Array.item 7)
+                    (xs |> Array.item 8)
+                    (xs |> Array.item 9)
+                    (xs |> Array.item 10)
+                    (xs |> Array.item 11)
+                    (xs |> Array.item 12)
+            )
 
-        let records : unit -> BST643T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST643T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST649T: Bestand 649 Dosisgegevens - Nieuw per 01/11/2016 </para>
     /// <para> --------------- </para>
@@ -647,24 +697,39 @@ module Zindex =
 
         type BST649T =
             {
-                MUTKOD : int
-                GPDDNR : int
-                GPNRMMIN : float
-                GPNRMMAX : float
-                GPABSMIN : float
-                GPABSMAX : float
-                GPNRMMINK : float
-                GPNRMMAXK : float
-                GPABSMINK : float
-                GPABSMAXK : float
-                GPNRMMINM : float
-                GPNRMMAXM : float
-                GPABSMINM : float
-                GPABSMAXM : float
+                MUTKOD: int
+                GPDDNR: int
+                GPNRMMIN: float
+                GPNRMMAX: float
+                GPABSMIN: float
+                GPABSMAX: float
+                GPNRMMINK: float
+                GPNRMMAXK: float
+                GPABSMINK: float
+                GPABSMAXK: float
+                GPNRMMINM: float
+                GPNRMMAXM: float
+                GPABSMINM: float
+                GPABSMAXM: float
             }
 
 
-        let create mutkod gpddnr gpnrmmin gpnrmmax gpabsmin gpabsmax gpnrmmink gpnrmmaxk gpabsmink gpabsmaxk gpnrmminm gpnrmmaxm gpabsminm gpabsmaxm  =
+        let create
+            mutkod
+            gpddnr
+            gpnrmmin
+            gpnrmmax
+            gpabsmin
+            gpabsmax
+            gpnrmmink
+            gpnrmmaxk
+            gpabsmink
+            gpabsmaxk
+            gpnrmminm
+            gpnrmmaxm
+            gpabsminm
+            gpabsmaxm
+            =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 GPDDNR = gpddnr |> ((Parser.parseValue "N" "") >> Int32.parse)
@@ -685,18 +750,31 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5;6;7;8;9;10;11;12;13;14]
+        let pickList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6) (xs |> Array.item 7) (xs |> Array.item 8) (xs |> Array.item 9) (xs |> Array.item 10) (xs |> Array.item 11) (xs |> Array.item 12) (xs |> Array.item 13))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+                    (xs |> Array.item 7)
+                    (xs |> Array.item 8)
+                    (xs |> Array.item 9)
+                    (xs |> Array.item 10)
+                    (xs |> Array.item 11)
+                    (xs |> Array.item 12)
+                    (xs |> Array.item 13)
+            )
 
-        let records : unit -> BST649T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST649T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST701T: Bestand 701 Ingegeven samenstellingen </para>
     /// <para> --------------- </para>
@@ -718,21 +796,21 @@ module Zindex =
 
         type BST701T =
             {
-                MUTKOD : int
-                HPKODE : int
-                GNVOLG : int
-                GNMWHS : string
-                GNGNK : int
-                GNMINH : float
-                THMINE : int
-                XNMINE : int
-                GNSTAM : int
-                THSTWG : int
-                SSKTWG : int
+                MUTKOD: int
+                HPKODE: int
+                GNVOLG: int
+                GNMWHS: string
+                GNGNK: int
+                GNMINH: float
+                THMINE: int
+                XNMINE: int
+                GNSTAM: int
+                THSTWG: int
+                SSKTWG: int
             }
 
 
-        let create mutkod hpkode gnvolg gnmwhs gngnk gnminh thmine xnmine gnstam thstwg ssktwg  =
+        let create mutkod hpkode gnvolg gnmwhs gngnk gnminh thmine xnmine gnstam thstwg ssktwg =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 HPKODE = hpkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -750,18 +828,28 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5;6;7;8;9;10;11]
+        let pickList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6) (xs |> Array.item 7) (xs |> Array.item 8) (xs |> Array.item 9) (xs |> Array.item 10))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+                    (xs |> Array.item 7)
+                    (xs |> Array.item 8)
+                    (xs |> Array.item 9)
+                    (xs |> Array.item 10)
+            )
 
-        let records : unit -> BST701T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST701T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST711T: Bestand 711 Generieke producten </para>
     /// <para> --------------- </para>
@@ -783,21 +871,21 @@ module Zindex =
 
         type BST711T =
             {
-                MUTKOD : int
-                GPKODE : int
-                GSKODE : int
-                GPKTVR : int
-                GPKTWG : int
-                GPNMNR : int
-                GPMLCI : int
-                GPMLCT : int
-                SPKODE : int
-                ATCODE : string
-                XPEHHV : int
+                MUTKOD: int
+                GPKODE: int
+                GSKODE: int
+                GPKTVR: int
+                GPKTWG: int
+                GPNMNR: int
+                GPMLCI: int
+                GPMLCT: int
+                SPKODE: int
+                ATCODE: string
+                XPEHHV: int
             }
 
 
-        let create mutkod gpkode gskode gpktvr gpktwg gpnmnr gpmlci gpmlct spkode atcode xpehhv  =
+        let create mutkod gpkode gskode gpktvr gpktwg gpnmnr gpmlci gpmlct spkode atcode xpehhv =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 GPKODE = gpkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -808,25 +896,35 @@ module Zindex =
                 GPMLCI = gpmlci |> ((Parser.parseValue "N" "") >> Int32.parse)
                 GPMLCT = gpmlct |> ((Parser.parseValue "N" "") >> Int32.parse)
                 SPKODE = spkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
-                ATCODE = atcode 
+                ATCODE = atcode
                 XPEHHV = xpehhv |> ((Parser.parseValue "N" "") >> Int32.parse)
             }
 
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;5;7;8;11;12;17;20;22]
+        let pickList = [ 1; 2; 3; 5; 7; 8; 11; 12; 17; 20; 22 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6) (xs |> Array.item 7) (xs |> Array.item 8) (xs |> Array.item 9) (xs |> Array.item 10))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+                    (xs |> Array.item 7)
+                    (xs |> Array.item 8)
+                    (xs |> Array.item 9)
+                    (xs |> Array.item 10)
+            )
 
-        let records : unit -> BST711T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST711T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST715T: Bestand 715 Generieke samenstellingen </para>
     /// <para> --------------- </para>
@@ -844,17 +942,17 @@ module Zindex =
 
         type BST715T =
             {
-                MUTKOD : int
-                GNMWHS : string
-                GSKODE : int
-                GNNKPK : int
-                GNMOMH : float
-                XNMOME : int
-                XPEHHV : int
+                MUTKOD: int
+                GNMWHS: string
+                GSKODE: int
+                GNNKPK: int
+                GNMOMH: float
+                XNMOME: int
+                XPEHHV: int
             }
 
 
-        let create mutkod gnmwhs gskode gnnkpk gnmomh xnmome xpehhv  =
+        let create mutkod gnmwhs gskode gnnkpk gnmomh xnmome xpehhv =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 GNMWHS = gnmwhs |> String.trim
@@ -868,18 +966,24 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5;6;7]
+        let pickList = [ 1; 2; 3; 4; 5; 6; 7 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+            )
 
-        let records : unit -> BST715T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST715T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST720T: Bestand 720 Superprodukten </para>
     /// <para> --------------- </para>
@@ -893,13 +997,13 @@ module Zindex =
 
         type BST720T =
             {
-                MUTKOD : int
-                SPKODE : int
-                SSKODE : int
+                MUTKOD: int
+                SPKODE: int
+                SSKODE: int
             }
 
 
-        let create mutkod spkode sskode  =
+        let create mutkod spkode sskode =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 SPKODE = spkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -909,18 +1013,15 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3]
+        let pickList = [ 1; 2; 3 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2))
+            |> Array.map (fun xs -> create (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2))
 
-        let records : unit -> BST720T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST720T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST725T: Bestand 725 Stamnaam + stamtoedieningsweg </para>
     /// <para> --------------- </para>
@@ -935,14 +1036,14 @@ module Zindex =
 
         type BST725T =
             {
-                MUTKOD : int
-                SSKODE : int
-                GNSTAM : int
-                SSKTWG : int
+                MUTKOD: int
+                SSKODE: int
+                GNSTAM: int
+                SSKTWG: int
             }
 
 
-        let create mutkod sskode gnstam ssktwg  =
+        let create mutkod sskode gnstam ssktwg =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 SSKODE = sskode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -953,18 +1054,17 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4]
+        let pickList = [ 1; 2; 3; 4 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3))
+            |> Array.map (fun xs ->
+                create (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3)
+            )
 
-        let records : unit -> BST725T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST725T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST750T: Bestand 750 Generieke namen </para>
     /// <para> --------------- </para>
@@ -990,25 +1090,41 @@ module Zindex =
 
         type BST750T =
             {
-                MUTKOD : int
-                GNGNK : int
-                GNGNAM : string
-                GNSTAM : int
-                GNNKPK : int
-                GNSTNT : string
-                GNWZHS : string
-                GNSTKD : int
-                GNCAS : int
-                GNFORM : string
-                GNMOLE : float
-                GNMOLI : string
-                GNMOLS : float
-                GNSGEW : float
-                GNVOOR : string
+                MUTKOD: int
+                GNGNK: int
+                GNGNAM: string
+                GNSTAM: int
+                GNNKPK: int
+                GNSTNT: string
+                GNWZHS: string
+                GNSTKD: int
+                GNCAS: int
+                GNFORM: string
+                GNMOLE: float
+                GNMOLI: string
+                GNMOLS: float
+                GNSGEW: float
+                GNVOOR: string
             }
 
 
-        let create mutkod gngnk gngnam gnstam gnnkpk gnstnt gnwzhs gnstkd gncas gnform gnmole gnmoli gnmols gnsgew gnvoor  =
+        let create
+            mutkod
+            gngnk
+            gngnam
+            gnstam
+            gnnkpk
+            gnstnt
+            gnwzhs
+            gnstkd
+            gncas
+            gnform
+            gnmole
+            gnmoli
+            gnmols
+            gnsgew
+            gnvoor
+            =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 GNGNK = gngnk |> ((Parser.parseValue "N" "(5+1)") >> Int32.parse)
@@ -1030,18 +1146,32 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15]
+        let pickList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6) (xs |> Array.item 7) (xs |> Array.item 8) (xs |> Array.item 9) (xs |> Array.item 10) (xs |> Array.item 11) (xs |> Array.item 12) (xs |> Array.item 13) (xs |> Array.item 14))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+                    (xs |> Array.item 7)
+                    (xs |> Array.item 8)
+                    (xs |> Array.item 9)
+                    (xs |> Array.item 10)
+                    (xs |> Array.item 11)
+                    (xs |> Array.item 12)
+                    (xs |> Array.item 13)
+                    (xs |> Array.item 14)
+            )
 
-        let records : unit -> BST750T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST750T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST760T: Bestand 760 Enkelvoudige toedieningswegen HPK </para>
     /// <para> --------------- </para>
@@ -1055,13 +1185,13 @@ module Zindex =
 
         type BST760T =
             {
-                MUTKOD : int
-                HPKODE : int
-                ENKTDW : int
+                MUTKOD: int
+                HPKODE: int
+                ENKTDW: int
             }
 
 
-        let create mutkod hpkode enktdw  =
+        let create mutkod hpkode enktdw =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 HPKODE = hpkode |> ((Parser.parseValue "N" "(7+1)") >> Int32.parse)
@@ -1071,18 +1201,15 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;5]
+        let pickList = [ 1; 2; 5 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2))
+            |> Array.map (fun xs -> create (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2))
 
-        let records : unit -> BST760T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST760T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST801T: Bestand 801 ATC codes </para>
     /// <para> --------------- </para>
@@ -1098,18 +1225,18 @@ module Zindex =
 
         type BST801T =
             {
-                MUTKOD : int
-                ATCODE : string
-                ATOMS : string
-                ATOMSE : string
-                ATKIND : string
+                MUTKOD: int
+                ATCODE: string
+                ATOMS: string
+                ATOMSE: string
+                ATKIND: string
             }
 
 
-        let create mutkod atcode atoms atomse atkind  =
+        let create mutkod atcode atoms atomse atkind =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
-                ATCODE = atcode 
+                ATCODE = atcode
                 ATOMS = atoms |> String.trim
                 ATOMSE = atomse |> String.trim
                 ATKIND = atkind |> String.trim
@@ -1118,18 +1245,22 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5]
+        let pickList = [ 1; 2; 3; 4; 5 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+            )
 
-        let records : unit -> BST801T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST801T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST902T: Bestand 902 Thesauri totaal </para>
     /// <para> --------------- </para>
@@ -1145,15 +1276,15 @@ module Zindex =
 
         type BST902T =
             {
-                MUTKOD : int
-                TSNR : int
-                TSITNR : int
-                THNM25 : string
-                THNM50 : string
+                MUTKOD: int
+                TSNR: int
+                TSITNR: int
+                THNM25: string
+                THNM50: string
             }
 
 
-        let create mutkod tsnr tsitnr thnm25 thnm50  =
+        let create mutkod tsnr tsitnr thnm25 thnm50 =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 TSNR = tsnr |> ((Parser.parseValue "N" "") >> Int32.parse)
@@ -1165,18 +1296,22 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;7;8]
+        let pickList = [ 1; 2; 3; 7; 8 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+            )
 
-        let records : unit -> BST902T [] = Memoization.memoize _records
-
-    
+        let records: unit -> BST902T[] = Memoization.memoize _records
 
 
-    
     /// <summary>
     /// <para> Tabel: BST922T: Bestand 922 Tekstblokken HTML (vervangt 920) </para>
     /// <para> --------------- </para>
@@ -1196,19 +1331,19 @@ module Zindex =
 
         type BST922T =
             {
-                MUTKOD : int
-                THMODU : int
-                TXMODU : int
-                THTSRT : int
-                TXTSRT : int
-                TXKODE : int
-                TXBLNR : int
-                TXRGLN : int
-                TXTEXT : string
+                MUTKOD: int
+                THMODU: int
+                TXMODU: int
+                THTSRT: int
+                TXTSRT: int
+                TXKODE: int
+                TXBLNR: int
+                TXRGLN: int
+                TXTEXT: string
             }
 
 
-        let create mutkod thmodu txmodu thtsrt txtsrt txkode txblnr txrgln txtext  =
+        let create mutkod thmodu txmodu thtsrt txtsrt txkode txblnr txrgln txtext =
             {
                 MUTKOD = mutkod |> ((Parser.parseValue "N" "") >> Int32.parse)
                 THMODU = thmodu |> ((Parser.parseValue "N" "") >> Int32.parse)
@@ -1224,14 +1359,21 @@ module Zindex =
 
         let posl = BST001T.getPosl name
 
-        let pickList = [1;2;3;4;5;6;7;8;9]
+        let pickList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9 ]
 
         let _records _ =
             Parser.getData name posl pickList
-            |> Array.map (fun xs -> create  (xs |> Array.item 0) (xs |> Array.item 1) (xs |> Array.item 2) (xs |> Array.item 3) (xs |> Array.item 4) (xs |> Array.item 5) (xs |> Array.item 6) (xs |> Array.item 7) (xs |> Array.item 8))
+            |> Array.map (fun xs ->
+                create
+                    (xs |> Array.item 0)
+                    (xs |> Array.item 1)
+                    (xs |> Array.item 2)
+                    (xs |> Array.item 3)
+                    (xs |> Array.item 4)
+                    (xs |> Array.item 5)
+                    (xs |> Array.item 6)
+                    (xs |> Array.item 7)
+                    (xs |> Array.item 8)
+            )
 
-        let records : unit -> BST922T [] = Memoization.memoize _records
-
-    
-
-    
+        let records: unit -> BST922T[] = Memoization.memoize _records

@@ -42,14 +42,11 @@ module Utils =
 
         (*
         *)
-        let writeTextToFile path (text : string) =
-            File.WriteAllText(path, text)
+        let writeTextToFile path (text: string) = File.WriteAllText(path, text)
 
-        let exists path =
-            File.Exists(path)
+        let exists path = File.Exists(path)
 
         let readAllLines path = File.ReadAllLines(path)
-
 
 
     module Json =
@@ -57,13 +54,10 @@ module Utils =
         open Newtonsoft.Json
 
         ///
-        let serialize x =
-            JsonConvert.SerializeObject(x)
+        let serialize x = JsonConvert.SerializeObject(x)
 
 
-        let deSerialize<'T> (s: string) =
-            JsonConvert.DeserializeObject<'T>(s)
-
+        let deSerialize<'T> (s: string) = JsonConvert.DeserializeObject<'T>(s)
 
 
     module Web =
@@ -74,7 +68,7 @@ module Utils =
         let private getDataUrlId () =
             Env.getItem "GENPRES_URL_ID"
             |> Option.defaultWith (fun () -> failwith "No valid data url id")
-            |> fun s  ->
+            |> fun s ->
                 ConsoleWriter.writeInfoMessage $"using: {s}" true false
                 s
 
@@ -89,13 +83,8 @@ module Utils =
         /// <param name="sheet">The specific sheet</param>
         /// <returns>The data as a table of string array array</returns>
         let getDataFromSheet urlId sheet =
-            fun () ->
-                Web.GoogleSheets.getCsvDataFromSheetSync urlId sheet
-                |> Result.defaultValue [||]
+            fun () -> Web.GoogleSheets.getCsvDataFromSheetSync urlId sheet |> Result.defaultValue [||]
             |> StopWatch.clockFunc $"loaded {sheet} from web sheet"
-
-
-
 
 
     module Units =
@@ -115,35 +104,36 @@ module Utils =
 
 
         let timeUnit s =
-            if s |> String.isNullOrWhiteSpace then None
+            if s |> String.isNullOrWhiteSpace then
+                None
             else
                 // TODO need better fix than this
-                if s = "keer" then
-                    $"times[Count]"
-                else
-                    $"{s}[Time]"
+                if s = "keer" then $"times[Count]" else $"{s}[Time]"
                 |> Units.fromString
 
 
         let weightUnit s =
-            if s |> String.isNullOrWhiteSpace then None
-            else
+            if s |> String.isNullOrWhiteSpace then
+                None
+            else if
                 // TODO need to fix this in ValueUnit
-                if s = "gr" || s = "g" then Some Units.Weight.gram
-                else
-                    $"{s}[Weight]"
-                    |> Units.fromString
+                s = "gr" || s = "g"
+            then
+                Some Units.Weight.gram
+            else
+                $"{s}[Weight]" |> Units.fromString
 
 
         let massUnit s =
-            if s |> String.isNullOrWhiteSpace then None
+            if s |> String.isNullOrWhiteSpace then
+                None
             else
-                $"{s}[Mass]"
-                |> Units.fromString
+                $"{s}[Mass]" |> Units.fromString
 
 
         let freqUnit s =
-            if s |> String.isNullOrWhiteSpace then None
+            if s |> String.isNullOrWhiteSpace then
+                None
             else
                 $"times[Count]/{s}[Time]" |> Units.fromString
 
@@ -160,73 +150,74 @@ module Utils =
 
         let units =
             [
-                "AntiXa/kg/dag","AntiXa[General]","kg[Weight]","day[Time]"
-                "AntiXa/kg","AntiXa[General]","kg[Weight]",""
-                "E/kg","IE[InternationalUnit]","kg[Weight]",""
-                "IE/dag","IE[InternationalUnit]","","day[Time]"
-                "IE","IE[InternationalUnit]","",""
-                "IE/kg/dag","IE[InternationalUnit]","kg[Weight]","day[Time]"
-                "IE/kg","IE[InternationalUnit]","kg[Weight]",""
-                "IE/kg/uur","IE[InternationalUnit]","kg[Weight]","hour[Time]"
-                "IE/kg/week","IE[InternationalUnit]","kg[Weight]","week[Time]"
-                "IE/m²/dag","IE[InternationalUnit]","m2[BSA]","day[Time]"
-                "IE/m²","IE[InternationalUnit]","m2[BSA]",""
-                "IU/dag","IE[InternationalUnit]","","day[Time]"
-                "IU/kg/uur","IE[InternationalUnit]","kg[Weight]","hour[Time]"
-                "druppel(s)/dag","dr[Volume]","","day[Time]"
-                "druppel(s)","dr[Volume]","",""
-                "g/dag","g[Mass]","","day[Time]"
-                "g","g[Mass]","",""
-                "g/kg/dag","g[Mass]","kg[Weight]","day[Time]"
-                "g/kg","g[Mass]","kg[Weight]",""
-                "g/m²/dag","g[Mass]","m2[BSA]","day[Time]"
-                "mg/dag","mg[Mass]","","day[Time]"
-                "mg","mg[Mass]","",""
-                "mg/dag","mg[Mass]","","day[Time]"
-                "mg/kg per 2 weken","mg[Mass]","kg[Weight]","2 week[Time]"
-                "mg/kg per 36 uren","mg[Mass]","kg[Weight]","36 hour[Time]"
-                "mg/kg per 4 weken","mg[Mass]","kg[Weight]","4 week[Time]"
-                "mg/kg per 48 uren","mg[Mass]","kg[Weight]","48 hour[Time]"
-                "mg/kg per 72 uren","mg[Mass]","kg[Weight]","72 hour[Time]"
-                "mg/kg/dag","mg[Mass]","kg[Weight]","day[Time]"
-                "mg/kg","mg[Mass]","kg[Weight]",""
-                "mg/kg/uur","mg[Mass]","kg[Weight]","hour[Time]"
-                "mg/kg/week","mg[Mass]","kg[Weight]","week[Time]"
-                "mg/m²/dag","mg[Mass]","m2[BSA]","day[Time]"
-                "mg/m²","mg[Mass]","m2[BSA]",""
-                "microg./dag","microg[Mass]","","day[Time]"
-                "microg.","microg[Mass]","",""
-                "microg./kg/dag","microg[Mass]","kg[Weight]","day[Time]"
-                "microg./kg","microg[Mass]","kg[Weight]",""
-                "microg./kg/minuut","microg[Mass]","kg[Weight]","minute[Time]"
-                "microg./kg/uur","microg[Mass]","kg[Weight]","hour[Time]"
-                "microg./kg/week","microg[Mass]","kg[Weight]","week[Time]"
-                "microg./m²/dag","microg[Mass]","m2[BSA]","day[Time]"
-                "microg./m²","microg[Mass]","m2[BSA]",""
-                "microg./m²/week","microg[Mass]","m2[BSA]","week[Time]"
-                "microg./uur","microg[Mass]","","hour[Time]"
-                "ml/dag","mL[Volume]","","day[Time]"
-                "ml","mL[Volume]","",""
-                "ml","mL[Volume]","",""
-                "ml/kg/dag","mL[Volume]","kg[Weight]","day[Time]"
-                "ml/kg","mL[Volume]","kg[Weight]",""
-                "ml/kg/uur","mL[Volume]","kg[Weight]","hour[Time]"
-                "mmol/dag","mmol[Molar]","","day[Time]"
-                "mmol/kg/dag","mmol[Molar]","kg[Weight]","day[Time]"
-                "mmol/kg","mmol[Molar]","kg[Weight]",""
-                "mmol/m²/dag","mmol[Molar]","m2[BSA]","day[Time]"
-                "ng/kg/dag","nanog[Mass]","kg[Weight]","day[Time]"
-                "ng/kg/minuut","nanog[Mass]","kg[Weight]","minute[Time]"
-                "pufje(s)","puf[General]","",""
+                "AntiXa/kg/dag", "AntiXa[General]", "kg[Weight]", "day[Time]"
+                "AntiXa/kg", "AntiXa[General]", "kg[Weight]", ""
+                "E/kg", "IE[InternationalUnit]", "kg[Weight]", ""
+                "IE/dag", "IE[InternationalUnit]", "", "day[Time]"
+                "IE", "IE[InternationalUnit]", "", ""
+                "IE/kg/dag", "IE[InternationalUnit]", "kg[Weight]", "day[Time]"
+                "IE/kg", "IE[InternationalUnit]", "kg[Weight]", ""
+                "IE/kg/uur", "IE[InternationalUnit]", "kg[Weight]", "hour[Time]"
+                "IE/kg/week", "IE[InternationalUnit]", "kg[Weight]", "week[Time]"
+                "IE/m²/dag", "IE[InternationalUnit]", "m2[BSA]", "day[Time]"
+                "IE/m²", "IE[InternationalUnit]", "m2[BSA]", ""
+                "IU/dag", "IE[InternationalUnit]", "", "day[Time]"
+                "IU/kg/uur", "IE[InternationalUnit]", "kg[Weight]", "hour[Time]"
+                "druppel(s)/dag", "dr[Volume]", "", "day[Time]"
+                "druppel(s)", "dr[Volume]", "", ""
+                "g/dag", "g[Mass]", "", "day[Time]"
+                "g", "g[Mass]", "", ""
+                "g/kg/dag", "g[Mass]", "kg[Weight]", "day[Time]"
+                "g/kg", "g[Mass]", "kg[Weight]", ""
+                "g/m²/dag", "g[Mass]", "m2[BSA]", "day[Time]"
+                "mg/dag", "mg[Mass]", "", "day[Time]"
+                "mg", "mg[Mass]", "", ""
+                "mg/dag", "mg[Mass]", "", "day[Time]"
+                "mg/kg per 2 weken", "mg[Mass]", "kg[Weight]", "2 week[Time]"
+                "mg/kg per 36 uren", "mg[Mass]", "kg[Weight]", "36 hour[Time]"
+                "mg/kg per 4 weken", "mg[Mass]", "kg[Weight]", "4 week[Time]"
+                "mg/kg per 48 uren", "mg[Mass]", "kg[Weight]", "48 hour[Time]"
+                "mg/kg per 72 uren", "mg[Mass]", "kg[Weight]", "72 hour[Time]"
+                "mg/kg/dag", "mg[Mass]", "kg[Weight]", "day[Time]"
+                "mg/kg", "mg[Mass]", "kg[Weight]", ""
+                "mg/kg/uur", "mg[Mass]", "kg[Weight]", "hour[Time]"
+                "mg/kg/week", "mg[Mass]", "kg[Weight]", "week[Time]"
+                "mg/m²/dag", "mg[Mass]", "m2[BSA]", "day[Time]"
+                "mg/m²", "mg[Mass]", "m2[BSA]", ""
+                "microg./dag", "microg[Mass]", "", "day[Time]"
+                "microg.", "microg[Mass]", "", ""
+                "microg./kg/dag", "microg[Mass]", "kg[Weight]", "day[Time]"
+                "microg./kg", "microg[Mass]", "kg[Weight]", ""
+                "microg./kg/minuut", "microg[Mass]", "kg[Weight]", "minute[Time]"
+                "microg./kg/uur", "microg[Mass]", "kg[Weight]", "hour[Time]"
+                "microg./kg/week", "microg[Mass]", "kg[Weight]", "week[Time]"
+                "microg./m²/dag", "microg[Mass]", "m2[BSA]", "day[Time]"
+                "microg./m²", "microg[Mass]", "m2[BSA]", ""
+                "microg./m²/week", "microg[Mass]", "m2[BSA]", "week[Time]"
+                "microg./uur", "microg[Mass]", "", "hour[Time]"
+                "ml/dag", "mL[Volume]", "", "day[Time]"
+                "ml", "mL[Volume]", "", ""
+                "ml", "mL[Volume]", "", ""
+                "ml/kg/dag", "mL[Volume]", "kg[Weight]", "day[Time]"
+                "ml/kg", "mL[Volume]", "kg[Weight]", ""
+                "ml/kg/uur", "mL[Volume]", "kg[Weight]", "hour[Time]"
+                "mmol/dag", "mmol[Molar]", "", "day[Time]"
+                "mmol/kg/dag", "mmol[Molar]", "kg[Weight]", "day[Time]"
+                "mmol/kg", "mmol[Molar]", "kg[Weight]", ""
+                "mmol/m²/dag", "mmol[Molar]", "m2[BSA]", "day[Time]"
+                "ng/kg/dag", "nanog[Mass]", "kg[Weight]", "day[Time]"
+                "ng/kg/minuut", "nanog[Mass]", "kg[Weight]", "minute[Time]"
+                "pufje(s)", "puf[General]", "", ""
             ]
             |> List.map (fun (s, du, au, tu) ->
                 s,
                 du |> Units.fromString,
-                if au |> String.isNullOrWhiteSpace then None
-                else
-                    au |> Units.fromString
-                ,
-                if tu |> String.isNullOrWhiteSpace then None
+                (if au |> String.isNullOrWhiteSpace then
+                     None
+                 else
+                     au |> Units.fromString),
+                if tu |> String.isNullOrWhiteSpace then
+                    None
                 else
                     tu |> Units.fromString
             )
@@ -246,13 +237,9 @@ module Utils =
 
         let withOptionalUnit u v =
             match v, u with
-            | Some v, Some u ->
-                v
-                |> ValueUnit.singleWithUnit u
-                |> Some
+            | Some v, Some u -> v |> ValueUnit.singleWithUnit u |> Some
             | _ -> None
 
 
         let toString prec vu =
-            ValueUnit.toStringDecimalDutchShortWithPrec prec vu
-            |> String.replace ";" ", "
+            ValueUnit.toStringDecimalDutchShortWithPrec prec vu |> String.replace ";" ", "

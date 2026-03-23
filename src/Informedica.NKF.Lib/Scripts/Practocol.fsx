@@ -1,4 +1,3 @@
-
 #time
 
 #load "load.fsx"
@@ -320,17 +319,30 @@ medications
     let gpps =
         GenPresProduct.get []
         |> Array.filter (fun gpp ->
-            if  g |> (gpp.Name |> String.equalsCapInsens) then true
+            if g |> (gpp.Name |> String.equalsCapInsens) then
+                true
             else
-                m
-                |> (gpp.Name |> String.containsCapsInsens)
+                m |> (gpp.Name |> String.containsCapsInsens)
         )
         |> Array.distinctBy (fun gpp -> gpp.Name, gpp.Shape, gpp.Routes)
 
     m,
-    gpps |> Array.map _.Name |> Array.distinct |> Array.tryExactlyOne |> Option.defaultValue "",
-    gpps |> Array.map _.Shape |> Array.distinct |> Array.tryExactlyOne |> Option.defaultValue "",
-    gpps |> Array.map _.Routes |> Array.distinct |> Array.tryExactlyOne |> Option.bind Array.tryExactlyOne |> Option.defaultValue ""
+    gpps
+    |> Array.map _.Name
+    |> Array.distinct
+    |> Array.tryExactlyOne
+    |> Option.defaultValue "",
+    gpps
+    |> Array.map _.Shape
+    |> Array.distinct
+    |> Array.tryExactlyOne
+    |> Option.defaultValue "",
+    gpps
+    |> Array.map _.Routes
+    |> Array.distinct
+    |> Array.tryExactlyOne
+    |> Option.bind Array.tryExactlyOne
+    |> Option.defaultValue ""
 
 )
 |> List.iter (fun (s, generic, shape, route) ->
@@ -338,10 +350,7 @@ medications
 )
 
 
-
-"Alutard SQ"
-|> GenPresProduct.findByBrand
-
+"Alutard SQ" |> GenPresProduct.findByBrand
 
 
 medications
@@ -350,11 +359,8 @@ medications
     m,
     GenPresProduct.get []
     |> Array.filter (fun gpp ->
-        m
-        |> (gpp.Name |> String.containsCapsInsens)
-        ||
-        g
-        |> (gpp.Name |> String.equalsCapInsens)
+        m |> (gpp.Name |> String.containsCapsInsens)
+        || g |> (gpp.Name |> String.equalsCapInsens)
     )
 
 )
@@ -365,9 +371,7 @@ medications
 |> Array.distinct
 |> Array.collect (fun gpp ->
     gpp.Routes
-    |> Array.map (fun r ->
-        $"{gpp.Name |> String.toLower}\t{gpp.Shape |> String.toLower}\t{r}"
-    )
+    |> Array.map (fun r -> $"{gpp.Name |> String.toLower}\t{gpp.Shape |> String.toLower}\t{r}")
 )
 |> Array.distinct
 |> Array.iter (printfn "%s")
@@ -379,11 +383,8 @@ medications
     m,
     GenPresProduct.get []
     |> Array.filter (fun gpp ->
-        m
-        |> (gpp.Name |> String.containsCapsInsens)
-        ||
-        g
-        |> (gpp.Name |> String.equalsCapInsens)
+        m |> (gpp.Name |> String.containsCapsInsens)
+        || g |> (gpp.Name |> String.equalsCapInsens)
     )
 
 )
@@ -392,11 +393,7 @@ medications
 |> Array.collect snd
 |> Array.collect snd
 |> Array.distinct
-|> Array.collect (fun gpp ->
-    gpp.GenericProducts
-    |> Array.map _.Id
-    |> Array.map string
-)
+|> Array.collect (fun gpp -> gpp.GenericProducts |> Array.map _.Id |> Array.map string)
 |> Array.distinct
 |> Array.iter (printfn "%s\t\t\t\t\t\tx")
 
@@ -461,9 +458,7 @@ reconstitute
     )
 )
 |> Array.distinct
-|> Array.iter (fun r ->
-    printfn $"{r.gpk}\t{r.label}\t{r.shape}\t{r.route}"
-)
+|> Array.iter (fun r -> printfn $"{r.gpk}\t{r.label}\t{r.shape}\t{r.route}")
 
 
 GenPresProduct.get []
@@ -596,7 +591,6 @@ let solutions =
     ]
 
 
-
 solutions
 |> List.toArray
 |> Array.filter (fun (g, _, _, _, _, _) -> g |> String.notEmpty)
@@ -612,6 +606,7 @@ solutions
 )
 |> Array.collect (fun r ->
     let route = "INTRAVENEUS"
+
     GenPresProduct.filter r.generic r.shape route
     |> Array.map (fun gpp ->
         {|
@@ -646,17 +641,14 @@ GenPresProduct.filter "insuline-gewoon" "" ""
 
 
 GenPresProduct.get []
-|> Array.filter (fun gpp ->
-    gpp.Name |> String.containsCapsInsens "IJZER(III)"
-)
+|> Array.filter (fun gpp -> gpp.Name |> String.containsCapsInsens "IJZER(III)")
 |> Array.collect _.GenericProducts
 |> Array.map _.Name
 |> Array.distinct
 |> Array.iter (printfn "%s")
 
 
-GenPresProduct.getRoutes ()
-|> Array.iter (printfn "%s")
+GenPresProduct.getRoutes () |> Array.iter (printfn "%s")
 
 
 GenPresProduct.filter "" "" "INTRATHECAAL"

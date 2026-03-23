@@ -13,9 +13,7 @@ module Array =
 
 
     let indices pred xs =
-        xs
-        |> Array.mapi (fun i x -> if pred x then Some i else None)
-        |> Array.choose id
+        xs |> Array.mapi (fun i x -> if pred x then Some i else None) |> Array.choose id
 
 
     /// Pick elements from an array
@@ -26,10 +24,7 @@ module Array =
         | _ ->
             pl
             |> Seq.toArray
-            |> Array.choose (fun i ->
-                if i >= 0 && i < xs.Length then Some (xs[i])
-                else None
-            )
+            |> Array.choose (fun i -> if i >= 0 && i < xs.Length then Some(xs[i]) else None)
 
 
     /// Remove elements from an array using a predicate function `pred`.
@@ -37,14 +32,7 @@ module Array =
         if Array.isEmpty xs then
             xs
         else
-            xs
-            |> Array.choose
-                (fun x ->
-                    if Array.exists pred xs then
-                        None
-                    else
-                        Some x
-                )
+            xs |> Array.choose (fun x -> if Array.exists pred xs then None else Some x)
 
 
     /// Filter an array of arrays using a predicate function `p`.
@@ -52,8 +40,7 @@ module Array =
     /// input array xs based on the condition that at least one element
     /// in each subarray (inside xs) satisfies the predicate function p.
     /// Example: filterArrays (fun x -> x % 2 = 0) [|[|1;3|]; [|4;5;6|]; [|7;8;9|]|] -> [|[|4;5;6|]|]
-    let arrayFilter p xs =
-        xs |> Array.filter (Array.exists p)
+    let arrayFilter p xs = xs |> Array.filter (Array.exists p)
 
 
     /// In summary, the collectArrays function filters the elements within
@@ -61,8 +48,7 @@ module Array =
     /// filtered elements from all subarrays into a single array,
     /// effectively flattening the subarrays while applying the filtering criterion.
     /// Example: collectArrays (fun x -> x % 2 = 0) [|[|1;2;3|]; [|4;5;6|]; [|7;8;9|]|] -> [|2;4;6;8|]
-    let collectArrays p xs =
-        xs |> Array.collect (Array.filter p)
+    let collectArrays p xs = xs |> Array.collect (Array.filter p)
 
 
     /// Convert an array to a string using a left and right delimiter
@@ -74,9 +60,7 @@ module Array =
         | _ ->
             let del = $"{del}"
             let lng = del |> String.length
-            let s =
-                xs
-                |> Array.fold (fun s x -> s + string x + del) left
+            let s = xs |> Array.fold (fun s x -> s + string x + del) left
             (s |> String.subString 0 ((s |> String.length) - lng)) + right
 
 
@@ -99,11 +83,10 @@ module Array =
     let allEqual succ fail xs =
         match xs with
         | [||] -> fail
-        | [|x|] -> succ x
+        | [| x |] -> succ x
         | _ ->
             let first = xs[0]
-            if Array.forall ((=) first) xs then succ first
-            else fail
+            if Array.forall ((=) first) xs then succ first else fail
 
 
     /// Return the string version of an element if all
@@ -119,9 +102,10 @@ module Array =
 
     /// Return an option of an element if
     /// the array contains exactly one element or return None
-    let someIfOne = function
-        | [|x|] -> Some x
-        | _   -> None
+    let someIfOne =
+        function
+        | [| x |] -> Some x
+        | _ -> None
 
 
     /// In summary, the prune function trims the input array xs by keeping its first and last elements,
@@ -132,14 +116,17 @@ module Array =
     let prune maxLength xs =
         let length = xs |> Array.length
 
-        if length <= maxLength || length <= 2 then xs
+        if length <= maxLength || length <= 2 then
+            xs
         else
             let step = length / (maxLength - 2)
 
             xs
             |> Array.mapi (fun i x ->
-                if i = 0 || i = length - 1 || i % step = 0 then Some x
-                else None
+                if i = 0 || i = length - 1 || i % step = 0 then
+                    Some x
+                else
+                    None
             )
             |> Array.choose id
 
@@ -148,6 +135,7 @@ module Array =
         | [||] -> invalidArg "xs" "Array cannot be empty to calculate median."
         | sorted ->
             let len = sorted.Length
+
             if len % 2 = 0 then
                 // Average of the two middle elements for even length array
                 (float sorted[len / 2 - 1] + float sorted[len / 2]) / 2.0
@@ -168,14 +156,15 @@ module Array =
             deltas |> Array.findIndex ((=) minDelta)
 
 
-
     let inline pickNearestHigherElseLower target xs =
-        if Array.isEmpty xs then invalidArg "xs" "Array cannot be empty"
+        if Array.isEmpty xs then
+            invalidArg "xs" "Array cannot be empty"
 
         let ys = xs |> Array.sort
+
         match ys |> Array.tryFind (fun x -> x >= target) with
-        | Some x -> x                   // smallest value >= target
-        | None -> ys[ys.Length - 1]     // no higher value exists: take highest lower
+        | Some x -> x // smallest value >= target
+        | None -> ys[ys.Length - 1] // no higher value exists: take highest lower
 
 
     module Tests =
@@ -185,104 +174,120 @@ module Array =
 
         // Test prepend
         let testPrepend () =
-            test <@ [|1;2|] |> prepend [|3;4|] = [|1;2;3;4|] @>
+            test <@ [| 1; 2 |] |> prepend [| 3; 4 |] = [| 1; 2; 3; 4 |] @>
 
 
         // Test pickArray
         let testPickArray () =
-            test <@ pickArray [1;2] [|1;2;3;4|] = [|2;3|] @>
-            test <@ pickArray [1;2] [|1;2|] = [|2|] @>
-            test <@ pickArray [1;2] [|1|] = [||] @>
-            test <@ pickArray [1;2] [||] = [||] @>
+            test <@ pickArray [ 1; 2 ] [| 1; 2; 3; 4 |] = [| 2; 3 |] @>
+            test <@ pickArray [ 1; 2 ] [| 1; 2 |] = [| 2 |] @>
+            test <@ pickArray [ 1; 2 ] [| 1 |] = [||] @>
+            test <@ pickArray [ 1; 2 ] [||] = [||] @>
 
 
         // Test arrayFilter
         let testArrayFilter () =
-            test <@ arrayFilter (fun x -> x % 2 = 0) [|[|1;3|]; [|4;5;6|]; [|7;8;9|]|] = [|[|4;5;6|]; [|7;8;9|] |] @>
-            test <@ arrayFilter (fun x -> x % 2 = 0) [|[|1;3|]; [|5;7|]; [|9;11|]|] = [||] @>
-            test <@ arrayFilter (fun x -> x % 2 = 0) [|[|1;3|]; [|5;7|]; [|9;11|]; [|13;15|]|] = [||] @>
+            test
+                <@
+                    arrayFilter (fun x -> x % 2 = 0) [| [| 1; 3 |]; [| 4; 5; 6 |]; [| 7; 8; 9 |] |] = [|
+                        [| 4; 5; 6 |]
+                        [| 7; 8; 9 |]
+                    |]
+                @>
+
+            test <@ arrayFilter (fun x -> x % 2 = 0) [| [| 1; 3 |]; [| 5; 7 |]; [| 9; 11 |] |] = [||] @>
+            test <@ arrayFilter (fun x -> x % 2 = 0) [| [| 1; 3 |]; [| 5; 7 |]; [| 9; 11 |]; [| 13; 15 |] |] = [||] @>
 
 
         // Test collectArrays
         let testCollectArrays () =
-            test <@ collectArrays (fun x -> x % 2 = 0) [|[|1;2;3|]; [|4;5;6|]; [|7;8;9|]|] = [|2;4;6;8|] @>
-            test <@ collectArrays (fun x -> x % 2 = 0) [|[|1;2;3|]; [|5;7|]; [|9;11|]|] = [|2|] @>
+            test
+                <@
+                    collectArrays (fun x -> x % 2 = 0) [| [| 1; 2; 3 |]; [| 4; 5; 6 |]; [| 7; 8; 9 |] |] = [|
+                        2
+                        4
+                        6
+                        8
+                    |]
+                @>
+
+            test <@ collectArrays (fun x -> x % 2 = 0) [| [| 1; 2; 3 |]; [| 5; 7 |]; [| 9; 11 |] |] = [| 2 |] @>
 
 
         // Test toString_
         let testToString_ () =
-            test <@ toString_ "[|" "|]" ";" [|1;2;3|] = "[|1;2;3|]" @>
+            test <@ toString_ "[|" "|]" ";" [| 1; 2; 3 |] = "[|1;2;3|]" @>
             test <@ toString_ "[|" "|]" ";" [||] = "[||]" @>
-            test <@ toString_ "[|" "|]" ";" [|1|] = "[|1|]" @>
-            test <@ toString_ "[|" "|]" ";" [|1;2|] = "[|1;2|]" @>
-            test <@ toString_ "[|" "|]" ";" [|1;2;3|] = "[|1;2;3|]" @>
-            test <@ toString_ "[|" "|]" ";" [|1;2;3;4|] = "[|1;2;3;4|]" @>
+            test <@ toString_ "[|" "|]" ";" [| 1 |] = "[|1|]" @>
+            test <@ toString_ "[|" "|]" ";" [| 1; 2 |] = "[|1;2|]" @>
+            test <@ toString_ "[|" "|]" ";" [| 1; 2; 3 |] = "[|1;2;3|]" @>
+            test <@ toString_ "[|" "|]" ";" [| 1; 2; 3; 4 |] = "[|1;2;3;4|]" @>
 
 
         // Test toString
         let testToString () =
-            test <@ toString [|1;2;3|] = "[|1;2;3|]" @>
+            test <@ toString [| 1; 2; 3 |] = "[|1;2;3|]" @>
             test <@ toString [||] = "[||]" @>
-            test <@ toString [|1|] = "[|1|]" @>
-            test <@ toString [|1;2|] = "[|1;2|]" @>
-            test <@ toString [|1;2;3|] = "[|1;2;3|]" @>
-            test <@ toString [|1;2;3;4|] = "[|1;2;3;4|]" @>
+            test <@ toString [| 1 |] = "[|1|]" @>
+            test <@ toString [| 1; 2 |] = "[|1;2|]" @>
+            test <@ toString [| 1; 2; 3 |] = "[|1;2;3|]" @>
+            test <@ toString [| 1; 2; 3; 4 |] = "[|1;2;3;4|]" @>
 
 
         // Test toReadableString
         let testToReadableString () =
-            test <@ toReadableString [|1;2;3|] = "1;2;3" @>
+            test <@ toReadableString [| 1; 2; 3 |] = "1;2;3" @>
             test <@ toReadableString [||] = "" @>
-            test <@ toReadableString [|1|] = "1" @>
-            test <@ toReadableString [|1;2|] = "1;2" @>
-            test <@ toReadableString [|1;2;3|] = "1;2;3" @>
-            test <@ toReadableString [|1;2;3;4|] = "1;2;3;4" @>
+            test <@ toReadableString [| 1 |] = "1" @>
+            test <@ toReadableString [| 1; 2 |] = "1;2" @>
+            test <@ toReadableString [| 1; 2; 3 |] = "1;2;3" @>
+            test <@ toReadableString [| 1; 2; 3; 4 |] = "1;2;3;4" @>
 
 
         // Test allEqual
         let testAllEqual () =
             test <@ allEqual Some None [||] = None @>
-            test <@ allEqual Some None [|1;1;1|] = Some 1 @>
-            test <@ allEqual Some None [|1;1;2|] = None @>
-            test <@ allEqual Some None [|1;2;1|] = None @>
-            test <@ allEqual Some None [|2;1;1|] = None @>
-            test <@ allEqual Some None [|1;2;3|] = None @>
+            test <@ allEqual Some None [| 1; 1; 1 |] = Some 1 @>
+            test <@ allEqual Some None [| 1; 1; 2 |] = None @>
+            test <@ allEqual Some None [| 1; 2; 1 |] = None @>
+            test <@ allEqual Some None [| 2; 1; 1 |] = None @>
+            test <@ allEqual Some None [| 1; 2; 3 |] = None @>
 
 
         // Test allEqualToString
         let testAllEqualToString () =
             test <@ allEqualToString [||] = "" @>
-            test <@ allEqualToString [|1;1;1|] = "1" @>
-            test <@ allEqualToString [|1;1;2|] = "" @>
-            test <@ allEqualToString [|1;2;1|] = "" @>
-            test <@ allEqualToString [|2;1;1|] = "" @>
-            test <@ allEqualToString [|1;2;3|] = "" @>
+            test <@ allEqualToString [| 1; 1; 1 |] = "1" @>
+            test <@ allEqualToString [| 1; 1; 2 |] = "" @>
+            test <@ allEqualToString [| 1; 2; 1 |] = "" @>
+            test <@ allEqualToString [| 2; 1; 1 |] = "" @>
+            test <@ allEqualToString [| 1; 2; 3 |] = "" @>
 
 
         // Test allEqualToOpt
         let testAllEqualToOpt () =
             test <@ allEqualToOpt [||] = None @>
-            test <@ allEqualToOpt [|1;1;1|] = Some 1 @>
-            test <@ allEqualToOpt [|1;1;2|] = None @>
-            test <@ allEqualToOpt [|1;2;1|] = None @>
-            test <@ allEqualToOpt [|2;1;1|] = None @>
-            test <@ allEqualToOpt [|1;2;3|] = None @>
+            test <@ allEqualToOpt [| 1; 1; 1 |] = Some 1 @>
+            test <@ allEqualToOpt [| 1; 1; 2 |] = None @>
+            test <@ allEqualToOpt [| 1; 2; 1 |] = None @>
+            test <@ allEqualToOpt [| 2; 1; 1 |] = None @>
+            test <@ allEqualToOpt [| 1; 2; 3 |] = None @>
 
 
         // Test someIfOne
         let testSomeIfOne () =
             test <@ someIfOne [||] = None @>
-            test <@ someIfOne [|1|] = Some 1 @>
-            test <@ someIfOne [|1;2|] = None @>
-            test <@ someIfOne [|1;2;3|] = None @>
+            test <@ someIfOne [| 1 |] = Some 1 @>
+            test <@ someIfOne [| 1; 2 |] = None @>
+            test <@ someIfOne [| 1; 2; 3 |] = None @>
 
 
         // Test prune
         let testPrune () =
             test <@ prune 5 [||] = [||] @>
-            test <@ prune 5 [|1|] = [|1|] @>
-            test <@ prune 5 [|1;2;3;4;5;6;7;8;9|] = [|1; 4; 7; 9|] @>
-            test <@ prune 5 [|1;2;3;4;5;6;7;8;9;10|] = [|1; 4; 7; 10|] @>
+            test <@ prune 5 [| 1 |] = [| 1 |] @>
+            test <@ prune 5 [| 1; 2; 3; 4; 5; 6; 7; 8; 9 |] = [| 1; 4; 7; 9 |] @>
+            test <@ prune 5 [| 1; 2; 3; 4; 5; 6; 7; 8; 9; 10 |] = [| 1; 4; 7; 10 |] @>
 
 
         // Run all tests

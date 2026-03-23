@@ -57,19 +57,23 @@ module Ollama =
 
     type Tool =
         {
-            ``type`` : string
-            ``function`` : Function
+            ``type``: string
+            ``function``: Function
         }
-    and Function = {
-        name : string
-        description : string
-        parameters : Parameters
-    }
-    and Parameters  = {
-        ``type`` : string
-        properties : obj
-        required : string list
-    }
+
+    and Function =
+        {
+            name: string
+            description: string
+            parameters: Parameters
+        }
+
+    and Parameters =
+        {
+            ``type``: string
+            properties: obj
+            required: string list
+        }
 
 
     module Tool =
@@ -78,73 +82,80 @@ module Ollama =
         let create name descr req props =
             {
                 ``type`` = "function"
-                ``function`` = {
-                    name = name
-                    description = descr
-                    parameters = {
-                        ``type`` = "object"
-                        properties = props
-                        required = req
+                ``function`` =
+                    {
+                        name = name
+                        description = descr
+                        parameters =
+                            {
+                                ``type`` = "object"
+                                properties = props
+                                required = req
+                            }
                     }
-                }
             }
 
 
-    type OllamaResponse = {
-        error: string
-        model: string
-        created_at: string
-        response: string
-        message: {| role : string; content : string |}
-        ``done``: bool
-        context: int list
-        total_duration: int64
-        load_duration: int64
-        prompt_eval_duration: int64
-        eval_count: int
-        eval_duration: int64
-    }
+    type OllamaResponse =
+        {
+            error: string
+            model: string
+            created_at: string
+            response: string
+            message:
+                {|
+                    role: string
+                    content: string
+                |}
+            ``done``: bool
+            context: int list
+            total_duration: int64
+            load_duration: int64
+            prompt_eval_duration: int64
+            eval_count: int
+            eval_duration: int64
+        }
 
-    type ModelDetails = {
-        format: string
-        family: string
-        families : string []
-        parameter_size: string
-        quantization_level: string
-    }
+    type ModelDetails =
+        {
+            format: string
+            family: string
+            families: string[]
+            parameter_size: string
+            quantization_level: string
+        }
 
-    type Model = {
-        name: string
-        modified_at: string
-        size: int64
-        digest: string
-        details: ModelDetails
-    }
+    type Model =
+        {
+            name: string
+            modified_at: string
+            size: int64
+            digest: string
+            details: ModelDetails
+        }
 
-    type Models = {
-        models: Model list
-    }
-
-
-    type Embedding = {
-        embedding : float []
-    }
+    type Models = { models: Model list }
 
 
-    type Details = {
-        format: string
-        family: string
-        families: string list
-        parameter_size: string
-        quantization_level: string
-    }
+    type Embedding = { embedding: float[] }
 
-    type ModelConfig = {
-        modelfile: string
-        parameters: string
-        template: string
-        details: Details
-    }
+
+    type Details =
+        {
+            format: string
+            family: string
+            families: string list
+            parameter_size: string
+            quantization_level: string
+        }
+
+    type ModelConfig =
+        {
+            modelfile: string
+            parameters: string
+            template: string
+            details: Details
+        }
 
 
     module EndPoints =
@@ -172,9 +183,7 @@ module Ollama =
 
 
     let pullModel name =
-        {|
-            name = name
-        |}
+        {| name = name |}
         |> JsonConvert.SerializeObject
         |> Utils.post<string> EndPoints.pull None
 
@@ -190,17 +199,16 @@ module Ollama =
         |> Utils.post<OllamaResponse> EndPoints.generate None
 
 
-    let chat model messages (message : Message) =
+    let chat model messages (message: Message) =
         let map msg =
             {|
                 role = msg.Role
                 content = msg.Content
             |}
+
         {|
             model = model
-            messages =
-                [ message |> map ]
-                |> List.append (messages |> List.map map)
+            messages = [ message |> map ] |> List.append (messages |> List.map map)
             options = options
             stream = false
         |}
@@ -208,7 +216,7 @@ module Ollama =
         |> Utils.post<OllamaResponse> EndPoints.chat None
 
 
-    let openAIchat model messages (message : Message) =
+    let openAIchat model messages (message: Message) =
         let map msg =
             {|
                 role = msg.Role
@@ -217,9 +225,7 @@ module Ollama =
 
         {|
             model = model
-            messages =
-                [ message |> map ]
-                |> List.append (messages |> List.map map)
+            messages = [ message |> map ] |> List.append (messages |> List.map map)
             temperature = options.temperature
             seed = options.seed
             stream = false
@@ -228,7 +234,7 @@ module Ollama =
         |> Utils.post<OpenAI.Chat.ChatResponse> EndPoints.openAI (Some "ollama")
 
 
-    let json<'ReturnType> model messages (message : Message) =
+    let json<'ReturnType> model messages (message: Message) =
         //let schema = JsonSchema.FromType<'ReturnType>().ToJson()
 
         let map msg =
@@ -242,23 +248,20 @@ module Ollama =
             {|
                 model = model
                 format = "json"
-                response_format = {|
-                    ``type`` = "json_object"
-                    schema = null // schema is not well supported add
-                                  // schema to the prompt manually
-                |}
-                messages =
-                    [ message |> map ]
-                    |> List.append (messages |> List.map map)
+                response_format =
+                    {|
+                        ``type`` = "json_object"
+                        schema = null // schema is not well supported add
+                    // schema to the prompt manually
+                    |}
+                messages = [ message |> map ] |> List.append (messages |> List.map map)
                 options = options
                 stream = false
             |}
             |> JsonConvert.SerializeObject
 
         async {
-            let! resp =
-                payload
-                |> Utils.post<OllamaResponse> EndPoints.chat None
+            let! resp = payload |> Utils.post<OllamaResponse> EndPoints.chat None
 
             let resp =
                 resp
@@ -267,8 +270,7 @@ module Ollama =
                         resp.Response.message.content
                         |> JsonConvert.DeserializeObject<'ReturnType>
                         |> Ok
-                    with
-                    | e ->
+                    with e ->
                         $"{resp.Response.message.content.Trim()}\ncannot be serialized because:\n{e.ToString()}"
                         |> Error
                 )
@@ -288,9 +290,9 @@ module Ollama =
                     match resp with
                     | Ok result ->
                         let answer = result |> JsonConvert.SerializeObject
+
                         let messages =
-                            [attemptMessage; answer |> Message.assistant]
-                            |> List.append messages
+                            [ attemptMessage; answer |> Message.assistant ] |> List.append messages
 
                         match answer |> attemptMessage.Validator with
                         | Ok res ->
@@ -305,26 +307,31 @@ module Ollama =
                             else
                                 let updatedMessage =
                                     { attemptMessage with
-                                        Content = $"The answer: {answer} was not correct because of %s{err}. Please try again answering:\n\n%s{original.Content}"
+                                        Content =
+                                            $"The answer: {answer} was not correct because of %s{err}. Please try again answering:\n\n%s{original.Content}"
                                     }
+
                                 return! validateLoop false messages updatedMessage
                     | Error err ->
                         if not reTry then
-                            messages @ [attemptMessage]  |> List.iter Message.print
+                            messages @ [ attemptMessage ] |> List.iter Message.print
                             return err |> Error
                         else
                             let updatedMessage =
                                 { attemptMessage with
-                                    Content = $"The answer was not correct because of %s{err}. Please try again answering:\n\n%s{original.Content}"
+                                    Content =
+                                        $"The answer was not correct because of %s{err}. Please try again answering:\n\n%s{original.Content}"
                                 }
-                            let messages = [attemptMessage] |> List.append messages
+
+                            let messages = [ attemptMessage ] |> List.append messages
                             return! validateLoop false messages updatedMessage
                 }
+
             return! validateLoop true messages message
         }
 
 
-    let validate2<'ReturnType> (model : string) messages (message: Message) =
+    let validate2<'ReturnType> (model: string) messages (message: Message) =
         let original = message
 
         async {
@@ -336,40 +343,42 @@ module Ollama =
                     match resp with
                     | Ok result ->
                         let answer = result |> JsonConvert.SerializeObject
-                        let messages =
-                            [ answer |> Message.assistant]
-                            |> List.append messages
+                        let messages = [ answer |> Message.assistant ] |> List.append messages
 
                         match answer |> attemptMessage.Validator with
                         | Ok res ->
                             let validationResult = res |> JsonConvert.DeserializeObject<'ReturnType>
 
-                            return Ok (validationResult, messages)
+                            return Ok(validationResult, messages)
                         | Error err ->
                             if not reTry then
-                                return Error (err, messages)
+                                return Error(err, messages)
                             else
                                 let updatedMessage =
                                     { attemptMessage with
-                                        Content = $"The answer: |{answer}| was not correct because of %s{err}. Please try again answering:\n\n%s{original.Content}"
+                                        Content =
+                                            $"The answer: |{answer}| was not correct because of %s{err}. Please try again answering:\n\n%s{original.Content}"
                                     }
+
                                 return! validateLoop false messages updatedMessage
                     | Error err ->
                         if not reTry then
-                            return Error (err,  messages)
+                            return Error(err, messages)
                         else
                             let updatedMessage =
                                 { attemptMessage with
-                                    Content = $"The answer was not correct because of %s{err}. Please try again answering:\n\n%s{original.Content}"
+                                    Content =
+                                        $"The answer was not correct because of %s{err}. Please try again answering:\n\n%s{original.Content}"
                                 }
 
                             return! validateLoop false messages updatedMessage
                 }
+
             return! validateLoop true messages message
         }
 
 
-    let extract tools model messages (message : Message) =
+    let extract tools model messages (message: Message) =
         let map msg =
             {|
                 role = msg.Role
@@ -379,9 +388,7 @@ module Ollama =
         {|
             tools = tools
             model = model
-            messages =
-                [ message |> map ]
-                |> List.append (messages |> List.map map)
+            messages = [ message |> map ] |> List.append (messages |> List.map map)
             options = options
             stream = false
         |}
@@ -393,9 +400,7 @@ module Ollama =
 
 
     let showModel model =
-        {|
-            name = model
-        |}
+        {| name = model |}
         |> JsonConvert.SerializeObject
         |> Utils.post<ModelConfig> EndPoints.show None
 
@@ -409,7 +414,7 @@ module Ollama =
         |> Utils.post<Embedding> EndPoints.show None
 
 
-    let run (model : string) messages message =
+    let run (model: string) messages message =
         message
         |> chat model messages
         |> Async.RunSynchronously
@@ -417,7 +422,10 @@ module Ollama =
             | Ok response ->
                 let response = response.Response
 
-                [ message; Message.okMessage response.message.role response.message.content ]
+                [
+                    message
+                    Message.okMessage response.message.role response.message.content
+                ]
                 |> List.append messages
             | Error s ->
                 printfn $"oops: {s}"
@@ -440,7 +448,7 @@ module Ollama =
 
         let mistral = "mistral"
 
-        let ``mistral:7b-instruct`` =  "mistral:7b-instruct"
+        let ``mistral:7b-instruct`` = "mistral:7b-instruct"
 
         let ``openchat:7b`` = "openchat:7b"
 
@@ -457,29 +465,30 @@ module Ollama =
         let llama3 = "llama3"
 
 
-    let runLlama2  = run Models.llama2
+    let runLlama2 = run Models.llama2
 
 
-    let runLlama2_13b_chat  = run Models.``llama2:13b-chat``
+    let runLlama2_13b_chat = run Models.``llama2:13b-chat``
 
 
-    let runGemma  = run Models.gemma
+    let runGemma = run Models.gemma
 
 
     let runGemma_7b_instruct = run Models.``gemma:7b-instruct``
 
 
-    let runMistral  = run Models.mistral
+    let runMistral = run Models.mistral
 
 
-    let runMistral_7b_instruct  = run Models.``mistral:7b-instruct``
+    let runMistral_7b_instruct = run Models.``mistral:7b-instruct``
 
 
     module Operators =
 
 
         let init model msg =
-            printfn $"""Starting conversation with {model}
+            printfn
+                $"""Starting conversation with {model}
 
 Options:
 {options |> JsonConvert.SerializeObject}
@@ -490,10 +499,12 @@ Options:
             {
                 Model = model
                 Messages =
-                    [{
-                        Question = msg
-                        Answer = None
-                    }]
+                    [
+                        {
+                            Question = msg
+                            Answer = None
+                        }
+                    ]
             }
 
 
@@ -502,47 +513,49 @@ Options:
                 conversation.Messages
                 |> List.collect (fun m ->
                     match m.Answer with
-                    | Some answer -> [m.Question; answer ]
+                    | Some answer -> [ m.Question; answer ]
                     | None -> [ m.Question ]
                 )
 
             msg
             |> run conversation.Model msgs
             |> fun msgs ->
-                    let answer = msgs |> List.last
+                let answer = msgs |> List.last
 
-                    let newConv =
-                        { conversation with
-                            Messages =
-                                [{
+                let newConv =
+                    { conversation with
+                        Messages =
+                            [
+                                {
                                     Question = msg
                                     Answer = Some answer
-                                }]
-                                |> List.append conversation.Messages
-                        }
+                                }
+                            ]
+                            |> List.append conversation.Messages
+                    }
 
 
-                    match answer.Content |> msg.Validator with
-                    | Ok _ -> newConv
-                    | Result.Error err ->
-                        if not tryAgain then newConv
-                        else
-                            $"""
+                match answer.Content |> msg.Validator with
+                | Ok _ -> newConv
+                | Result.Error err ->
+                    if not tryAgain then
+                        newConv
+                    else
+                        $"""
 It seems the answer was not correct because: {err}
 Can you try again answering?
 {msg.Content}
 """
-                            |> Message.user
-                            |> loop false newConv
+                        |> Message.user
+                        |> loop false newConv
 
 
-        let (>>?) conversation text  =
+        let (>>?) conversation text =
             let msg = text |> Message.user
             loop true conversation msg
 
 
-        let (>>!) conversation msg =
-            loop true conversation msg
+        let (>>!) conversation msg = loop true conversation msg
 
 
     module WithState =
@@ -559,13 +572,11 @@ Can you try again answering?
                 // the updated list of messages
                 let msgs, res =
                     msg
-                    |> validate2
-                        model
-                        msgs
+                    |> validate2 model msgs
                     |> Async.RunSynchronously
                     |> function
-                        | Ok (result, msgs) -> msgs, result
-                        | Error (_, msgs)   -> msgs, zero
+                        | Ok(result, msgs) -> msgs, result
+                        | Error(_, msgs) -> msgs, zero
                 // refresh the state with the updated list of messages
                 do! State.put msgs
                 // return the structured extraction
@@ -577,32 +588,29 @@ Can you try again answering?
 
         open FSharpPlus
 
-        let inline private getJson model zero (msg : Message) (msgs : Message list)  =
+        let inline private getJson model zero (msg: Message) (msgs: Message list) =
             msg
-            |> validate2
-                model
-                msgs
+            |> validate2 model msgs
             |> Async.RunSynchronously
             |> function
-                | Ok (result, msgs) -> msgs, result
-                | Error (_, msgs)   -> msgs, zero
+                | Ok(result, msgs) -> msgs, result
+                | Error(_, msgs) -> msgs, zero
 
 
         let doseUnits model text =
-            let parseEmpty s = if s |> String.isNullOrWhiteSpace then "" else s
+            let parseEmpty s =
+                if s |> String.isNullOrWhiteSpace then "" else s
+
             monad {
-                let! doseUnits =
-                    Extraction.createDoseUnits
-                        getJson
-                        getJson
-                        getJson
-                        model text
+                let! doseUnits = Extraction.createDoseUnits getJson getJson getJson model text
+
                 let doseUnits =
                     {|
                         substanceUnit = doseUnits.substanceUnit |> parseEmpty
                         adjustUnit = doseUnits.adjustUnit |> parseEmpty
                         timeUnit = doseUnits.timeUnit |> parseEmpty
                     |}
+
                 return doseUnits
             }
 
@@ -610,10 +618,8 @@ Can you try again answering?
         let frequencies model text =
             monad {
                 let! doseUnits = doseUnits model text
-                let! freqs =
-                    Extraction.extractFrequency
-                        getJson
-                        model doseUnits.timeUnit
+                let! freqs = Extraction.extractFrequency getJson model doseUnits.timeUnit
+
                 return
                     {|
                         doseUnits = doseUnits
@@ -625,16 +631,18 @@ Can you try again answering?
         let minMaxDose model text =
             monad {
                 let! freqs = frequencies model text
+
                 let su, au, tu =
-                    freqs.doseUnits.substanceUnit
-                    , if freqs.doseUnits.adjustUnit |> String.IsNullOrEmpty then None else freqs.doseUnits.adjustUnit |> Some
-                    , if freqs.doseUnits.timeUnit |> String.IsNullOrEmpty then None else freqs.doseUnits.timeUnit |> Some
-                let! minMaxDose =
-                    Extraction.extractDoseQuantities
-                        getJson
-                        model su au tu
-                return
-                    {| freqs with
-                        doseQuantities = minMaxDose.quantities
-                    |}
+                    freqs.doseUnits.substanceUnit,
+                    (if freqs.doseUnits.adjustUnit |> String.IsNullOrEmpty then
+                         None
+                     else
+                         freqs.doseUnits.adjustUnit |> Some),
+                    if freqs.doseUnits.timeUnit |> String.IsNullOrEmpty then
+                        None
+                    else
+                        freqs.doseUnits.timeUnit |> Some
+
+                let! minMaxDose = Extraction.extractDoseQuantities getJson model su au tu
+                return {| freqs with doseQuantities = minMaxDose.quantities |}
             }

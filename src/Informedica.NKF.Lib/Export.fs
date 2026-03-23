@@ -9,7 +9,7 @@ module Export =
     open Informedica.KinderFormularium.Lib
 
 
-    let cleanGenericName (drug : Drug.Drug) =
+    let cleanGenericName (drug: Drug.Drug) =
         { drug with
             Generic =
                 drug.Generic
@@ -28,27 +28,26 @@ module Export =
 
 
     let findGenPresProducts pedFormName shape route =
-            GenPresProduct.get []
-            |> Array.filter (fun gpp ->
-                let gppName = gpp.Name |> String.toLower
-                // should be a valid shape
-                Mapping.validShapes
-                |> List.exists ((=) (gpp.Form.ToLower().Trim())) &&
-                (shape |> String.equalsCapInsens gpp.Form || shape |> String.isNullOrWhiteSpace) &&
-                // check if names match
-                (pedFormName = gppName ||
-                (pedFormName |> String.contains gppName && pedFormName |> String.contains "/" |> not) ||
-                ((pedFormName |> String.split "/" |> List.sort) = (gppName |> String.split "/" |> List.sort)))
-                // should have equal route
-                &&
-                gpp.Routes
-                |> Array.exists (String.equalsCapInsens route)
-            )
-            |> Array.toList
+        GenPresProduct.get []
+        |> Array.filter (fun gpp ->
+            let gppName = gpp.Name |> String.toLower
+            // should be a valid shape
+            Mapping.validShapes |> List.exists ((=) (gpp.Form.ToLower().Trim()))
+            && (shape |> String.equalsCapInsens gpp.Form || shape |> String.isNullOrWhiteSpace)
+            &&
+            // check if names match
+            (pedFormName = gppName
+             || (pedFormName |> String.contains gppName
+                 && pedFormName |> String.contains "/" |> not)
+             || ((pedFormName |> String.split "/" |> List.sort) = (gppName |> String.split "/" |> List.sort)))
+            // should have equal route
+            && gpp.Routes |> Array.exists (String.equalsCapInsens route)
+        )
+        |> Array.toList
 
 
-    let map (formulary : Drug.Drug array) =
-        let minMaxToString (mm : Drug.MinMax.MinMax option) =
+    let map (formulary: Drug.Drug array) =
+        let minMaxToString (mm: Drug.MinMax.MinMax option) =
             mm
             |> Option.map (fun mm ->
                 mm.Min |> Option.map string |> Option.defaultValue "",
@@ -73,64 +72,77 @@ module Export =
                         let pedFormName = drug.Generic
 
                         let doseUnit =
-                                Units.units
-                                |> List.tryFind (fun (s, _, _, _) -> s = schedule.Unit)
-                                |> Option.bind (fun (_, du, _, _) -> du)
-                                |> Option.map Informedica.GenUnits.Lib.Units.toStringDutchShort
-                                |> Option.defaultValue ""
+                            Units.units
+                            |> List.tryFind (fun (s, _, _, _) -> s = schedule.Unit)
+                            |> Option.bind (fun (_, du, _, _) -> du)
+                            |> Option.map Informedica.GenUnits.Lib.Units.toStringDutchShort
+                            |> Option.defaultValue ""
 
                         let adjustUnit =
-                                Units.units
-                                |> List.tryFind (fun (s, _, _, _) -> s = schedule.Unit)
-                                |> Option.bind (fun (_, _, au, _) -> au)
-                                |> Option.map Informedica.GenUnits.Lib.Units.toStringDutchShort
-                                |> Option.defaultValue ""
+                            Units.units
+                            |> List.tryFind (fun (s, _, _, _) -> s = schedule.Unit)
+                            |> Option.bind (fun (_, _, au, _) -> au)
+                            |> Option.map Informedica.GenUnits.Lib.Units.toStringDutchShort
+                            |> Option.defaultValue ""
 
                         let freqUnit =
-                                Units.units
-                                |> List.tryFind (fun (s, _, _, _) -> s = schedule.Unit)
-                                |> Option.bind (fun (_, _, _, fu) -> fu)
-                                |> Option.map Informedica.GenUnits.Lib.Units.toStringDutchShort
-                                |> Option.defaultValue ""
+                            Units.units
+                            |> List.tryFind (fun (s, _, _, _) -> s = schedule.Unit)
+                            |> Option.bind (fun (_, _, _, fu) -> fu)
+                            |> Option.map Informedica.GenUnits.Lib.Units.toStringDutchShort
+                            |> Option.defaultValue ""
 
                         let minQty, maxQty =
-                            match doseUnit |> String.notEmpty,
-                                  adjustUnit |> String.notEmpty,
-                                  freqUnit |> String.notEmpty with
-                            | true, false, false ->
-                                schedule.Value |> minMaxToString
+                            match
+                                doseUnit |> String.notEmpty,
+                                adjustUnit |> String.notEmpty,
+                                freqUnit |> String.notEmpty
+                            with
+                            | true, false, false -> schedule.Value |> minMaxToString
                             | _ -> "", ""
 
                         let normQtyAdj, minQtyAdj, maxQtyAdj =
-                            match doseUnit |> String.notEmpty,
-                                  adjustUnit |> String.notEmpty,
-                                  freqUnit |> String.notEmpty with
+                            match
+                                doseUnit |> String.notEmpty,
+                                adjustUnit |> String.notEmpty,
+                                freqUnit |> String.notEmpty
+                            with
                             | true, true, false ->
                                 let minQtyAdj, maxQtyAdj = schedule.Value |> minMaxToString
-                                if minQtyAdj = maxQtyAdj then minQtyAdj, "", ""
-                                else "", minQtyAdj, maxQtyAdj
+
+                                if minQtyAdj = maxQtyAdj then
+                                    minQtyAdj, "", ""
+                                else
+                                    "", minQtyAdj, maxQtyAdj
                             | _ -> "", "", ""
 
                         let minPerTime, maxPerTime =
-                            match doseUnit |> String.notEmpty,
-                                  adjustUnit |> String.notEmpty,
-                                  freqUnit |> String.notEmpty with
-                            | true, false, true ->
-                                schedule.Value |> minMaxToString
+                            match
+                                doseUnit |> String.notEmpty,
+                                adjustUnit |> String.notEmpty,
+                                freqUnit |> String.notEmpty
+                            with
+                            | true, false, true -> schedule.Value |> minMaxToString
                             | _ -> "", ""
 
                         let normPerTimeAdj, minPerTimeAdj, maxPerTimeAdj =
-                            match doseUnit |> String.notEmpty,
-                                  adjustUnit |> String.notEmpty,
-                                  freqUnit |> String.notEmpty with
+                            match
+                                doseUnit |> String.notEmpty,
+                                adjustUnit |> String.notEmpty,
+                                freqUnit |> String.notEmpty
+                            with
                             | true, true, true ->
                                 let minPerTimeAdj, maxPerTimeAdj = schedule.Value |> minMaxToString
-                                if minPerTimeAdj = maxPerTimeAdj then minPerTimeAdj, "", ""
-                                else "", minPerTimeAdj, maxPerTimeAdj
+
+                                if minPerTimeAdj = maxPerTimeAdj then
+                                    minPerTimeAdj, "", ""
+                                else
+                                    "", minPerTimeAdj, maxPerTimeAdj
                             | _ -> "", "", ""
 
                         let route =
-                            if route.ProductRoute |> String.notEmpty then route.ProductRoute
+                            if route.ProductRoute |> String.notEmpty then
+                                route.ProductRoute
                             else
                                 route.Name
                                 |> String.toLower
@@ -203,7 +215,8 @@ module Export =
                                             | _, Some days -> $"{int days}"
                                             | _ -> ""
                                     doseType =
-                                        if schedule.Frequency |> Option.isNone then ""
+                                        if schedule.Frequency |> Option.isNone then
+                                            ""
                                         else
                                             schedule.Frequency
                                             |> Option.map Drug.Frequency.toDoseType
@@ -290,7 +303,8 @@ module Export =
                                                 | _, Some days -> $"{int days}"
                                                 | _ -> ""
                                         doseType =
-                                            if schedule.Frequency |> Option.isNone then ""
+                                            if schedule.Frequency |> Option.isNone then
+                                                ""
                                             else
                                                 schedule.Frequency
                                                 |> Option.map Drug.Frequency.toDoseType
@@ -325,7 +339,44 @@ module Export =
         |> List.mapi (fun i x -> {| x with sortNo = i |})
 
 
-    let addMaxDoses (mapped : {| adjustUnit: string; doseType: string; doseUnit: string; freqUnit: string; freqs: string; gender: string; generic: string; indication: string; maxAge: string; maxBSA: string; maxGestAge: string; maxPMAge: string; maxPerTime: string; maxPerTimeAdj: string; maxQty: string; maxQtyAdj: string; maxWeight: string; minAge: string; minBSA: string; minGestAge: string; minPMAge: string; minPerTime: string; minPerTimeAdj: string; minQty: string; minQtyAdj: string; minWeight: string; normPerTimeAdj: string; normQtyAdj: string; route: string; scheduleText: string; shape: string; sortNo : int; substance: string |} list) =
+    let addMaxDoses
+        (mapped:
+            {|
+                adjustUnit: string
+                doseType: string
+                doseUnit: string
+                freqUnit: string
+                freqs: string
+                gender: string
+                generic: string
+                indication: string
+                maxAge: string
+                maxBSA: string
+                maxGestAge: string
+                maxPMAge: string
+                maxPerTime: string
+                maxPerTimeAdj: string
+                maxQty: string
+                maxQtyAdj: string
+                maxWeight: string
+                minAge: string
+                minBSA: string
+                minGestAge: string
+                minPMAge: string
+                minPerTime: string
+                minPerTimeAdj: string
+                minQty: string
+                minQtyAdj: string
+                minWeight: string
+                normPerTimeAdj: string
+                normQtyAdj: string
+                route: string
+                scheduleText: string
+                shape: string
+                sortNo: int
+                substance: string
+            |} list)
+        =
         let getDoseText s =
             s
             |> String.replace "\t" " "
@@ -336,18 +387,16 @@ module Export =
             |> String.toLower
             |> String.trim
             |> fun s ->
-                if s |> String.length <= 300 then s
+                if s |> String.length <= 300 then
+                    s
                 else
                     s |> String.subString 0 300
 
         let needsMaxDose, rest =
             mapped
             |> List.partition (fun m ->
-                (m.normQtyAdj |> String.notEmpty ||
-                m.normPerTimeAdj |> String.notEmpty) &&
-                m.scheduleText
-                |> getDoseText
-                |> String.contains "max"
+                (m.normQtyAdj |> String.notEmpty || m.normPerTimeAdj |> String.notEmpty)
+                && m.scheduleText |> getDoseText |> String.contains "max"
             )
 
         needsMaxDose
@@ -368,7 +417,7 @@ module Export =
 
                         return
                             xs
-                            |> List. map (fun x ->
+                            |> List.map (fun x ->
                                 let du = x.doseUnit |> Units.fromString
                                 let tu = x.freqUnit |> Units.fromString
 
@@ -410,19 +459,54 @@ module Export =
                             )
                     }
                     |> Async.RunSynchronously
-                with
-                | e ->
+                with e ->
                     printfn $"could not complete {doseText} because of:\n{e}"
 
-                    xs
-                    |> List.map (fun x -> {| x with hasMaxDose = "True" |} )
+                    xs |> List.map (fun x -> {| x with hasMaxDose = "True" |})
             )
-        |> List.append
-               (rest |> List.map (fun x -> {| x with hasMaxDose = "False" |}))
+        |> List.append (rest |> List.map (fun x -> {| x with hasMaxDose = "False" |}))
         |> List.sortBy _.sortNo
 
 
-    let checkDoseTypes (mapped : {| adjustUnit: string; doseType: string; doseUnit: string; freqUnit: string; freqs: string; gender: string; generic: string; hasMaxDose: string; indication: string; maxAge: string; maxBSA: string; maxGestAge: string; maxPMAge: string; maxPerTime: string; maxPerTimeAdj: string; maxQty: string; maxQtyAdj: string; maxWeight: string; minAge: string; minBSA: string; minGestAge: string; minPMAge: string; minPerTime: string; minPerTimeAdj: string; minQty: string; minQtyAdj: string; minWeight: string; normPerTimeAdj: string; normQtyAdj: string; route: string; scheduleText: string; shape: string; sortNo: int; substance: string |} list) =
+    let checkDoseTypes
+        (mapped:
+            {|
+                adjustUnit: string
+                doseType: string
+                doseUnit: string
+                freqUnit: string
+                freqs: string
+                gender: string
+                generic: string
+                hasMaxDose: string
+                indication: string
+                maxAge: string
+                maxBSA: string
+                maxGestAge: string
+                maxPMAge: string
+                maxPerTime: string
+                maxPerTimeAdj: string
+                maxQty: string
+                maxQtyAdj: string
+                maxWeight: string
+                minAge: string
+                minBSA: string
+                minGestAge: string
+                minPMAge: string
+                minPerTime: string
+                minPerTimeAdj: string
+                minQty: string
+                minQtyAdj: string
+                minWeight: string
+                normPerTimeAdj: string
+                normQtyAdj: string
+                route: string
+                scheduleText: string
+                shape: string
+                sortNo: int
+                substance: string
+            |} list)
+        =
         let getDoseText s =
             s
             |> String.replace "\t" " "
@@ -433,16 +517,18 @@ module Export =
             |> String.toLower
             |> String.trim
             |> fun s ->
-                if s |> String.length <= 300 then s
+                if s |> String.length <= 300 then
+                    s
                 else
                     s |> String.subString 0 300
 
         let needsDoseTypeCheck, rest =
             mapped
             |> List.partition (fun m ->
-                (m.doseType |> String.equalsCapInsens "onderhoud" ||
-                m.doseType |> String.equalsCapInsens "PRN" ||
-                m.generic |> String.contains "/") |> not
+                (m.doseType |> String.equalsCapInsens "onderhoud"
+                 || m.doseType |> String.equalsCapInsens "PRN"
+                 || m.generic |> String.contains "/")
+                |> not
             )
 
         needsDoseTypeCheck
@@ -455,11 +541,8 @@ module Export =
             |> List.collect (fun (doseText, xs) ->
                 let dt =
                     try
-                        doseText
-                        |> OpenAI.getDoseType
-                        |> Async.RunSynchronously
-                    with
-                    | e ->
+                        doseText |> OpenAI.getDoseType |> Async.RunSynchronously
+                    with e ->
                         printfn $"could not complete {doseText} because of:\n{e}"
                         None
 
@@ -467,15 +550,51 @@ module Export =
                 printfn $"check dose type processed {n.Value} from {c}"
 
                 xs
-                |> List.map (fun x ->
-                    {| x with doseType = dt |> Option.defaultValue x.doseType |}
-                )
-        )
+                |> List.map (fun x -> {| x with doseType = dt |> Option.defaultValue x.doseType |})
+            )
         |> List.append rest
         |> List.sortBy _.sortNo
 
 
-    let toDataString (mapped : {| adjustUnit: string; doseType: string; doseUnit: string; freqUnit: string; freqs: string; gender: string; generic: string; hasMaxDose: string; indication: string; maxAge: string; maxBSA: string; maxGestAge: string; maxPMAge: string; maxPerTime: string; maxPerTimeAdj: string; maxQty: string; maxQtyAdj: string; maxWeight: string; minAge: string; minBSA: string; minGestAge: string; minPMAge: string; minPerTime: string; minPerTimeAdj: string; minQty: string; minQtyAdj: string; minWeight: string; normPerTimeAdj: string; normQtyAdj: string; route: string; scheduleText: string; shape: string; sortNo: int; substance: string |} list) =
+    let toDataString
+        (mapped:
+            {|
+                adjustUnit: string
+                doseType: string
+                doseUnit: string
+                freqUnit: string
+                freqs: string
+                gender: string
+                generic: string
+                hasMaxDose: string
+                indication: string
+                maxAge: string
+                maxBSA: string
+                maxGestAge: string
+                maxPMAge: string
+                maxPerTime: string
+                maxPerTimeAdj: string
+                maxQty: string
+                maxQtyAdj: string
+                maxWeight: string
+                minAge: string
+                minBSA: string
+                minGestAge: string
+                minPMAge: string
+                minPerTime: string
+                minPerTimeAdj: string
+                minQty: string
+                minQtyAdj: string
+                minWeight: string
+                normPerTimeAdj: string
+                normQtyAdj: string
+                route: string
+                scheduleText: string
+                shape: string
+                sortNo: int
+                substance: string
+            |} list)
+        =
         let fields =
             [
                 "SortNo"
@@ -541,14 +660,14 @@ module Export =
                 r.route
                 r.indication
                 r.scheduleText
-                    |> String.replace "\t" " "
-                    |> String.replace "\r\n" " "
-                    |> String.replace "\n" " "
-                    |> String.replace "\r" " "
-                    |> String.removeBrackets
-                    |> String.removeExtraSpaces
-                    //|> String.toLower
-                    |> String.trim
+                |> String.replace "\t" " "
+                |> String.replace "\r\n" " "
+                |> String.replace "\n" " "
+                |> String.replace "\r" " "
+                |> String.removeBrackets
+                |> String.removeExtraSpaces
+                //|> String.toLower
+                |> String.trim
                 "" // department
                 "" // diagn
                 r.hasMaxDose
@@ -601,10 +720,7 @@ module Export =
 
 
     let writeToFile path mapped =
-        mapped
-        |> toDataString
-        |> String.concat "\n"
-        |> File.writeTextToFile path
+        mapped |> toDataString |> String.concat "\n" |> File.writeTextToFile path
 
 
     let export path formulary =
@@ -615,5 +731,3 @@ module Export =
         |> addMaxDoses
         |> checkDoseTypes
         |> writeToFile path
-
-

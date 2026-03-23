@@ -32,47 +32,37 @@ open Informedica.Utils.Lib
 open Informedica.GenUnits.Lib
 open Informedica.GenForm.Lib
 
-let inline resultGet r = match r with Ok (mapping, _) -> mapping | Error _ -> failwith "Failed to get result"
+let inline resultGet r =
+    match r with
+    | Ok(mapping, _) -> mapping
+    | Error _ -> failwith "Failed to get result"
 
-let routeMapping =
-    Mapping.getRouteMapping dataUrlId
-    |> resultGet
+let routeMapping = Mapping.getRouteMapping dataUrlId |> resultGet
 
 
-let unitMapping =
-    Mapping.getUnitMapping dataUrlId
-    |> resultGet
+let unitMapping = Mapping.getUnitMapping dataUrlId |> resultGet
 
-let parenterals = 
-    Product.Parenteral.get dataUrlId unitMapping
-    |> resultGet
+let parenterals = Product.Parenteral.get dataUrlId unitMapping |> resultGet
 
 
 SolutionRule.getData dataUrlId
 |> function
-    | Ok (data, _) ->
+    | Ok(data, _) ->
         data
         |> Array.filter (_.Generic >> (=) "Samenstelling C")
         |> SolutionRule.map routeMapping parenterals [||]
     | Error _ -> failwith "could not getData"
 
 
-
-let provider : Resources.IResourceProvider =
-        Api.getCachedProviderWithDataUrlId
-            FormLogging.noOp
-            dataUrlId
+let provider: Resources.IResourceProvider =
+    Api.getCachedProviderWithDataUrlId FormLogging.noOp dataUrlId
 
 
 { Filter.doseFilter with
     Generic = Some "Samenstelling C"
     DoseType = Timed "dag 1" |> Some
     DoseFilter.Patient.Department = Some "ICK"
-    DoseFilter.Patient.Weight = 
-        10N
-        |> ValueUnit.singleWithUnit Units.Weight.kiloGram
-        |> Some
+    DoseFilter.Patient.Weight = 10N |> ValueUnit.singleWithUnit Units.Weight.kiloGram |> Some
 
 }
 |> Api.filterPrescriptionRules provider
-

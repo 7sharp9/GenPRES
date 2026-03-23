@@ -35,17 +35,12 @@ module Csv =
     ///   - Throws an exception with error message if parsing fails and `isOption` is false.
     let inline parse isOption typeDescr tryParse x =
         match tryParse x with
-        | Some n ->
-            if not isOption then box n
-            else
-                n
-                |> Some
-                |> box
+        | Some n -> if not isOption then box n else n |> Some |> box
         | None ->
-            if isOption then None
+            if isOption then
+                None
             else
-                $"cannot parse {x} to {typeDescr}"
-                |> failwith
+                $"cannot parse {x} to {typeDescr}" |> failwith
 
 
     /// Try to cast a string to a value of the given type.
@@ -55,7 +50,7 @@ module Csv =
         match dt with
         | StringData -> box (x.Trim())
         | Int32Data -> parse false "int32" Int32.tryParse x
-        | Int32OptionData -> parse true  "int32" Int32.tryParse x
+        | Int32OptionData -> parse true "int32" Int32.tryParse x
         | FloatData -> parse false "double" Double.tryParse x
         | FloatOptionData -> parse true "double" Double.tryParse x
         | DecimalData -> parse false "decimal" Decimal.tryParse x
@@ -69,29 +64,22 @@ module Csv =
         columns
         |> Array.tryFindIndex (String.equalsCapInsens name)
         |> function
-            | None ->
-                $"""cannot find column {name} in {columns |> String.concat ", "}"""
-                |> failwith
-            | Some i ->
-                row
-                |> Array.item i
-                |> tryCast<'T> dataType
+            | None -> $"""cannot find column {name} in {columns |> String.concat ", "}""" |> failwith
+            | Some i -> row |> Array.item i |> tryCast<'T> dataType
 
 
     let getStringColumn columns sl s =
         getColumn<string> StringData columns sl s
 
 
-    let getInt32Column columns sl s =
-        getColumn<int> Int32Data columns sl s
+    let getInt32Column columns sl s = getColumn<int> Int32Data columns sl s
 
 
     let getInt32OptionColumn columns sl s =
         getColumn<int option> Int32OptionData columns sl s
 
 
-    let getFloatColumn columns sl s =
-        getColumn<float> FloatData columns sl s
+    let getFloatColumn columns sl s = getColumn<float> FloatData columns sl s
 
 
     let getFloatOptionColumn columns sl s =
@@ -114,11 +102,7 @@ module Csv =
         // remove quotes
         |> Array.map (String.replace "\"" "")
         // split on special character
-        |> Array.map (fun s ->
-            s.Split("")
-            |> Array.map (fun s -> s.Trim())
-        )
-
+        |> Array.map (fun s -> s.Split("") |> Array.map (fun s -> s.Trim()))
 
 
     module Tests =
@@ -134,11 +118,15 @@ module Csv =
         // Test parseCSV
         let testParseCSV () =
             let testCsv = "a\",\"b\",\"c\n1\",\"2\",\"3\n4\",\"5\",\"6"
-            test <@ parseCSV testCsv = [|
-                [| "a"; "b"; "c" |]
-                [| "1"; "2"; "3" |]
-                [| "4"; "5"; "6" |]
-            |] @>
+
+            test
+                <@
+                    parseCSV testCsv = [|
+                        [| "a"; "b"; "c" |]
+                        [| "1"; "2"; "3" |]
+                        [| "4"; "5"; "6" |]
+                    |]
+                @>
 
 
         // Test getStringColumn
@@ -150,7 +138,7 @@ module Csv =
 
         // Test all
         let testAll () =
-            testTryCast()
-            testParseCSV()
-            testGetStringColumn()
+            testTryCast ()
+            testParseCSV ()
+            testGetStringColumn ()
             ()

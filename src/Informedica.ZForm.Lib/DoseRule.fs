@@ -71,8 +71,7 @@ module DoseRule =
 
 
         /// An empty Weight MinMax.
-        let emptyWeight =
-            MinMax.empty, NoUnit
+        let emptyWeight = MinMax.empty, NoUnit
 
 
         /// An empty BSA MinMax.
@@ -90,16 +89,11 @@ module DoseRule =
         /// </summary>
         /// <param name="vu">The ValueUnit to create the DoseRange</param>
         let count vu =
-            let setMinIncl =
-                Optic.set MinMax.Optics.inclMinLens
+            let setMinIncl = Optic.set MinMax.Optics.inclMinLens
 
-            let setMaxIncl =
-                Optic.set MinMax.Optics.inclMaxLens
+            let setMaxIncl = Optic.set MinMax.Optics.inclMaxLens
 
-            let mm =
-                MinMax.empty
-                |> setMinIncl (Some vu)
-                |> setMaxIncl (Some vu)
+            let mm = MinMax.empty |> setMinIncl (Some vu) |> setMaxIncl (Some vu)
 
             let wmm = (mm, Units.Weight.kiloGram)
 
@@ -118,16 +112,10 @@ module DoseRule =
         let calc op (dr1: DoseRange) (dr2: DoseRange) =
             {
                 Norm = dr1.Norm |> op <| dr2.Norm
-                NormWeight =
-                    (dr1.NormWeight |> fst) |> op
-                    <| (dr2.NormWeight |> fst),
-                    (dr1.NormWeight |> snd)
+                NormWeight = (dr1.NormWeight |> fst) |> op <| (dr2.NormWeight |> fst), (dr1.NormWeight |> snd)
                 NormBSA = (dr1.NormBSA |> fst) |> op <| (dr2.NormBSA |> fst), (dr1.NormBSA |> snd)
                 Abs = dr1.Abs |> op <| dr2.Abs
-                AbsWeight =
-                    (dr1.AbsWeight |> fst) |> op
-                    <| (dr2.AbsWeight |> fst),
-                    (dr1.AbsWeight |> snd)
+                AbsWeight = (dr1.AbsWeight |> fst) |> op <| (dr2.AbsWeight |> fst), (dr1.AbsWeight |> snd)
                 AbsBSA = (dr1.AbsBSA |> fst) |> op <| (dr2.AbsBSA |> fst), (dr1.AbsBSA |> snd)
             }
 
@@ -153,141 +141,95 @@ module DoseRule =
             }
 
 
-
         module Optics =
 
             module MinMax = MinMax.Optics
 
-            let inclMinNormLens =
-                DoseRange.Norm_ >-> MinMax.inclMinLens
+            let inclMinNormLens = DoseRange.Norm_ >-> MinMax.inclMinLens
 
 
-            let exclMinNormLens =
-                DoseRange.Norm_ >-> MinMax.exclMinLens
+            let exclMinNormLens = DoseRange.Norm_ >-> MinMax.exclMinLens
 
 
-            let inclMaxNormLens =
-                DoseRange.Norm_ >-> MinMax.inclMaxLens
+            let inclMaxNormLens = DoseRange.Norm_ >-> MinMax.inclMaxLens
 
 
-            let exclMaxNormLens =
-                DoseRange.Norm_ >-> MinMax.exclMaxLens
+            let exclMaxNormLens = DoseRange.Norm_ >-> MinMax.exclMaxLens
 
 
-            let normWeightUnitLens =
-                DoseRange.NormWeight_ >-> snd_
+            let normWeightUnitLens = DoseRange.NormWeight_ >-> snd_
 
 
-            let inclMinNormWeightLens =
-                DoseRange.NormWeight_
-                >-> fst_
-                >-> MinMax.inclMinLens
+            let inclMinNormWeightLens = DoseRange.NormWeight_ >-> fst_ >-> MinMax.inclMinLens
 
 
-            let exclMinNormWeightLens =
-                DoseRange.NormWeight_
-                >-> fst_
-                >-> MinMax.exclMinLens
+            let exclMinNormWeightLens = DoseRange.NormWeight_ >-> fst_ >-> MinMax.exclMinLens
 
 
-            let inclMaxNormWeightLens =
-                DoseRange.NormWeight_
-                >-> fst_
-                >-> MinMax.inclMaxLens
+            let inclMaxNormWeightLens = DoseRange.NormWeight_ >-> fst_ >-> MinMax.inclMaxLens
 
 
-            let exclMaxNormWeightLens =
-                DoseRange.NormWeight_
-                >-> fst_
-                >-> MinMax.exclMaxLens
+            let exclMaxNormWeightLens = DoseRange.NormWeight_ >-> fst_ >-> MinMax.exclMaxLens
 
 
-            let normBSAUnitLens =
-                DoseRange.NormBSA_ >-> snd_
+            let normBSAUnitLens = DoseRange.NormBSA_ >-> snd_
 
 
-            let inclMinNormBSALens =
-                DoseRange.NormBSA_ >-> fst_ >-> MinMax.inclMinLens
+            let inclMinNormBSALens = DoseRange.NormBSA_ >-> fst_ >-> MinMax.inclMinLens
 
 
-            let exclMinNormBSALens =
-                DoseRange.NormBSA_ >-> fst_ >-> MinMax.exclMinLens
+            let exclMinNormBSALens = DoseRange.NormBSA_ >-> fst_ >-> MinMax.exclMinLens
 
 
-            let inclMaxNormBSALens =
-                DoseRange.NormBSA_ >-> fst_ >-> MinMax.inclMaxLens
+            let inclMaxNormBSALens = DoseRange.NormBSA_ >-> fst_ >-> MinMax.inclMaxLens
 
 
-            let exclMaxNormBSALens =
-                DoseRange.NormBSA_ >-> fst_ >-> MinMax.exclMaxLens
+            let exclMaxNormBSALens = DoseRange.NormBSA_ >-> fst_ >-> MinMax.exclMaxLens
 
 
-            let minAbsLens =
-                DoseRange.Abs_ >-> MinMax.min_
+            let minAbsLens = DoseRange.Abs_ >-> MinMax.min_
 
 
-            let inclMinAbsLens =
-                DoseRange.Abs_ >-> MinMax.inclMinLens
+            let inclMinAbsLens = DoseRange.Abs_ >-> MinMax.inclMinLens
 
 
-            let exclMinAbsLens =
-                DoseRange.Abs_ >-> MinMax.exclMinLens
+            let exclMinAbsLens = DoseRange.Abs_ >-> MinMax.exclMinLens
 
 
-            let inclMaxAbsLens =
-                DoseRange.Abs_ >-> MinMax.inclMaxLens
+            let inclMaxAbsLens = DoseRange.Abs_ >-> MinMax.inclMaxLens
 
 
-            let exclMaxAbsLens =
-                DoseRange.Abs_ >-> MinMax.exclMaxLens
+            let exclMaxAbsLens = DoseRange.Abs_ >-> MinMax.exclMaxLens
 
 
-            let absWeightUnitLens =
-                DoseRange.AbsWeight_ >-> snd_
+            let absWeightUnitLens = DoseRange.AbsWeight_ >-> snd_
 
 
-            let inclMinAbsWeightLens =
-                DoseRange.AbsWeight_
-                >-> fst_
-                >-> MinMax.inclMinLens
+            let inclMinAbsWeightLens = DoseRange.AbsWeight_ >-> fst_ >-> MinMax.inclMinLens
 
 
-            let exclMinAbsWeightLens =
-                DoseRange.AbsWeight_
-                >-> fst_
-                >-> MinMax.exclMinLens
+            let exclMinAbsWeightLens = DoseRange.AbsWeight_ >-> fst_ >-> MinMax.exclMinLens
 
 
-            let inclMaxAbsWeightLens =
-                DoseRange.AbsWeight_
-                >-> fst_
-                >-> MinMax.inclMaxLens
+            let inclMaxAbsWeightLens = DoseRange.AbsWeight_ >-> fst_ >-> MinMax.inclMaxLens
 
 
-            let exclMaxAbsWeightLens =
-                DoseRange.AbsWeight_
-                >-> fst_
-                >-> MinMax.exclMaxLens
+            let exclMaxAbsWeightLens = DoseRange.AbsWeight_ >-> fst_ >-> MinMax.exclMaxLens
 
 
-            let absBSAUnitLens =
-                DoseRange.AbsBSA_ >-> snd_
+            let absBSAUnitLens = DoseRange.AbsBSA_ >-> snd_
 
 
-            let inclMinAbsBSALens =
-                DoseRange.AbsBSA_ >-> fst_ >-> MinMax.inclMinLens
+            let inclMinAbsBSALens = DoseRange.AbsBSA_ >-> fst_ >-> MinMax.inclMinLens
 
 
-            let exclMinAbsBSALens =
-                DoseRange.AbsBSA_ >-> fst_ >-> MinMax.exclMinLens
+            let exclMinAbsBSALens = DoseRange.AbsBSA_ >-> fst_ >-> MinMax.exclMinLens
 
 
-            let inclMaxAbsBSALens =
-                DoseRange.AbsBSA_ >-> fst_ >-> MinMax.inclMaxLens
+            let inclMaxAbsBSALens = DoseRange.AbsBSA_ >-> fst_ >-> MinMax.inclMaxLens
 
 
-            let exclMaxAbsBSALens =
-                DoseRange.AbsBSA_ >-> fst_ >-> MinMax.exclMaxLens
+            let exclMaxAbsBSALens = DoseRange.AbsBSA_ >-> fst_ >-> MinMax.exclMaxLens
 
         let private vuToStr vu =
             let milliGram = Units.Mass.milliGram
@@ -320,15 +262,15 @@ module DoseRule =
         /// If the DoseRange is a rate unit, then ru is used.
         /// </remarks>
         let toString ru dr =
-            let
-                {
+            let {
                     Norm = norm
                     NormWeight = normwght
                     NormBSA = normbsa
                     Abs = abs
                     AbsWeight = abswght
                     AbsBSA = absbsa
-                } = dr
+                } =
+                dr
 
             let (>+) sl sr =
                 let sl = sl |> String.trim
@@ -337,11 +279,7 @@ module DoseRule =
                 if sl |> String.isNullOrWhiteSpace then
                     sr
                 else
-                    let sr =
-                        if sr |> String.isNullOrWhiteSpace then
-                            sr
-                        else
-                            " of " + sr
+                    let sr = if sr |> String.isNullOrWhiteSpace then sr else " of " + sr
 
                     sl + sr
 
@@ -377,33 +315,21 @@ module DoseRule =
             let mmToStr =
                 MinMax.toString vuToStr vuToStr "van (incl) " "van (excl) " "tot (incl) " "tot (excl) "
 
-            norm |> mmToStr
-            >+ (nw |> mmToStr)
-            >+ (nb |> mmToStr)
+            norm |> mmToStr >+ (nw |> mmToStr) >+ (nb |> mmToStr)
             |> (fun s ->
                 let s = s |> String.trim
 
-                if s |> String.isNullOrWhiteSpace then
-                    s
-                else
-                    " " + s
+                if s |> String.isNullOrWhiteSpace then s else " " + s
             )
             |> (fun sn ->
                 let sn = sn |> String.trim
 
-                let sa =
-                    abs |> mmToStr
-                    >+ (aw |> mmToStr)
-                    >+ (ab |> mmToStr)
+                let sa = abs |> mmToStr >+ (aw |> mmToStr) >+ (ab |> mmToStr)
 
                 if sa |> String.isNullOrWhiteSpace then
                     sn
                 else
-                    let sn =
-                        if sn |> String.isNullOrWhiteSpace then
-                            sn
-                        else
-                            sn + " "
+                    let sn = if sn |> String.isNullOrWhiteSpace then sn else sn + " "
 
                     sn + "maximaal " + sa
             )
@@ -428,8 +354,7 @@ module DoseRule =
             let toDto (dr: DoseRange) =
                 let dto = dto ()
 
-                let unstr =
-                    snd >> ValueUnit.unitToReadableDutchString
+                let unstr = snd >> ValueUnit.unitToReadableDutchString
 
                 dto.Norm <- dr.Norm |> MinMax.Dto.toDto
                 dto.NormWeight <- dr.NormWeight |> fst |> MinMax.Dto.toDto
@@ -450,8 +375,7 @@ module DoseRule =
                     | None -> o
 
                 let setug u g o mm =
-                    if u |> String.isNullOrWhiteSpace
-                       || g |> String.isNullOrWhiteSpace then
+                    if u |> String.isNullOrWhiteSpace || g |> String.isNullOrWhiteSpace then
                         o
                     else
                         match $"%s{u}[%s{g}]" |> Units.fromString with
@@ -463,21 +387,12 @@ module DoseRule =
 
                 {
                     Norm = dto.Norm |> set MinMax.Dto.fromDto empty.Norm
-                    NormWeight =
-                        dto.NormWeight
-                        |> setug dto.NormWeightUnit "weight" empty.NormWeight
-                    NormBSA =
-                        dto.NormBSA
-                        |> setug dto.NormBSAUnit "bsa" empty.NormBSA
+                    NormWeight = dto.NormWeight |> setug dto.NormWeightUnit "weight" empty.NormWeight
+                    NormBSA = dto.NormBSA |> setug dto.NormBSAUnit "bsa" empty.NormBSA
                     Abs = dto.Abs |> set MinMax.Dto.fromDto empty.Abs
-                    AbsWeight =
-                        dto.AbsWeight
-                        |> setug dto.AbsWeightUnit "weight" empty.AbsWeight
-                    AbsBSA =
-                        dto.AbsBSA
-                        |> setug dto.AbsBSAUnit "bsa" empty.AbsBSA
+                    AbsWeight = dto.AbsWeight |> setug dto.AbsWeightUnit "weight" empty.AbsWeight
+                    AbsBSA = dto.AbsBSA |> setug dto.AbsBSAUnit "bsa" empty.AbsBSA
                 }
-
 
 
     /// <summary>
@@ -587,8 +502,7 @@ module DoseRule =
 
             { ds with
                 RateDosage =
-                    let factor =
-                        ds.RateDosage |> snd |> getCount u
+                    let factor = ds.RateDosage |> snd |> getCount u
 
                     DoseRange.calc (/) (ds.RateDosage |> fst) factor, u
             }
@@ -609,103 +523,77 @@ module DoseRule =
             let setRules = Optic.set Dosage.Rules_
 
 
-            let freqsFrequencyLens =
-                Dosage.TotalDosage_
-                >-> snd_
-                >-> Frequency.Frequencies_
+            let freqsFrequencyLens = Dosage.TotalDosage_ >-> snd_ >-> Frequency.Frequencies_
 
 
-            let getFrequencyValues =
-                Optic.get freqsFrequencyLens
+            let getFrequencyValues = Optic.get freqsFrequencyLens
 
 
-            let setFrequencyValues =
-                Optic.set freqsFrequencyLens
+            let setFrequencyValues = Optic.set freqsFrequencyLens
 
 
-            let timeUnitFrequencyLens =
-                Dosage.TotalDosage_
-                >-> snd_
-                >-> Frequency.TimeUnit_
+            let timeUnitFrequencyLens = Dosage.TotalDosage_ >-> snd_ >-> Frequency.TimeUnit_
 
 
-            let getFrequencyTimeUnit =
-                Optic.get timeUnitFrequencyLens
+            let getFrequencyTimeUnit = Optic.get timeUnitFrequencyLens
 
 
-            let setFrequencyTimeUnit =
-                Optic.set timeUnitFrequencyLens
+            let setFrequencyTimeUnit = Optic.set timeUnitFrequencyLens
 
 
             let minIntervalValueFrequencyLens =
-                Dosage.TotalDosage_
-                >-> snd_
-                >-> Frequency.MinimalInterval_
+                Dosage.TotalDosage_ >-> snd_ >-> Frequency.MinimalInterval_
 
 
-            let inclMinNormStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.inclMinNormLens
+            let inclMinNormStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.inclMinNormLens
 
 
-            let exclMinNormStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.exclMinNormLens
+            let exclMinNormStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.exclMinNormLens
 
 
-            let inclMaxNormStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.inclMaxNormLens
+            let inclMaxNormStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.inclMaxNormLens
 
 
-            let exclMaxNormStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.exclMaxNormLens
+            let exclMaxNormStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.exclMaxNormLens
 
 
             let normWeightUnitStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.normWeightUnitLens
+                Dosage.StartDosage_ >-> DoseRange.normWeightUnitLens
 
 
             let inclMinNormWeightStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.inclMinNormWeightLens
+                Dosage.StartDosage_ >-> DoseRange.inclMinNormWeightLens
 
 
             let exclMinNormWeightStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.exclMinNormWeightLens
+                Dosage.StartDosage_ >-> DoseRange.exclMinNormWeightLens
 
 
             let inclMaxNormWeightStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.inclMaxNormWeightLens
+                Dosage.StartDosage_ >-> DoseRange.inclMaxNormWeightLens
 
 
             let exclMaxNormWeightStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.exclMaxNormWeightLens
+                Dosage.StartDosage_ >-> DoseRange.exclMaxNormWeightLens
 
 
-            let normBSAUnitStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.normBSAUnitLens
+            let normBSAUnitStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.normBSAUnitLens
 
 
             let inclMinNormBSAStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.inclMinNormBSALens
+                Dosage.StartDosage_ >-> DoseRange.inclMinNormBSALens
 
 
             let exclMinNormBSAStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.exclMinNormBSALens
+                Dosage.StartDosage_ >-> DoseRange.exclMinNormBSALens
 
 
             let inclMaxNormBSAStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.inclMaxNormBSALens
+                Dosage.StartDosage_ >-> DoseRange.inclMaxNormBSALens
 
 
             let exclMaxNormBSAStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.exclMaxNormBSALens
+                Dosage.StartDosage_ >-> DoseRange.exclMaxNormBSALens
 
 
             let inclMinNormSingleDosagePrism =
@@ -725,28 +613,23 @@ module DoseRule =
 
 
             let normWeightUnitSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.normWeightUnitLens
+                Dosage.SingleDosage_ >-> DoseRange.normWeightUnitLens
 
 
             let inclMinNormWeightSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.inclMinNormWeightLens
+                Dosage.SingleDosage_ >-> DoseRange.inclMinNormWeightLens
 
 
             let exclMinNormWeightSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.exclMinNormWeightLens
+                Dosage.SingleDosage_ >-> DoseRange.exclMinNormWeightLens
 
 
             let inclMaxNormWeightSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.inclMaxNormWeightLens
+                Dosage.SingleDosage_ >-> DoseRange.inclMaxNormWeightLens
 
 
             let exclMaxNormWeightSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.exclMaxNormWeightLens
+                Dosage.SingleDosage_ >-> DoseRange.exclMaxNormWeightLens
 
 
             let normBSAUnitSingleDosagePrism =
@@ -754,518 +637,367 @@ module DoseRule =
 
 
             let inclMinNormBSASingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.inclMinNormBSALens
+                Dosage.SingleDosage_ >-> DoseRange.inclMinNormBSALens
 
 
             let exclMinNormBSASingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.exclMinNormBSALens
+                Dosage.SingleDosage_ >-> DoseRange.exclMinNormBSALens
 
 
             let inclMaxNormBSASingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.inclMaxNormBSALens
+                Dosage.SingleDosage_ >-> DoseRange.inclMaxNormBSALens
 
 
             let exclMaxNormBSASingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.exclMaxNormBSALens
+                Dosage.SingleDosage_ >-> DoseRange.exclMaxNormBSALens
 
 
-            let rateUnitRateDosagePrism =
-                Dosage.RateDosage_ >-> snd_
+            let rateUnitRateDosagePrism = Dosage.RateDosage_ >-> snd_
 
 
             let normWeightUnitRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.normWeightUnitLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.normWeightUnitLens
 
 
             let inclMinNormRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMinNormLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMinNormLens
 
 
             let exclMinNormRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMinNormLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMinNormLens
 
 
             let inclMaxNormRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxNormLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMaxNormLens
 
 
             let exclMaxNormRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxNormLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMaxNormLens
 
 
             let inclMinNormWeightRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMinNormWeightLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMinNormWeightLens
 
 
             let exclMinNormWeightRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMinNormWeightLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMinNormWeightLens
 
 
             let inclMaxNormWeightRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxNormWeightLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMaxNormWeightLens
 
 
             let exclMaxNormWeightRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxNormWeightLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMaxNormWeightLens
 
 
             let normBSAUnitRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.normBSAUnitLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.normBSAUnitLens
 
 
             let inclMinNormBSARateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMinNormBSALens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMinNormBSALens
 
 
             let exclMinNormBSARateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMinNormBSALens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMinNormBSALens
 
 
             let inclMaxNormBSARateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxNormBSALens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMaxNormBSALens
 
 
             let exclMaxNormBSARateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxNormBSALens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMaxNormBSALens
 
 
-            let timeUnitTotalDosagePrism =
-                Dosage.TotalDosage_ >-> snd_
+            let timeUnitTotalDosagePrism = Dosage.TotalDosage_ >-> snd_
 
 
             let normWeightUnitTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.normWeightUnitLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.normWeightUnitLens
 
 
             let inclMinNormTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMinNormLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMinNormLens
 
 
             let exclMinNormTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMinNormLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMinNormLens
 
 
             let inclMaxNormTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxNormLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMaxNormLens
 
 
             let exclMaxNormTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxNormLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMaxNormLens
 
 
             let inclMinNormWeightTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMinNormWeightLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMinNormWeightLens
 
 
             let exclMinNormWeightTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMinNormWeightLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMinNormWeightLens
 
 
             let inclMaxNormWeightTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxNormWeightLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMaxNormWeightLens
 
 
             let exclMaxNormWeightTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxNormWeightLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMaxNormWeightLens
 
 
             let normBSAUnitTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.normBSAUnitLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.normBSAUnitLens
 
 
             let inclMinNormBSATotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMinNormBSALens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMinNormBSALens
 
 
             let exclMinNormBSATotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMinNormBSALens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMinNormBSALens
 
 
             let inclMaxNormBSATotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxNormBSALens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMaxNormBSALens
 
 
             let exclMaxNormBSATotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxNormBSALens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMaxNormBSALens
 
 
-            let inclMinAbsStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.inclMinAbsLens
+            let inclMinAbsStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.inclMinAbsLens
 
 
-            let exclMinAbsStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.exclMinAbsLens
+            let exclMinAbsStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.exclMinAbsLens
 
 
-            let inclMaxAbsStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.inclMaxAbsLens
+            let inclMaxAbsStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.inclMaxAbsLens
 
 
-            let exclMaxAbsStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.exclMaxAbsLens
+            let exclMaxAbsStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.exclMaxAbsLens
 
 
             let absWeightUnitStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.absWeightUnitLens
+                Dosage.StartDosage_ >-> DoseRange.absWeightUnitLens
 
 
             let inclMinAbsWeightStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.inclMinAbsWeightLens
+                Dosage.StartDosage_ >-> DoseRange.inclMinAbsWeightLens
 
 
             let exclMinAbsWeightStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.exclMinAbsWeightLens
+                Dosage.StartDosage_ >-> DoseRange.exclMinAbsWeightLens
 
 
             let inclMaxAbsWeightStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.inclMaxAbsWeightLens
+                Dosage.StartDosage_ >-> DoseRange.inclMaxAbsWeightLens
 
 
             let exclMaxAbsWeightStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.exclMaxAbsWeightLens
+                Dosage.StartDosage_ >-> DoseRange.exclMaxAbsWeightLens
 
 
-            let absBSAUnitStartDosagePrism =
-                Dosage.StartDosage_ >-> DoseRange.absBSAUnitLens
+            let absBSAUnitStartDosagePrism = Dosage.StartDosage_ >-> DoseRange.absBSAUnitLens
 
 
             let inclMinAbsBSAStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.inclMinAbsBSALens
+                Dosage.StartDosage_ >-> DoseRange.inclMinAbsBSALens
 
 
             let exclMinAbsBSAStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.exclMinAbsBSALens
+                Dosage.StartDosage_ >-> DoseRange.exclMinAbsBSALens
 
 
             let inclMaxAbsBSAStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.inclMaxAbsBSALens
+                Dosage.StartDosage_ >-> DoseRange.inclMaxAbsBSALens
 
 
             let exclMaxAbsBSAStartDosagePrism =
-                Dosage.StartDosage_
-                >-> DoseRange.exclMaxAbsBSALens
+                Dosage.StartDosage_ >-> DoseRange.exclMaxAbsBSALens
 
 
-            let inclMinAbsSingleDosagePrism =
-                Dosage.SingleDosage_ >-> DoseRange.inclMinAbsLens
+            let inclMinAbsSingleDosagePrism = Dosage.SingleDosage_ >-> DoseRange.inclMinAbsLens
 
 
-            let exclMinAbsSingleDosagePrism =
-                Dosage.SingleDosage_ >-> DoseRange.exclMinAbsLens
+            let exclMinAbsSingleDosagePrism = Dosage.SingleDosage_ >-> DoseRange.exclMinAbsLens
 
 
-            let inclMaxAbsSingleDosagePrism =
-                Dosage.SingleDosage_ >-> DoseRange.inclMaxAbsLens
+            let inclMaxAbsSingleDosagePrism = Dosage.SingleDosage_ >-> DoseRange.inclMaxAbsLens
 
 
-            let exclMaxAbsSingleDosagePrism =
-                Dosage.SingleDosage_ >-> DoseRange.exclMaxAbsLens
+            let exclMaxAbsSingleDosagePrism = Dosage.SingleDosage_ >-> DoseRange.exclMaxAbsLens
 
 
             let absWeightUnitSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.absWeightUnitLens
+                Dosage.SingleDosage_ >-> DoseRange.absWeightUnitLens
 
 
             let inclMinAbsWeightSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.inclMinAbsWeightLens
+                Dosage.SingleDosage_ >-> DoseRange.inclMinAbsWeightLens
 
 
             let exclMinAbsWeightSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.exclMinAbsWeightLens
+                Dosage.SingleDosage_ >-> DoseRange.exclMinAbsWeightLens
 
 
             let inclMaxAbsWeightSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.inclMaxAbsWeightLens
+                Dosage.SingleDosage_ >-> DoseRange.inclMaxAbsWeightLens
 
 
             let exclMaxAbsWeightSingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.exclMaxAbsWeightLens
+                Dosage.SingleDosage_ >-> DoseRange.exclMaxAbsWeightLens
 
 
-            let absBSAUnitSingleDosagePrism =
-                Dosage.SingleDosage_ >-> DoseRange.absBSAUnitLens
+            let absBSAUnitSingleDosagePrism = Dosage.SingleDosage_ >-> DoseRange.absBSAUnitLens
 
 
             let inclMinAbsBSASingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.inclMinAbsBSALens
+                Dosage.SingleDosage_ >-> DoseRange.inclMinAbsBSALens
 
 
             let exclMinAbsBSASingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.exclMinAbsBSALens
+                Dosage.SingleDosage_ >-> DoseRange.exclMinAbsBSALens
 
 
             let inclMaxAbsBSASingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.inclMaxAbsBSALens
+                Dosage.SingleDosage_ >-> DoseRange.inclMaxAbsBSALens
 
 
             let exclMaxAbsBSASingleDosagePrism =
-                Dosage.SingleDosage_
-                >-> DoseRange.exclMaxAbsBSALens
+                Dosage.SingleDosage_ >-> DoseRange.exclMaxAbsBSALens
 
 
             let inclMinAbsRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMinAbsLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMinAbsLens
 
 
             let exclMinAbsRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMinAbsLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMinAbsLens
 
 
             let inclMaxAbsRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxAbsLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMaxAbsLens
 
 
             let exclMaxAbsRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxAbsLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMaxAbsLens
 
 
             let absWeightUnitRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.absWeightUnitLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.absWeightUnitLens
 
 
             let inclMinAbsWeightRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMinAbsWeightLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMinAbsWeightLens
 
 
             let exclMinAbsWeightRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMinAbsWeightLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMinAbsWeightLens
 
 
             let inclMaxAbsWeightRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxAbsWeightLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMaxAbsWeightLens
 
 
             let exclMaxAbsWeightRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxAbsWeightLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMaxAbsWeightLens
 
 
             let absBSAUnitRateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.absBSAUnitLens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.absBSAUnitLens
 
 
             let inclMinAbsBSARateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMinAbsBSALens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMinAbsBSALens
 
 
             let exclMinAbsBSARateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMinAbsBSALens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMinAbsBSALens
 
 
             let inclMaxAbsBSARateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxAbsBSALens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.inclMaxAbsBSALens
 
 
             let exclMaxAbsBSARateDosagePrism =
-                Dosage.RateDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxAbsBSALens
+                Dosage.RateDosage_ >-> fst_ >-> DoseRange.exclMaxAbsBSALens
 
 
             let inclMinAbsTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMinAbsLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMinAbsLens
 
 
             let exclMinAbsTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMinAbsLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMinAbsLens
 
 
             let inclMaxAbsTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxAbsLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMaxAbsLens
 
 
             let exclMaxAbsTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxAbsLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMaxAbsLens
 
 
             let absWeightUnitTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.absWeightUnitLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.absWeightUnitLens
 
 
             let inclMinAbsWeightTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMinAbsWeightLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMinAbsWeightLens
 
 
             let exclMinAbsWeightTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMinAbsWeightLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMinAbsWeightLens
 
 
             let inclMaxAbsWeightTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxAbsWeightLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMaxAbsWeightLens
 
 
             let exclMaxAbsWeightTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxAbsWeightLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMaxAbsWeightLens
 
 
             let absBSAUnitTotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.absBSAUnitLens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.absBSAUnitLens
 
 
             let inclMinAbsBSATotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMinAbsBSALens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMinAbsBSALens
 
 
             let exclMinAbsBSATotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMinAbsBSALens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMinAbsBSALens
 
 
             let inclMaxAbsBSATotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.inclMaxAbsBSALens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.inclMaxAbsBSALens
 
 
             let exclMaxAbsBSATotalDosagePrism =
-                Dosage.TotalDosage_
-                >-> fst_
-                >-> DoseRange.exclMaxAbsBSALens
+                Dosage.TotalDosage_ >-> fst_ >-> DoseRange.exclMaxAbsBSALens
 
 
         /// Get the string representation of a Frequency.
         let freqsToStr (freqs: Frequency) =
             let fu =
-                freqs.TimeUnit
-                |> ValueUnit.unitToReadableDutchString
-                |> String.replace "x/" ""
+                freqs.TimeUnit |> ValueUnit.unitToReadableDutchString |> String.replace "x/" ""
 
 
-            if freqs.Frequencies
-               |> List.isConsecutive 0N 1N
-               |> not then
+            if freqs.Frequencies |> List.isConsecutive 0N 1N |> not then
                 freqs.Frequencies |> List.toString2
             else
                 match freqs.Frequencies |> List.headTail with
                 | Some h, Some t -> $"%s{h.ToString()} - %s{t.ToString()}"
                 | _ -> freqs.Frequencies |> List.toString2
             |> (fun s ->
-                if s |> String.isNullOrWhiteSpace
-                   || s |> String.isNullOrWhiteSpace then
+                if s |> String.isNullOrWhiteSpace || s |> String.isNullOrWhiteSpace then
                     ""
                 else
                     $"%s{s} x/%s{fu}"
@@ -1294,14 +1026,8 @@ module DoseRule =
                 else
                     let sl = sl |> String.trim
 
-                    (if sl |> String.isNullOrWhiteSpace then
-                         sl
-                     else
-                         sl + ", ")
-                    + (if l |> String.isNullOrWhiteSpace then
-                           ""
-                       else
-                           l + " ")
+                    (if sl |> String.isNullOrWhiteSpace then sl else sl + ", ")
+                    + (if l |> String.isNullOrWhiteSpace then "" else l + " ")
                     + s
 
             let rt, ru = rate
@@ -1310,9 +1036,7 @@ module DoseRule =
             let frqs = total |> snd
 
             let fu =
-                frqs.TimeUnit
-                |> ValueUnit.unitToReadableDutchString
-                |> String.replace "x/" ""
+                frqs.TimeUnit |> ValueUnit.unitToReadableDutchString |> String.replace "x/" ""
 
             let drToStr = DoseRange.toString None
 
@@ -1324,8 +1048,7 @@ module DoseRule =
             |> (fun s ->
                 let s = s |> String.trim
 
-                if frqs.Frequencies |> List.isEmpty
-                   || fu |> String.isNullOrWhiteSpace then
+                if frqs.Frequencies |> List.isEmpty || fu |> String.isNullOrWhiteSpace then
                     s
                 else
                     $"%s{s} in %s{frqs |> freqsToStr}"
@@ -1382,10 +1105,7 @@ module DoseRule =
                 dto.SingleDosage <- ds.SingleDosage |> DoseRange.Dto.toDto
                 dto.DoseRate <- ds.RateDosage |> fst |> DoseRange.Dto.toDto
 
-                dto.DoseRateUnit <-
-                    ds.RateDosage
-                    |> snd
-                    |> ValueUnit.unitToReadableDutchString
+                dto.DoseRateUnit <- ds.RateDosage |> snd |> ValueUnit.unitToReadableDutchString
 
                 dto.TotalDosage <- ds.TotalDosage |> fst |> DoseRange.Dto.toDto
 
@@ -1420,15 +1140,11 @@ module DoseRule =
                     StartDosage = dto.StartDosage |> DoseRange.Dto.fromDto
                     SingleDosage = dto.SingleDosage |> DoseRange.Dto.fromDto
                     RateDosage =
-                        match dto.DoseRateUnit
-                              |> ValueUnit.readableStringToTimeUnit
-                            with
+                        match dto.DoseRateUnit |> ValueUnit.readableStringToTimeUnit with
                         | None -> empty.RateDosage
                         | Some u -> dto.DoseRate |> DoseRange.Dto.fromDto, u
                     TotalDosage =
-                        match dto.TotalDosageFrequencyUnit
-                              |> ValueUnit.readableStringToTimeUnit
-                            with
+                        match dto.TotalDosageFrequencyUnit |> ValueUnit.readableStringToTimeUnit with
                         | None -> empty.TotalDosage
                         | Some u ->
                             dto.TotalDosage |> DoseRange.Dto.fromDto,
@@ -1443,15 +1159,13 @@ module DoseRule =
                                     if dto.TotalDosageHasMinimalPeriod |> not then
                                         None
                                     else
-                                        dto.TotalDosageMinimalPeriod
-                                        |> ValueUnit.Dto.fromDto
+                                        dto.TotalDosageMinimalPeriod |> ValueUnit.Dto.fromDto
                             }
                     Rules =
                         dto.GStandRules
                         |> List.map GStandRule
                         |> List.append (dto.PedFormRules |> List.map PedFormRule)
                 }
-
 
 
     /// A PatientDosage is a FormDosage or list of SubstanceDosages
@@ -1468,28 +1182,20 @@ module DoseRule =
             }
 
 
-
         module Optics =
 
 
+            let setPatient = Optic.set PatientDosage.Patient_
 
-            let setPatient =
-                Optic.set PatientDosage.Patient_
+            let getPatient = Optic.get PatientDosage.Patient_
 
-            let getPatient =
-                Optic.get PatientDosage.Patient_
+            let setFormDosage = Optic.set PatientDosage.FormDosage_
 
-            let setFormDosage =
-                Optic.set PatientDosage.FormDosage_
+            let getFormDosage = Optic.get PatientDosage.FormDosage_
 
-            let getFormDosage =
-                Optic.get PatientDosage.FormDosage_
+            let setSubstanceDosages = Optic.set PatientDosage.SubstanceDosages_
 
-            let setSubstanceDosages =
-                Optic.set PatientDosage.SubstanceDosages_
-
-            let getSubstanceDosages =
-                Optic.get PatientDosage.SubstanceDosages_
+            let getSubstanceDosages = Optic.get PatientDosage.SubstanceDosages_
 
 
         module Dto =
@@ -1512,10 +1218,7 @@ module DoseRule =
                     p
                     |> create
                     |> Optics.setFormDosage (dto.FormDosage |> Dosage.Dto.fromDto)
-                    |> Optics.setSubstanceDosages (
-                        dto.SubstanceDosages
-                        |> List.map Dosage.Dto.fromDto
-                    )
+                    |> Optics.setSubstanceDosages (dto.SubstanceDosages |> List.map Dosage.Dto.fromDto)
                     |> Some
 
 
@@ -1529,7 +1232,6 @@ module DoseRule =
                 dto
 
 
-
     /// A FormDosage is a Dosage for a specific pharamaceutical form,
     /// and related GenericProducts and TradeProducts.
     module FormDosage =
@@ -1537,7 +1239,11 @@ module DoseRule =
 
         module TradeProduct =
 
-            let create hpk label = { HPK = hpk; Label = label }
+            let create hpk label =
+                {
+                    HPK = hpk
+                    Label = label
+                }
 
             let apply f (x: TradeProductLabel) = x |> f
 
@@ -1548,21 +1254,15 @@ module DoseRule =
             let hpk tp = (tp |> get).HPK
 
 
-
             module Optics =
 
-                let setHPK =
-                    Optic.set TradeProductLabel.HPK_
+                let setHPK = Optic.set TradeProductLabel.HPK_
 
-                let getHPK =
-                    Optic.get TradeProductLabel.HPK_
+                let getHPK = Optic.get TradeProductLabel.HPK_
 
-                let setLabel =
-                    Optic.set TradeProductLabel.Label_
+                let setLabel = Optic.set TradeProductLabel.Label_
 
-                let getLabel =
-                    Optic.get TradeProductLabel.Label_
-
+                let getLabel = Optic.get TradeProductLabel.Label_
 
 
             module Dto =
@@ -1585,13 +1285,20 @@ module DoseRule =
                     dto
 
 
-                let fromDto (dto: Dto) = { HPK = dto.HPK; Label = dto.Label }
-
+                let fromDto (dto: Dto) =
+                    {
+                        HPK = dto.HPK
+                        Label = dto.Label
+                    }
 
 
         module GenericProduct =
 
-            let create gpk label = { GPK = gpk; Label = label }
+            let create gpk label =
+                {
+                    GPK = gpk
+                    Label = label
+                }
 
             let apply f (x: GenericProductLabel) = x |> f
 
@@ -1602,20 +1309,15 @@ module DoseRule =
             let gpk gp = (gp |> get).GPK
 
 
-
             module Optics =
 
-                let setGPK =
-                    Optic.set GenericProductLabel.GPK_
+                let setGPK = Optic.set GenericProductLabel.GPK_
 
-                let getGPK =
-                    Optic.get GenericProductLabel.GPK_
+                let getGPK = Optic.get GenericProductLabel.GPK_
 
-                let setLabel =
-                    Optic.set GenericProductLabel.Label_
+                let setLabel = Optic.set GenericProductLabel.Label_
 
-                let getLabel =
-                    Optic.get GenericProductLabel.Label_
+                let getLabel = Optic.get GenericProductLabel.Label_
 
 
             module Dto =
@@ -1638,7 +1340,11 @@ module DoseRule =
                     dto
 
 
-                let fromDto (dto: Dto) = { GPK = dto.GPK; Label = dto.Label }
+                let fromDto (dto: Dto) =
+                    {
+                        GPK = dto.GPK
+                        Label = dto.Label
+                    }
 
 
         /// <summary>
@@ -1663,40 +1369,30 @@ module DoseRule =
                 |> Some
 
 
-
         module Optics =
 
-            let genericProducts =
-                FormDosage.GenericProducts_
+            let genericProducts = FormDosage.GenericProducts_
 
-            let tradeProducts =
-                FormDosage.TradeProducts_
+            let tradeProducts = FormDosage.TradeProducts_
 
-            let patientDosages =
-                FormDosage.PatientDosages_
+            let patientDosages = FormDosage.PatientDosages_
 
 
             let setForm = Optic.set FormDosage.Form_
 
             let getForm = Optic.get FormDosage.Form_
 
-            let setTradeProducts =
-                Optic.set FormDosage.TradeProducts_
+            let setTradeProducts = Optic.set FormDosage.TradeProducts_
 
-            let getTradeProducts =
-                Optic.get FormDosage.TradeProducts_
+            let getTradeProducts = Optic.get FormDosage.TradeProducts_
 
-            let setGenericProducts =
-                Optic.set FormDosage.GenericProducts_
+            let setGenericProducts = Optic.set FormDosage.GenericProducts_
 
-            let getGenericProducts =
-                Optic.get FormDosage.GenericProducts_
+            let getGenericProducts = Optic.get FormDosage.GenericProducts_
 
-            let setPatientDosages =
-                Optic.set FormDosage.PatientDosages_
+            let setPatientDosages = Optic.set FormDosage.PatientDosages_
 
-            let getPatientDosages =
-                Optic.get FormDosage.PatientDosages_
+            let getPatientDosages = Optic.get FormDosage.PatientDosages_
 
 
         module Dto =
@@ -1717,13 +1413,9 @@ module DoseRule =
 
                 dto.Form <- sd.Form
 
-                dto.GenericProducts <-
-                    sd.GenericProducts
-                    |> List.map GenericProduct.Dto.toDto
+                dto.GenericProducts <- sd.GenericProducts |> List.map GenericProduct.Dto.toDto
 
-                dto.TradeProducts <-
-                    sd.TradeProducts
-                    |> List.map TradeProduct.Dto.toDto
+                dto.TradeProducts <- sd.TradeProducts |> List.map TradeProduct.Dto.toDto
 
                 dto
 
@@ -1732,17 +1424,11 @@ module DoseRule =
                 create [] [] []
                 |> Option.bind (Optics.setForm dto.Form >> Some)
                 |> Option.bind (
-                    (Optics.setGenericProducts (
-                        dto.GenericProducts
-                        |> List.map GenericProduct.Dto.fromDto
-                    ))
+                    (Optics.setGenericProducts (dto.GenericProducts |> List.map GenericProduct.Dto.fromDto))
                     >> Some
                 )
                 |> Option.bind (
-                    (Optics.setTradeProducts (
-                        dto.TradeProducts
-                        |> List.map TradeProduct.Dto.fromDto
-                    ))
+                    (Optics.setTradeProducts (dto.TradeProducts |> List.map TradeProduct.Dto.fromDto))
                     >> Some
                 )
                 |> Option.bind (
@@ -1754,7 +1440,6 @@ module DoseRule =
                     ))
                     >> Some
                 )
-
 
 
     /// A RouteDosage are a FormDosages for a specific Route.
@@ -1772,8 +1457,11 @@ module DoseRule =
             if rt |> String.isNullOrWhiteSpace then
                 None
             else
-                { Route = rt; FormDosages = [] } |> Some
-
+                {
+                    Route = rt
+                    FormDosages = []
+                }
+                |> Some
 
 
         module Optics =
@@ -1787,12 +1475,9 @@ module DoseRule =
 
             let getRoute = Optic.get RouteDosage.Route_
 
-            let setFormDosages =
-                Optic.set RouteDosage.FormDosages_
+            let setFormDosages = Optic.set RouteDosage.FormDosages_
 
-            let getFormDosages =
-                Optic.get RouteDosage.FormDosages_
-
+            let getFormDosages = Optic.get RouteDosage.FormDosages_
 
 
         module Dto =
@@ -1827,7 +1512,6 @@ module DoseRule =
                 )
 
 
-
     /// An IndicationDosage is a list of RouteDosages for a specific Indication.
     module IndicationDosage =
 
@@ -1843,23 +1527,18 @@ module DoseRule =
             }
 
 
-
         module Optics =
 
             let getRouteDosage n =
                 List.pos_ n >?> IndicationDosage.RouteDosages_
 
-            let setIndications =
-                Optic.set IndicationDosage.Indications_
+            let setIndications = Optic.set IndicationDosage.Indications_
 
-            let getIndications =
-                Optic.get IndicationDosage.Indications_
+            let getIndications = Optic.get IndicationDosage.Indications_
 
-            let setRouteDosages =
-                Optic.set IndicationDosage.RouteDosages_
+            let setRouteDosages = Optic.set IndicationDosage.RouteDosages_
 
-            let getRouteDosages =
-                Optic.get IndicationDosage.RouteDosages_
+            let getRouteDosages = Optic.get IndicationDosage.RouteDosages_
 
 
         module Dto =
@@ -1889,8 +1568,6 @@ module DoseRule =
                     |> List.filter Option.isSome
                     |> List.map Option.get
                 )
-
-
 
 
     /// Utility function to apply a function f to a DoseRule dr.
@@ -1926,8 +1603,7 @@ module DoseRule =
 
 
     /// Create an IndicationDosage.
-    let createIndicationDosage =
-        IndicationDosage.create
+    let createIndicationDosage = IndicationDosage.create
 
 
     /// Create a RouteDosage.
@@ -1939,8 +1615,7 @@ module DoseRule =
 
 
     /// Create a PatientDosage.
-    let createPatientDosage =
-        PatientDosage.create
+    let createPatientDosage = PatientDosage.create
 
 
     /// Create a Dosage.
@@ -1961,8 +1636,7 @@ module DoseRule =
     /// <param name="inds">The list of Indications</param>
     /// <param name="dr">The DoseRule</param>
     let indxIndications inds (dr: DoseRule) =
-        dr.IndicationsDosages
-        |> List.tryFindIndex (fun id -> id.Indications = inds)
+        dr.IndicationsDosages |> List.tryFindIndex (fun id -> id.Indications = inds)
 
 
     /// <summary>
@@ -1975,9 +1649,10 @@ module DoseRule =
         dr
         |> indxIndications inds
         |> Option.bind (fun ni ->
-            match dr.IndicationsDosages[ni].RouteDosages
-                  |> List.tryFindIndex (fun rd -> rd.Route = rt)
-                with
+            match
+                dr.IndicationsDosages[ni].RouteDosages
+                |> List.tryFindIndex (fun rd -> rd.Route = rt)
+            with
             | None -> None
             | Some nr -> (ni, nr) |> Some
         )
@@ -1992,11 +1667,11 @@ module DoseRule =
     /// <param name="dr">The DoseRule</param>
     let indxForm inds rt frm dr =
         match dr |> indxRoute inds rt with
-        | Some (ni, nr) ->
-            match dr.IndicationsDosages[ni].RouteDosages[nr]
-                      .FormDosages
-                  |> List.tryFindIndex (fun sd -> sd.Form = frm)
-                with
+        | Some(ni, nr) ->
+            match
+                dr.IndicationsDosages[ni].RouteDosages[nr].FormDosages
+                |> List.tryFindIndex (fun sd -> sd.Form = frm)
+            with
             | Some ns -> (ni, nr, ns) |> Some
             | None -> None
         | None -> None
@@ -2012,12 +1687,11 @@ module DoseRule =
     /// <param name="dr">The DoseRule</param>
     let indxPatient inds rt frm pat dr =
         match dr |> indxForm inds rt frm with
-        | Some (ni, nr, ns) ->
-            match dr.IndicationsDosages[ni].RouteDosages[nr]
-                      .FormDosages[ns]
-                      .PatientDosages
-                  |> List.tryFindIndex (fun rd -> rd.Patient = pat)
-                with
+        | Some(ni, nr, ns) ->
+            match
+                dr.IndicationsDosages[ni].RouteDosages[nr].FormDosages[ns].PatientDosages
+                |> List.tryFindIndex (fun rd -> rd.Patient = pat)
+            with
             | Some np -> (ni, nr, ns, np) |> Some
             | None -> None
         | None -> None
@@ -2033,11 +1707,7 @@ module DoseRule =
 
         match dr |> indxIndications inds with
         | Some _ -> dr
-        | None ->
-            { dr with
-                IndicationsDosages = dr.IndicationsDosages |> List.prepend [ indd ]
-            }
-
+        | None -> { dr with IndicationsDosages = dr.IndicationsDosages |> List.prepend [ indd ] }
 
 
     module Optics =
@@ -2049,13 +1719,11 @@ module DoseRule =
         let setGeneric = Optic.set DoseRule.Generic_
 
 
-        let setSynonyms =
-            Optic.set DoseRule.Synonyms_
+        let setSynonyms = Optic.set DoseRule.Synonyms_
 
 
         let indDosDosagesLens n =
-            DoseRule.IndicationDosages_
-            >-> IndicationDosage.Optics.getRouteDosage n
+            DoseRule.IndicationDosages_ >-> IndicationDosage.Optics.getRouteDosage n
 
 
         let getRouteDosages indd dr =
@@ -2082,14 +1750,13 @@ module DoseRule =
 
 
         let formDosagesPrism n1 n2 =
-            indDosDosagesLens n1
-            >?> RouteDosage.Optics.getFormDosage n2
+            indDosDosagesLens n1 >?> RouteDosage.Optics.getFormDosage n2
 
 
         let getFormDosages inds rt dr =
 
             match dr |> indxRoute inds rt with
-            | Some (ni, nr) ->
+            | Some(ni, nr) ->
                 match dr |> Optic.get (formDosagesPrism ni nr) with
                 | Some pds -> pds
                 | None -> []
@@ -2099,7 +1766,7 @@ module DoseRule =
         let setFormDosages inds rt pds dr =
 
             match dr |> indxRoute inds rt with
-            | Some (ni, nr) -> dr |> Optic.set (formDosagesPrism ni nr) pds
+            | Some(ni, nr) -> dr |> Optic.set (formDosagesPrism ni nr) pds
             | None -> dr
 
 
@@ -2111,50 +1778,39 @@ module DoseRule =
                 match dr |> indxForm inds rt frm with
                 | Some _ -> dr
                 | None ->
-                    let pds =
-                        dr
-                        |> getFormDosages inds rt
-                        |> List.prepend [ frmd ]
+                    let pds = dr |> getFormDosages inds rt |> List.prepend [ frmd ]
 
                     dr |> setFormDosages inds rt pds
 
 
-        let formDosagePrism n1 n2 n3 =
-            formDosagesPrism n1 n2 >?> List.pos_ n3
+        let formDosagePrism n1 n2 n3 = formDosagesPrism n1 n2 >?> List.pos_ n3
 
 
         let inline private formDosageProductsGetter prism inds rt frm dr =
             match dr |> indxForm inds rt frm with
-            | Some (ni, nr, ns) ->
-                dr
-                |> Optic.get (formDosagePrism ni nr ns >?> prism)
+            | Some(ni, nr, ns) -> dr |> Optic.get (formDosagePrism ni nr ns >?> prism)
             | None -> None
 
 
         let inline private formDosageProductsSetter prism inds rt frm ps dr =
             match dr |> indxForm inds rt frm with
-            | Some (ni, nr, ns) ->
-                dr
-                |> Optic.set (formDosagePrism ni nr ns >?> prism) ps
+            | Some(ni, nr, ns) -> dr |> Optic.set (formDosagePrism ni nr ns >?> prism) ps
             | None -> dr
 
 
-        let setGenericProducts =
-            formDosageProductsSetter FormDosage.Optics.genericProducts
+        let setGenericProducts = formDosageProductsSetter FormDosage.Optics.genericProducts
 
 
-        let setTradeProducts =
-            formDosageProductsSetter FormDosage.Optics.tradeProducts
+        let setTradeProducts = formDosageProductsSetter FormDosage.Optics.tradeProducts
 
 
         let patientDosagesPrism n1 n2 n3 =
-            formDosagePrism n1 n2 n3
-            >?> FormDosage.Optics.patientDosages
+            formDosagePrism n1 n2 n3 >?> FormDosage.Optics.patientDosages
 
 
         let getPatientDosages inds rt frm dr =
             match dr |> indxForm inds rt frm with
-            | Some (ni, nr, ns) ->
+            | Some(ni, nr, ns) ->
                 match dr |> Optic.get (patientDosagesPrism ni nr ns) with
                 | Some sds -> sds
                 | None -> []
@@ -2163,7 +1819,7 @@ module DoseRule =
 
         let setPatientDosages inds rt frm pds dr =
             match dr |> indxForm inds rt frm with
-            | Some (ni, nr, ns) -> dr |> Optic.set (patientDosagesPrism ni nr ns) pds
+            | Some(ni, nr, ns) -> dr |> Optic.set (patientDosagesPrism ni nr ns) pds
             | None -> dr
 
         let addPatient inds rt frm pat dr =
@@ -2171,9 +1827,7 @@ module DoseRule =
             | Some _ -> dr
             | None ->
                 let pds =
-                    dr
-                    |> getPatientDosages inds rt frm
-                    |> List.prepend [ createPatientDosage pat ]
+                    dr |> getPatientDosages inds rt frm |> List.prepend [ createPatientDosage pat ]
 
                 dr |> setPatientDosages inds rt frm pds
 
@@ -2183,17 +1837,13 @@ module DoseRule =
 
 
         let substanceDosagesPrism n1 n2 n3 n4 =
-            patientDosagePrism n1 n2 n3 n4
-            >?> PatientDosage.SubstanceDosages_
+            patientDosagePrism n1 n2 n3 n4 >?> PatientDosage.SubstanceDosages_
 
 
         let getSubstanceDosages inds rt frm pat dr =
             match dr |> indxPatient inds rt frm pat with
-            | Some (ni, nr, np, ns) ->
-                match
-                    dr
-                    |> Optic.get (substanceDosagesPrism ni nr np ns)
-                    with
+            | Some(ni, nr, np, ns) ->
+                match dr |> Optic.get (substanceDosagesPrism ni nr np ns) with
                 | Some sds -> sds
                 | None -> []
             | None -> []
@@ -2201,11 +1851,8 @@ module DoseRule =
 
         let setSubstanceDosages inds rt frm pat sds dr =
             match dr |> indxPatient inds rt frm pat with
-            | Some (ni, nr, np, ns) ->
-                dr
-                |> Optic.set (substanceDosagesPrism ni nr np ns) sds
+            | Some(ni, nr, np, ns) -> dr |> Optic.set (substanceDosagesPrism ni nr np ns) sds
             | None -> dr
-
 
 
     /// <summary>
@@ -2236,10 +1883,7 @@ module DoseRule =
                                                             SubstanceDosages =
                                                                 pd.SubstanceDosages
                                                                 |> List.map (fun sd ->
-                                                                    if sd.Name = gen then
-                                                                        sd |> conv u
-                                                                    else
-                                                                        sd
+                                                                    if sd.Name = gen then sd |> conv u else sd
                                                                 )
                                                         }
                                                     )
@@ -2260,11 +1904,7 @@ module DoseRule =
     /// <param name="u">The new SubstanceUnit</param>
     /// <param name="dr">The DoseRule</param>
     let convertSubstanceUnitTo gen u dr =
-        convertTo
-            Dosage.convertSubstanceUnitTo
-            gen
-            u
-            dr
+        convertTo Dosage.convertSubstanceUnitTo gen u dr
 
 
     /// <summary>
@@ -2274,11 +1914,7 @@ module DoseRule =
     /// <param name="u">The new RateUnit</param>
     /// <param name="dr">The DoseRule</param>
     let convertRateUnitTo gen u dr =
-        convertTo
-            Dosage.convertRateUnitTo
-            gen
-            u
-            dr
+        convertTo Dosage.convertRateUnitTo gen u dr
 
 
     module Operators =
@@ -2287,7 +1923,6 @@ module DoseRule =
 
 
         let (|>>>) (x1, x2) f = f x2 x1, x2
-
 
 
     let mdText =
@@ -2374,9 +2009,7 @@ Synoniemen: {synonym}
     /// <param name="dr">The DoseRule</param>
     let toStringWithConfig (config: TextConfig) printRules (dr: DoseRule) =
         let gpsToString (gps: GenericProductLabel list) =
-            gps
-            |> List.map _.Label
-            |> String.concat ", "
+            gps |> List.map _.Label |> String.concat ", "
 
         config.MainText
         |> String.replace "{generic}" dr.Generic
@@ -2387,69 +2020,66 @@ Synoniemen: {synonym}
         |> String.replace "{gengroup}" dr.GenericGroup
         |> String.replace "{gensub}" dr.GenericSubGroup
         |> fun s ->
-           dr.IndicationsDosages
-           |> List.fold
-               (fun acc id ->
-                   let ind =
-                       id.Indications |> String.concat ", "
+            dr.IndicationsDosages
+            |> List.fold
+                (fun acc id ->
+                    let ind = id.Indications |> String.concat ", "
 
-                   id.RouteDosages
-                   |> List.fold
-                       (fun acc rd ->
+                    id.RouteDosages
+                    |> List.fold
+                        (fun acc rd ->
 
-                           rd.FormDosages
-                           |> List.fold
-                               (fun acc sd ->
-                                   let formStr =
-                                       config.FormText
-                                       |> String.replace "{form}" (sd.Form |> String.concat ",")
-                                       |> String.replace "{products}" (sd.GenericProducts |> gpsToString)
+                            rd.FormDosages
+                            |> List.fold
+                                (fun acc sd ->
+                                    let formStr =
+                                        config.FormText
+                                        |> String.replace "{form}" (sd.Form |> String.concat ",")
+                                        |> String.replace "{products}" (sd.GenericProducts |> gpsToString)
 
-                                   sd.PatientDosages
-                                   |> List.fold
-                                       (fun acc pd ->
-                                           let pat =
-                                               if
-                                                   pd.Patient
-                                                   |> PatientCategory.toString
-                                                   |> String.isNullOrWhiteSpace then "alle patienten"
-                                               else
-                                                   pd.Patient
-                                                   |> PatientCategory.toString
+                                    sd.PatientDosages
+                                    |> List.fold
+                                        (fun acc pd ->
+                                            let pat =
+                                                if
+                                                    pd.Patient
+                                                    |> PatientCategory.toString
+                                                    |> String.isNullOrWhiteSpace
+                                                then
+                                                    "alle patienten"
+                                                else
+                                                    pd.Patient |> PatientCategory.toString
 
-                                           let s =
-                                               (config.PatientText
-                                                |> String.replace "{patient}" pat)
-                                               + ("{dosage}"
-                                                  |> String.replace
-                                                      "{dosage}"
-                                                      (pd.FormDosage |> Dosage.toString printRules))
+                                            let s =
+                                                (config.PatientText |> String.replace "{patient}" pat)
+                                                + ("{dosage}"
+                                                   |> String.replace
+                                                       "{dosage}"
+                                                       (pd.FormDosage |> Dosage.toString printRules))
 
-                                           pd.SubstanceDosages
-                                           |> List.fold
-                                               (fun acc sd ->
+                                            pd.SubstanceDosages
+                                            |> List.fold
+                                                (fun acc sd ->
 
-                                                   acc
-                                                   + (config.DosageText
-                                                      |> String.replace "{dosage}" (sd |> Dosage.toString printRules))
+                                                    acc
+                                                    + (config.DosageText
+                                                       |> String.replace
+                                                           "{dosage}"
+                                                           (sd |> Dosage.toString printRules))
 
-                                               )
-                                               (acc + s)
+                                                )
+                                                (acc + s)
 
-                                       )
-                                       (acc + formStr)
+                                        )
+                                        (acc + formStr)
 
-                               )
-                               (acc
-                                + (config.RouteText
-                                   |> String.replace "{route}" rd.Route))
+                                )
+                                (acc + (config.RouteText |> String.replace "{route}" rd.Route))
 
-                       )
-                       (acc
-                        + (config.IndicationText
-                           |> String.replace "{indication}" ind))
-               )
-               s
+                        )
+                        (acc + (config.IndicationText |> String.replace "{indication}" ind))
+                )
+                s
 
 
     /// Get the Markdown text of a DoseRule.
@@ -2491,9 +2121,7 @@ Synoniemen: {synonym}
             dto.GenericGroup <- dr.GenericGroup
             dto.GenericSubGroup <- dr.GenericSubGroup
 
-            dto.Indications <-
-                dr.IndicationsDosages
-                |> List.map IndicationDosage.Dto.toDto
+            dto.Indications <- dr.IndicationsDosages |> List.map IndicationDosage.Dto.toDto
 
             dto
 

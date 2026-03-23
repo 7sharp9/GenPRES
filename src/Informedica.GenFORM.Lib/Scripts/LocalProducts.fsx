@@ -70,8 +70,8 @@ open Informedica.GenForm.Lib
 /// defined product with a hospital-specific string identifier.
 [<RequireQualifiedAccess>]
 type ProductId =
-    | ZIndex of int   // standard Z-index GPK code
-    | Local  of string // hospital / pharmacy local identifier (e.g. "Samenstelling C")
+    | ZIndex of int // standard Z-index GPK code
+    | Local of string // hospital / pharmacy local identifier (e.g. "Samenstelling C")
 
 
 module ProductId =
@@ -80,22 +80,30 @@ module ProductId =
     /// An all-digit string (> 0) is treated as a Z-index GPK; everything else
     /// becomes a Local identifier.
     let parse (s: string) : ProductId option =
-        if String.IsNullOrWhiteSpace s || s = "0" then None
+        if String.IsNullOrWhiteSpace s || s = "0" then
+            None
         else
             match Int32.TryParse s with
-            | true, n when n > 0 -> Some (ProductId.ZIndex n)
-            | _                  -> Some (ProductId.Local s)
+            | true, n when n > 0 -> Some(ProductId.ZIndex n)
+            | _ -> Some(ProductId.Local s)
 
     /// Return the string representation used as the `GPK` field in a Product record.
-    let toGpkString = function
+    let toGpkString =
+        function
         | ProductId.ZIndex n -> string n
-        | ProductId.Local  s -> s
+        | ProductId.Local s -> s
 
     /// True for Z-index products.
-    let isZIndex = function ProductId.ZIndex _ -> true | _ -> false
+    let isZIndex =
+        function
+        | ProductId.ZIndex _ -> true
+        | _ -> false
 
     /// True for locally defined products.
-    let isLocal = function ProductId.Local _ -> true | _ -> false
+    let isLocal =
+        function
+        | ProductId.Local _ -> true
+        | _ -> false
 
 
 // =============================================================================
@@ -112,9 +120,7 @@ module LocalMedication =
     /// The substance list comes from the Formulary sheet's nutritional / ingredient
     /// columns via `getAdditionalSubstances`.
     let create (unitMapping: Mapping.UnitMapping array) (fp: Types.FormularyProduct) : Types.Product option =
-        let formUnit =
-            fp.Unit
-            |> Option.bind Units.fromString
+        let formUnit = fp.Unit |> Option.bind Units.fromString
 
         match formUnit with
         | None ->
@@ -124,44 +130,44 @@ module LocalMedication =
             let name = fp.Generic |> String.toLower
             let substs = fp |> getAdditionalSubstances
 
-            let product = {
-                GPK     = fp.GPK
-                ATC     = ""
-                MainGroup   = ""
-                SubGroup    = ""
-                Generic     = name
-                UseGenericName = fp.UseGenName
-                UseForm     = fp.UseForm
-                UseBrand    = fp.UseBrand
-                TallMan     = fp.TallMan
-                Synonyms    = [||]
-                Product     = name
-                Label       = name
-                Form        = "vloeistof"   // default; could be read from Form column
-                Routes      = [| "ORAAL"; "SUBLINGUAAL" |]  // conservative default
-                FormQuantities =
-                    fu
-                    |> ValueUnit.singleWithValue 1N
-                FormUnit    = fu
-                RequiresReconstitution = fp.IsReconste
-                Reconstitution = [||]
-                Divisible   = fp.Divisible |> Option.map BigRational.fromInt
-                Substances  =
-                    substs
-                    |> List.choose (fun (s, q) ->
-                        let n, u =
-                            match s |> String.split " " with
-                            | [ n; u ] -> n |> String.trim, u |> String.trim
-                            | _        -> failwith $"cannot parse substance '{s}'"
-                        Substance.create n q u fu unitMapping
-                    )
-                    |> List.filter (fun s ->
-                        s.Name |> String.notEmpty &&
-                        (s.Concentration |> Option.isSome ||
-                         s.MolarConcentration |> Option.isSome)
-                    )
-                    |> List.toArray
-            }
+            let product =
+                {
+                    GPK = fp.GPK
+                    ATC = ""
+                    MainGroup = ""
+                    SubGroup = ""
+                    Generic = name
+                    UseGenericName = fp.UseGenName
+                    UseForm = fp.UseForm
+                    UseBrand = fp.UseBrand
+                    TallMan = fp.TallMan
+                    Synonyms = [||]
+                    Product = name
+                    Label = name
+                    Form = "vloeistof" // default; could be read from Form column
+                    Routes = [| "ORAAL"; "SUBLINGUAAL" |] // conservative default
+                    FormQuantities = fu |> ValueUnit.singleWithValue 1N
+                    FormUnit = fu
+                    RequiresReconstitution = fp.IsReconste
+                    Reconstitution = [||]
+                    Divisible = fp.Divisible |> Option.map BigRational.fromInt
+                    Substances =
+                        substs
+                        |> List.choose (fun (s, q) ->
+                            let n, u =
+                                match s |> String.split " " with
+                                | [ n; u ] -> n |> String.trim, u |> String.trim
+                                | _ -> failwith $"cannot parse substance '{s}'"
+
+                            Substance.create n q u fu unitMapping
+                        )
+                        |> List.filter (fun s ->
+                            s.Name |> String.notEmpty
+                            && (s.Concentration |> Option.isSome || s.MolarConcentration |> Option.isSome)
+                        )
+                        |> List.toArray
+                }
+
             Some product
 
 
@@ -192,38 +198,38 @@ module Medication =
         // Partition formulary products by identity type -------------------------
         let zIndexRows, localMedRows =
             formularyProducts
-            |> Array.choose (fun fp ->
-                fp.GPK
-                |> ProductId.parse
-                |> Option.map (fun pid -> pid, fp)
-            )
+            |> Array.choose (fun fp -> fp.GPK |> ProductId.parse |> Option.map (fun pid -> pid, fp))
             |> Array.partition (fun (pid, _) -> ProductId.isZIndex pid)
 
         // Z-index path: same as current Product.Medication.get -------------------
         let zIndexProducts =
             zIndexRows
             |> Array.collect (fun (pid, fp) ->
-                let gpk = match pid with ProductId.ZIndex n -> n | _ -> 0
-                gpk
-                |> GenPresProduct.findByGPK
-                |> Array.map (fun gpp -> gpk, fp, gpp)
+                let gpk =
+                    match pid with
+                    | ProductId.ZIndex n -> n
+                    | _ -> 0
+
+                gpk |> GenPresProduct.findByGPK |> Array.map (fun gpp -> gpk, fp, gpp)
             )
             |> Array.collect (fun (gpk, fp, gpp) ->
                 gpp.GenericProducts
                 |> Array.filter (fun gp ->
-                    gp.Id = gpk &&
-                    validForms |> Array.exists (String.equalsCapInsens gp.Form) &&
-                    gp.Substances |> Array.exists (fun s -> s.SubstanceQuantity > 0.)
+                    gp.Id = gpk
+                    && validForms |> Array.exists (String.equalsCapInsens gp.Form)
+                    && gp.Substances |> Array.exists (fun s -> s.SubstanceQuantity > 0.)
                 )
                 |> Array.map (fun gp -> fp, gp)
             )
             |> Array.map (fun (fp, gp) ->
-                let name         = fp.Generic |> String.toLower
-                let synonyms     =
+                let name = fp.Generic |> String.toLower
+
+                let synonyms =
                     gp.PrescriptionProducts
                     |> Array.collect (fun pp -> pp.TradeProducts |> Array.map _.Brand)
                     |> Array.distinct
                     |> Array.filter String.notEmpty
+
                 let formQuantities =
                     gp.PrescriptionProducts
                     |> Array.map _.Quantity
@@ -234,17 +240,21 @@ module Medication =
 
                 gp
                 |> Product.Medication.map
-                       unitMapping routeMapping formRoutes reconstitution
-                       name synonyms formQuantities fp
+                    unitMapping
+                    routeMapping
+                    formRoutes
+                    reconstitution
+                    name
+                    synonyms
+                    formQuantities
+                    fp
             )
 
         // Local medication path ---------------------------------------------------
         let localProducts =
             localMedRows
             |> Array.filter (fun (_, fp) -> fp.ProductType.IsMedicationProduct)
-            |> Array.choose (fun (_, fp) ->
-                LocalMedication.create unitMapping fp
-            )
+            |> Array.choose (fun (_, fp) -> LocalMedication.create unitMapping fp)
 
         Array.append zIndexProducts localProducts
 
@@ -255,13 +265,14 @@ module Medication =
 
 printfn "=== ProductId.parse smoke test ==="
 
-let cases = [
-    "104299",       Some (ProductId.ZIndex 104299)    // real GPK
-    "Samenstelling C", Some (ProductId.Local "Samenstelling C")  // local TPN
-    "0",            None                              // dummy / placeholder
-    "",             None                              // empty
-    "abc123",       Some (ProductId.Local "abc123")   // arbitrary local id
-]
+let cases =
+    [
+        "104299", Some(ProductId.ZIndex 104299) // real GPK
+        "Samenstelling C", Some(ProductId.Local "Samenstelling C") // local TPN
+        "0", None // dummy / placeholder
+        "", None // empty
+        "abc123", Some(ProductId.Local "abc123") // arbitrary local id
+    ]
 
 for (input, expected) in cases do
     let result = ProductId.parse input

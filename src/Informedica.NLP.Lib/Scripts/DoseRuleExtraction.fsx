@@ -55,7 +55,8 @@ open Informedica.OpenAI.Lib
 ///   BSA               : m2 as float (e.g. "1.5 m2" → 1.5)
 ///   AdjustUnit        : "kg" or "m2" only
 ///   DoseType          : "once" | "onceTimed" | "discontinuous" | "timed" | "continuous"
-let extractionSchema = """
+let extractionSchema =
+    """
 {
   "source": "",
   "sourceText": "",
@@ -121,7 +122,7 @@ type DoseRuleExtracted =
         generic: string
         form: string
         brand: string
-        gpks: string []
+        gpks: string[]
         indication: string
         route: string
         department: string
@@ -139,7 +140,7 @@ type DoseRuleExtracted =
         doseType: string
         doseText: string
         scheduleText: string
-        frequencies: int []
+        frequencies: int[]
         freqUnit: string
         minTime: Nullable<float>
         maxTime: Nullable<float>
@@ -172,7 +173,8 @@ type DoseRuleExtracted =
 
 /// System prompt instructing the LLM to act as a medication dosing extraction expert.
 /// The source text is embedded so every subsequent question has full context.
-let systemPrompt (sourceName: string) (text: string) = $"""
+let systemPrompt (sourceName: string) (text: string) =
+    $"""
 You are a world-class expert in clinical pharmacology and medication dosing.
 You extract structured information from free-text medication dosage descriptions.
 
@@ -197,7 +199,8 @@ Rules:
 
 /// User prompt requesting the full structured extraction for a single DoseRuleData record.
 /// The schema is embedded to guide JSON structure.
-let extractionPrompt = $"""
+let extractionPrompt =
+    $"""
 Extract all dose rule information from the text and return it as a single JSON object
 matching this schema exactly (fill in values from the text, use null/empty for absent fields):
 
@@ -238,22 +241,19 @@ let validateExtractionJson (s: string) : Result<string, string> =
                         ]
 
                     if validDoseTypes |> List.contains extracted.doseType |> not then
-                        let validList =
-                            validDoseTypes |> List.filter ((<>) "") |> String.concat ", "
-                        yield
-                            $"doseType '{extracted.doseType}' is not valid; must be one of: {validList}"
+                        let validList = validDoseTypes |> List.filter ((<>) "") |> String.concat ", "
+                        yield $"doseType '{extracted.doseType}' is not valid; must be one of: {validList}"
 
                     let validAdjustUnits = [ "kg"; "m2"; "" ]
+
                     if validAdjustUnits |> List.contains extracted.adjustUnit |> not then
-                        yield
-                            $"adjustUnit '{extracted.adjustUnit}' is not valid; must be 'kg', 'm2', or empty"
+                        yield $"adjustUnit '{extracted.adjustUnit}' is not valid; must be 'kg', 'm2', or empty"
                 ]
 
-            if errors |> List.isEmpty then Ok s
+            if errors |> List.isEmpty then
+                Ok s
             else
-                errors
-                |> String.concat "; "
-                |> Error
+                errors |> String.concat "; " |> Error
         with e ->
             $"JSON parse error: {e.Message}" |> Error
 
@@ -269,24 +269,38 @@ let validateExtractionJson (s: string) : Result<string, string> =
 ///
 /// Returns: Async<Result<DoseRuleExtracted, string>>
 let extractDoseRule
-    (sendMessages : string -> {| role: string; content: string |} list -> Async<Result<string, string>>)
+    (sendMessages:
+        string
+            -> {|
+                role: string
+                content: string
+            |} list
+            -> Async<Result<string, string>>)
     (model: string)
     (sourceName: string)
     (text: string)
-    : Async<Result<DoseRuleExtracted, string>> =
+    : Async<Result<DoseRuleExtracted, string>>
+    =
 
     async {
         let systemContent = systemPrompt sourceName text
 
         let baseMessages =
             [
-                {| role = "system"; content = systemContent |}
-                {| role = "user"; content = extractionPrompt |}
+                {|
+                    role = "system"
+                    content = systemContent
+                |}
+                {|
+                    role = "user"
+                    content = extractionPrompt
+                |}
             ]
 
         let rec tryExtract attempt msgs =
             async {
                 let! resp = sendMessages model msgs
+
                 match resp with
                 | Error e -> return Error e
                 | Ok answer ->
@@ -296,7 +310,10 @@ let extractDoseRule
                         let retryMsgs =
                             msgs
                             @ [
-                                {| role = "assistant"; content = answer |}
+                                {|
+                                    role = "assistant"
+                                    content = answer
+                                |}
                                 {|
                                     role = "user"
                                     content =
@@ -306,11 +323,7 @@ let extractDoseRule
 
                         return! tryExtract (attempt + 1) retryMsgs
                     | Error err -> return Error err
-                    | Ok validJson ->
-                        return
-                            validJson
-                            |> JsonConvert.DeserializeObject<DoseRuleExtracted>
-                            |> Ok
+                    | Ok validJson -> return validJson |> JsonConvert.DeserializeObject<DoseRuleExtracted> |> Ok
             }
 
         return! tryExtract 0 baseMessages
@@ -318,58 +331,84 @@ let extractDoseRule
 
 
 /// Create an OpenAI message sender for use with extractDoseRule.
-let openAISender (model: string) (messages: {| role: string; content: string |} list) =
+let openAISender
+    (model: string)
+    (messages:
+        {|
+            role: string
+            content: string
+        |} list)
+    =
     let firstMsg = messages |> List.head
     let restMsgs = messages |> List.tail
 
     let chatInput =
-        {
-            OpenAI.Chat.defaultChatInput
-                model
-                { Role = firstMsg.role; Content = firstMsg.content; Validator = Ok }
-                [] with
-                max_tokens = 2000
-                response_format = { ``type`` = "json_object" }
-                messages =
-                    messages
-                    |> List.map (fun m -> {| role = m.role; content = m.content |})
+        { OpenAI.Chat.defaultChatInput
+              model
+              {
+                  Role = firstMsg.role
+                  Content = firstMsg.content
+                  Validator = Ok
+              }
+              [] with
+            max_tokens = 2000
+            response_format = { ``type`` = "json_object" }
+            messages =
+                messages
+                |> List.map (fun m ->
+                    {|
+                        role = m.role
+                        content = m.content
+                    |}
+                )
         }
 
     async {
         let! resp = chatInput |> OpenAI.chatJson
+
         return
             resp
-            |> Result.map (fun r ->
-                r.Response.choices
-                |> List.last
-                |> _.message.content)
+            |> Result.map (fun r -> r.Response.choices |> List.last |> _.message.content)
     }
 
 
 /// Create a Fireworks message sender for use with extractDoseRule.
-let fireworksSender (model: string) (messages: {| role: string; content: string |} list) =
+let fireworksSender
+    (model: string)
+    (messages:
+        {|
+            role: string
+            content: string
+        |} list)
+    =
     let firstMsg = messages |> List.head
 
     let chatInput =
-        {
-            Fireworks.Chat.defaultChatInput
-                model
-                { Role = firstMsg.role; Content = firstMsg.content; Validator = Ok }
-                [] with
-                max_tokens = 2000
-                messages =
-                    messages
-                    |> List.map (fun m -> {| role = m.role; content = m.content |})
+        { Fireworks.Chat.defaultChatInput
+              model
+              {
+                  Role = firstMsg.role
+                  Content = firstMsg.content
+                  Validator = Ok
+              }
+              [] with
+            max_tokens = 2000
+            messages =
+                messages
+                |> List.map (fun m ->
+                    {|
+                        role = m.role
+                        content = m.content
+                    |}
+                )
         }
 
     async {
         let! resp = chatInput |> Fireworks.chatJson
+
         return
             resp
-            |> Result.map (fun r ->
-                r.Response.choices
-                |> List.last
-                |> _.message.content)
+            |> Result.map (fun r -> r.Response.choices |> List.last |> _.message.content)
     }
 
 
@@ -386,7 +425,8 @@ let printExtracted (r: DoseRuleExtracted) =
     let nullable (n: Nullable<float>) =
         if n.HasValue then string n.Value else "—"
 
-    printfn """
+    printfn
+        """
 ## Extracted DoseRule
 
 ### Medication
@@ -432,28 +472,68 @@ let printExtracted (r: DoseRuleExtracted) =
   Rate       : %s — %s %s/%s
   RateAdj    : %s — %s %s/%s/%s
 """
-        r.generic r.form r.brand (r.gpks |> String.concat ", ")
-        r.route r.indication r.department
+        r.generic
+        r.form
+        r.brand
+        (r.gpks |> String.concat ", ")
+        r.route
+        r.indication
+        r.department
         r.source
         r.gender
-        (nullable r.minAge) (nullable r.maxAge)
-        (nullable r.minWeight) (nullable r.maxWeight)
-        (nullable r.minBSA) (nullable r.maxBSA)
-        (nullable r.minGestAge) (nullable r.maxGestAge)
-        (nullable r.minPMAge) (nullable r.maxPMAge)
-        r.doseType r.doseText
-        (r.frequencies |> Array.map string |> String.concat ";") r.freqUnit
-        (nullable r.minTime) (nullable r.maxTime) r.timeUnit
-        (nullable r.minInterval) (nullable r.maxInterval) r.intervalUnit
-        (nullable r.minDuration) (nullable r.maxDuration) r.durUnit
-        r.substance r.``component``
-        r.doseUnit r.adjustUnit r.rateUnit
-        (nullable r.minQty) (nullable r.maxQty) r.doseUnit
-        (nullable r.minQtyAdj) (nullable r.maxQtyAdj) r.doseUnit r.adjustUnit
-        (nullable r.minPerTime) (nullable r.maxPerTime) r.doseUnit r.freqUnit
-        (nullable r.minPerTimeAdj) (nullable r.maxPerTimeAdj) r.doseUnit r.adjustUnit r.freqUnit
-        (nullable r.minRate) (nullable r.maxRate) r.doseUnit r.rateUnit
-        (nullable r.minRateAdj) (nullable r.maxRateAdj) r.doseUnit r.adjustUnit r.rateUnit
+        (nullable r.minAge)
+        (nullable r.maxAge)
+        (nullable r.minWeight)
+        (nullable r.maxWeight)
+        (nullable r.minBSA)
+        (nullable r.maxBSA)
+        (nullable r.minGestAge)
+        (nullable r.maxGestAge)
+        (nullable r.minPMAge)
+        (nullable r.maxPMAge)
+        r.doseType
+        r.doseText
+        (r.frequencies |> Array.map string |> String.concat ";")
+        r.freqUnit
+        (nullable r.minTime)
+        (nullable r.maxTime)
+        r.timeUnit
+        (nullable r.minInterval)
+        (nullable r.maxInterval)
+        r.intervalUnit
+        (nullable r.minDuration)
+        (nullable r.maxDuration)
+        r.durUnit
+        r.substance
+        r.``component``
+        r.doseUnit
+        r.adjustUnit
+        r.rateUnit
+        (nullable r.minQty)
+        (nullable r.maxQty)
+        r.doseUnit
+        (nullable r.minQtyAdj)
+        (nullable r.maxQtyAdj)
+        r.doseUnit
+        r.adjustUnit
+        (nullable r.minPerTime)
+        (nullable r.maxPerTime)
+        r.doseUnit
+        r.freqUnit
+        (nullable r.minPerTimeAdj)
+        (nullable r.maxPerTimeAdj)
+        r.doseUnit
+        r.adjustUnit
+        r.freqUnit
+        (nullable r.minRate)
+        (nullable r.maxRate)
+        r.doseUnit
+        r.rateUnit
+        (nullable r.minRateAdj)
+        (nullable r.maxRateAdj)
+        r.doseUnit
+        r.adjustUnit
+        r.rateUnit
 
 
 /// -------------------------------------------------------

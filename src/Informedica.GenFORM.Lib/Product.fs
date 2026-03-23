@@ -1,7 +1,6 @@
 namespace Informedica.GenForm.Lib
 
 
-
 module Product =
 
 
@@ -22,10 +21,7 @@ module Product =
         try
             Web.GoogleSheets.getCsvDataFromSheetSync dataUrlId "Formulary"
             |> Result.bind (fun data ->
-                let getColumn =
-                    data
-                    |> Array.head
-                    |> Csv.getStringColumn
+                let getColumn = data |> Array.head |> Csv.getStringColumn
 
                 let products =
                     data
@@ -35,7 +31,7 @@ module Product =
 
                         // Extract departments from the columns marked with 'x'
                         let departments =
-                            ["UMCU"; "ICC"; "NEO"; "ICK"; "HCK"]
+                            [ "UMCU"; "ICC"; "NEO"; "ICK"; "HCK" ]
                             |> List.filter (fun dept -> (get dept) = "x")
 
                         // Determine product type - this is a placeholder, actual logic needed
@@ -80,11 +76,12 @@ module Product =
                     )
                     // filter out dummy
                     |> Array.filter (fun fp -> fp.GPK = "0" |> not)
+
                 Ok products
             )
             |> Result.mapError (fun err -> [ err |> Warning ])
-        with
-        | exn -> GenFormResult.createError "getFormularyProducts" exn
+        with exn ->
+            GenFormResult.createError "getFormularyProducts" exn
 
 
     let getAdditionalSubstances (fp: FormularyProduct) =
@@ -110,7 +107,8 @@ module Product =
 
 
         /// Get a string representation of the VenousAccess.
-        let toString = function
+        let toString =
+            function
             | PVL -> "PVL"
             | CVL -> "CVL"
             | AnyAccess -> ""
@@ -127,11 +125,9 @@ module Product =
     module FormRoute =
 
 
-        let isSolution (mapping : FormRoute[]) form =
+        let isSolution (mapping: FormRoute[]) form =
             mapping
-            |> Array.tryFind (fun sr ->
-                sr.Form |> String.equalsCapInsens form
-            )
+            |> Array.tryFind (fun sr -> sr.Form |> String.equalsCapInsens form)
             |> Option.map _.IsSolution
             |> Option.defaultValue false
 
@@ -144,10 +140,7 @@ module Product =
                 Web.getDataFromSheet dataUrlId "Reconstitution"
                 |> fun data ->
 
-                    let getColumn =
-                        data
-                        |> Array.head
-                        |> Csv.getStringColumn
+                    let getColumn = data |> Array.head |> Csv.getStringColumn
 
                     data
                     |> Array.tail
@@ -169,18 +162,15 @@ module Product =
                                 get "ExpansionVol"
                                 |> toBrOpt
                                 |> Option.map (ValueUnit.singleWithUnit Units.Volume.milliLiter)
-                            Diluents =
-                                get "Diluents"
-                                |> String.splitAt ';'
-                                |> Array.map String.trim
+                            Diluents = get "Diluents" |> String.splitAt ';' |> Array.map String.trim
                         }
                     )
                 |> Ok
-            with
-            | exn -> GenFormResult.createError "Reconstiution.get" exn
+            with exn ->
+                GenFormResult.createError "Reconstiution.get" exn
 
 
-        let filter routeMapping (filter : DoseFilter) (rs : Reconstitution []) =
+        let filter routeMapping (filter: DoseFilter) (rs: Reconstitution[]) =
             let eqsOpt a b =
                 match a, b with
                 | Some a, Some b -> a = b
@@ -188,24 +178,16 @@ module Product =
 
             [|
                 // should match the route if filter.Route is given
-                fun (r : Reconstitution) -> r.Route |> Mapping.eqsRoute routeMapping filter.Route
+                fun (r: Reconstitution) -> r.Route |> Mapping.eqsRoute routeMapping filter.Route
                 // if both filter and rule have location, they must match; if either is None, pass
-                fun (r : Reconstitution) -> r.Location |> eqsOpt filter.Patient.Location
+                fun (r: Reconstitution) -> r.Location |> eqsOpt filter.Patient.Location
                 // if both filter and rule have department, they must match; if either is None, pass
-                fun (r : Reconstitution) -> r.Department |> eqsOpt filter.Patient.Department
+                fun (r: Reconstitution) -> r.Department |> eqsOpt filter.Patient.Department
             |]
-            |> Array.fold (fun (acc : Reconstitution[]) pred ->
-                acc |> Array.filter pred
-            ) rs
+            |> Array.fold (fun (acc: Reconstitution[]) pred -> acc |> Array.filter pred) rs
 
 
-    let createSubstance
-        name
-        conc
-        unit
-        formUnit
-        unitMapping
-        =
+    let createSubstance name conc unit formUnit unitMapping =
         match conc with
         | Some br when br > 0N ->
             let conc =
@@ -216,22 +198,15 @@ module Product =
                         writeErrorMessage $"cannot map unit: {unit}"
                         None
                     | Some u ->
-                        let isMolar =
-                            u |> ValueUnit.Group.eqsGroup Units.Molar.milliMole
-                        let u =
-                            u
-                            |> Units.per formUnit
+                        let isMolar = u |> ValueUnit.Group.eqsGroup Units.Molar.milliMole
+                        let u = u |> Units.per formUnit
 
-                        (isMolar, br |> ValueUnit.singleWithUnit u)
-                        |> Some
+                        (isMolar, br |> ValueUnit.singleWithUnit u) |> Some
+
             {
                 Name = name
                 Concentration = conc |> Option.map snd
-                MolarConcentration =
-                    conc
-                    |> Option.bind (fun (isMolar, vu) ->
-                        if isMolar then vu |> Some else None
-                    )
+                MolarConcentration = conc |> Option.bind (fun (isMolar, vu) -> if isMolar then vu |> Some else None)
             }
             |> Some
         | _ -> None
@@ -240,14 +215,9 @@ module Product =
     module Enteral =
 
 
-        let createProduct
-            name
-            formUnit
-            unitMapping
-            substs
-            =
+        let createProduct name formUnit unitMapping substs =
             {
-                GPK =  name
+                GPK = name
                 ATC = ""
                 MainGroup = ""
                 SubGroup = ""
@@ -261,9 +231,7 @@ module Product =
                 Label = name
                 Form = "voeding"
                 Routes = [| "ORAAL" |]
-                FormQuantities =
-                    formUnit
-                    |> ValueUnit.singleWithValue 1N
+                FormQuantities = formUnit |> ValueUnit.singleWithValue 1N
                 FormUnit = formUnit
                 RequiresReconstitution = false
                 Reconstitution = [||]
@@ -273,46 +241,36 @@ module Product =
                     |> List.choose (fun (s, q) ->
                         let n, u =
                             match s |> String.split " " with
-                            | [n; u] -> n |> String.trim, u |> String.trim
+                            | [ n; u ] -> n |> String.trim, u |> String.trim
                             | _ -> failwith $"cannot parse substance {s}"
+
                         createSubstance n q u formUnit unitMapping
                     )
                     |> List.filter (fun s ->
-                        s.Name |> String.notEmpty &&
-                        (s.Concentration |> Option.isSome ||
-                        s.MolarConcentration |> Option.isSome)
+                        s.Name |> String.notEmpty
+                        && (s.Concentration |> Option.isSome || s.MolarConcentration |> Option.isSome)
                     )
                     |> List.toArray
             }
 
 
-        let get unitMapping (prods: FormularyProduct []) =
-                prods
-                |> Array.filter _.ProductType.IsEnteralProduct
-                |> Array.choose (fun fp ->
-                    let formUnit =
-                        fp.Unit
-                        |> Option.bind Units.fromString
+        let get unitMapping (prods: FormularyProduct[]) =
+            prods
+            |> Array.filter _.ProductType.IsEnteralProduct
+            |> Array.choose (fun fp ->
+                let formUnit = fp.Unit |> Option.bind Units.fromString
 
-                    match formUnit with
-                    | None -> None
-                    | Some fu ->
-                        fp
-                        |> getAdditionalSubstances
-                        |> createProduct fp.Generic fu unitMapping
-                        |> Some
-                )
+                match formUnit with
+                | None -> None
+                | Some fu -> fp |> getAdditionalSubstances |> createProduct fp.Generic fu unitMapping |> Some
+            )
 
 
     module Parenteral =
 
-        let createProduct
-            name
-            unitMapping
-            substs
-            =
+        let createProduct name unitMapping substs =
             {
-                GPK =  name
+                GPK = name
                 ATC = ""
                 MainGroup = ""
                 SubGroup = ""
@@ -326,11 +284,8 @@ module Product =
                 Label = name
                 Form = "vloeistof"
                 Routes = [| "INTRAVENEUS"; "ORAAL" |]
-                FormQuantities =
-                    Units.Volume.milliLiter
-                    |> ValueUnit.singleWithValue 1N
-                FormUnit =
-                    Units.Volume.milliLiter
+                FormQuantities = Units.Volume.milliLiter |> ValueUnit.singleWithValue 1N
+                FormUnit = Units.Volume.milliLiter
                 RequiresReconstitution = false
                 Reconstitution = [||]
                 Divisible = Some 10N
@@ -339,31 +294,26 @@ module Product =
                     |> List.choose (fun (s, q) ->
                         let n, u =
                             match s |> String.split " " with
-                            | [n; u] -> n |> String.trim, u |> String.trim
+                            | [ n; u ] -> n |> String.trim, u |> String.trim
                             | _ -> failwith $"cannot parse substance {s}"
+
                         createSubstance n q u Units.Volume.milliLiter unitMapping
                     )
                     |> List.filter (fun s ->
-                        s.Name |> String.notEmpty &&
-                        (s.Concentration |> Option.isSome ||
-                        s.MolarConcentration |> Option.isSome)
+                        s.Name |> String.notEmpty
+                        && (s.Concentration |> Option.isSome || s.MolarConcentration |> Option.isSome)
                     )
                     |> List.toArray
                     |> Array.filter (fun s ->
-                        s.Name |> String.notEmpty &&
-                        (s.Concentration |> Option.isSome ||
-                        s.MolarConcentration |> Option.isSome)
+                        s.Name |> String.notEmpty
+                        && (s.Concentration |> Option.isSome || s.MolarConcentration |> Option.isSome)
                     )
             }
 
-        let get unitMapping (prods: FormularyProduct []) =
+        let get unitMapping (prods: FormularyProduct[]) =
             prods
             |> Array.filter _.ProductType.IsParenteralProduct
-                |> Array.map (fun fp ->
-                    fp
-                    |> getAdditionalSubstances
-                    |> createProduct fp.Generic unitMapping
-                )
+            |> Array.map (fun fp -> fp |> getAdditionalSubstances |> createProduct fp.Generic unitMapping)
 
 
     let create gen rte substs =
@@ -381,7 +331,7 @@ module Product =
             Product = gen
             Label = gen
             Form = gen
-            Routes = [| rte  |]
+            Routes = [| rte |]
             FormQuantities = ValueUnit.empty
             FormUnit = NoUnit
             RequiresReconstitution = false
@@ -399,9 +349,8 @@ module Product =
         }
 
 
-    let rename defaultName useGenName (subst : Informedica.ZIndex.Lib.Types.ProductSubstance) =
-        if useGenName then subst.GenericName
-        else defaultName
+    let rename defaultName useGenName (subst: Informedica.ZIndex.Lib.Types.ProductSubstance) =
+        if useGenName then subst.GenericName else defaultName
         |> String.toLower
 
 
@@ -409,17 +358,15 @@ module Product =
         unitMapping
         routeMapping
         formRoutes
-        (reconstitution : Reconstitution[])
+        (reconstitution: Reconstitution[])
         name
         synonyms
         formQuantities
         (fp: FormularyProduct)
-        (gp : Informedica.ZIndex.Lib.Types.GenericProduct)
+        (gp: Informedica.ZIndex.Lib.Types.GenericProduct)
         =
 
-        let atc =
-            gp.ATC
-            |> ATCGroup.findByATC5
+        let atc = gp.ATC |> ATCGroup.findByATC5
 
         let formUnit =
             gp.Substances[0].FormUnit
@@ -429,19 +376,12 @@ module Product =
         let reqReconst =
             Mapping.requiresReconstitution routeMapping formRoutes (gp.Route, formUnit, gp.Form)
 
-        let formUnit =
-            if not reqReconst then formUnit
-            else
-                Units.Volume.milliLiter
+        let formUnit = if not reqReconst then formUnit else Units.Volume.milliLiter
 
         {
-            GPK =  $"{gp.Id}"
+            GPK = $"{gp.Id}"
             ATC = gp.ATC |> String.trim
-            MainGroup =
-                atc
-                |> Array.map _.AnatomicalGroup
-                |> Array.tryHead
-                |> Option.defaultValue ""
+            MainGroup = atc |> Array.map _.AnatomicalGroup |> Array.tryHead |> Option.defaultValue ""
             SubGroup =
                 atc
                 |> Array.map _.TherapeuticSubGroup
@@ -455,49 +395,31 @@ module Product =
             Synonyms = synonyms
             Product =
                 gp.PrescriptionProducts
-                |> Array.collect (fun pp ->
-                    pp.TradeProducts
-                    |> Array.map _.Label
-                )
+                |> Array.collect (fun pp -> pp.TradeProducts |> Array.map _.Label)
                 |> Array.distinct
                 |> function
-                | [| p |] -> p
-                | _ -> ""
+                    | [| p |] -> p
+                    | _ -> ""
             Label = gp.Label
             Form = gp.Form |> String.toLower
             Routes = gp.Route |> Array.choose (Mapping.mapRoute routeMapping)
-            FormQuantities =
-                formQuantities
-                |> ValueUnit.withUnit formUnit
+            FormQuantities = formQuantities |> ValueUnit.withUnit formUnit
             FormUnit = formUnit
             RequiresReconstitution = reqReconst
-            Reconstitution =
-                reconstitution
-                |> Array.filter (fun r ->
-                    r.GPK = $"{gp.Id}"
-                )
+            Reconstitution = reconstitution |> Array.filter (fun r -> r.GPK = $"{gp.Id}")
             Divisible =
                 match fp.Divisible with
                 | Some d -> d |> BigRational.fromInt |> Some
                 | None ->
                     let rs =
-                        Mapping.filterFormRoutes
-                            routeMapping
-                            formRoutes "" (gp.Form.ToLower()) NoUnit
-                    if rs |> Array.length = 0 then None
-                    else
-                        rs[0].Divisibility
+                        Mapping.filterFormRoutes routeMapping formRoutes "" (gp.Form.ToLower()) NoUnit
+
+                    if rs |> Array.length = 0 then None else rs[0].Divisibility
             Substances =
                 let ppAdditional =
                     gp.PrescriptionProducts
-                    |> Array.collect (fun pp ->
-                        pp.TradeProducts
-                        |> Array.collect _.Substances
-                    )
-                    |> Array.filter (fun s ->
-                        s.SubstanceQuantity > 0. &&
-                        s.IsAdditional
-                    )
+                    |> Array.collect (fun pp -> pp.TradeProducts |> Array.collect _.Substances)
+                    |> Array.filter (fun s -> s.SubstanceQuantity > 0. && s.IsAdditional)
 
                 let fpAdditional =
                     fp
@@ -505,21 +427,19 @@ module Product =
                     |> List.choose (fun (s, q) ->
                         let n, u =
                             match s |> String.split " " with
-                            | [n; u] -> n |> String.trim, u |> String.trim
+                            | [ n; u ] -> n |> String.trim, u |> String.trim
                             | _ -> failwith $"cannot parse substance {s}"
+
                         createSubstance n q u formUnit unitMapping
                     )
                     |> List.filter (fun s ->
-                        s.Name |> String.notEmpty &&
-                        (s.Concentration |> Option.isSome ||
-                        s.MolarConcentration |> Option.isSome)
+                        s.Name |> String.notEmpty
+                        && (s.Concentration |> Option.isSome || s.MolarConcentration |> Option.isSome)
                     )
                     |> List.toArray
 
                 gp.Substances
-                |> Array.filter (fun ps ->
-                    ps.SubstanceQuantity > 0.
-                )
+                |> Array.filter (fun ps -> ps.SubstanceQuantity > 0.)
                 |> Array.append ppAdditional
                 // TODO should be group by as additional can have different concentrations
                 |> Array.distinctBy _.SubstanceId
@@ -527,10 +447,9 @@ module Product =
                     let su =
                         s.SubstanceUnit
                         |> Mapping.mapUnit unitMapping
-                        |> Option.map (fun u ->
-                            CombiUnit(u, OpPer, formUnit)
-                        )
+                        |> Option.map (fun u -> CombiUnit(u, OpPer, formUnit))
                         |> Option.defaultValue NoUnit
+
                     {
                         Name = s |> rename s.SubstanceName fp.UseGenName
                         Concentration =
@@ -538,18 +457,19 @@ module Product =
                             |> BigRational.fromFloat
                             |> Option.map (ValueUnit.singleWithUnit su)
                         MolarConcentration =
-                            if fp.Mmol |> Option.isNone ||
-                               s.SubstanceName |> String.equalsCapInsens name |> not then None
+                            if
+                                fp.Mmol |> Option.isNone
+                                || s.SubstanceName |> String.equalsCapInsens name |> not
+                            then
+                                None
                             // only apply mmol to substance with the same name as the product
                             else
                                 let u = Units.Molar.milliMole |> Units.per formUnit
-                                fp.Mmol
-                                |> Option.map (ValueUnit.singleWithUnit u)
+                                fp.Mmol |> Option.map (ValueUnit.singleWithUnit u)
                     }
                 )
                 |> Array.append fpAdditional
         }
-
 
 
     let get
@@ -564,30 +484,18 @@ module Product =
         =
         fun () ->
             formularyProducts
-            |> Array.choose (fun fp ->
-                fp.GPK
-                |> Int32.tryParse
-                |> Option.map (fun gpk -> gpk, fp)
-            )
+            |> Array.choose (fun fp -> fp.GPK |> Int32.tryParse |> Option.map (fun gpk -> gpk, fp))
             // find the matching GenPresProducts
-            |> Array.collect (fun (gpk, fp) ->
-                gpk
-                |> GenPresProduct.findByGPK
-                |> Array.map (fun gpp -> (gpk, fp, gpp))
-            )
+            |> Array.collect (fun (gpk, fp) -> gpk |> GenPresProduct.findByGPK |> Array.map (fun gpp -> (gpk, fp, gpp)))
             // collect the GenericProducts
             // filtered by "valid form" and
             // at least one substance quantity > 0
             |> Array.collect (fun (gpk, fp, gpp) ->
                 gpp.GenericProducts
                 |> Array.filter (fun gp ->
-                    gp.Id = gpk &&
-                    validForms
-                    |> Array.exists (String.equalsCapInsens gp.Form) &&
-                    gp.Substances
-                    |> Array.exists (fun s ->
-                        s.SubstanceQuantity > 0.
-                    )
+                    gp.Id = gpk
+                    && validForms |> Array.exists (String.equalsCapInsens gp.Form)
+                    && gp.Substances |> Array.exists (fun s -> s.SubstanceQuantity > 0.)
                 )
                 |> Array.map (fun gp -> fp, gp)
             )
@@ -597,10 +505,7 @@ module Product =
 
                 let synonyms =
                     gp.PrescriptionProducts
-                    |> Array.collect (fun pp ->
-                        pp.TradeProducts
-                        |> Array.map _.Brand
-                    )
+                    |> Array.collect (fun pp -> pp.TradeProducts |> Array.map _.Brand)
                     |> Array.distinct
                     |> Array.filter String.notEmpty
 
@@ -610,19 +515,10 @@ module Product =
                     |> Array.choose BigRational.fromFloat
                     |> Array.filter (fun br -> br > 0N)
                     |> Array.distinct
-                    |> fun xs ->
-                        if xs |> Array.isEmpty then [| 1N |] else xs
+                    |> fun xs -> if xs |> Array.isEmpty then [| 1N |] else xs
 
                 gp
-                |> map
-                       unitMapping
-                       routeMapping
-                       formRoutes
-                       reconstitution
-                       name
-                       synonyms
-                       formQuantities
-                       fp
+                |> map unitMapping routeMapping formRoutes reconstitution name synonyms formQuantities fp
             )
             |> Array.append parenteral
             |> Array.append enteral
@@ -643,7 +539,7 @@ module Product =
     /// The reconstituted product or None if the product
     /// does not require reconstitution.
     /// </returns>
-    let reconstitute mapping loc dep rte (prod : Product) =
+    let reconstitute mapping loc dep rte (prod: Product) =
         let warnings = ResizeArray<string>()
         let eqsRoute = Mapping.eqsRoute mapping
 
@@ -656,21 +552,26 @@ module Product =
             [|
                 // if reconstitution is not required, the
                 // original product is returned as well
-                if prod.RequiresReconstitution |> not then [| prod |]
+                if prod.RequiresReconstitution |> not then
+                    [| prod |]
                 else
                     // calculate the reconstituted products
                     prod.Reconstitution
                     |> Array.filter (fun r ->
                         // return true if route is not given or matches
-                        (rte |> String.isNullOrWhiteSpace || r.Route |> eqsRoute (Some rte)) &&
+                        (rte |> String.isNullOrWhiteSpace || r.Route |> eqsRoute (Some rte))
+                        &&
                         // return true if either department is None, or both match
-                        r.Department |> eqsOpt dep &&
+                        r.Department |> eqsOpt dep
+                        &&
                         // return true if either location is None, or both match
                         r.Location |> eqsOpt loc
                     )
                     |> fun xs ->
                         if xs |> Array.isEmpty then
-                            warnings.Add $"no reconstitution rules found for {prod.Generic} ({prod.Form}) with route {rte} and department {dep}"
+                            warnings.Add
+                                $"no reconstitution rules found for {prod.Generic} ({prod.Form}) with route {rte} and department {dep}"
+
                         xs
                     |> Array.map (fun r ->
                         let vol =
@@ -688,9 +589,7 @@ module Product =
                                         Concentration =
                                             s.Concentration
                                             |> Option.map (fun q ->
-                                                let one =
-                                                    Units.Volume.milliLiter
-                                                    |> ValueUnit.singleWithValue 1N
+                                                let one = Units.Volume.milliLiter |> ValueUnit.singleWithValue 1N
                                                 one * q / vol
                                             )
                                     }
@@ -700,8 +599,7 @@ module Product =
             |]
             |> Array.collect id
 
-        prods,
-        warnings |> Seq.distinct
+        prods, warnings |> Seq.distinct
 
 
     /// <summary>
@@ -710,7 +608,7 @@ module Product =
     /// <param name="mapping"></param>
     /// <param name="filter">The Filter</param>
     /// <param name="prods">The array of Products</param>
-    let filter mapping (filter : DoseFilter) (prods : Product []) =
+    let filter mapping (filter: DoseFilter) (prods: Product[]) =
         let eqsRoute = Mapping.eqsRoute mapping
         let recFilter = Reconstitution.filter mapping
 
@@ -732,28 +630,20 @@ module Product =
 
         prods
         |> Array.filter (fun p ->
-            p.Generic |> eqs filter.Generic &&
-            p.Form |> eqs filter.Form &&
-            p.Routes |> Array.exists (eqsRoute filter.Route)
+            p.Generic |> eqs filter.Generic
+            && p.Form |> eqs filter.Form
+            && p.Routes |> Array.exists (eqsRoute filter.Route)
         )
-        |> Array.map (fun p ->
-            { p with
-                Reconstitution =
-                    p.Reconstitution
-                    |> recFilter filter
-            }
-        )
+        |> Array.map (fun p -> { p with Reconstitution = p.Reconstitution |> recFilter filter })
 
 
     /// Get all Generics from the given Product array.
-    let generics (products : Product array) =
-        products
-        |> Array.map _.Generic
-        |> Array.distinct
+    let generics (products: Product array) =
+        products |> Array.map _.Generic |> Array.distinct
 
 
     /// Get all Synonyms from the given Product array.
-    let synonyms (products : Product array) =
+    let synonyms (products: Product array) =
         products
         |> Array.collect _.Synonyms
         |> Array.append (generics products)
@@ -761,7 +651,5 @@ module Product =
 
 
     /// Get all pharmaceutical forms from the given Product array.
-    let forms  (products : Product array) =
-        products
-        |> Array.map _.Form
-        |> Array.distinct
+    let forms (products: Product array) =
+        products |> Array.map _.Form |> Array.distinct

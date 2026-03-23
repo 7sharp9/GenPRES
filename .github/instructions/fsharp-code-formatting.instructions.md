@@ -8,7 +8,7 @@ applyTo: "**/*.fs,**/*.fsx"
 ## Indentation and Delimiters
 
 Block indentation should follow a general standard of 4 spaces per indentation level. Also, whatever is delimiting the scope (like `[` or `{` or `(`) should be aligned with the indentation level of the block when it is closed.
-`if then else` blocks, `match with` blocks, `let` bindings that span multiple lines, and function bodies should all follow this convention.
+`match with` blocks, `let` bindings that span multiple lines, and function bodies should all follow this convention.
 
 ```fsharp
 // Good: indentation by 4 spaces
@@ -169,43 +169,6 @@ and Item = { Name: string }
 type Item = { Name: string }
 
 type Container = { Items: Item list }
-```
-
-## If/Then/Else Formatting
-
-Also, try to put the simple cases on the `then` case on the same line, and use indentation for more complex cases in the `else` case.
-
-```fsharp
-
-// Good: simple then case on same line
-// more complex else case indented
-if b = 0 then []
-else
-    // start a scope block
-    [ 
-        for i in 0..b do
-            let result = calculate b
-
-            if result.IsNone then None
-            else
-                result 
-                |> Option.map (fun x -> x / 2)
-    ]
-
-
-// Fantomas formatted
-// used indentation on a very simple scope block
-if b = 0 then
-    []
-else
-    // start a scope block
-    [ for i in 0..b do
-          let result = calculate b
-
-          if result.IsNone then
-              None
-          else
-              result |> Option.map (fun x -> x / 2) ]
 ```
 
 ## Pipeline Formatting

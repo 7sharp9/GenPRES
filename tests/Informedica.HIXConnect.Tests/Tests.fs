@@ -7,13 +7,7 @@ module Tests =
     open Expecto.Flip
 
     let testHelloWorld =
-        test "hello world test" {
-            "Hello World"
-            |> Expect.equal "Strings should be equal" "Hello World"
-        }
+        test "hello world test" { "Hello World" |> Expect.equal "Strings should be equal" "Hello World" }
 
     [<Tests>]
-    let tests =
-        testList "HIXConnect" [
-            testHelloWorld
-        ]
+    let tests = testList "HIXConnect" [ testHelloWorld ]

@@ -9,7 +9,7 @@ module Markdown =
 
 
     /// Converts a markdown string to an HTML string.
-    let toHtml (s : string) = Markdown.ToHtml(s)
+    let toHtml (s: string) = Markdown.ToHtml(s)
 
 
     /// Opens an HTML string in the default browser.
@@ -22,8 +22,7 @@ module Markdown =
             | None -> IO.Path.GetTempPath() + "/temp.html"
             | Some p -> $"{p}/temp.html"
 
-        html
-        |> File.writeTextToFile tmp
+        html |> File.writeTextToFile tmp
 
         proc.StartInfo.FileName <- tmp
 
@@ -32,7 +31,4 @@ module Markdown =
 
 
     /// Converts a markdown string to an HTML string and opens it in the default browser.
-    let toBrowser path s =
-        s
-        |> toHtml
-        |> htmlToBrowser path
+    let toBrowser path s = s |> toHtml |> htmlToBrowser path

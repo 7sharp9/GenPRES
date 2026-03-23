@@ -1,7 +1,6 @@
 namespace Informedica.GenSolver.Lib
 
 
-
 /// Functions that handle the `Equation` type that
 /// either represents a `ProductEquation` </br>
 /// y = x1 \* x2 * ... \* xn </br>
@@ -22,20 +21,18 @@ module Equation =
 
         module Property = Variable.ValueRange.Property
 
-        let toString = function
+        let toString =
+            function
             | Unchanged -> "Unchanged"
             | Changed cs ->
-                let toStr (var : Variable, props)  =
+                let toStr (var: Variable, props) =
                     $"""changes: {var.Name |> Variable.Name.toString}: {props |> Set.map (Property.toString true) |> String.concat ", "}"""
-                if cs |> List.isEmpty then ""
+
+                if cs |> List.isEmpty then
+                    ""
                 else
-                    cs
-                    |> List.map toStr
-                    |> String.concat ", "
-            | Errored ms ->
-                ms
-                |> List.map string
-                |> String.concat ", "
+                    cs |> List.map toStr |> String.concat ", "
+            | Errored ms -> ms |> List.map string |> String.concat ", "
 
 
     /// Create an `Equation` with an **y** and
@@ -44,16 +41,11 @@ module Equation =
     /// The type of Equation product or sum
     /// is determined by the constructor **c**.
     let create c succ fail (y, xs) =
-        y::xs
-        |> List.filter (fun v ->
-            y::xs
-            |> List.filter (Variable.eqName v) |> List.length > 1)
+        y :: xs
+        |> List.filter (fun v -> y :: xs |> List.filter (Variable.eqName v) |> List.length > 1)
         |> function
-        | [] -> (y, xs) |> c |> succ
-        | duplicates ->
-            duplicates
-            |> Exceptions.EquationDuplicateVariables
-            |> fail
+            | [] -> (y, xs) |> c |> succ
+            | duplicates -> duplicates |> Exceptions.EquationDuplicateVariables |> fail
 
     /// Create an `ProductEquation` with an **y** and
     /// **xs**. Fails if a variable is added more
@@ -77,9 +69,10 @@ module Equation =
 
     /// Apply **fp** to a `ProductEquation` and
     /// **fs** to a `SumEquation`.
-    let apply fp fs = function
-        | ProductEquation (y,xs) -> fp y xs
-        | SumEquation (y, xs)    -> fs y xs
+    let apply fp fs =
+        function
+        | ProductEquation(y, xs) -> fp y xs
+        | SumEquation(y, xs) -> fs y xs
 
     /// Check whether an `Equation` is a product equation
     let isProduct = apply (fun _ _ -> true) (fun _ _ -> false)
@@ -89,34 +82,26 @@ module Equation =
 
     /// Turn an `Equation` into a list of `Variable`
     let toVars =
-        let f y xs = y::xs
+        let f y xs = y :: xs
         apply f f
 
 
     let count onlyMinMax eq =
         let vars = eq |> toVars
+
         let b =
-            let n =
-                vars
-                |> List.filter Variable.isSolved
-                |> List.length
+            let n = vars |> List.filter Variable.isSolved |> List.length
             (vars |> List.length) - n = 1
-        if b then -100
+
+        if b then
+            -100
+        else if
+            onlyMinMax
+            && eq |> toVars |> List.exists (fun var -> var.Values |> ValueRange.isValueSet)
+        then
+            -50
         else
-            if onlyMinMax &&
-               eq
-               |> toVars
-               |> List.exists (fun var ->
-                   var.Values
-                   |> ValueRange.isValueSet
-               )
-               then -50
-            else
-                eq
-                |> toVars
-                |> List.fold (fun (acc : int) v ->
-                    (+) (v |> Variable.count) acc
-                ) 0
+            eq |> toVars |> List.fold (fun (acc: int) v -> (+) (v |> Variable.count) acc) 0
 
 
     let countProduct eq =
@@ -125,10 +110,12 @@ module Equation =
         //| _ ->
         eq
         |> toVars
-        |> List.fold (fun acc v ->
-            let c = v |> Variable.count
-            (if c = 0 then 1 else c) * acc
-        ) 1
+        |> List.fold
+            (fun acc v ->
+                let c = v |> Variable.count
+                (if c = 0 then 1 else c) * acc
+            )
+            1
 
 
     let toString exact eq =
@@ -138,8 +125,7 @@ module Equation =
         match eq |> toVars with
         | [] -> ""
         | [ _ ] -> ""
-        | y::xs ->
-            $"""{y |> varToString} = {xs |> List.map varToString |> String.concat op}"""
+        | y :: xs -> $"""{y |> varToString} = {xs |> List.map varToString |> String.concat op}"""
 
 
     /// Make sure that the `Variables` in the
@@ -150,23 +136,24 @@ module Equation =
             let y = y |> Variable.setNonZeroOrNegative
             let xs = xs |> List.map Variable.setNonZeroOrNegative
             (y, xs) |> c
+
         let fp = set ProductEquation
         let fs = set SumEquation
         eq |> apply fp fs
 
     /// Check whether an `Equation` contains
     /// a `Variable` **v**
-    let contains v = toVars >> (List.exists (Variable.eqName v))
+    let contains v =
+        toVars >> (List.exists (Variable.eqName v))
 
     /// Check whether `Equation`s
     /// **eq1** and **eq2** are equal
     let equals eq1 eq2 =
         let vrs1 = eq1 |> toVars
         let vrs2 = eq2 |> toVars
-        vrs1 |> List.forall (fun vr ->
-            vrs2 |> List.exists (Variable.eqName vr)) &&
-        ((eq1 |> isProduct) && (eq2 |> isProduct) ||
-         (eq1 |> isSum)     && (eq2 |> isSum))
+
+        vrs1 |> List.forall (fun vr -> vrs2 |> List.exists (Variable.eqName vr))
+        && ((eq1 |> isProduct) && (eq2 |> isProduct) || (eq1 |> isSum) && (eq2 |> isSum))
 
     /// Find a `Variable` **vr** in
     /// an `Equation` **eq** and return
@@ -180,70 +167,75 @@ module Equation =
     /// **n** in an `Equation` **eq**
     /// and return the result as a list
     let findName n eq =
-        eq
-        |> toVars
-        |> List.filter (fun vr -> vr |> Variable.getName = n)
+        eq |> toVars |> List.filter (fun vr -> vr |> Variable.getName = n)
 
     /// Replace a `Variable` **v** in the
     /// `Equation` **e**.
     let replace var eq =
         let r c v vs =
             let vs = vs |> List.replace (Variable.eqName v) v
-            c id (fun _ -> eq) ((vs |> List.head), (vs|> List.tail))
-        let fp y xs = r createProductEq var (y::xs)
-        let fs y xs = r createSumEq var (y::xs)
+            c id (fun _ -> eq) ((vs |> List.head), (vs |> List.tail))
+
+        let fp y xs = r createProductEq var (y :: xs)
+        let fs y xs = r createSumEq var (y :: xs)
         eq |> apply fp fs
 
 
     // Check whether an equation is solved
-    let isSolved = function
-        | ProductEquation (y, xs)
-        | SumEquation (y, xs) ->
-            y::xs |> List.forall Variable.isSolved
+    let isSolved =
+        function
+        | ProductEquation(y, xs)
+        | SumEquation(y, xs) -> y :: xs |> List.forall Variable.isSolved
 
 
     // Check whether an equation will change by calc
     // This is not the same as `isSolved`!! If all
     // the variables are unrestricted than the equation
     // is not solvable but is also not solved.
-    let isSolvable = function
-        | ProductEquation (y, xs)
-        | SumEquation (y, xs) ->
-            let es = y::xs
-            es |> List.exists Variable.isSolvable &&
-            es |> List.filter Variable.isUnrestricted
-               |> List.length > 1
-               |> not
+    let isSolvable =
+        function
+        | ProductEquation(y, xs)
+        | SumEquation(y, xs) ->
+            let es = y :: xs
+
+            es |> List.exists Variable.isSolvable
+            && es |> List.filter Variable.isUnrestricted |> List.length > 1 |> not
 
 
     let check eq =
-        let isSub op (y : Variable) (xs : Variable list) =
+        let isSub op (y: Variable) (xs: Variable list) =
             match xs with
             | [] -> true
-            | _  ->
-                if y.Values |> ValueRange.isValueSet &&
-                   xs |> List.map Variable.getValueRange
-                      |> List.forall ValueRange.isValueSet then
+            | _ ->
+                if
+                    y.Values |> ValueRange.isValueSet
+                    && xs |> List.map Variable.getValueRange |> List.forall ValueRange.isValueSet
+                then
 
-                    let b =
-                        y.Values
-                        |> ValueRange.isSubSetOf (xs |> List.reduce op).Values
+                    let b = y.Values |> ValueRange.isSubSetOf (xs |> List.reduce op).Values
+
                     if not b then
                         printfn $"not a subset: {y.Values} {(xs |> List.reduce op).Values}"
+
                     b
-                else true
+                else
+                    true
 
         if eq |> isSolvable then
             match eq with
-            | ProductEquation (y, xs) -> xs |> isSub (^*) y
-            | SumEquation (y, xs) -> xs |> isSub (^+) y
+            | ProductEquation(y, xs) -> xs |> isSub (^*) y
+            | SumEquation(y, xs) -> xs |> isSub (^+) y
 
-        else true
+        else
+            true
 
 
     let calculationToString b op1 op2 y xs =
         let varToStr = Variable.toString b
-        let opToStr op  = $" {op |> Variable.Operators.toString} "
+
+        let opToStr op =
+            $" {op |> Variable.Operators.toString} "
+
         let cost = xs |> List.map Variable.count |> List.reduce (*)
         let x1 = xs |> List.head
         let xs = xs |> List.filter (fun x -> x.Name <> x1.Name)
@@ -255,33 +247,35 @@ module Equation =
     /// changed `Variable`s.
     let solve onlyMinIncrMax log eq =
         // helper functions
-        let without x xs = xs |> List.filter (Variable.eqName x >> not)
-        let replAdd x xs = xs |> List.replaceOrAdd(Variable.eqName x) x
+        let without x xs =
+            xs |> List.filter (Variable.eqName x >> not)
+
+        let replAdd x xs =
+            xs |> List.replaceOrAdd (Variable.eqName x) x
 
         let (<==) = if onlyMinIncrMax then (@<-) else (^<-)
 
         let rec calcXs op1 op2 y xs rest xChanged =
             match rest with
-            | []  ->
+            | [] ->
                 // log finishing the calculation
-                (y::xs, xChanged)
+                (y :: xs, xChanged)
                 |> Events.EquationFinishedCalculation // TODO: need to rename
                 |> Logging.logInfo log
                 // return the result and whether this is changed
                 xs, xChanged
 
-            | x::tail ->
+            | x :: tail ->
                 let newX =
                     match xs |> without x with
-                    | [] ->  x <== y
-                    | _  ->
-                        if x |> Variable.isSolved then x
+                    | [] -> x <== y
+                    | _ ->
+                        if x |> Variable.isSolved then
+                            x
                         else
                             let xs = xs |> without x
                             // log the calculation
-                            (op1, op2, x, y::xs)
-                            |> Events.EquationStartCalculation
-                            |> Logging.logInfo log
+                            (op1, op2, x, y :: xs) |> Events.EquationStartCalculation |> Logging.logInfo log
                             // recalculate x
                             x <== (y |> op2 <| (xs |> List.reduce op1))
 
@@ -293,9 +287,7 @@ module Equation =
                 y, false
             else
                 // log the calculation
-                (op1, op1, y, xs)
-                |> Events.EquationStartCalculation
-                |> Logging.logInfo log
+                (op1, op1, y, xs) |> Events.EquationStartCalculation |> Logging.logInfo log
                 // recalculate y
                 let temp = xs |> List.reduce op1
                 let newY = y <== temp //(xs |> List.reduce op1)
@@ -303,7 +295,7 @@ module Equation =
                 let yChanged = newY.Values |> ValueRange.eqs y.Values |> not
 
                 // log finishing the calculation
-                (newY::xs, yChanged)
+                (newY :: xs, yChanged)
                 |> Events.EquationFinishedCalculation
                 |> Logging.logInfo log
                 // return the result and whether it changed
@@ -333,7 +325,8 @@ module Equation =
                     y, yChanged, xs, xChanged
 
             // If neither yChanged or xChanged return the result
-            if not (yChanged || xChanged) then (y, xs, eqChanged)
+            if not (yChanged || xChanged) then
+                (y, xs, eqChanged)
             else
                 // y or x has changed so loop
                 loop op1 op2 y xs true
@@ -341,22 +334,19 @@ module Equation =
         let calcResult (y, xs, isChanged) =
             let result =
                 // nothing has changed!
-                if not isChanged then Unchanged
+                if not isChanged then
+                    Unchanged
                 // calculate the changes
                 else
                     let vars = eq |> toVars
 
-                    y::xs
+                    y :: xs
                     |> List.map (fun v2 ->
                         vars
                         |> List.tryFind (Variable.eqName v2)
                         |> function
-                        | Some v1 ->
-                            v2, v2.Values
-                            |> Variable.ValueRange.diffWith v1.Values
-                        | None ->
-                            $"cannot find {v2}! in {vars}!"
-                            |> failwith
+                            | Some v1 -> v2, v2.Values |> Variable.ValueRange.diffWith v1.Values
+                            | None -> $"cannot find {v2}! in {vars}!" |> failwith
                     )
                     |> List.filter (snd >> Set.isEmpty >> not)
                     |> Changed
@@ -364,29 +354,26 @@ module Equation =
             let eq =
                 match eq with
                 | ProductEquation _ -> createProductEqExc (y, xs)
-                | SumEquation _     -> createSumEqExc (y, xs)
+                | SumEquation _ -> createSumEqExc (y, xs)
             // log finishing equation solving
-            (eq, result)
-            |> Events.EquationFinishedSolving
-            |> Logging.logInfo log
+            (eq, result) |> Events.EquationFinishedSolving |> Logging.logInfo log
             // return the eq and solve result
             eq, result
 
-        if eq |> isSolved then eq, Unchanged
+        if eq |> isSolved then
+            eq, Unchanged
         else
             // log starting the equation solve
-            eq
-            |> Events.EquationStartedSolving
-            |> Logging.logInfo log
+            eq |> Events.EquationStartedSolving |> Logging.logInfo log
             // get the right operators
             let y, xs, op1, op2 =
                 match eq with
-                | ProductEquation (y, xs) ->
+                | ProductEquation(y, xs) ->
                     if onlyMinIncrMax then
                         y, xs, (@*), (@/)
                     else
                         y, xs, (^*), (^/)
-                | SumEquation (y, xs) ->
+                | SumEquation(y, xs) ->
                     if onlyMinIncrMax then
                         y, xs, (@+), (@-)
                     else
@@ -394,14 +381,11 @@ module Equation =
 
             match xs with
             | [] -> eq, Unchanged
-            | _  ->
+            | _ ->
                 try
-                    loop op1 op2 y xs false
-                    |> calcResult
-                with
-                | Exceptions.SolverException errs ->
-                    errs
-                    |> List.iter (Logging.logError log)
+                    loop op1 op2 y xs false |> calcResult
+                with Exceptions.SolverException errs ->
+                    errs |> List.iter (Logging.logError log)
 
                     eq, Errored errs
 
@@ -411,17 +395,25 @@ module Equation =
         type VariableDto = Variable.Dto.Dto
 
         /// `Dto` for an `Equation`
-        type Dto = { Vars: VariableDto[]; IsProdEq: bool }
+        type Dto =
+            {
+                Vars: VariableDto[]
+                IsProdEq: bool
+            }
 
         /// Create a `Dto` with `vars` (variable dto array)
         /// that is either a `ProductEquation` or a `SumEquation`
-        let create isProd vars  = { Vars = vars; IsProdEq = isProd }
+        let create isProd vars =
+            {
+                Vars = vars
+                IsProdEq = isProd
+            }
 
         /// Create a `ProductEquation` `Dto`
         let createProd = create true
 
         /// Create a `SumEquation` `Dto`
-        let createSum  = create false
+        let createSum = create false
 
         /// Return the `string` representation of a `Dto`
         let toString exact (dto: Dto) =
@@ -431,10 +423,11 @@ module Equation =
             match dto.Vars |> Array.toList with
             | [] -> ""
             | [ _ ] -> ""
-            | y::xs ->
+            | y :: xs ->
                 let s =
-                    $"%s{y |> varToString} = " +
-                    (xs |> List.fold (fun s v -> s + (v |> varToString) + " " + op + " ") "")
+                    $"%s{y |> varToString} = "
+                    + (xs |> List.fold (fun s v -> s + (v |> varToString) + " " + op + " ") "")
+
                 s.Substring(0, s.Length - 2)
 
 
@@ -445,21 +438,22 @@ module Equation =
 
             match dto.Vars |> Array.toList with
             | [] -> Exceptions.EquationEmptyVariableList |> fail
-            | y::xs ->
+            | y :: xs ->
                 let y = y |> Variable.Dto.fromDto
                 let e = (y, xs |> List.map Variable.Dto.fromDto)
 
                 if dto.IsProdEq then
-                    e
-                    |> createProductEq succ fail
+                    e |> createProductEq succ fail
                 else
-                    e
-                    |> createSumEq succ fail
+                    e |> createSumEq succ fail
 
         /// Create a `Dto` from an `Equation` **e**
         let toDto e =
             let c isProd y xs =
-                { Vars = y::xs |> List.map Variable.Dto.toDto |> List.toArray; IsProdEq = isProd }
+                {
+                    Vars = y :: xs |> List.map Variable.Dto.toDto |> List.toArray
+                    IsProdEq = isProd
+                }
 
             let fp = c true
             let fs = c false

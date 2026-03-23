@@ -10,7 +10,8 @@ module DoseType =
 
 
     /// Get a sort order for a dose type.
-    let sortBy = function
+    let sortBy =
+        function
         | OnceTimed _
         | Once _ -> 0
         | Timed _
@@ -21,7 +22,7 @@ module DoseType =
 
     let eqs doseType1 doseType2 =
         match doseType1, doseType2 with
-        | Once txt1, Once txt2 
+        | Once txt1, Once txt2
         | OnceTimed txt1, OnceTimed txt2
         | Discontinuous txt1, Discontinuous txt2
         | Timed txt1, Timed txt2
@@ -54,8 +55,8 @@ module DoseType =
         | "continuous" -> Continuous |> withText
         | _ ->
             if doseType |> String.notEmpty then
-                $"{doseType} is not a valid dose type!"
-                |> writeWarningMessage
+                $"{doseType} is not a valid dose type!" |> writeWarningMessage
+
             NoDoseType
 
 
@@ -67,9 +68,7 @@ module DoseType =
         | Discontinuous s -> "discontinuous", s
         | Continuous s -> "continuous", s
         | NoDoseType -> "", ""
-        |> fun (s1, s2) ->
-            if String.isNullOrWhiteSpace(s2) then s1
-            else $"{s1} {s2}"
+        |> fun (s1, s2) -> if String.isNullOrWhiteSpace (s2) then s1 else $"{s1} {s2}"
 
 
     /// Get a string representation of a dose type.
@@ -87,7 +86,8 @@ module DoseType =
     let toDescription doseType =
         let s = getText doseType
 
-        if s |> String.notEmpty then s
+        if s |> String.notEmpty then
+            s
         else
             match doseType with
             | OnceTimed _
@@ -98,7 +98,8 @@ module DoseType =
             | NoDoseType -> ""
 
 
-    let setDescription descr = function
+    let setDescription descr =
+        function
         | OnceTimed _ -> OnceTimed descr
         | Once _ -> Once descr
         | Timed _ -> Timed descr

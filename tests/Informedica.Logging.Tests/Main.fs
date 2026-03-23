@@ -2,5 +2,4 @@
 
 
 [<EntryPoint>]
-let main argv =
-    runTestsInAssemblyWithCLIArgs [] argv
+let main argv = runTestsInAssemblyWithCLIArgs [] argv

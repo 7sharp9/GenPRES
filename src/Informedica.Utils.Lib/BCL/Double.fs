@@ -27,18 +27,17 @@ module Double =
 
     /// Check whether a `Double` is valid
     let isValid n =
-        (isNaN n ||
-         isInfinity n ||
-         n >= Double.MaxValue ||
-         n <= Double.MinValue) |> not
+        (isNaN n || isInfinity n || n >= Double.MaxValue || n <= Double.MinValue) |> not
 
 
     /// Check whether a float has any
     /// decimal digits
     let floatHasDecimals (v: float) =
-        v <> 0. &&
-        (if v  > 0. then v > float(BigInteger v)
-         else v < float(BigInteger v))
+        v <> 0.
+        && (if v > 0. then
+                v > float (BigInteger v)
+            else
+                v < float (BigInteger v))
 
 
     //----------------------------------------------------------------------------
@@ -47,13 +46,15 @@ module Double =
 
     /// Get the double value of a string
     /// using `InvariantCulture`
-    let parse (s : string) = Double.Parse(s, CultureInfo.InvariantCulture)
+    let parse (s: string) =
+        Double.Parse(s, CultureInfo.InvariantCulture)
 
 
     /// Get a `float Option` from a string
-    let tryParse (s : string) =
+    let tryParse (s: string) =
         let style = NumberStyles.Any
         let cult = CultureInfo.InvariantCulture
+
         match Double.TryParse(s, style, cult) with
         | true, v -> Some v
         | false, _ -> None
@@ -92,10 +93,13 @@ module Double =
     /// If n < 0 then n = 0 is used.
     let getPrecision n (f: float) =
         let n = if n < 0 then 0 else n
-        if f = 0. || n = 0 then n
+
+        if f = 0. || n = 0 then
+            n
         else
             let absF = abs f
             let s = absF.ToString("G", CultureInfo.InvariantCulture)
+
             if s.Contains "E" then
                 let eIndex = s.IndexOf("E") + 2
                 let h = int s[eIndex..]
@@ -105,7 +109,9 @@ module Double =
                 let leftPart = parts[0]
                 let p = n - (if leftPart = "0" then 0 else leftPart.Length)
                 let p = if p < 0 then 0 else p
-                if int leftPart > 0 then p
+
+                if int leftPart > 0 then
+                    p
                 else
                     let rightPart = parts[1]
                     let zeroCount = rightPart |> Seq.takeWhile (fun c -> c = '0') |> Seq.length
@@ -127,7 +133,8 @@ module Double =
     /// etc
     /// If n < 0 then the value is not changed.
     let fixPrecision n (f: float) =
-        if n < 0 then f
+        if n < 0 then
+            f
         else
             let precision = getPrecision n f
             Math.Round(f, precision)
@@ -141,15 +148,15 @@ module Double =
     /// Return a float as a fraction of
     /// two `BigInteger`s
     let floatToFract v =
-        if v = infinity || v = -infinity || v |> isNaN then None
+        if v = infinity || v = -infinity || v |> isNaN then
+            None
         else
-            let rec fract (v:float) m =
+            let rec fract (v: float) m =
                 match v |> floatHasDecimals with
-                | false -> (BigInteger(v) , m)
-                | true  -> fract (v * 10.) (m * 10N)
-            fract v 1N
-            |> (fun (n, d) -> (n, d.Numerator))
-            |> Some
+                | false -> (BigInteger(v), m)
+                | true -> fract (v * 10.) (m * 10N)
+
+            fract v 1N |> (fun (n, d) -> (n, d.Numerator)) |> Some
 
 
     //----------------------------------------------------------------------------
@@ -157,23 +164,25 @@ module Double =
     //----------------------------------------------------------------------------
 
     /// Return a string representation of a float in Dutch format
-    let toStringNumberNL p (n: float) = 
+    let toStringNumberNL p (n: float) =
         let invariantStr = n.ToString("F" + p, CultureInfo.InvariantCulture)
         let parts = invariantStr.Split('.')
         let integerPart = parts[0]
         let decimalPart = if parts.Length > 1 then parts[1] else ""
-        
+
         // Add thousands separators
-        let formattedInteger = 
+        let formattedInteger =
             integerPart
             |> Seq.rev
             |> Seq.chunkBySize 3
             |> Seq.map (Seq.rev >> Seq.map string >> String.concat "")
             |> Seq.rev
             |> String.concat " "
-        
-        if String.IsNullOrEmpty(decimalPart) then formattedInteger
-        else formattedInteger + "," + decimalPart
+
+        if String.IsNullOrEmpty(decimalPart) then
+            formattedInteger
+        else
+            formattedInteger + "," + decimalPart
 
 
     /// Returns a string representation of a float in Dutch format without trailing zeros

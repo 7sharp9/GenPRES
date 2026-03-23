@@ -1,7 +1,6 @@
 namespace Informedica.KinderFormularium.Lib
 
 
-
 module WebSiteParser =
 
     open FSharp.Data
@@ -23,29 +22,27 @@ module WebSiteParser =
                 "Ergocalciferol / fytomenadion / retinol / tocoferol (Vitamine A/D/E/K)",
                 "ergocalciferol-fytomenadion-retinol-tocoferol-vitamine-adek"
 
-                "Natriumdocusaat (al dan niet i.c.m. sorbitol)",
-                "natriumdocusaat-al-dan-niet-icm-sorbitol"
+                "Natriumdocusaat (al dan niet i.c.m. sorbitol)", "natriumdocusaat-al-dan-niet-icm-sorbitol"
             ]
+
         let res = JsonValue.Load(kinderFormUrl)
-        [ for v in res do
-            Drug.createDrug
-                      (v?id.AsString())
-                      ""
-                      (v?generic_name.AsString())
-                      (v?branded_name.AsString())
+
+        [
+            for v in res do
+                Drug.createDrug (v?id.AsString()) "" (v?generic_name.AsString()) (v?branded_name.AsString())
         ]
         |> List.map (fun m ->
             { m with
                 Generic =
                     match replace |> List.tryFind (fun (s, _) -> s = m.Generic) with
-                    | Some (_, s) -> s
+                    | Some(_, s) -> s
                     | _ -> m.Generic
             }
         )
         |> List.distinctBy (fun m -> m.Id, m.Generic.Trim().ToLower())
 
 
-    let medications : unit -> Drug.Drug list = memoizeN _medications
+    let medications: unit -> Drug.Drug list = memoizeN _medications
 
 
     let drugUrl = sprintf "https://www.kinderformularium.nl/geneesmiddel/%s/%s?nolayout"
@@ -56,10 +53,8 @@ module WebSiteParser =
 
     let getDocSync id gen =
         try
-            getDoc HtmlDocument.Load id gen
-            |> Some
-        with
-        | e ->
+            getDoc HtmlDocument.Load id gen |> Some
+        with e ->
             printfn $"couldn't get {id} {gen}\n{e.ToString()}"
             None
 
@@ -87,10 +82,12 @@ module WebSiteParser =
     let getItemTypeFromNode = getItemType HtmlNode.descendants
 
 
-    let getIndications d = d |> getItemTypeFromDoc "https://schema.org/MedicalIndication"
+    let getIndications d =
+        d |> getItemTypeFromDoc "https://schema.org/MedicalIndication"
 
 
-    let doseSchedule n = n |> getItemTypeFromNode "http://schema.org/DoseSchedule"
+    let doseSchedule n =
+        n |> getItemTypeFromNode "http://schema.org/DoseSchedule"
 
 
     let getItemProp v n =
@@ -98,9 +95,8 @@ module WebSiteParser =
 
 
     let getItemPropString v n =
-        match n |> getItemProp v
-                |> List.ofSeq with
-        | h::_ -> h |> HtmlNode.innerText
+        match n |> getItemProp v |> List.ofSeq with
+        | h :: _ -> h |> HtmlNode.innerText
         | _ -> ""
 
 
@@ -108,22 +104,18 @@ module WebSiteParser =
         let meds = medications () |> List.tail
 
         for med in (meds |> List.take (meds |> List.length)) do
-            $"\n\n\n========== %s{med.Generic} ===========\n"
-            |> pf
+            $"\n\n\n========== %s{med.Generic} ===========\n" |> pf
+
             match getDocSync med.Id med.Generic with
             | Some doc ->
                 for ind in doc |> getItemTypeFromDoc "http://schema.org/MedicalIndication" do
                     let name = ind |> getItemPropString "name"
                     $"\n-- Indication: %A{name}\n" |> pf
-                    let ind' =
-                        ind
-                        |> getParentFromDoc doc
-                        |> getParentFromDoc doc
+                    let ind' = ind |> getParentFromDoc doc |> getParentFromDoc doc
 
                     for r in ind' |> getItemProp "administrationRoute" do
                         let route = r |> getItemPropString "administrationRoute"
-                        $"\n-- Route: %A{route}\n"
-                        |> pf
+                        $"\n-- Route: %A{route}\n" |> pf
                         let r' = r |> getParentFromDoc doc
 
                         for dose in r' |> getItemTypeFromNode "http://schema.org/DoseSchedule" do
@@ -139,21 +131,20 @@ module WebSiteParser =
 
     let parseDocForDoses i (drug: Drug.Drug) doc =
         printfn $"{i}. parsing dose rules for: %s{drug.Generic}"
+
         let atc =
-            match doc
-                |> getItemTypeFromDoc "http://schema.org/MedicalCode" |> List.ofSeq with
-            | h::_-> h |> getItemPropString "codeValue"
+            match doc |> getItemTypeFromDoc "http://schema.org/MedicalCode" |> List.ofSeq with
+            | h :: _ -> h |> getItemPropString "codeValue"
             | _ -> ""
 
         let altNames =
             doc
-            |> HtmlDocument.descendants
-                   true
-                   (fun n -> n |> HtmlNode.hasAttribute "itemprop" "alternateName")
+            |> HtmlDocument.descendants true (fun n -> n |> HtmlNode.hasAttribute "itemprop" "alternateName")
             |> List.ofSeq
             |> List.map HtmlNode.innerText
 
         let getPar = getParentFromDoc doc
+
         try
             { drug with
                 Atc = atc
@@ -163,6 +154,7 @@ module WebSiteParser =
                         for i in doc |> getItemTypeFromDoc "http://schema.org/MedicalIndication" do
                             let n = i |> getItemPropString "name"
                             let i' = i |> getPar |> getPar
+
                             yield
                                 {
                                     Indication = n
@@ -171,19 +163,25 @@ module WebSiteParser =
                                             for r in i' |> getItemProp "administrationRoute" do
                                                 let n = r |> getItemPropString "administrationRoute"
                                                 let r' = r |> getParentFromNode i'
+
                                                 yield
                                                     {
                                                         Name = n
                                                         ProductRoute = ""
                                                         Schedules =
                                                             [
-                                                                for s in r' |> getItemTypeFromNode "http://schema.org/DoseSchedule" do
+                                                                for s in
+                                                                    r'
+                                                                    |> getItemTypeFromNode
+                                                                        "http://schema.org/DoseSchedule" do
                                                                     let tp = s |> getItemPropString "targetPopulation"
+
                                                                     let dvs =
                                                                         s
                                                                         |> getItemProp "doseValue"
                                                                         |> Seq.map HtmlNode.innerText
                                                                         |> Seq.toList
+
                                                                     let dus =
                                                                         s
                                                                         |> getItemProp "doseUnit"
@@ -196,6 +194,7 @@ module WebSiteParser =
                                                                             |> String.replace "/dosis" ""
                                                                             |> String.trim
                                                                         )
+
                                                                     let frs =
                                                                         s
                                                                         |> getItemProp "frequency"
@@ -203,27 +202,32 @@ module WebSiteParser =
                                                                         |> Seq.toList
 
                                                                     if dvs |> List.length = 0 then
-                                                                            {
-                                                                                Drug.TargetText = tp |> String.trim
-                                                                                Drug.Target = tp |> TargetParser.parse
-                                                                                Drug.FrequencyText = ""
-                                                                                Drug.Frequency = None
-                                                                                Drug.ValueText = ""
-                                                                                Drug.Value = None
-                                                                                Drug.Unit = ""
-                                                                                Drug.ScheduleText = s |> HtmlNode.innerText
-                                                                            }
+                                                                        {
+                                                                            Drug.TargetText = tp |> String.trim
+                                                                            Drug.Target = tp |> TargetParser.parse
+                                                                            Drug.FrequencyText = ""
+                                                                            Drug.Frequency = None
+                                                                            Drug.ValueText = ""
+                                                                            Drug.Value = None
+                                                                            Drug.Unit = ""
+                                                                            Drug.ScheduleText = s |> HtmlNode.innerText
+                                                                        }
 
                                                                     else
                                                                         for dv in dvs do
                                                                             let fr =
                                                                                 frs
-                                                                                |> List.tryItem (dvs |> List.findIndex ((=) dv))
+                                                                                |> List.tryItem (
+                                                                                    dvs |> List.findIndex ((=) dv)
+                                                                                )
                                                                                 |> Option.defaultValue ""
                                                                                 |> String.trim
+
                                                                             let du =
                                                                                 dus
-                                                                                |> List.tryItem (dvs |> List.findIndex ((=) dv))
+                                                                                |> List.tryItem (
+                                                                                    dvs |> List.findIndex ((=) dv)
+                                                                                )
                                                                                 |> Option.defaultValue ""
                                                                                 |> String.trim
 
@@ -231,20 +235,24 @@ module WebSiteParser =
                                                                                 Drug.TargetText = tp |> String.trim
                                                                                 Drug.Target = tp |> TargetParser.parse
                                                                                 Drug.FrequencyText = fr
-                                                                                Drug.Frequency = fr |> FrequencyParser.parse
-                                                                                Drug.ValueText = $"{dv |> String.trim} {du}".Trim()
-                                                                                Drug.Value = dv |> MinMaxParser.parse |> snd
+                                                                                Drug.Frequency =
+                                                                                    fr |> FrequencyParser.parse
+                                                                                Drug.ValueText =
+                                                                                    $"{dv |> String.trim} {du}".Trim()
+                                                                                Drug.Value =
+                                                                                    dv |> MinMaxParser.parse |> snd
                                                                                 Drug.Unit = du
-                                                                                Drug.ScheduleText = s |> HtmlNode.innerText
+                                                                                Drug.ScheduleText =
+                                                                                    s |> HtmlNode.innerText
                                                                             }
-                                                                ]
+                                                            ]
                                                     }
                                         ]
-                            }
+                                }
                     ]
             }
-        with
-        | _ -> drug
+        with _ ->
+            drug
 
 
     let addDoses i (m: Drug.Drug) =
@@ -252,11 +260,13 @@ module WebSiteParser =
             try
                 let! doc = getDocAsync m.Id m.Generic
                 return doc |> parseDocForDoses i m |> Some
-            with
-            | e ->
+            with e ->
                 let l =
-                    if e.ToString().Length - 1 > 100 then 100
-                    else e.ToString().Length - 1
+                    if e.ToString().Length - 1 > 100 then
+                        100
+                    else
+                        e.ToString().Length - 1
+
                 let e = e.ToString().Substring(0, l)
                 printfn $"couldn't add doses for {m.Id}, {m.Generic} because of:\n{e}"
                 return None
@@ -265,19 +275,12 @@ module WebSiteParser =
 
     let _parseWebSite ns =
         match ns with
-        | [] ->
-            medications ()
-            |> List.skip 1
+        | [] -> medications () |> List.skip 1
         | _ ->
             medications ()
-            |> List.filter (fun m ->
-                ns |> List.exists (fun n ->
-                    m.Generic |> String.startsWithCapsInsensitive n))
+            |> List.filter (fun m -> ns |> List.exists (fun n -> m.Generic |> String.startsWithCapsInsensitive n))
         |> fun meds ->
-            let meds =
-                meds
-                |> List.sortBy _.Generic.Trim().ToLower()
-                |> List.chunkBySize 20
+            let meds = meds |> List.sortBy _.Generic.Trim().ToLower() |> List.chunkBySize 20
 
             let n = ref 1
 
@@ -294,10 +297,8 @@ module WebSiteParser =
             |]
 
 
-    let cacheFormulary (ds : Drug.Drug []) =
-        ds
-        |> Json.serialize
-        |> File.writeTextToFile File.cachePath
+    let cacheFormulary (ds: Drug.Drug[]) =
+        ds |> Json.serialize |> File.writeTextToFile File.cachePath
 
 
     let _getFormulary () =
@@ -312,22 +313,17 @@ module WebSiteParser =
             ds
 
 
-    let getFormulary : unit -> Drug.Drug [] = memoizeN _getFormulary
+    let getFormulary: unit -> Drug.Drug[] = memoizeN _getFormulary
 
     let getRoutes () =
         getFormulary () //|> Array.length
         |> Array.collect (fun d ->
             d.Doses
             |> List.toArray
-            |> Array.collect (fun dose ->
-                dose.Routes
-                |> List.map _.Name
-                |> List.toArray
-            )
+            |> Array.collect (fun dose -> dose.Routes |> List.map _.Name |> List.toArray)
         )
         |> Array.distinct
         |> Array.sort
-
 
 
     let getSchedules () =
@@ -335,11 +331,7 @@ module WebSiteParser =
         |> Array.collect (fun d ->
             d.Doses
             |> List.toArray
-            |> Array.collect (fun dose ->
-                dose.Routes
-                |> List.collect _.Schedules
-                |> List.toArray
-            )
+            |> Array.collect (fun dose -> dose.Routes |> List.collect _.Schedules |> List.toArray)
         )
         |> Array.distinct
         |> Array.sort
@@ -360,10 +352,7 @@ module WebSiteParser =
             |> List.forall (fun dose ->
                 dose.Routes
                 |> List.forall (fun route ->
-                    route.Schedules
-                    |> List.forall (fun schedule ->
-                        schedule.Value |> Option.isNone
-                    )
+                    route.Schedules |> List.forall (fun schedule -> schedule.Value |> Option.isNone)
                 )
             )
         )

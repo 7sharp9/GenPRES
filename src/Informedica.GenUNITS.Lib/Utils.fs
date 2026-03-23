@@ -23,10 +23,7 @@ module Array =
             xs
         else
             let candidates =
-                xs
-                |> Array.filter (fun x -> x > 0N)
-                |> Array.sort
-                |> Array.distinct
+                xs |> Array.filter (fun x -> x > 0N) |> Array.sort |> Array.distinct
 
             // Use a mutable set for efficiency
             let remaining = System.Collections.Generic.HashSet<BigRational>(candidates)

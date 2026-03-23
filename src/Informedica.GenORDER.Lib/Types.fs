@@ -1,7 +1,6 @@
 namespace Informedica.GenOrder.Lib
 
 
-
 [<AutoOpen>]
 module Types =
 
@@ -32,22 +31,23 @@ module Types =
             // The Calculated constraints
             CalculatedConstraints: Constraints
             // Stores the values/range
-            Variable:  Variable
+            Variable: Variable
 
         }
+
     /// <summary>
     /// Represents constraints that can be applied to an OrderVariable
     /// </summary>
     and Constraints =
         {
             // The minimum value constraint
-            Min : Minimum option
+            Min: Minimum option
             // The maximum value constraint
-            Max : Maximum option
+            Max: Maximum option
             // The increment constraint for stepping values
-            Incr : Increment option
+            Incr: Increment option
             // A set of allowed values
-            Values : ValueSet option
+            Values: ValueSet option
         }
 
 
@@ -117,21 +117,21 @@ module Types =
     type Dose =
         {
             // The quantity of the dose
-            Quantity : Quantity
+            Quantity: Quantity
             // The quantity per time unit
-            PerTime : PerTime
+            PerTime: PerTime
             // The rate of administration
-            Rate : Rate
+            Rate: Rate
             // The total quantity
-            Total : Total
+            Total: Total
             // The adjusted quantity for dose calculations
-            QuantityAdjust : QuantityAdjust
+            QuantityAdjust: QuantityAdjust
             // The adjusted quantity per time for dose calculations
-            PerTimeAdjust : PerTimeAdjust
+            PerTimeAdjust: PerTimeAdjust
             // The adjusted rate for dose calculations
-            RateAdjust : RateAdjust
+            RateAdjust: RateAdjust
             // The adjusted total for dose calculations
-            TotalAdjust : TotalAdjust
+            TotalAdjust: TotalAdjust
         }
 
 
@@ -157,11 +157,11 @@ module Types =
     type Component =
         {
             // The unique identifier of the component
-            Id : Id
+            Id: Id
             // The name of a Component
             Name: Name
             // The pharmaceutical form of a component
-            Form : string
+            Form: string
             // The quantity of a Component
             ComponentQuantity: Quantity
             // The quantity of a Component in an Orderable
@@ -332,34 +332,35 @@ module Types =
     type Medication =
         {
             // Identifies the specific medication order
-            Id:  string
+            Id: string
             // The name of the order
-            Name : string
+            Name: string
             // The list of drug products that can be used for the order
-            Components : ProductComponent list
+            Components: ProductComponent list
             // The min max quantity
-            Quantity : MinMax
+            Quantity: MinMax
             // The quantities of the medication order
-            Quantities :  ValueUnit option
+            Quantities: ValueUnit option
             // The route by which the order is applied
-            Route : string
+            Route: string
             // The type of order
-            OrderType : OrderType
+            OrderType: OrderType
             // The unit to adjust the dose with
             // AdjustUnit : Unit option
             // The list of possible frequency values
-            Frequencies : ValueUnit option
+            Frequencies: ValueUnit option
             // The min and/or max time for the infusion time
-            Time : MinMax
+            Time: MinMax
             // The dose limits for a medication order
-            Dose : DoseLimit option
+            Dose: DoseLimit option
             // The amount of orderable that will be given each time
-            DoseCount : MinMax
+            DoseCount: MinMax
             // Dividability option
             Div: BigRational option
             // The adjust quantity for the adjusted dose calculations
-            Adjust : ValueUnit option
+            Adjust: ValueUnit option
         }
+
     /// The product components that are used by the medication order.
     /// A product component maps to a Component in an Orderable.
     /// The first component in the list is the main component.
@@ -368,37 +369,38 @@ module Types =
     and ProductComponent =
         {
             // The name of the product
-            Name : string
+            Name: string
             // The pharmaceutical form of the product
-            Form : string
+            Form: string
             // The quantities of the product
             // Note: the first (main) component has the same unit as
             // the medication order unit
-            Quantities : ValueUnit option
+            Quantities: ValueUnit option
             // The "divisibility" of the products
-            Divisible : BigRational option
+            Divisible: BigRational option
             // The dose limits for the product
-            Dose : DoseLimit option
+            Dose: DoseLimit option
             // The solution limits for a product
-            Solution : SolutionLimit option
+            Solution: SolutionLimit option
             // The list of substances contained in the product
             Substances: SubstanceItem list
         }
+
     /// A substance in a product. A substance maps to an Item in a Component.
     and SubstanceItem =
         {
             // The name of the substance
-            Name : string
+            Name: string
             // Quantities only needed for reconstitution scenarios
             // to tie a specific reconstitution to a quantity
-            Quantities : ValueUnit option
+            Quantities: ValueUnit option
             // The possible concentrations of the substance
             // in the products
-            Concentrations : ValueUnit option
+            Concentrations: ValueUnit option
             // The dose limits for a substance
-            Dose : DoseLimit option
+            Dose: DoseLimit option
             // The solution limits for a substance
-            Solution : SolutionLimit option
+            Solution: SolutionLimit option
         }
 
 
@@ -406,39 +408,39 @@ module Types =
     type Totals =
         {
             // Total volume
-            Volume : string option
+            Volume: string option
             // Total energy content
-            Energy : string option
+            Energy: string option
             // Total protein content
-            Protein : string option
+            Protein: string option
             // Total carbohydrate content
-            Carbohydrate : string option
+            Carbohydrate: string option
             // Total fat content
-            Fat : string option
+            Fat: string option
             // Total sodium content
-            Sodium : string option
+            Sodium: string option
             // Total potassium content
-            Potassium : string option
+            Potassium: string option
             // Total chloride content
-            Chloride : string option
+            Chloride: string option
             // Total calcium content
-            Calcium : string option
+            Calcium: string option
             // Total phosphate content
-            Phosphate : string option
+            Phosphate: string option
             // Total magnesium content
-            Magnesium : string option
+            Magnesium: string option
             // Total iron content
-            Iron : string option
+            Iron: string option
             // Total vitamin D content
-            VitaminD : string option
+            VitaminD: string option
             // Total ethanol content
-            Ethanol : string option
+            Ethanol: string option
             // Total propylene glycol content
-            Propyleenglycol : string option
+            Propyleenglycol: string option
             // Total benzyl alcohol content
-            BenzylAlcohol : string option
+            BenzylAlcohol: string option
             // Total boric acid content
-            BoricAcid : string option
+            BoricAcid: string option
         }
 
 
@@ -468,45 +470,45 @@ module Types =
     type OrderScenario =
         {
             // The scenario number
-            No : int
+            No: int
             // The name of the order
-            Name : string
+            Name: string
             // The indication for the order
-            Indication : string
+            Indication: string
             // The pharmaceutical form of the order
-            Form : string
+            Form: string
             // The route of the order
-            Route : string
+            Route: string
             // The dose type of the order
-            DoseType : DoseType
+            DoseType: DoseType
             // An optional diluent
-            Diluent : string option
+            Diluent: string option
             // The component name
-            Component : string option
+            Component: string option
             // The substance name
-            Item : string option
+            Item: string option
             // The list of diluents to choose from
-            Diluents : string []
+            Diluents: string[]
             // The list of components to print out
-            Components : string []
+            Components: string[]
             // The list of substances to print out
-            Items : string []
+            Items: string[]
             // The prescription instructions
-            Prescription : TextBlock[][]
+            Prescription: TextBlock[][]
             // The preparation instructions
-            Preparation : TextBlock[][]
+            Preparation: TextBlock[][]
             // The administration instructions
-            Administration : TextBlock[][]
+            Administration: TextBlock[][]
             // The order itself
-            Order : Order
+            Order: Order
             // Whether to use adjust calculations
-            UseAdjust : bool
+            UseAdjust: bool
             // Whether to use a renal rule
-            UseRenalRule : bool
+            UseRenalRule: bool
             // The renal rule name
-            RenalRule : string option
+            RenalRule: string option
             // Associated product identifiers
-            ProductsIds : string []
+            ProductsIds: string[]
         }
 
 
@@ -514,19 +516,19 @@ module Types =
     type Filter =
         {
             // The list of indications to select from
-            Indications: string []
+            Indications: string[]
             // The list of generics to select from
-            Generics: string []
+            Generics: string[]
             // The list of routes to select from
-            Routes: string []
+            Routes: string[]
             // The list of pharmaceutical forms to select from
-            Forms: string []
+            Forms: string[]
             // The possible dose types
-            DoseTypes : DoseType []
+            DoseTypes: DoseType[]
             // The list of diluents to choose from
-            Diluents : string []
+            Diluents: string[]
             // The list of components that can be used
-            Components : string []
+            Components: string[]
             // The selected indication
             Indication: string option
             // The selected generic
@@ -536,11 +538,11 @@ module Types =
             // The selected pharmaceutical form
             Form: string option
             // The selected dose type
-            DoseType : DoseType option
+            DoseType: DoseType option
             // The diluent to use
-            Diluent : string option
+            Diluent: string option
             // The list of components that are selected
-            SelectedComponents : string []
+            SelectedComponents: string[]
         }
 
 
@@ -565,11 +567,11 @@ module Types =
     type OrderContext =
         {
             // The filter for selecting scenarios
-            Filter : Filter
+            Filter: Filter
             // The patient information
             Patient: Patient
             // The list of available scenarios
-            Scenarios: OrderScenario []
+            Scenarios: OrderScenario[]
         }
 
 
@@ -609,4 +611,5 @@ module Types =
         type OrderMessage =
             | OrderException of Exceptions.Message
             | OrderEventMessage of Events.Event
+
             interface IMessage

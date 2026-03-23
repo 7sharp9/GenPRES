@@ -5,20 +5,23 @@ module LimitTarget =
 
 
     /// Get the LimitTarget as a string.
-    let toString = function
-        | NoLimitTarget 
+    let toString =
+        function
+        | NoLimitTarget
         | OrderableLimitTarget -> ""
         | ComponentLimitTarget s
         | SubstanceLimitTarget s -> s
 
 
     /// Get the substance from the SubstanceLimitTarget.
-    let componentTargetToString = function
+    let componentTargetToString =
+        function
         | ComponentLimitTarget s -> s
         | _ -> ""
 
     /// Get the substance from the SubstanceLimitTarget.
-    let substanceTargetToString = function
+    let substanceTargetToString =
+        function
         | SubstanceLimitTarget s -> s
         | _ -> ""
 
@@ -27,21 +30,21 @@ module LimitTarget =
     let isOrderableTarget target =
         target
         |> function
-        | OrderableLimitTarget -> true
-        | _ -> false
+            | OrderableLimitTarget -> true
+            | _ -> false
 
 
     /// Check whether the LimitTarget is a SubstanceLimitTarget.
     let isComponentTarget target =
         target
         |> function
-        | ComponentLimitTarget _ -> true
-        | _ -> false
+            | ComponentLimitTarget _ -> true
+            | _ -> false
 
 
     /// Check whether the LimitTarget is a SubstanceLimitTarget.
     let isSubstanceTarget target =
         target
         |> function
-        | SubstanceLimitTarget _ -> true
-        | _ -> false
+            | SubstanceLimitTarget _ -> true
+            | _ -> false

@@ -7,8 +7,10 @@ module App =
 
     /// Get the data directory of the application
     let dataDir =
-        if AppDomain.CurrentDomain |> isNull ||
-           AppDomain.CurrentDomain.GetData("DataDirectory") |> isNull then ""
+        if
+            AppDomain.CurrentDomain |> isNull
+            || AppDomain.CurrentDomain.GetData("DataDirectory") |> isNull
+        then
+            ""
         else
             AppDomain.CurrentDomain.GetData("DataDirectory").ToString()
-

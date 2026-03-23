@@ -76,10 +76,7 @@ module CanonKey =
 
     /// Build a name → canonical-symbol map for one equation.
     let nameMap (eq: Types.Equation.T) =
-        eq
-        |> sortedNames
-        |> List.mapi (fun i n -> n, symbol i)
-        |> Map.ofList
+        eq |> sortedNames |> List.mapi (fun i n -> n, symbol i) |> Map.ofList
 
     /// Replace all original variable names in a string with their
     /// canonical symbols.  Longer names are substituted first to
@@ -94,9 +91,7 @@ module CanonKey =
     /// replaced by their canonical symbols.
     let ofEquation (eq: Types.Equation.T) =
         let nmap = nameMap eq
-        eq
-        |> Equation.toString true
-        |> canonicalise nmap
+        eq |> Equation.toString true |> canonicalise nmap
 
     /// Rename variables in a solved result back from canonical symbols
     /// to the original caller names.
@@ -125,9 +120,9 @@ module Solver =
 
     type CanonStats =
         {
-            Hits:        int
-            Misses:      int
-            CacheSize:   int
+            Hits: int
+            Misses: int
+            CacheSize: int
         }
 
     /// Solve all equations using a per-call cache keyed on
@@ -135,12 +130,13 @@ module Solver =
     let solveAllMemoCanon onlyMinIncrMax log eqs =
 
         // key: canonical repr → (Equation × SolveResult)
-        let cache   = Dictionary<string, Equation.T * SolveResult>()
-        let hits    = ref 0
-        let misses  = ref 0
+        let cache = Dictionary<string, Equation.T * SolveResult>()
+        let hits = ref 0
+        let misses = ref 0
 
         let solveE n eqs (eq: Equation.T) =
             let key = CanonKey.ofEquation eq
+
             match cache.TryGetValue key with
             | true, cached ->
                 // Cache hit on shape — return the cached result.
@@ -150,6 +146,7 @@ module Solver =
                 // names, but the SolveResult (Changed/Unchanged/Errored)
                 // from the cache tells us whether to bother.
                 let _, cachedResult = cached
+
                 match cachedResult with
                 | Unchanged ->
                     // Can safely return without re-solving.
@@ -161,6 +158,7 @@ module Solver =
                     // Still count as a hit because we *know* it will
                     // change and skip the unsolvable guard.
                     incr hits
+
                     try
                         let result = Equation.solve onlyMinIncrMax log eq
                         result
@@ -176,6 +174,7 @@ module Solver =
 
             | false, _ ->
                 incr misses
+
                 try
                     let result = Equation.solve onlyMinIncrMax log eq
                     cache.[key] <- result
@@ -196,8 +195,10 @@ module Solver =
             | Error _ -> acc
             | Ok acc ->
                 let n = n + 1
+
                 if n > (que @ acc |> List.length) * Constants.MAX_LOOP_COUNT then
                     writeErrorMessage $"too many loops: {n}"
+
                     (n, que @ acc)
                     |> Exceptions.SolverTooManyLoops
                     |> Exceptions.raiseExc (Some log) []
@@ -212,37 +213,29 @@ module Solver =
                 | eq :: tail ->
                     let q, r =
                         if eq |> Equation.isSolvable |> not then
-                            tail,
-                            [ eq ] |> List.append acc |> Ok
+                            tail, [ eq ] |> List.append acc |> Ok
                         else
                             match eq |> solveE n (acc @ que) with
                             | eq, Changed cs ->
                                 let vars = cs |> List.map fst
+
                                 acc
                                 |> replace vars
                                 |> function
-                                | rpl, rst ->
-                                    let que =
-                                        tail
-                                        |> replace vars
-                                        |> function
-                                        | es1, es2 ->
-                                            es1
-                                            |> List.append es2
-                                            |> List.append rpl
-                                    que,
-                                    rst |> List.append [ eq ] |> Ok
+                                    | rpl, rst ->
+                                        let que =
+                                            tail
+                                            |> replace vars
+                                            |> function
+                                                | es1, es2 -> es1 |> List.append es2 |> List.append rpl
 
-                            | eq, Unchanged ->
-                                tail,
-                                [ eq ] |> List.append acc |> Ok
+                                        que, rst |> List.append [ eq ] |> Ok
+
+                            | eq, Unchanged -> tail, [ eq ] |> List.append acc |> Ok
 
                             | eq, Errored m ->
-                                [],
-                                [ eq ]
-                                |> List.append acc
-                                |> List.append que
-                                |> fun eqs -> Error(eqs, m)
+                                [], [ eq ] |> List.append acc |> List.append que |> (fun eqs -> Error(eqs, m))
+
                     loop n q r
 
         let n1 = eqs |> List.length
@@ -251,8 +244,7 @@ module Solver =
             try
                 match eqs with
                 | [] -> eqs |> Ok
-                | _ ->
-                    loop 0 eqs (Ok [])
+                | _ -> loop 0 eqs (Ok [])
             with
             | Exceptions.SolverException errs -> Error(eqs, errs)
             | e ->
@@ -263,16 +255,19 @@ module Solver =
         let outcome =
             result
             |> function
-            | Ok solved ->
-                let n2 = solved |> List.length
-                if n2 <> n1 then failwith $"equation count changed: was {n1}, got {n2}"
-                Ok solved
-            | Error _ as err -> err
+                | Ok solved ->
+                    let n2 = solved |> List.length
+
+                    if n2 <> n1 then
+                        failwith $"equation count changed: was {n1}, got {n2}"
+
+                    Ok solved
+                | Error _ as err -> err
 
         let stats =
             {
-                Hits      = !hits
-                Misses    = !misses
+                Hits = !hits
+                Misses = !misses
                 CacheSize = cache.Count
             }
 
@@ -287,42 +282,47 @@ let noLog = SolverLogging.create (fun _ -> ())
 
 let setValues u n vs eqs =
     let nm = n |> Variable.Name.createExc
+
     let prop =
-        vs
-        |> ValueUnit.create u
-        |> Variable.ValueRange.ValueSet.create
-        |> ValsProp
+        vs |> ValueUnit.create u |> Variable.ValueRange.ValueSet.create |> ValsProp
+
     match eqs |> Api.setVariableValues nm prop with
     | Some var -> eqs |> List.map (Equation.replace var)
     | None -> eqs
 
 let setMinIncl u n v eqs =
     let nm = n |> Variable.Name.createExc
+
     let prop =
         [| v |]
         |> ValueUnit.create u
         |> Variable.ValueRange.Minimum.create true
         |> MinProp
+
     match eqs |> Api.setVariableValues nm prop with
     | Some var -> eqs |> List.map (Equation.replace var)
     | None -> eqs
 
 let setMaxIncl u n v eqs =
     let nm = n |> Variable.Name.createExc
+
     let prop =
         [| v |]
         |> ValueUnit.create u
         |> Variable.ValueRange.Maximum.create true
         |> MaxProp
+
     match eqs |> Api.setVariableValues nm prop with
     | Some var -> eqs |> List.map (Equation.replace var)
     | None -> eqs
 
 let timeMean label iterations (f: unit -> _) =
-    f () |> ignore   // warm-up
+    f () |> ignore // warm-up
     let sw = Diagnostics.Stopwatch.StartNew()
-    for _ in 1 .. iterations do
+
+    for _ in 1..iterations do
         f () |> ignore
+
     sw.Stop()
     let mean = sw.Elapsed.TotalMilliseconds / float iterations
     printfn "  %-60s %8.2f ms" label mean
@@ -353,7 +353,7 @@ printfn "Equation 2:  output = inputX * inputY"
 printfn "(same shape, different names, same value sets)\n"
 
 let eq1Names = makeMultEq "result" "factorA" "factorB" vals5
-let eq2Names = makeMultEq "output" "inputX"  "inputY"  vals5
+let eq2Names = makeMultEq "output" "inputX" "inputY" vals5
 
 let key1 = eq1Names |> List.head |> CanonKey.ofEquation
 let key2 = eq2Names |> List.head |> CanonKey.ofEquation
@@ -379,16 +379,19 @@ printfn "\n=== 2.  Correctness check ==="
 let patientWeights = [| 5N; 10N; 15N; 20N; 25N; 30N; 40N; 50N; 60N; 70N |]
 
 let dosingSetup (weight: BigRational) =
-    [ "dose = weight * dosePerKg"
-      "totalDose = dose * timesPerDay" ]
+    [
+        "dose = weight * dosePerKg"
+        "totalDose = dose * timesPerDay"
+    ]
     |> Api.init
-    |> setValues Units.Count.times "weight"      [| weight |]
-    |> setValues Units.Count.times "dosePerKg"   [| 10N; 15N; 20N |]
+    |> setValues Units.Count.times "weight" [| weight |]
+    |> setValues Units.Count.times "dosePerKg" [| 10N; 15N; 20N |]
     |> setValues Units.Count.times "timesPerDay" [| 2N; 3N; 4N |]
 
 let checkEq label eqs =
     let base_ = solveBaseline false eqs
     let canon_ = solveMemoCanon false eqs
+
     let ok =
         match base_, canon_ with
         | Ok b, Ok m ->
@@ -397,12 +400,13 @@ let checkEq label eqs =
             bStr = mStr
         | Error _, Error _ -> true
         | _ -> false
+
     printfn "  %s: %s" label (if ok then "✓ matches baseline" else "✗ MISMATCH")
     ok
 
 let allOk =
     [
-        checkEq "dosing w=5"  (dosingSetup 5N)
+        checkEq "dosing w=5" (dosingSetup 5N)
         checkEq "dosing w=20" (dosingSetup 20N)
         checkEq "dosing w=50" (dosingSetup 50N)
         checkEq "multi-val b×c (5 vals)" (makeMultEq "a" "b" "c" vals5)
@@ -435,19 +439,22 @@ let batchEqs =
         // Prefix variable names with patient index to create
         // distinct variable labels — tests canonical matching.
         let prefix = $"p{i}_"
-        [ $"{prefix}dose = {prefix}weight * {prefix}dosePerKg"
-          $"{prefix}totalDose = {prefix}dose * {prefix}timesPerDay" ]
+
+        [
+            $"{prefix}dose = {prefix}weight * {prefix}dosePerKg"
+            $"{prefix}totalDose = {prefix}dose * {prefix}timesPerDay"
+        ]
         |> Api.init
-        |> setValues Units.Count.times $"{prefix}weight"      [| w |]
-        |> setValues Units.Count.times $"{prefix}dosePerKg"   [| 10N; 15N; 20N |]
+        |> setValues Units.Count.times $"{prefix}weight" [| w |]
+        |> setValues Units.Count.times $"{prefix}dosePerKg" [| 10N; 15N; 20N |]
         |> setValues Units.Count.times $"{prefix}timesPerDay" [| 2N; 3N; 4N |]
     )
 
 // Each patient's equations are solved independently, but we track
 // cumulative cache hits when using canonical keys.
-let mutable totalHitsCanon   = 0
+let mutable totalHitsCanon = 0
 let mutable totalMissesCanon = 0
-let mutable totalHitsExact   = 0
+let mutable totalHitsExact = 0
 let mutable totalMissesExact = 0
 
 // Build a single shared canonical cache and exact cache to simulate
@@ -459,26 +466,34 @@ for i, eqs in List.indexed batchEqs do
     for eq in eqs do
         let canonKey = CanonKey.ofEquation eq
         let exactKey = Equation.toString true eq
+
         if sharedCanonCache.ContainsKey(canonKey) then
             totalHitsCanon <- totalHitsCanon + 1
         else
             totalMissesCanon <- totalMissesCanon + 1
             // populate (value doesn't matter for this measurement)
             sharedCanonCache.[canonKey] <- Types.SolveResult.Unchanged
+
         if sharedExactCache.ContainsKey(exactKey) then
             totalHitsExact <- totalHitsExact + 1
         else
             totalMissesExact <- totalMissesExact + 1
             sharedExactCache.[exactKey] <- Types.SolveResult.Unchanged
 
-let canonRate = float totalHitsCanon  / float (totalHitsCanon  + totalMissesCanon)  * 100.0
-let exactRate = float totalHitsExact  / float (totalHitsExact  + totalMissesExact)  * 100.0
+let canonRate =
+    float totalHitsCanon / float (totalHitsCanon + totalMissesCanon) * 100.0
 
-printfn "  %-30s  hits=%-5d  misses=%-5d  rate=%.0f%%" "Exact-key"     totalHitsExact   totalMissesExact  exactRate
-printfn "  %-30s  hits=%-5d  misses=%-5d  rate=%.0f%%" "Canonical-key" totalHitsCanon   totalMissesCanon  canonRate
+let exactRate =
+    float totalHitsExact / float (totalHitsExact + totalMissesExact) * 100.0
+
+printfn "  %-30s  hits=%-5d  misses=%-5d  rate=%.0f%%" "Exact-key" totalHitsExact totalMissesExact exactRate
+printfn "  %-30s  hits=%-5d  misses=%-5d  rate=%.0f%%" "Canonical-key" totalHitsCanon totalMissesCanon canonRate
 printfn ""
-printfn "  Canonical key shares %d more cache entries across the %d-patient batch."
-    (totalHitsCanon - totalHitsExact) patientWeights.Length
+
+printfn
+    "  Canonical key shares %d more cache entries across the %d-patient batch."
+    (totalHitsCanon - totalHitsExact)
+    patientWeights.Length
 
 
 // ------------------------------------------------------------------
@@ -488,27 +503,42 @@ printfn "  Canonical key shares %d more cache entries across the %d-patient batc
 printfn "\n=== 4.  Performance: baseline vs canonical-memo ==="
 
 let repeat n f =
-    for _ in 1..n do f () |> ignore
+    for _ in 1..n do
+        f () |> ignore
 
 printfn "\n-- Dosing formula, 10 patients sequentially --"
+
 let b_base =
-    timeMean "baseline  (2-eq × 10 patients, 20 iter)" 20 (fun () ->
-        for w in patientWeights do
-            dosingSetup w |> solveBaseline false |> ignore
-    )
+    timeMean
+        "baseline  (2-eq × 10 patients, 20 iter)"
+        20
+        (fun () ->
+            for w in patientWeights do
+                dosingSetup w |> solveBaseline false |> ignore
+        )
+
 let b_canon =
-    timeMean "canonical (2-eq × 10 patients, 20 iter)" 20 (fun () ->
-        for w in patientWeights do
-            dosingSetup w |> solveMemoCanon false |> ignore
-    )
+    timeMean
+        "canonical (2-eq × 10 patients, 20 iter)"
+        20
+        (fun () ->
+            for w in patientWeights do
+                dosingSetup w |> solveMemoCanon false |> ignore
+        )
+
 printfn "  speedup: %.2fx" (b_base / b_canon)
 
 let valueEqs () =
     makeMultEq "result" "factorA" "factorB" [| 1N .. 20N |]
 
 printfn "\n-- Value-set propagation (20 values) --"
-let b2_base  = timeMean "baseline  (b×c=a, 20 vals, 20 iter)" 20 (fun () -> valueEqs () |> solveBaseline false)
-let b2_canon = timeMean "canonical (b×c=a, 20 vals, 20 iter)" 20 (fun () -> valueEqs () |> solveMemoCanon false)
+
+let b2_base =
+    timeMean "baseline  (b×c=a, 20 vals, 20 iter)" 20 (fun () -> valueEqs () |> solveBaseline false)
+
+let b2_canon =
+    timeMean "canonical (b×c=a, 20 vals, 20 iter)" 20 (fun () -> valueEqs () |> solveMemoCanon false)
+
 printfn "  speedup: %.2fx" (b2_base / b2_canon)
 
 
@@ -516,7 +546,8 @@ printfn "  speedup: %.2fx" (b2_base / b2_canon)
 // Summary
 // ------------------------------------------------------------------
 
-printfn """
+printfn
+    """
 === Summary ===
 
 Canonical variable-name memoization extends Memo.fsx (exact-key cache)

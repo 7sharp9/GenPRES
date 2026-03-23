@@ -1,4 +1,3 @@
-
 #load "../../../scripts/load-dependencies.fsx"
 
 
@@ -17,4 +16,3 @@ let zindexPath = __SOURCE_DIRECTORY__ |> Path.combineWith "../../../"
 Environment.CurrentDirectory <- zindexPath
 
 Environment.SetEnvironmentVariable("GENPRES_PROD", "1")
-
