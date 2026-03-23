@@ -453,7 +453,6 @@ module StubAdapterTests =
             Selected = None
             Filtered = [||]
             Totals = Models.Totals.empty
-            Interactions = [||]
         }
 
     let emptyNutritionPlan = Models.NutritionPlan.create Models.Patient.empty [||]

@@ -201,6 +201,13 @@ module Interactions =
                     |}
             )
 
+        let drug1Label = Terms.``Interactions Drug 1`` |> getTerm "Medicatie 1"
+        let drug2Label = Terms.``Interactions Drug 2`` |> getTerm "Medicatie 2"
+        let classLabel = Terms.``Interactions Class`` |> getTerm "Interactie klasse"
+
+        let noneFoundLabel =
+            Terms.``Interactions None Found`` |> getTerm "Geen interacties gevonden"
+
         let interactionTable =
             if interactionRows.Length > 0 then
                 let rows =
@@ -219,9 +226,9 @@ module Interactions =
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>{"Medicatie 1"}</TableCell>
-                                <TableCell>{"Medicatie 2"}</TableCell>
-                                <TableCell>{"Interactie klasse"}</TableCell>
+                                <TableCell>{drug1Label}</TableCell>
+                                <TableCell>{drug2Label}</TableCell>
+                                <TableCell>{classLabel}</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -233,7 +240,7 @@ module Interactions =
             elif hasChecked && not isLoading then
                 JSX.jsx
                     $"""
-                <Alert severity="success">{"Geen interacties gevonden"}</Alert>
+                <Alert severity="success">{noneFoundLabel}</Alert>
                 """
             else
                 null

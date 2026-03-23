@@ -24,26 +24,21 @@ module Interactions =
         )
 
 
-    let tupelizeInteractions_ (il: InteractionList) =
+    let tupleizeInteractions (il: InteractionList) =
+        let seen = System.Collections.Generic.HashSet<string * string * string * string>()
+
         [|
             for i in il do
                 for n1 in i.DrugClass1.Drugs do
                     for n2 in i.DrugClass2.Drugs do
                         if not (n1 = n2) then
-                            (i.DrugClass1.Name, i.DrugClass2.Name, n1, n2)
+                            let fwd = (i.DrugClass1.Name, i.DrugClass2.Name, n1, n2)
+                            let rev = (i.DrugClass2.Name, i.DrugClass1.Name, n2, n1)
+
+                            if not (seen.Contains rev) then
+                                seen.Add fwd |> ignore
+                                yield fwd
         |]
-        |> Array.fold
-            (fun acc (c1, c2, n1, n2) ->
-                if acc |> Array.contains (c2, c1, n2, n1) then
-                    acc
-                else
-                    [| (c1, c2, n1, n2) |] |> Array.append acc
-            )
-            [||]
-
-
-    let tupelizeInteractions =
-        Informedica.Utils.Lib.Memoization.memoize tupelizeInteractions_
 
 
     let check: Check =
@@ -57,7 +52,7 @@ module Interactions =
             |> Array.exists ((=) (n |> String.trim |> String.toLower))
 
         fun dl il ->
-            let il = il |> tupelizeInteractions
+            let il = il |> tupleizeInteractions
 
             [
                 for (c1, c2, n1, n2) in il do

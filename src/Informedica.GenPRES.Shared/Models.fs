@@ -2256,7 +2256,6 @@ module Models =
                 Filtered = [||]
                 Scenarios = srs
                 Totals = Totals.empty
-                Interactions = [||]
             }
 
 

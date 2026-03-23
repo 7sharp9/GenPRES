@@ -7,6 +7,37 @@ module Adapters =
     open Informedica.GenForm.Lib
 
 
+    let private interactionJsonCache =
+        lazy
+            (let path =
+                System.IO.Path.Combine(
+                    Logging.getServerDataPath (),
+                    "..",
+                    "..",
+                    "data",
+                    "cache",
+                    "interactions",
+                    "Data.JSON"
+                )
+                |> System.IO.Path.GetFullPath
+
+             if System.IO.File.Exists(path) then
+                 System.IO.File.ReadAllText(path) |> Some
+             else
+                 None)
+
+
+    let loadInteractionJson () = interactionJsonCache.Value
+
+
+    let toSharedDrugInteraction (di: Informedica.GenInteract.Lib.DrugInteraction) : Shared.Types.DrugInteraction =
+        {
+            Name = di.Name
+            Drug1 = di.Drug1
+            Drug2 = di.Drug2
+        }
+
+
     let private resolveLogger () =
         match Logging.loggingLevel with
         | None -> None, Informedica.GenOrder.Lib.OrderLogging.noOp
@@ -104,34 +135,9 @@ module Adapters =
                         fun drugs ->
                             async {
                                 try
-                                    let interactionJson =
-                                        let path =
-                                            System.IO.Path.Combine(
-                                                Logging.getServerDataPath (),
-                                                "..",
-                                                "..",
-                                                "data",
-                                                "cache",
-                                                "interactions",
-                                                "Data.JSON"
-                                            )
-                                            |> System.IO.Path.GetFullPath
-
-                                        if System.IO.File.Exists(path) then
-                                            System.IO.File.ReadAllText(path) |> Some
-                                        else
-                                            None
-
                                     let result =
-                                        Informedica.GenInteract.Lib.Api.checkInteractions interactionJson drugs
-                                        |> List.map (fun (di: Informedica.GenInteract.Lib.DrugInteraction) ->
-                                            ({
-                                                Name = di.Name
-                                                Drug1 = di.Drug1
-                                                Drug2 = di.Drug2
-                                            }
-                                            : Shared.Types.DrugInteraction)
-                                        )
+                                        Informedica.GenInteract.Lib.Api.checkInteractions (loadInteractionJson ()) drugs
+                                        |> List.map toSharedDrugInteraction
 
                                     return Ok result
                                 with ex ->

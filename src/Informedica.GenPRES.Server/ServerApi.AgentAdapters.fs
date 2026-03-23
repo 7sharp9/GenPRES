@@ -301,43 +301,13 @@ module AgentAdapters =
         | InteractionCommand.Check _ -> "CheckInteractions"
 
 
-    let private toSharedDrugInteraction
-        (di: Informedica.GenInteract.Lib.DrugInteraction)
-        : Shared.Types.DrugInteraction
-        =
-        {
-            Name = di.Name
-            Drug1 = di.Drug1
-            Drug2 = di.Drug2
-        }
-
-
-    let private interactionJson () =
-        let path =
-            System.IO.Path.Combine(
-                Logging.getServerDataPath (),
-                "..",
-                "..",
-                "data",
-                "cache",
-                "interactions",
-                "Data.JSON"
-            )
-            |> System.IO.Path.GetFullPath
-
-        if System.IO.File.Exists(path) then
-            System.IO.File.ReadAllText(path) |> Some
-        else
-            None
-
-
-    let private processInteractionCommand (cmd: InteractionCommand) : InteractionResponse =
+    let private processInteractionCommand (cachedJson: string option) (cmd: InteractionCommand) : InteractionResponse =
         match cmd with
         | InteractionCommand.Check drugNames ->
             try
                 let result =
-                    Informedica.GenInteract.Lib.Api.checkInteractions (interactionJson ()) drugNames
-                    |> List.map toSharedDrugInteraction
+                    Informedica.GenInteract.Lib.Api.checkInteractions cachedJson drugNames
+                    |> List.map Adapters.toSharedDrugInteraction
 
                 InteractionResponse.Checked(Ok result)
             with ex ->
@@ -345,10 +315,12 @@ module AgentAdapters =
 
 
     let private createInteractionAgent () =
+        let cachedJson = Adapters.loadInteractionJson ()
+
         Agent.createReply<InteractionCommand, InteractionResponse> (fun cmd ->
             try
                 writeDebugMessage $"[InteractionAgent] <- {cmd |> interactionCommandToString}"
-                let response = processInteractionCommand cmd
+                let response = processInteractionCommand cachedJson cmd
                 writeDebugMessage $"[InteractionAgent] -> {cmd |> interactionCommandToString} completed"
                 response
             with ex ->

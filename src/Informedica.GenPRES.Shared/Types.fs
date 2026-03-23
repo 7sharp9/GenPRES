@@ -504,7 +504,6 @@ module Types =
             // so, OrderContexts: OrderContext []
             Scenarios: OrderScenario[]
             Totals: Totals
-            Interactions: DrugInteraction[]
         }
 
 
