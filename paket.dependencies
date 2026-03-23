@@ -19,7 +19,6 @@ nuget Fable.SimpleHttp
 nuget Feliz.UseElmish ~> 2
 nuget Feliz ~> 2
 nuget Feliz.Markdown
-nuget Feliz.Router
 nuget NJsonSchema 11.5.1
 
 nuget Saturn ~> 0
