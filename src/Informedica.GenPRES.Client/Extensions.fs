@@ -4,20 +4,20 @@ module Extensions
 open Elmish
 
 let isDevelopment =
-    #if DEBUG
+#if DEBUG
     true
-    #else
+#else
     false
-    #endif
+#endif
 
 /// Type that represents data which is loaded from an external source. Initially the process of retrieving that data
 /// is `HasNotStartedYet`, then when data is loading, the state should become `InProgress`. After some delay
 /// the data becomes available in the `Resolved` state.
 type Deferred<'t> =
-  | HasNotStartedYet
-  | InProgress
-  | Recalculating of 't
-  | Resolved of 't
+    | HasNotStartedYet
+    | InProgress
+    | Recalculating of 't
+    | Resolved of 't
 
 /// Utility functions around `Deferred<'T>` types.
 module Deferred =
@@ -25,25 +25,28 @@ module Deferred =
         match deferred with
         | HasNotStartedYet -> HasNotStartedYet
         | InProgress -> InProgress
-        | Recalculating value -> Recalculating (transform value)
-        | Resolved value -> Resolved (transform value)
+        | Recalculating value -> Recalculating(transform value)
+        | Resolved value -> Resolved(transform value)
 
     /// Returns whether the `Deferred<'T>` value has been resolved or not.
-    let resolved = function
+    let resolved =
+        function
         | HasNotStartedYet -> false
         | InProgress -> false
         | Recalculating _ -> false
         | Resolved _ -> true
 
     /// Returns whether the `Deferred<'T>` value is in progress or not.
-    let inProgress = function
+    let inProgress =
+        function
         | HasNotStartedYet -> false
         | InProgress -> true
         | Recalculating _ -> true
         | Resolved _ -> false
 
     /// Verifies that a `Deferred<'T>` value is resolved and the resolved data satisfies a given requirement.
-    let exists (predicate: 'T -> bool) = function
+    let exists (predicate: 'T -> bool) =
+        function
         | HasNotStartedYet -> false
         | InProgress -> false
         | Recalculating value -> predicate value
@@ -57,13 +60,15 @@ module Deferred =
         | Recalculating value -> transform value
         | Resolved value -> transform value
 
-    let defaultValue defVal = function
+    let defaultValue defVal =
+        function
         | HasNotStartedYet
         | InProgress -> defVal
         | Recalculating value -> value
         | Resolved value -> value
 
-    let toOption = function
+    let toOption =
+        function
         | HasNotStartedYet
         | InProgress -> None
         | Recalculating value -> Some value
@@ -71,25 +76,26 @@ module Deferred =
 
 
 type AsyncOperationStatus<'t> =
-  | Started
-  | Finished of 't
+    | Started
+    | Finished of 't
 
 module Log =
     /// Logs error to the console during development
     let developmentError (error: exn) =
-        if isDevelopment
-        then Browser.Dom.console.error(error)
+        if isDevelopment then
+            Browser.Dom.console.error (error)
 
 module Cmd =
     /// Converts an asynchronous operation that returns a message into into a command of that message.
     /// Logs unexpected errors to the console while in development mode.
     let fromAsync (operation: Async<'msg>) : Cmd<'msg> =
         let delayedCmd (dispatch: 'msg -> unit) : unit =
-            let delayedDispatch = async {
-                match! Async.Catch operation with
-                | Choice1Of2 msg -> dispatch msg
-                | Choice2Of2 error -> Log.developmentError error
-            }
+            let delayedDispatch =
+                async {
+                    match! Async.Catch operation with
+                    | Choice1Of2 msg -> dispatch msg
+                    | Choice2Of2 error -> Log.developmentError error
+                }
 
             Async.StartImmediate delayedDispatch
 
@@ -102,11 +108,11 @@ module StaticFile =
 
     /// Function that imports a static file by it's relative path. Ignores the file when compiled for mocha tests.
     let inline import (path: string) : string =
-        #if !MOCHA_TESTS
+#if !MOCHA_TESTS
         importDefault<string> path
-        #else
+#else
         path
-        #endif
+#endif
 
 [<RequireQualifiedAccess>]
 module Config =
@@ -121,6 +127,8 @@ module Config =
     /// Tries to find the value of the configured variable if it is defined or returns a given default value otherwise.
     let variableOrDefault (key: string) (defaultValue: string) =
         let foundValue = variable key
-        if String.IsNullOrWhiteSpace foundValue
-        then defaultValue
-        else foundValue
+
+        if String.IsNullOrWhiteSpace foundValue then
+            defaultValue
+        else
+            foundValue

@@ -15,18 +15,21 @@ module ViewHelpers =
 
     let filterSelect disabled isLoading lbl selected dispatch xs =
         let isEmpty = xs |> Array.isEmpty
-        Components.SimpleSelect.View({|
-            updateSelected = if isEmpty then ignore else dispatch
-            label = lbl
-            selected = selected
-            values = xs
-            isLoading = isLoading
-            disabled = disabled || isEmpty
-            hasClear = true
-            navigate = None
-            warning = None
-            minWidth = None
-        |})
+
+        Components.SimpleSelect.View(
+            {|
+                updateSelected = if isEmpty then ignore else dispatch
+                label = lbl
+                selected = selected
+                values = xs
+                isLoading = isLoading
+                disabled = disabled || isEmpty
+                hasClear = true
+                navigate = None
+                warning = None
+                minWidth = None
+            |}
+        )
 
 
     let getWarning warning =
@@ -37,63 +40,64 @@ module ViewHelpers =
         | IsAlert -> Some Mui.Colors.Red.``700``
 
 
-    let orderSelect
-        alwaysShow
-        disabled
-        isLoading
-        lbl
-        selected
-        updateSelected
-        navigate
-        hasClear
-        warning
-        minWidth
-        xs =
+    let orderSelect alwaysShow disabled isLoading lbl selected updateSelected navigate hasClear warning minWidth xs =
 
         if not alwaysShow && xs |> Array.isEmpty && navigate |> Option.isNone then
             null
         else
             let isEmpty = xs |> Array.isEmpty && navigate |> Option.isNone
-            Components.SimpleSelect.View({|
-                updateSelected = if isEmpty then ignore else updateSelected
-                label = lbl
-                selected =
-                    if xs |> Array.length = 1 then xs[0] |> fst |> Some
-                    else selected
-                values = xs
-                isLoading = isLoading
-                disabled = disabled || isEmpty
-                hasClear = hasClear
-                warning = warning
-                navigate = navigate
-                minWidth = minWidth
-            |})
+
+            Components.SimpleSelect.View(
+                {|
+                    updateSelected = if isEmpty then ignore else updateSelected
+                    label = lbl
+                    selected =
+                        if xs |> Array.length = 1 then
+                            xs[0] |> fst |> Some
+                        else
+                            selected
+                    values = xs
+                    isLoading = isLoading
+                    disabled = disabled || isEmpty
+                    hasClear = hasClear
+                    warning = warning
+                    navigate = navigate
+                    minWidth = minWidth
+                |}
+            )
 
 
-    let createNav dispatch navigable solved
-        setMin
-        (decr : int * bool -> 'Msg)
-        setMed
-        (incr : int * bool -> 'Msg)
-        setMax =
+    let createNav dispatch navigable solved setMin (decr: int * bool -> 'Msg) setMed (incr: int * bool -> 'Msg) setMax =
         {|
             first =
-                if navigable then (fun (_: int) -> setMin |> dispatch) |> Some
-                elif solved then (fun n -> (n, true) |> decr |> dispatch) |> Some
-                else None
+                if navigable then
+                    (fun (_: int) -> setMin |> dispatch) |> Some
+                elif solved then
+                    (fun n -> (n, true) |> decr |> dispatch) |> Some
+                else
+                    None
             decrease =
-                if solved then (fun n -> (n, false) |> decr |> dispatch) |> Some
-                else None
+                if solved then
+                    (fun n -> (n, false) |> decr |> dispatch) |> Some
+                else
+                    None
             median =
-                if navigable then (fun () -> setMed |> dispatch) |> Some
-                else None
+                if navigable then
+                    (fun () -> setMed |> dispatch) |> Some
+                else
+                    None
             increase =
-                if solved then (fun n -> (n, false) |> incr |> dispatch) |> Some
-                else None
+                if solved then
+                    (fun n -> (n, false) |> incr |> dispatch) |> Some
+                else
+                    None
             last =
-                if navigable then (fun (_: int) -> setMax |> dispatch) |> Some
-                elif solved then (fun n -> (n, true) |> incr |> dispatch) |> Some
-                else None
+                if navigable then
+                    (fun (_: int) -> setMax |> dispatch) |> Some
+                elif solved then
+                    (fun n -> (n, true) |> incr |> dispatch) |> Some
+                else
+                    None
             useDebounce = not navigable && solved
         |}
         |> Some
@@ -107,17 +111,13 @@ module ViewHelpers =
 
     let ovarVals (format: decimal -> string) (ovar: OrderVariable) =
         ovar.Variable.Vals
-        |> Option.map (fun v ->
-            v.Value |> Array.map (fun (s, d) -> s, $"{d |> format} {v.Unit}")
-        )
+        |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> format} {v.Unit}"))
         |> Option.defaultValue [||]
 
 
     let ovarValsWithRange (format: decimal -> string) (prec: int) (ovar: OrderVariable) =
         ovar.Variable.Vals
-        |> Option.map (fun v ->
-            v.Value |> Array.map (fun (s, d) -> s, $"{d |> format} {v.Unit}")
-        )
+        |> Option.map (fun v -> v.Value |> Array.map (fun (s, d) -> s, $"{d |> format} {v.Unit}"))
         |> Option.defaultValue (
             match Variable.renderValue prec ovar.Variable with
             | "" -> [||]
@@ -134,19 +134,27 @@ module ViewHelpers =
 
     let autoComplete disabled isLoading lbl selected dispatch xs =
         let isEmpty = xs |> Array.isEmpty
-        Components.Autocomplete.View({|
-            updateSelected = if isEmpty then ignore else dispatch
-            label = lbl
-            selected = selected
-            values = xs
-            isLoading = isLoading
-            disabled = disabled || isEmpty
-        |})
+
+        Components.Autocomplete.View(
+            {|
+                updateSelected = if isEmpty then ignore else dispatch
+                label = lbl
+                selected = selected
+                values = xs
+                isLoading = isLoading
+                disabled = disabled || isEmpty
+            |}
+        )
 
 
     let inlineProgress isLoading =
         if isLoading then
-            let progressSx = {| display = "flex"; justifyContent = "center"; padding = 2 |}
+            let progressSx =
+                {|
+                    display = "flex"
+                    justifyContent = "center"
+                    padding = 2
+                |}
 
             JSX.jsx
                 $"""
@@ -156,11 +164,17 @@ module ViewHelpers =
                 <CircularProgress size={24} />
             </Box>
             """
-        else null
+        else
+            null
 
 
     let circularProgress =
-        let circularProgressSx = {| marginTop = 5; display = "flex"; padding = 20 |}
+        let circularProgressSx =
+            {|
+                marginTop = 5
+                display = "flex"
+                padding = 20
+            |}
 
         JSX.jsx
             $"""
@@ -174,12 +188,19 @@ module ViewHelpers =
 
     let progressOrEmpty (deferred: Deferred<'a>) =
         match deferred with
-        | Resolved _ | Recalculating _ -> null
+        | Resolved _
+        | Recalculating _ -> null
         | _ -> circularProgress
 
 
     let backdropProgress isOpen (message: string) =
-        let backdropBoxSx = {| display = "flex"; flexDirection = "column"; alignItems = "center"; gap = 2 |}
+        let backdropBoxSx =
+            {|
+                display = "flex"
+                flexDirection = "column"
+                alignItems = "center"
+                gap = 2
+            |}
 
         JSX.jsx
             $"""
@@ -189,7 +210,10 @@ module ViewHelpers =
         import Typography from '@mui/material/Typography';
 
         <Backdrop
-            sx={ {| color = "#fff"; zIndex = 9999 |} }
+            sx={ {|
+                     color = "#fff"
+                     zIndex = 9999
+                 |} }
             open={isOpen}>
             <Box sx={backdropBoxSx}>
                 <CircularProgress color="inherit" />
@@ -203,17 +227,17 @@ module ViewHelpers =
 
     let modalStyle =
         {|
-            position="absolute"
-            top= "50%"
-            left= "50%"
-            transform= "translate(-50%, -50%)"
-            width= "90vw"
-            maxWidth= 500
-            maxHeight= "90vh"
-            overflowY= "auto"
-            overflowX= "hidden"
-            bgcolor= "background.paper"
-            boxShadow= 24
+            position = "absolute"
+            top = "50%"
+            left = "50%"
+            transform = "translate(-50%, -50%)"
+            width = "90vw"
+            maxWidth = 500
+            maxHeight = "90vh"
+            overflowY = "auto"
+            overflowX = "hidden"
+            bgcolor = "background.paper"
+            boxShadow = 24
             borderRadius = "16px"
         |}
 
@@ -221,26 +245,31 @@ module ViewHelpers =
     module PrintView =
 
 
-        let appBarSx =
-            {|
-                ``@media print`` = {| display = "none" |}
-            |}
+        let appBarSx = {| ``@media print`` = {| display = "none" |} |}
 
 
         let printSx =
             {|
                 padding = 3
-                ``@media print`` =
-                    {|
-                        padding = 1
-                    |}
+                ``@media print`` = {| padding = 1 |}
             |}
 
 
-        let headerCellSx = {| fontWeight = "bold"; borderBottom = "none"; paddingY = "2px"; width = "25%" |}
+        let headerCellSx =
+            {|
+                fontWeight = "bold"
+                borderBottom = "none"
+                paddingY = "2px"
+                width = "25%"
+            |}
 
 
-        let valueCellSx = {| borderBottom = "1px dotted #ccc"; paddingY = "2px"; width = "25%" |}
+        let valueCellSx =
+            {|
+                borderBottom = "1px dotted #ccc"
+                paddingY = "2px"
+                width = "25%"
+            |}
 
 
         let patientWeight (patient: Patient option) =
@@ -267,7 +296,11 @@ module ViewHelpers =
             import TableRow from '@mui/material/TableRow';
             import TableCell from '@mui/material/TableCell';
 
-            <Table size="small" sx={ {| tableLayout="fixed"; width="100%"; marginBottom=3 |} }>
+            <Table size="small" sx={ {|
+                                         tableLayout = "fixed"
+                                         width = "100%"
+                                         marginBottom = 3
+                                     |} }>
                 <TableBody>
                     <TableRow>
                         <TableCell sx={headerCellSx}>D.D.</TableCell>
@@ -311,15 +344,27 @@ module ViewHelpers =
             import Box from '@mui/material/Box';
             import Typography from '@mui/material/Typography';
 
-            <Box sx={ {| marginTop=4; borderTop="1px solid #ccc"; paddingTop=2 |} }>
+            <Box sx={ {|
+                          marginTop = 4
+                          borderTop = "1px solid #ccc"
+                          paddingTop = 2
+                      |} }>
                 <Typography variant="body2">Paraaf arts:</Typography>
             </Box>
             """
 
 
         [<JSX.Component>]
-        let PrintDialog (props: {| isOpen: bool; onClose: unit -> unit; title: string; children: ReactElement |}) =
-            let handlePrint = fun _ -> Browser.Dom.window.print()
+        let PrintDialog
+            (props:
+                {|
+                    isOpen: bool
+                    onClose: unit -> unit
+                    title: string
+                    children: ReactElement
+                |})
+            =
+            let handlePrint = fun _ -> Browser.Dom.window.print ()
 
             let isOpen = props.isOpen
 
@@ -341,7 +386,10 @@ module ViewHelpers =
                             <IconButton edge="start" color="inherit" onClick={fun _ -> props.onClose ()} aria-label="close">
                                 <CloseIcon />
                             </IconButton>
-                            <Typography sx={ {| marginLeft=2; flex=1 |} } variant="h6" component="div">
+                            <Typography sx={ {|
+                                                 marginLeft = 2
+                                                 flex = 1
+                                             |} } variant="h6" component="div">
                                 {props.title}
                             </Typography>
                             <Button color="inherit" onClick={handlePrint} startIcon={{ <PrintIcon /> }}>

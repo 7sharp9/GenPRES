@@ -13,13 +13,30 @@ module ResponsiveTable =
 
 
         [<JSX.Component>]
-        let CardTable (props :
-            {|
-                columns : {|  field : string; headerName : string; width : int; filterable : bool; sortable : bool |}[]
-                rows : {| cells : {| field: string; value: string |} []; actions : ReactElement option |} []
-                filter : ReactElement option
-                onRowClick : string -> unit
-            |}) =
+        let CardTable
+            (props:
+                {|
+                    columns:
+                        {|
+                            field: string
+                            headerName: string
+                            width: int
+                            filterable: bool
+                            sortable: bool
+                        |}[]
+                    rows:
+                        {|
+                            cells:
+                                {|
+                                    field: string
+                                    value: string
+                                |}[]
+                            actions: ReactElement option
+                        |}[]
+                    filter: ReactElement option
+                    onRowClick: string -> unit
+                |})
+            =
 
             let cards =
                 props.rows
@@ -35,18 +52,28 @@ module ResponsiveTable =
                     let content =
                         row.cells
                         |> Array.choose (fun cell ->
-                            if cell.field = "id" || String.IsNullOrWhiteSpace(cell.value) then None
-                            else Some cell
+                            if cell.field = "id" || String.IsNullOrWhiteSpace(cell.value) then
+                                None
+                            else
+                                Some cell
                         )
                         |> Array.mapi (fun i cell ->
                             let b, s =
                                 match cell.value with
-                                | _ when cell.value.Contains("**") -> Mui.Colors.Blue.``900``, cell.value.Replace("**", "")
-                                | _ when cell.value.Contains("*") -> Mui.Colors.Blue.``900``, cell.value.Replace("*", "")
+                                | _ when cell.value.Contains("**") ->
+                                    Mui.Colors.Blue.``900``, cell.value.Replace("**", "")
+                                | _ when cell.value.Contains("*") ->
+                                    Mui.Colors.Blue.``900``, cell.value.Replace("*", "")
                                 | _ -> Mui.Colors.Grey.``700``, cell.value
 
                             if i = 0 then
-                                let headerBoxSx = {| paddingY = 0.5; backgroundColor = Mui.Styles.headerBgColor; marginX = -1.5; paddingX = 1.5 |}
+                                let headerBoxSx =
+                                    {|
+                                        paddingY = 0.5
+                                        backgroundColor = Mui.Styles.headerBgColor
+                                        marginX = -1.5
+                                        paddingX = 1.5
+                                    |}
 
                                 JSX.jsx
                                     $"""
@@ -54,7 +81,10 @@ module ResponsiveTable =
                                 import Box from '@mui/material/Box';
 
                                 <Box sx={headerBoxSx} >
-                                    <Typography variant="subtitle2" color={b} sx={ {| fontWeight = 600; lineHeight = 1.4 |} } >
+                                    <Typography variant="subtitle2" color={b} sx={ {|
+                                                                                       fontWeight = 600
+                                                                                       lineHeight = 1.4
+                                                                                   |} } >
                                         {s}
                                     </Typography>
                                 </Box>
@@ -65,8 +95,8 @@ module ResponsiveTable =
                                     props.columns
                                     |> Array.tryFind (fun c -> c.field = cell.field)
                                     |> function
-                                    | Some h -> $"{h.headerName.ToLower()}: "
-                                    | None   -> $"{cell.field}: "
+                                        | Some h -> $"{h.headerName.ToLower()}: "
+                                        | None -> $"{cell.field}: "
 
                                 JSX.jsx
                                     $"""
@@ -74,10 +104,10 @@ module ResponsiveTable =
                                 import Typography from '@mui/material/Typography';
 
                                 <Stack direction="row" spacing={1} sx={ {| paddingY = 0.5 |} } >
-                                    <Typography minWidth={80} variant="body2" color={Mui.Colors.Grey.``900``} sx={  {| lineHeight = 1.4 |}  } >
+                                    <Typography minWidth={80} variant="body2" color={Mui.Colors.Grey.``900``} sx={ {| lineHeight = 1.4 |} } >
                                         {h}
                                     </Typography>
-                                    <Typography color={b} variant="body2" sx={  {| lineHeight = 1.4 |}  } >
+                                    <Typography color={b} variant="body2" sx={ {| lineHeight = 1.4 |} } >
                                         {s}
                                     </Typography>
                                 </Stack>
@@ -90,7 +120,12 @@ module ResponsiveTable =
                     let actions =
                         match row.actions with
                         | Some act ->
-                            let actionsSx = {| paddingTop = 0; paddingBottom = 0.5; paddingX = 1 |}
+                            let actionsSx =
+                                {|
+                                    paddingTop = 0
+                                    paddingBottom = 0.5
+                                    paddingX = 1
+                                |}
 
                             JSX.jsx
                                 $"""
@@ -111,7 +146,14 @@ module ResponsiveTable =
                         |> toReact
 
                     let bottomPad = if hasActions then 0.5 else 1
-                    let contentSx = {| paddingTop = 1; paddingBottom = bottomPad; paddingX = 1.5; ``&:last-child`` = {| paddingBottom = bottomPad |} |}
+
+                    let contentSx =
+                        {|
+                            paddingTop = 1
+                            paddingBottom = bottomPad
+                            paddingX = 1.5
+                            ``&:last-child`` = {| paddingBottom = bottomPad |}
+                        |}
 
                     JSX.jsx
                         $"""
@@ -119,7 +161,10 @@ module ResponsiveTable =
                     import CardContent from '@mui/material/CardContent';
                     import Stack from '@mui/material/Stack';
 
-                    <Grid item sx={ {| width="100%"; mb = 0.5 |} } >
+                    <Grid item sx={ {|
+                                        width = "100%"
+                                        mb = 0.5
+                                    |} } >
                         <Card raised={true} onClick={handleClick} sx={ {| cursor = "pointer" |} } >
                             <CardContent sx={contentSx} >
                                 <Stack spacing={0} divider={divider} >
@@ -139,11 +184,15 @@ module ResponsiveTable =
             import Stack from '@mui/material/Stack';
 
             <Stack id="responsive-card-table" >
-                <Box sx={ {| marginBottom=1.5 |} }>
+                <Box sx={ {| marginBottom = 1.5 |} }>
                     {props.filter |> Option.defaultValue null}
                 </Box>
-                <Grid container rowSpacing={1} columnSpacing={ {| xs=1; sm=2; md=3 |} } >
-                    {React.Fragment (cards |> unbox<seq<ReactElement>>)}
+                <Grid container rowSpacing={1} columnSpacing={ {|
+                                                                   xs = 1
+                                                                   sm = 2
+                                                                   md = 3
+                                                               |} } >
+                    {React.Fragment(cards |> unbox<seq<ReactElement>>)}
                 </Grid>
             </Stack>
             """
@@ -153,75 +202,101 @@ module ResponsiveTable =
 
 
     [<JSX.Component>]
-    let View (props :
-        {|
-            hideFilter : bool
-            columns : obj[]
-            rows : {| cells : {| field: string; value: string |} []; actions : ReactElement option |} []
-            rowCreate : string[] -> obj
-            height : string
-            onRowClick : string -> unit
-            checkboxSelection : bool
-            selectedRows : string []
-            onSelectChange: string [] -> unit
-            showToolbar : bool
-            showFooter : bool
-            onPrint : ({| cells : {| field: string; value: string |} []; actions : ReactElement option |} [] -> unit) option
-        |}) =
+    let View
+        (props:
+            {|
+                hideFilter: bool
+                columns: obj[]
+                rows:
+                    {|
+                        cells:
+                            {|
+                                field: string
+                                value: string
+                            |}[]
+                        actions: ReactElement option
+                    |}[]
+                rowCreate: string[] -> obj
+                height: string
+                onRowClick: string -> unit
+                checkboxSelection: bool
+                selectedRows: string[]
+                onSelectChange: string[] -> unit
+                showToolbar: bool
+                showFooter: bool
+                onPrint:
+                    ({|
+                        cells:
+                            {|
+                                field: string
+                                value: string
+                            |}[]
+                        actions: ReactElement option
+                    |}[]
+                        -> unit) option
+            |})
+        =
         let state, setState = React.useState [||]
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         let columnFilter =
-            if props.hideFilter then None
+            if props.hideFilter then
+                None
+            else if props.rows |> Array.isEmpty then
+                None
             else
-                if props.rows |> Array.isEmpty then None
-                else
-                    props.columns
-                    |> Array.choose (fun c ->
-                        let col = unbox<{| field: string; headerName: string; width: int; filterable: bool; sortable: bool |}> c
-                        if col.filterable then Some col else None
-                    )
-                    |> Array.tryHead
+                props.columns
+                |> Array.choose (fun c ->
+                    let col =
+                        unbox<
+                            {|
+                                field: string
+                                headerName: string
+                                width: int
+                                filterable: bool
+                                sortable: bool
+                            |}
+                         >
+                            c
+
+                    if col.filterable then Some col else None
+                )
+                |> Array.tryHead
 
         let filter =
             columnFilter
             |> function
-            | None   -> null
-            | Some column ->
-                let data =
-                    props.rows
-                    |> Array.map (fun r -> r.cells)
-                    |> Array.map (Array.filter (fun cell ->
-                        cell.field = column.field
-                    ))
-                    |> Array.collect (Array.map _.value)
-                    |> Array.distinct
-                    |> Array.sortBy _.ToLower()
+                | None -> null
+                | Some column ->
+                    let data =
+                        props.rows
+                        |> Array.map (fun r -> r.cells)
+                        |> Array.map (Array.filter (fun cell -> cell.field = column.field))
+                        |> Array.collect (Array.map _.value)
+                        |> Array.distinct
+                        |> Array.sortBy _.ToLower()
 
-                MultipleSelect.View({|
-                    label = "Filter"
-                    selected = state
-                    updateSelected = setState
-                    values = data |> Array.map (fun s -> s, s)
-                    isLoading = false
-                    disabled = false
-                |})
+                    MultipleSelect.View(
+                        {|
+                            label = "Filter"
+                            selected = state
+                            updateSelected = setState
+                            values = data |> Array.map (fun s -> s, s)
+                            isLoading = false
+                            disabled = false
+                        |}
+                    )
             |> toReact
 
-        let onRowClick =
-            fun pars ->
-                pars?id |> string |> props.onRowClick
+        let onRowClick = fun pars -> pars?id |> string |> props.onRowClick
 
         let onSelectionChange =
             fun selectionModel ->
                 Logging.log "selectionModel" selectionModel
                 // selectionModel is now { type: string, ids: Set }
                 // Extract the ids and convert to array
-                let selectedIds = 
-                    selectionModel?ids 
-                    |> unbox<Set<string>>
-                    |> Seq.toArray
+                let selectedIds = selectionModel?ids |> unbox<Set<string>> |> Seq.toArray
                 props.onSelectChange selectedIds
 
         // Return an alternating class name based on the row index within the current page
@@ -233,41 +308,44 @@ module ResponsiveTable =
         // Style for striped rows: apply background to even rows
         // Use lef border color blue to indicate selection
         let stripedSx: obj =
-            createObj [
-                "& .MuiDataGrid-row.even"
-                ==> createObj [
-                        "backgroundColor" ==> Mui.Colors.Grey.``100``
-                    ]
+            createObj
+                [
+                    "& .MuiDataGrid-row.even"
+                    ==> createObj [ "backgroundColor" ==> Mui.Colors.Grey.``100`` ]
 
-                "& .MuiDataGrid-row"
-                ==> createObj [
-                    "cursor" ==> "pointer"
-                    "transition" ==> "border-left 0.1s ease"
-                ]
-                
-                "& .MuiDataGrid-row.even:hover"
-                ==> createObj [
-                    "backgroundColor" ==> Mui.Colors.Grey.``100``
-                    "borderLeft" ==> $"4px solid {Mui.Colors.Blue.``700``}"
-                ]
+                    "& .MuiDataGrid-row"
+                    ==> createObj
+                            [
+                                "cursor" ==> "pointer"
+                                "transition" ==> "border-left 0.1s ease"
+                            ]
 
-                "& .MuiDataGrid-row.odd:hover"
-                ==> createObj [
-                    "backgroundColor" ==> "white"
-                    "borderLeft" ==> $"4px solid {Mui.Colors.Blue.``700``}"
+                    "& .MuiDataGrid-row.even:hover"
+                    ==> createObj
+                            [
+                                "backgroundColor" ==> Mui.Colors.Grey.``100``
+                                "borderLeft" ==> $"4px solid {Mui.Colors.Blue.``700``}"
+                            ]
+
+                    "& .MuiDataGrid-row.odd:hover"
+                    ==> createObj
+                            [
+                                "backgroundColor" ==> "white"
+                                "borderLeft" ==> $"4px solid {Mui.Colors.Blue.``700``}"
+                            ]
+
+                    "& .MuiDataGrid-cell"
+                    ==> createObj
+                            [
+                                "whiteSpace" ==> "normal"
+                                "wordWrap" ==> "break-word"
+                                "lineHeight" ==> "1.5"
+                                "paddingTop" ==> "8px"
+                                "paddingBottom" ==> "8px"
+                                "display" ==> "flex"
+                                "alignItems" ==> "center"
+                            ]
                 ]
-                
-                "& .MuiDataGrid-cell"
-                ==> createObj [
-                    "whiteSpace" ==> "normal"
-                    "wordWrap" ==> "break-word"
-                    "lineHeight" ==> "1.5"
-                    "paddingTop" ==> "8px"
-                    "paddingBottom" ==> "8px"
-                    "display" ==> "flex"
-                    "alignItems" ==> "center"
-                ]
-            ]
 
         let rows =
             props.rows
@@ -277,8 +355,8 @@ module ResponsiveTable =
                 | Some column ->
                     r.cells
                     |> Array.exists (fun cell ->
-                        cell.field = column.field &&
-                        (state |> Array.isEmpty || state |> Array.exists ((=) cell.value))
+                        cell.field = column.field
+                        && (state |> Array.isEmpty || state |> Array.exists ((=) cell.value))
                     )
             )
 
@@ -287,8 +365,23 @@ module ResponsiveTable =
         if isMobile then
             let typedColumns =
                 props.columns
-                |> Array.map unbox<{| field: string; headerName: string; width: int; filterable: bool; sortable: bool |}>
-            {| columns = typedColumns; rows = rows; filter = Some filter; onRowClick = props.onRowClick |}
+                |> Array.map
+                    unbox<
+                        {|
+                            field: string
+                            headerName: string
+                            width: int
+                            filterable: bool
+                            sortable: bool
+                        |}
+                     >
+
+            {|
+                columns = typedColumns
+                rows = rows
+                filter = Some filter
+                onRowClick = props.onRowClick
+            |}
             |> CardTable
         else
             let rows =
@@ -321,7 +414,10 @@ module ResponsiveTable =
                         <GridToolbarColumnsButton />
                         <GridToolbarFilterButton />
                         <GridToolbarDensitySelector />
-                        <GridToolbarExport printOptions={ {| hideFooter=true; hideToolbar=true |} } />
+                        <GridToolbarExport printOptions={ {|
+                                                              hideFooter = true
+                                                              hideToolbar = true
+                                                          |} } />
                         {printButton}
                     </GridToolbarContainer>
                     """
@@ -332,7 +428,10 @@ module ResponsiveTable =
             let selectedRows =
                 props.selectedRows
                 |> fun ids ->
-                    {| ``type`` = "include"; ids = ids |> Set.ofArray |}
+                    {|
+                        ``type`` = "include"
+                        ids = ids |> Set.ofArray
+                    |}
 
             let slots =
                 if props.showToolbar then
@@ -345,10 +444,13 @@ module ResponsiveTable =
             import {{ DataGrid }} from '@mui/x-data-grid';
 
             <Box>
-                <Box sx={ {| marginBottom=3 |} }>
+                <Box sx={ {| marginBottom = 3 |} }>
                     {filter}
                 </Box>
-                <div style={ {| height =props.height; width = "100%" |} }>
+                <div style={ {|
+                                 height = props.height
+                                 width = "100%"
+                             |} }>
                     <DataGrid
                         sx={stripedSx}
                         showToolbar={props.showToolbar}
@@ -363,31 +465,24 @@ module ResponsiveTable =
                         onRowClick={onRowClick}
                         hideFooter={not props.showFooter}
                         initialState =
-                            {
-                                {| 
-                                    columns = {| columnVisibilityModel = {| id = false |} |} 
-                                    density = "comfortable"
-                                |}
-                            }
+                            { {|
+                                  columns = {| columnVisibilityModel = {| id = false |} |}
+                                  density = "comfortable"
+                              |} }
                         columns=
-                            {
-                                props.columns
-                                |> Array.map (fun c ->
-                                    // Try to get the field property if it exists as a simple column
-                                    try
-                                        let simpleCol = unbox<{| field: string |} > c
-                                        match simpleCol.field with
-                                        | "id" ->
-                                            createObj [
-                                                "field" ==> "id"
-                                                "hide" ==> true
-                                            ]
-                                        | _ -> c
-                                    with _ -> c // Already an object with custom properties
-                                )
-                            }
+                            {props.columns
+                             |> Array.map (fun c ->
+                                 // Try to get the field property if it exists as a simple column
+                                 try
+                                     let simpleCol = unbox<{| field: string |}> c
+
+                                     match simpleCol.field with
+                                     | "id" -> createObj [ "field" ==> "id"; "hide" ==> true ]
+                                     | _ -> c
+                                 with _ ->
+                                     c // Already an object with custom properties
+                             )}
                     />
                     </div>
             </Box>
             """
-

@@ -1,7 +1,6 @@
 namespace Views
 
 
-
 module Patient =
 
     open Fable.Core
@@ -43,19 +42,19 @@ module Patient =
         let init pat : State * Cmd<Msg> = pat, Cmd.none
 
 
-        let update dispatch msg (state : State) : State * Cmd<Msg> =
+        let update dispatch msg (state: State) : State * Cmd<Msg> =
             let state =
                 match msg with
-                | Clear          -> None
-                | UpdateYear s   -> state |> Patient.setYear s
-                | UpdateMonth s  -> state |> Patient.setMonth s
-                | UpdateWeek s   -> state |> Patient.setWeek s
-                | UpdateDay s    -> state |> Patient.setDay s
+                | Clear -> None
+                | UpdateYear s -> state |> Patient.setYear s
+                | UpdateMonth s -> state |> Patient.setMonth s
+                | UpdateWeek s -> state |> Patient.setWeek s
+                | UpdateDay s -> state |> Patient.setDay s
                 | UpdateWeight s -> state |> Patient.setWeight s
                 | UpdateHeight s -> state |> Patient.setHeight s
                 | UpdateGAWeek s -> state |> Patient.setGAWeek s
-                | UpdateGADay s  -> state |> Patient.setGADay s
-                | UpdateRenal s  -> state |> Patient.setRenal s
+                | UpdateGADay s -> state |> Patient.setGADay s
+                | UpdateRenal s -> state |> Patient.setRenal s
                 | UpdateGender s ->
                     state
                     |> Option.defaultValue Patient.empty
@@ -75,9 +74,9 @@ module Patient =
                         }
                     )
                     |> Some
-                | ToggleCVL      -> state |> Patient.toggleCVL
-                | TogglePVL      -> state |> Patient.togglePVL
-                | ToggleET       -> state |> Patient.toggleET
+                | ToggleCVL -> state |> Patient.toggleCVL
+                | TogglePVL -> state |> Patient.togglePVL
+                | ToggleET -> state |> Patient.toggleET
 
             state |> dispatch
             state, Cmd.none
@@ -86,9 +85,7 @@ module Patient =
         let canCalculate (pat: Patient option) : bool =
             match pat with
             | None -> false
-            | Some p ->
-                p.Weight.Measured.IsSome &&
-                p.Height.Measured.IsSome
+            | Some p -> p.Weight.Measured.IsSome && p.Height.Measured.IsSome
 
 
         let show lang terms pat =
@@ -96,11 +93,9 @@ module Patient =
                 match terms with
                 | Resolved terms -> Patient.toString terms lang true
                 | _ -> fun _ -> ""
+
             match pat with
-            | Some p ->
-                p
-                |> toString
-                |> Markdown.markdown.children
+            | Some p -> p |> toString |> Markdown.markdown.children
             | None ->
                 terms
                 |> Deferred.map (fun terms ->
@@ -118,15 +113,16 @@ module Patient =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                patient : Patient option
-                updatePatient : Patient option -> unit
-                localizationTerms : Deferred<string [] []>
-            |}
-        ) =
+                patient: Patient option
+                updatePatient: Patient option -> unit
+                localizationTerms: Deferred<string[][]>
+            |})
+        =
 
-        let context : Global.Context = React.useContext Global.context
+        let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
@@ -134,13 +130,10 @@ module Patient =
         let isExpanded, setExpanded = React.useState (props.patient |> canCalculate |> not)
 
         // Auto-close accordion after 5 seconds when expanded
-        React.useEffect(
+        React.useEffect (
             (fun () ->
                 if isExpanded then
-                    let timeoutId =
-                        JS.setTimeout
-                            (fun () -> setExpanded false)
-                            5000
+                    let timeoutId = JS.setTimeout (fun () -> setExpanded false) 5000
                     fun () -> JS.clearTimeout timeoutId
                 else
                     fun () -> ()
@@ -149,60 +142,70 @@ module Patient =
         )
 
         let depArr = [| box props.patient; box props.updatePatient; box lang |]
+
         let pat, dispatch =
-            React.useElmish(
-                    init props.patient,
-                    update props.updatePatient,
-                    depArr)
+            React.useElmish (init props.patient, update props.updatePatient, depArr)
 
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
-        let handleChange = fun _ ->
-            if props.patient |> canCalculate |> not then true |> setExpanded
-            else
-                isExpanded |> not |> setExpanded
+        let handleChange =
+            fun _ ->
+                if props.patient |> canCalculate |> not then
+                    true |> setExpanded
+                else
+                    isExpanded |> not |> setExpanded
 
         let createSelect label sel changeValue vs =
-            Components.SimpleSelect.View({|
-                label = label
-                selected = sel |> Option.map string
-                values = vs
-                updateSelected = changeValue
-                navigate = None
-                isLoading = false
-                disabled = false
-                hasClear = true
-                warning = None
-                minWidth = None
-            |})
+            Components.SimpleSelect.View(
+                {|
+                    label = label
+                    selected = sel |> Option.map string
+                    values = vs
+                    updateSelected = changeValue
+                    navigate = None
+                    isLoading = false
+                    disabled = false
+                    hasClear = true
+                    warning = None
+                    minWidth = None
+                |}
+            )
 
         let wghts =
-            [|21000..1000..100000|]
-            |> Array.append [|10500..500..20000|]
-            |> Array.append [|2000..100..10000|]
-            |> Array.append [|400..50..1950|]
+            [| 21000..1000..100000 |]
+            |> Array.append [| 10500..500..20000 |]
+            |> Array.append [| 2000..100..10000 |]
+            |> Array.append [| 400..50..1950 |]
 
-        let hghts = [|40..220|]
+        let hghts = [| 40..220 |]
 
-        let zeroToNone = function
+        let zeroToNone =
+            function
             | Some v -> if v = 0 then None else v |> Some
             | None -> None
 
-        let weightToNone = function
+        let weightToNone =
+            function
             | Some v -> wghts |> Array.tryFind ((=) (int v))
             | None -> None
 
-        let heightToNone = function
+        let heightToNone =
+            function
             | Some v -> hghts |> Array.tryFind ((=) (int v))
             | None -> None
 
         let checkBox item ev =
-            JSX.jsx $"""
+            JSX.jsx
+                $"""
             import Checkbox from '@mui/material/Checkbox';
 
             <Checkbox
-                checked={props.patient |> Option.map (fun p -> p.Access |> List.exists ((=) item)) |> Option.defaultValue false }
-                onChange={fun _ -> handleChange (); ev |> dispatch} >
+                checked={props.patient
+                         |> Option.map (fun p -> p.Access |> List.exists ((=) item))
+                         |> Option.defaultValue false}
+                onChange={fun _ ->
+                              handleChange ()
+                              ev |> dispatch} >
             </Checkbox>
             """
 
@@ -212,14 +215,15 @@ module Patient =
                 |> Option.map (fun p ->
                     p.Gender
                     |> function
-                    | Male -> "male"
-                    | Female -> "female"
-                    | _ -> "other"
+                        | Male -> "male"
+                        | Female -> "female"
+                        | _ -> "other"
                 )
                 |> Option.defaultValue ""
 
             let radio =
-                JSX.jsx $"""
+                JSX.jsx
+                    $"""
                 import Radio from '@mui/material/Radio';
                 <Radio />
                 """
@@ -228,11 +232,10 @@ module Patient =
                 fun ev ->
                     handleChange ()
 
-                    ev?target?value
-                    |> string
-                    |> UpdateGender |> dispatch
+                    ev?target?value |> string |> UpdateGender |> dispatch
 
-            JSX.jsx $"""
+            JSX.jsx
+                $"""
             import RadioGroup from '@mui/material/RadioGroup';
             import FormControlLabel from '@mui/material/FormControlLabel';
             import FormControl from '@mui/material/FormControl';
@@ -244,81 +247,111 @@ module Patient =
                     row
                     aria-labelledby="demo-row-radio-buttons-group-label"
                     name="row-radio-buttons-group"
-                    value={ value }
-                    onChange={ changeGender }
+                    value={value}
+                    onChange={changeGender}
                 >
-                    <FormControlLabel value="male" control={ radio } label="Man" />
-                    <FormControlLabel value="female" control={ radio } label="Vrouw" />
-                    <FormControlLabel value="other" control={ radio } label="Onbekend" />
+                    <FormControlLabel value="male" control={radio} label="Man" />
+                    <FormControlLabel value="female" control={radio} label="Vrouw" />
+                    <FormControlLabel value="other" control={radio} label="Onbekend" />
                 </RadioGroup>
             </FormControl>
             """
 
         let items1 =
             [|
-                [|0..19|]
+                [| 0..19 |]
                 |> Array.map (fun k -> $"{k}", if k > 18 then "> 18" else $"{k}")
                 |> createSelect
                     (Terms.``Patient Age years`` |> getTerm "jaren")
                     (pat |> Option.bind Patient.getAgeYears)
-                    (fun s -> handleChange (); s |> UpdateYear |> dispatch)
+                    (fun s ->
+                        handleChange ()
+                        s |> UpdateYear |> dispatch
+                    )
 
-                [|1..11|]
+                [| 1..11 |]
                 |> Array.map (fun k -> $"{k}", $"{k}")
                 |> createSelect
                     (Terms.``Patient Age months`` |> getTerm "maanden")
                     (pat |> Option.bind Patient.getAgeMonths |> zeroToNone)
-                    (fun s -> handleChange (); s |> UpdateMonth |> dispatch)
+                    (fun s ->
+                        handleChange ()
+                        s |> UpdateMonth |> dispatch
+                    )
 
-                [|1..3|]
+                [| 1..3 |]
                 |> Array.map (fun k -> $"{k}", $"{k}")
                 |> createSelect
                     (Terms.``Patient Age weeks`` |> getTerm "weken")
                     (pat |> Option.bind Patient.getAgeWeeks |> zeroToNone)
-                    (fun s -> handleChange (); s |> UpdateWeek |> dispatch)
+                    (fun s ->
+                        handleChange ()
+                        s |> UpdateWeek |> dispatch
+                    )
 
-                [|1..6|]
+                [| 1..6 |]
                 |> Array.map (fun k -> $"{k}", $"{k}")
                 |> createSelect
                     (Terms.``Patient Age days`` |> getTerm "dagen")
                     (pat |> Option.bind Patient.getAgeDays |> zeroToNone)
-                    (fun s -> handleChange (); s |> UpdateDay |> dispatch)
+                    (fun s ->
+                        handleChange ()
+                        s |> UpdateDay |> dispatch
+                    )
 
                 wghts
-                |> Array.map (fun k -> $"{k}", $"{(k |> float)/1000.}")
+                |> Array.map (fun k -> $"{k}", $"{(k |> float) / 1000.}")
                 |> createSelect
-                    (Terms.``Patient Weight`` |> getTerm "gewicht" |> fun s -> $"{s} (kg)")
+                    (Terms.``Patient Weight`` |> getTerm "gewicht" |> (fun s -> $"{s} (kg)"))
                     (pat |> Option.bind (Patient.getWeight >> weightToNone))
-                    (fun s -> handleChange (); s |> UpdateWeight |> dispatch)
+                    (fun s ->
+                        handleChange ()
+                        s |> UpdateWeight |> dispatch
+                    )
 
-                [|40..220|]
+                [| 40..220 |]
                 |> Array.map (fun k -> $"{k}", $"{k}")
                 |> createSelect
-                    (Terms.``Patient Length`` |> getTerm "lengte" |> fun s -> $"{s} (cm)")
+                    (Terms.``Patient Length`` |> getTerm "lengte" |> (fun s -> $"{s} (cm)"))
                     (pat |> Option.bind (Patient.getHeight >> heightToNone))
-                    (fun s -> handleChange (); s |> UpdateHeight |> dispatch)
+                    (fun s ->
+                        handleChange ()
+                        s |> UpdateHeight |> dispatch
+                    )
 
-                if pat |> Option.isSome &&
-                   pat |> Option.map (fun p -> p |> Patient.getAgeInYears |> Option.defaultValue 0. < 1)
-                       |> Option.defaultValue false then
-                    [| 24 .. 42 |]
+                if
+                    pat |> Option.isSome
+                    && pat
+                       |> Option.map (fun p -> p |> Patient.getAgeInYears |> Option.defaultValue 0. < 1)
+                       |> Option.defaultValue false
+                then
+                    [| 24..42 |]
                     |> Array.map (fun k -> $"{k}", $"{k}")
                     |> createSelect
-                        (Terms.``Patient Age weeks`` |> getTerm "weken" |> fun s -> $"GA {s}")
+                        (Terms.``Patient Age weeks`` |> getTerm "weken" |> (fun s -> $"GA {s}"))
                         (pat |> Option.bind Patient.getGAWeeks |> zeroToNone)
-                        (fun s -> handleChange (); s |> UpdateGAWeek |> dispatch)
+                        (fun s ->
+                            handleChange ()
+                            s |> UpdateGAWeek |> dispatch
+                        )
 
-                    [|1..6|]
+                    [| 1..6 |]
                     |> Array.map (fun k -> $"{k}", $"{k}")
                     |> createSelect
-                        (Terms.``Patient Age days`` |> getTerm "dagen" |> fun s -> $"GA {s}")
+                        (Terms.``Patient Age days`` |> getTerm "dagen" |> (fun s -> $"GA {s}"))
                         (pat |> Option.bind Patient.getGADays |> zeroToNone)
-                        (fun s -> handleChange (); s |> UpdateGADay |> dispatch)
+                        (fun s ->
+                            handleChange ()
+                            s |> UpdateGADay |> dispatch
+                        )
             |]
             |> Array.map (fun el ->
                 JSX.jsx
                     $"""
-                <Grid size = { {| xs = 6; lg = 2 |} }>{el}</Grid>
+                <Grid size = { {|
+                                   xs = 6
+                                   lg = 2
+                               |} }>{el}</Grid>
                 """
             )
 
@@ -336,17 +369,17 @@ module Patient =
                     <FormGroup row>
                         <FormControl>
                             <FormControlLabel
-                                control={ checkBox CVL ToggleCVL }
+                                control={checkBox CVL ToggleCVL}
                                 label="CVL" />
                         </FormControl>
                         <FormControl>
                             <FormControlLabel
-                                control={ checkBox PVL TogglePVL }
+                                control={checkBox PVL TogglePVL}
                                 label="PVL" />
                         </FormControl>
                         <FormControl>
                             <FormControlLabel
-                                control={ checkBox EnteralTube ToggleET }
+                                control={checkBox EnteralTube ToggleET}
                                 label="Sonde" />
                         </FormControl>
                     </FormGroup>
@@ -358,13 +391,20 @@ module Patient =
                 |> createSelect
                     "Nierfunctie"
                     (pat |> Option.bind Patient.getRenalFunction)
-                    (fun s -> handleChange (); s |> UpdateRenal |> dispatch)
+                    (fun s ->
+                        handleChange ()
+                        s |> UpdateRenal |> dispatch
+                    )
 
             |]
             |> Array.map (fun el ->
                 JSX.jsx
                     $"""
-                <Grid size = { {| xs = 6; md = 4; lg = 4 |} }>{el}</Grid>
+                <Grid size = { {|
+                                   xs = 6
+                                   md = 4
+                                   lg = 4
+                               |} }>{el}</Grid>
                 """
             )
 
@@ -378,12 +418,12 @@ module Patient =
 
             <React.Fragment>
                 <Grid container spacing={2}>
-                    {React.Fragment (items1 |> unbox<seq<ReactElement>>)}
+                    {React.Fragment(items1 |> unbox<seq<ReactElement>>)}
                 </Grid>
-                <Grid container spacing={2} sx={ {| marginTop=2 |} } >
-                    {React.Fragment (items2 |> unbox<seq<ReactElement>>)}
+                <Grid container spacing={2} sx={ {| marginTop = 2 |} } >
+                    {React.Fragment(items2 |> unbox<seq<ReactElement>>)}
                 </Grid>
-                <Box sx={ {| marginTop=2 |} }>
+                <Box sx={ {| marginTop = 2 |} }>
                     <Button variant="text" onClick={fun _ -> Clear |> dispatch} fullWidth startIcon={Mui.Icons.Delete} >
                         {Terms.Delete |> getTerm "Verwijder"}
                     </Button>
@@ -402,4 +442,3 @@ module Patient =
                 ariaControls = Some "patient"
                 summaryId = Some "patient-details"
             |}
-

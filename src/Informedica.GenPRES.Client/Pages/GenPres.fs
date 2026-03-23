@@ -20,7 +20,7 @@ module GenPres =
 
         type State =
             {
-                SideMenuItems: (JSX.Element option * string * bool) []
+                SideMenuItems: (JSX.Element option * string * bool)[]
                 SideMenuIsOpen: bool
                 Configuration: Configuration Option
             }
@@ -52,6 +52,7 @@ module GenPres =
                         |> List.toArray
                         |> Array.map (fun p ->
                             let b = p = page
+
                             match p |> pageToString terms lang with
                             | s when p = LifeSupport -> Mui.Icons.FireExtinguisher |> Some, s, b
                             | s when p = ContinuousMeds -> Mui.Icons.Vaccines |> Some, s, b
@@ -74,11 +75,7 @@ module GenPres =
         let update lang terms updatePage (msg: Msg) (state: State) =
             match msg with
 
-            | ToggleMenu ->
-                { state with
-                    SideMenuIsOpen = not state.SideMenuIsOpen
-                },
-                Cmd.none
+            | ToggleMenu -> { state with SideMenuIsOpen = not state.SideMenuIsOpen }, Cmd.none
 
             | SideMenuClick s ->
                 pages
@@ -92,12 +89,7 @@ module GenPres =
 
                     SideMenuItems =
                         state.SideMenuItems
-                        |> Array.map (fun (icon, item, _) ->
-                            if item = s then
-                                icon, item, true
-                            else
-                                icon, item, false
-                        )
+                        |> Array.map (fun (icon, item, _) -> if item = s then icon, item, true else icon, item, false)
                 },
                 Cmd.none
 
@@ -105,40 +97,42 @@ module GenPres =
     open Elmish
 
 
-
     [<JSX.Component>]
     let View
-        (props: {|
-            showDisclaimer: bool
-            isDemo: bool
-            acceptDisclaimer: bool -> unit
-            patient: Patient option
-            updatePatient: Patient option -> unit
-            updatePage: Global.Pages -> unit
-            bolusMedication: Deferred<Intervention list>
-            continuousMedication: Deferred<Intervention list>
-            onSelectContinuousMedicationItem: string -> unit
-            onSelectEmergencyListItem: string -> unit
-            products: Deferred<Product list>
-            orderContext: Deferred<OrderContext>
-            orderContextMsg : (Api.OrderContextCommand * OrderContext) -> unit
-            treatmentPlan: Deferred<OrderPlan>
-            treatmentPlanCommand: Api.OrderPlanCommand -> unit
-            nutritionPlan: Deferred<NutritionPlan>
-            nutritionPlanMsg: Api.NutritionPlanCommand -> unit
-            formulary: Deferred<Formulary>
-            updateFormulary : Formulary -> unit
-            parenteralia : Deferred<Parenteralia>
-            updateParenteralia : Parenteralia -> unit
-            reloadResources : string -> unit
-            page : Global.Pages
-            localizationTerms : Deferred<string[][]>
-            languages : Localization.Locales []
-            hospitals : Deferred<string []>
-            switchLang : Localization.Locales -> unit
-            switchHosp : string -> unit |}) =
+        (props:
+            {|
+                showDisclaimer: bool
+                isDemo: bool
+                acceptDisclaimer: bool -> unit
+                patient: Patient option
+                updatePatient: Patient option -> unit
+                updatePage: Global.Pages -> unit
+                bolusMedication: Deferred<Intervention list>
+                continuousMedication: Deferred<Intervention list>
+                onSelectContinuousMedicationItem: string -> unit
+                onSelectEmergencyListItem: string -> unit
+                products: Deferred<Product list>
+                orderContext: Deferred<OrderContext>
+                orderContextMsg: (Api.OrderContextCommand * OrderContext) -> unit
+                treatmentPlan: Deferred<OrderPlan>
+                treatmentPlanCommand: Api.OrderPlanCommand -> unit
+                nutritionPlan: Deferred<NutritionPlan>
+                nutritionPlanMsg: Api.NutritionPlanCommand -> unit
+                formulary: Deferred<Formulary>
+                updateFormulary: Formulary -> unit
+                parenteralia: Deferred<Parenteralia>
+                updateParenteralia: Parenteralia -> unit
+                reloadResources: string -> unit
+                page: Global.Pages
+                localizationTerms: Deferred<string[][]>
+                languages: Localization.Locales[]
+                hospitals: Deferred<string[]>
+                switchLang: Localization.Locales -> unit
+                switchHosp: string -> unit
+            |})
+        =
 
-        let context : Global.Context = React.useContext Global.context
+        let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
@@ -149,24 +143,30 @@ module GenPres =
                 box lang
                 box props.orderContext
             |]
-        let state, dispatch = React.useElmish (init lang props.localizationTerms props.page, update lang props.localizationTerms props.updatePage, deps)
+
+        let state, dispatch =
+            React.useElmish (
+                init lang props.localizationTerms props.page,
+                update lang props.localizationTerms props.updatePage,
+                deps
+            )
 
         let modalStyle =
             {|
-                position="absolute"
-                top= "50%"
-                left= "50%"
-                transform= "translate(-50%, -50%)"
-                width= "90vw"
-                maxWidth= 400
-                bgcolor= "background.paper"
-                boxShadow= 24
+                position = "absolute"
+                top = "50%"
+                left = "50%"
+                transform = "translate(-50%, -50%)"
+                width = "90vw"
+                maxWidth = 400
+                bgcolor = "background.paper"
+                boxShadow = 24
             |}
 
         let sxPageBox =
             {|
-                marginTop= 3
-                paddingRight= 1
+                marginTop = 3
+                paddingRight = 1
                 overflowY =
                     match props.page with
                     | Global.Pages.Prescribe
@@ -185,14 +185,14 @@ module GenPres =
                 JSX.jsx
                     $"""
                 import Box from '@mui/material/Box';
-                <Box sx={ {| flexBasis=1 |} } >
-                    {
-                        Views.Patient.View({|
-                            patient = props.patient
-                            updatePatient = props.updatePatient
-                            localizationTerms = props.localizationTerms
-                        |})
-                    }
+                <Box sx={ {| flexBasis = 1 |} } >
+                    {Views.Patient.View(
+                         {|
+                             patient = props.patient
+                             updatePatient = props.updatePatient
+                             localizationTerms = props.localizationTerms
+                         |}
+                     )}
                 </Box>
                 """
 
@@ -209,131 +209,139 @@ module GenPres =
 
         <React.Fragment>
             <Box>
-                {Components.TitleBar.View({|
-                    title =
-                        let s = $"GenPRES 2023 {props.page |> Global.pageToString props.localizationTerms lang}"
-                        if props.isDemo then $"{s} - DEMO VERSION!" else s
+                {Components.TitleBar.View(
+                     {|
+                         title =
+                             let s =
+                                 $"GenPRES 2023 {props.page |> Global.pageToString props.localizationTerms lang}"
 
-                    toggleSideMenu = fun _ -> ToggleMenu |> dispatch
-                    languages = props.languages
-                    hospitals = props.hospitals
-                    switchLang = props.switchLang
-                    switchHosp = props.switchHosp
-                |})}
+                             if props.isDemo then $"{s} - DEMO VERSION!" else s
+
+                         toggleSideMenu = fun _ -> ToggleMenu |> dispatch
+                         languages = props.languages
+                         hospitals = props.hospitals
+                         switchLang = props.switchLang
+                         switchHosp = props.switchHosp
+                     |}
+                 )}
             </Box>
             <React.Fragment>
-                {
-                    Components.SideMenu.View({|
-                        anchor = "left"
-                        isOpen = state.SideMenuIsOpen
-                        toggle = (fun _ -> ToggleMenu |> dispatch)
-                        menuClick = SideMenuClick >> dispatch
-                        items =  state.SideMenuItems
-                    |})
-                }
+                {Components.SideMenu.View(
+                     {|
+                         anchor = "left"
+                         isOpen = state.SideMenuIsOpen
+                         toggle = (fun _ -> ToggleMenu |> dispatch)
+                         menuClick = SideMenuClick >> dispatch
+                         items = state.SideMenuItems
+                     |}
+                 )}
             </React.Fragment>
-            <Container id="page-container" sx={ {| height="87%"; marginTop= 3 |} } >
-                <Stack sx={ {| height="100%" |} }>
+            <Container id="page-container" sx={ {|
+                                                    height = "87%"
+                                                    marginTop = 3
+                                                |} } >
+                <Stack sx={ {| height = "100%" |} }>
                     {patientBox}
                     <Box id="page-box" sx={sxPageBox}>
-                        {
-                            match props.page with
-                            | Global.Pages.LifeSupport ->
-                                Views.EmergencyList.View {|
-                                    interventions = props.bolusMedication
-                                    localizationTerms = props.localizationTerms
-                                    patient = props.patient
-                                    onSelectItem = props.onSelectEmergencyListItem
-                                |}
-                            | Global.Pages.ContinuousMeds ->
-                                Views.ContinuousMeds.View {|
-                                    interventions = props.continuousMedication
-                                    localizationTerms = props.localizationTerms
-                                    patient = props.patient
-                                    onSelectItem = props.onSelectContinuousMedicationItem
-                                |}
-                            | Global.Pages.Prescribe ->
-                                Views.Prescribe.View {|
-                                    orderContext = props.orderContext
-                                    orderContextMsg = props.orderContextMsg
-                                    treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
-                                    localizationTerms = props.localizationTerms
-                                |}
-                            | Global.Pages.Nutrition ->
-                                Views.Nutrition.View {|
-                                    patient = props.patient
-                                    nutritionPlan = props.nutritionPlan
-                                    nutritionPlanMsg = props.nutritionPlanMsg
-                                    orderContextMsg = props.orderContextMsg
-                                    localizationTerms = props.localizationTerms
-                                |}
+                        {match props.page with
+                         | Global.Pages.LifeSupport ->
+                             Views.EmergencyList.View
+                                 {|
+                                     interventions = props.bolusMedication
+                                     localizationTerms = props.localizationTerms
+                                     patient = props.patient
+                                     onSelectItem = props.onSelectEmergencyListItem
+                                 |}
+                         | Global.Pages.ContinuousMeds ->
+                             Views.ContinuousMeds.View
+                                 {|
+                                     interventions = props.continuousMedication
+                                     localizationTerms = props.localizationTerms
+                                     patient = props.patient
+                                     onSelectItem = props.onSelectContinuousMedicationItem
+                                 |}
+                         | Global.Pages.Prescribe ->
+                             Views.Prescribe.View
+                                 {|
+                                     orderContext = props.orderContext
+                                     orderContextMsg = props.orderContextMsg
+                                     treatmentPlan = props.treatmentPlan
+                                     updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan(tp, None) |> props.treatmentPlanCommand
+                                     localizationTerms = props.localizationTerms
+                                 |}
+                         | Global.Pages.Nutrition ->
+                             Views.Nutrition.View
+                                 {|
+                                     patient = props.patient
+                                     nutritionPlan = props.nutritionPlan
+                                     nutritionPlanMsg = props.nutritionPlanMsg
+                                     orderContextMsg = props.orderContextMsg
+                                     localizationTerms = props.localizationTerms
+                                 |}
 
-                            | Global.Pages.TreatmentPlan ->
-                                Views.TreatmentPlan.View {|
-                                    treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
-                                    filterTreatmentPlan = Api.FilterOrderPlan >> props.treatmentPlanCommand
-                                    orderContextMsg =
-                                        fun (cmd, ctx) ->
-                                            match props.treatmentPlan with
-                                            | Resolved tp -> Api.UpdateOrderPlan (tp, Some (cmd, ctx)) |> props.treatmentPlanCommand
-                                            | _ -> ()
-                                    localizationTerms = props.localizationTerms
-                                |}
-                            | Global.Pages.Formulary ->
-                                Views.Formulary.View {|
-                                    formulary = props.formulary
-                                    updateFormulary = props.updateFormulary
-                                    localizationTerms = props.localizationTerms
-                                |}
-                            | Global.Pages.Parenteralia ->
-                                Views.Parenteralia.View {|
-                                    parenteralia = props.parenteralia
-                                    updateParenteralia = props.updateParenteralia
-                                |}
-                            | Global.Pages.Settings ->
-                                Views.Settings.View {|
-                                    reloadResources = props.reloadResources
-                                    orderContext = props.orderContext
-                                    localizationTerms = props.localizationTerms
-                                |}
+                         | Global.Pages.TreatmentPlan ->
+                             Views.TreatmentPlan.View
+                                 {|
+                                     treatmentPlan = props.treatmentPlan
+                                     updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan(tp, None) |> props.treatmentPlanCommand
+                                     filterTreatmentPlan = Api.FilterOrderPlan >> props.treatmentPlanCommand
+                                     orderContextMsg =
+                                         fun (cmd, ctx) ->
+                                             match props.treatmentPlan with
+                                             | Resolved tp -> Api.UpdateOrderPlan(tp, Some(cmd, ctx)) |> props.treatmentPlanCommand
+                                             | _ -> ()
+                                     localizationTerms = props.localizationTerms
+                                 |}
+                         | Global.Pages.Formulary ->
+                             Views.Formulary.View
+                                 {|
+                                     formulary = props.formulary
+                                     updateFormulary = props.updateFormulary
+                                     localizationTerms = props.localizationTerms
+                                 |}
+                         | Global.Pages.Parenteralia ->
+                             Views.Parenteralia.View
+                                 {|
+                                     parenteralia = props.parenteralia
+                                     updateParenteralia = props.updateParenteralia
+                                 |}
+                         | Global.Pages.Settings ->
+                             Views.Settings.View
+                                 {|
+                                     reloadResources = props.reloadResources
+                                     orderContext = props.orderContext
+                                     localizationTerms = props.localizationTerms
+                                 |}
 
-                        }
+            }
                     </Box>
                     <Box>
-                        {
-                            match props.page with
-                            | Global.Pages.Prescribe ->
-                                match props.orderContext with
-                                | Resolved pr ->
-                                    Views.Totals.View {| intake = pr.Intake |}
-                                | _ -> null
-                            | Global.Pages.Nutrition ->
-                                match props.nutritionPlan with
-                                | Resolved np ->
-                                    Views.Totals.View {| intake = np.Totals |}
-                                | _ -> null
-                            | Global.Pages.TreatmentPlan ->
-                                match props.treatmentPlan with
-                                | Resolved tp ->
-                                    Views.Totals.View {| intake = tp.Totals |}
-                                | _ -> null
-                            | _ -> null
-                        }
+                        {match props.page with
+                         | Global.Pages.Prescribe ->
+                             match props.orderContext with
+                             | Resolved pr -> Views.Totals.View {| intake = pr.Intake |}
+                             | _ -> null
+                         | Global.Pages.Nutrition ->
+                             match props.nutritionPlan with
+                             | Resolved np -> Views.Totals.View {| intake = np.Totals |}
+                             | _ -> null
+                         | Global.Pages.TreatmentPlan ->
+                             match props.treatmentPlan with
+                             | Resolved tp -> Views.Totals.View {| intake = tp.Totals |}
+                             | _ -> null
+                         | _ -> null}
                     </Box>
                 </Stack>
             </Container>
             <Modal open={props.showDisclaimer} onClose={fun () -> ()} >
                 <Box sx={modalStyle}>
-                    {
-                        Views.Disclaimer.View {|
-                            accept = props.acceptDisclaimer
-                            languages = props.languages
-                            switchLang = props.switchLang
-                            localizationTerms = props.localizationTerms
-                        |}
-                    }
+                    {Views.Disclaimer.View
+                         {|
+                             accept = props.acceptDisclaimer
+                             languages = props.languages
+                             switchLang = props.switchLang
+                             localizationTerms = props.localizationTerms
+                         |}}
                 </Box>
             </Modal>
 

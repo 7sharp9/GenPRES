@@ -9,14 +9,23 @@ module BottomDrawer =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                isOpen : bool
-                content : (string * ReactElement) []
+                isOpen: bool
+                content: (string * ReactElement)[]
+            |})
+        =
+        let sx =
+            {|
+                margin = "auto"
+                paddingTop = 2
+                paddingBottom = 2
             |}
-        ) =
-        let sx = {| margin="auto"; paddingTop=2; paddingBottom=2 |}
-        let drawerSx = {| ``& .MuiDrawer-paper`` = {| bgcolor = Mui.Colors.Grey.``100`` |} |}
+
+        let drawerSx =
+            {| ``& .MuiDrawer-paper`` = {| bgcolor = Mui.Colors.Grey.``100`` |} |}
+
         JSX.jsx
             $"""
         import Drawer from '@mui/material/Drawer';

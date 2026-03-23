@@ -12,13 +12,15 @@ module Settings =
 
     [<JSX.Component>]
     let View
-        (props: {|
-            reloadResources: string -> unit
-            orderContext: Deferred<OrderContext>
-            localizationTerms: Deferred<string [] []>
-        |}) =
+        (props:
+            {|
+                reloadResources: string -> unit
+                orderContext: Deferred<OrderContext>
+                localizationTerms: Deferred<string[][]>
+            |})
+        =
 
-        let context : Global.Context = React.useContext Global.context
+        let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
 
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
@@ -32,17 +34,17 @@ module Settings =
         let wasInProgress = React.useRef false
 
         let isLoading =
-            reloading &&
-            match props.orderContext with
-            | Resolved _ -> false
-            | _ -> true
+            reloading
+            && match props.orderContext with
+               | Resolved _ -> false
+               | _ -> true
 
         React.useEffect (
             fun () ->
                 if reloading then
                     match props.orderContext with
-                    | InProgress | Recalculating _ ->
-                        wasInProgress.current <- true
+                    | InProgress
+                    | Recalculating _ -> wasInProgress.current <- true
                     | Resolved _ ->
                         wasInProgress.current <- false
                         setReloading false
@@ -55,31 +57,33 @@ module Settings =
                         setDialogOpen true
                         setPasswordError true
                     | _ -> ()
-        , [| box reloading; box props.orderContext |]
+            , [| box reloading; box props.orderContext |]
         )
 
         let backdrop =
-            ViewHelpers.backdropProgress
-                isLoading
-                (Terms.``Reload resources`` |> getTerm "Reloading resources...")
+            ViewHelpers.backdropProgress isLoading (Terms.``Reload resources`` |> getTerm "Reloading resources...")
 
-        let handleOpen = fun _ ->
-            setPassword ""
-            setPasswordError false
-            setDialogOpen true
+        let handleOpen =
+            fun _ ->
+                setPassword ""
+                setPasswordError false
+                setDialogOpen true
 
-        let handleClose = fun _ ->
-            setDialogOpen false
-            setPassword ""
-            setPasswordError false
+        let handleClose =
+            fun _ ->
+                setDialogOpen false
+                setPassword ""
+                setPasswordError false
 
-        let handleConfirm = fun _ ->
-            setReloading true
-            setPasswordError false
-            props.reloadResources password
+        let handleConfirm =
+            fun _ ->
+                setReloading true
+                setPasswordError false
+                props.reloadResources password
 
         let handleKeyDown (e: Browser.Types.KeyboardEvent) =
-            if e.key = "Enter" then handleConfirm ()
+            if e.key = "Enter" then
+                handleConfirm ()
 
         JSX.jsx
             $"""
@@ -117,9 +121,14 @@ module Settings =
                         fullWidth={true}
                         variant="outlined"
                         value={password}
-                        onChange={fun (e: Browser.Types.Event) -> setPassword (e.target?value: string); setPasswordError false}
+                        onChange={fun (e: Browser.Types.Event) ->
+                                      setPassword (e.target?value: string)
+                                      setPasswordError false}
                         error={passwordError}
-                        helperText={if passwordError then Terms.``Invalid password`` |> getTerm "Invalid password" else ""}
+                        helperText={if passwordError then
+                                        Terms.``Invalid password`` |> getTerm "Invalid password"
+                                    else
+                                        ""}
                         onKeyDown={handleKeyDown}
                     />
                 </DialogContent>

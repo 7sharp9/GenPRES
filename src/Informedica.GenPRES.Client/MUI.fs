@@ -5,546 +5,679 @@ open Fable.Core
 module Icons =
 
     [<JSX.Component>]
-    let Home = JSX.jsx $"""
+    let Home =
+        JSX.jsx
+            $"""
         import Home from '@mui/icons-material/Home';
         <Home />
     """
 
     [<JSX.Component>]
-    let AccountTree = JSX.jsx $"""
+    let AccountTree =
+        JSX.jsx
+            $"""
         import AccountTree from '@mui/icons-material/AccountTree';
         <AccountTree />
     """
 
     [<JSX.Component>]
-    let Assignment = JSX.jsx $"""
+    let Assignment =
+        JSX.jsx
+            $"""
         import Assignment from '@mui/icons-material/Assignment';
         <Assignment />
     """
 
     [<JSX.Component>]
-    let Archive = JSX.jsx $"""
+    let Archive =
+        JSX.jsx
+            $"""
         import Archive from '@mui/icons-material/Archive';
         <Archive />
     """
 
     [<JSX.Component>]
-    let Message = JSX.jsx $"""
+    let Message =
+        JSX.jsx
+            $"""
         import Message from '@mui/icons-material/Message';
         <Message />
     """
 
     [<JSX.Component>]
-    let Tune = JSX.jsx $"""
+    let Tune =
+        JSX.jsx
+            $"""
         import Tune from '@mui/icons-material/Tune';
         <Tune />
     """
 
     [<JSX.Component>]
-    let PieChart = JSX.jsx $"""
+    let PieChart =
+        JSX.jsx
+            $"""
         import PieChart from '@mui/icons-material/PieChart';
         <PieChart />
     """
 
     // MenuIcon
     [<JSX.Component>]
-    let Menu = JSX.jsx $"""
+    let Menu =
+        JSX.jsx
+            $"""
         import Menu from '@mui/icons-material/Menu';
         <Menu />
     """
 
     //chevronRightIcon
     [<JSX.Component>]
-    let ChevronRight = JSX.jsx $"""
+    let ChevronRight =
+        JSX.jsx
+            $"""
         import ChevronRight from '@mui/icons-material/ChevronRight';
         <ChevronRight />
     """
 
     //chevronLeftIcon
     [<JSX.Component>]
-    let ChevronLeft = JSX.jsx $"""
+    let ChevronLeft =
+        JSX.jsx
+            $"""
         import ChevronLeft from '@mui/icons-material/ChevronLeft';
         <ChevronLeft />
     """
     //emailIcon
     [<JSX.Component>]
-    let Email = JSX.jsx $"""
+    let Email =
+        JSX.jsx
+            $"""
         import Email from '@mui/icons-material/Email';
         <Email />
     """
 
     //phoneIcon
     [<JSX.Component>]
-    let Phone = JSX.jsx $"""
+    let Phone =
+        JSX.jsx
+            $"""
         import Phone from '@mui/icons-material/Phone';
         <Phone />
     """
 
     //closeIcon
     [<JSX.Component>]
-    let Close = JSX.jsx $"""
+    let Close =
+        JSX.jsx
+            $"""
         import Close from '@mui/icons-material/Close';
         <Close />
     """
 
     //addIcon
     [<JSX.Component>]
-    let Add = JSX.jsx $"""
+    let Add =
+        JSX.jsx
+            $"""
         import Add from '@mui/icons-material/Add';
         <Add />
     """
     //deleteIcon
     [<JSX.Component>]
-    let Delete = JSX.jsx $"""
+    let Delete =
+        JSX.jsx
+            $"""
         import Delete from '@mui/icons-material/Delete';
         <Delete />
     """
 
     // personicon
     [<JSX.Component>]
-    let Person = JSX.jsx $"""
+    let Person =
+        JSX.jsx
+            $"""
         import Person from '@mui/icons-material/Person';
         <Person />
     """
 
     // Announcement
     [<JSX.Component>]
-    let Announcement = JSX.jsx $"""
+    let Announcement =
+        JSX.jsx
+            $"""
         import Announcement from '@mui/icons-material/Announcement';
         <Announcement />
     """
 
     //contactMail
     [<JSX.Component>]
-    let ContactMail = JSX.jsx $"""
+    let ContactMail =
+        JSX.jsx
+            $"""
         import ContactMail from '@mui/icons-material/ContactMail';
         <ContactMail />
     """
 
     // shortText
     [<JSX.Component>]
-    let ShortText = JSX.jsx $"""
+    let ShortText =
+        JSX.jsx
+            $"""
         import ShortText from '@mui/icons-material/ShortText';
         <ShortText />
     """
 
     //Contacts
     [<JSX.Component>]
-    let Contacts = JSX.jsx $"""
+    let Contacts =
+        JSX.jsx
+            $"""
         import Contacts from '@mui/icons-material/Contacts';
         <Contacts />
     """
 
     //playlistaddcheck
     [<JSX.Component>]
-    let PlaylistAddCheck = JSX.jsx $"""
+    let PlaylistAddCheck =
+        JSX.jsx
+            $"""
         import PlaylistAddCheck from '@mui/icons-material/PlaylistAddCheck';
         <PlaylistAddCheck />
     """
 
     //Settings
     [<JSX.Component>]
-    let Settings = JSX.jsx $"""
+    let Settings =
+        JSX.jsx
+            $"""
         import Settings from '@mui/icons-material/Settings';
         <Settings />
     """
 
     //Restore
     [<JSX.Component>]
-    let Restore = JSX.jsx $"""
+    let Restore =
+        JSX.jsx
+            $"""
         import Restore from '@mui/icons-material/Restore';
         <Restore />
     """
 
     //ExitToApp
     [<JSX.Component>]
-    let ExitToApp = JSX.jsx $"""
+    let ExitToApp =
+        JSX.jsx
+            $"""
         import ExitToApp from '@mui/icons-material/ExitToApp';
         <ExitToApp />
     """
 
     // shareicon
     [<JSX.Component>]
-    let Share = JSX.jsx $"""
+    let Share =
+        JSX.jsx
+            $"""
         import Share from '@mui/icons-material/Share';
         <Share />
     """
 
     // editIcon
     [<JSX.Component>]
-    let Edit = JSX.jsx $"""
+    let Edit =
+        JSX.jsx
+            $"""
         import Edit from '@mui/icons-material/Edit';
         <Edit />
     """
 
     //info icon
     [<JSX.Component>]
-    let Info = JSX.jsx $"""
+    let Info =
+        JSX.jsx
+            $"""
         import Info from '@mui/icons-material/Info';
         <Info />
     """
 
     //info icon
     [<JSX.Component>]
-    let Create = JSX.jsx $"""
+    let Create =
+        JSX.jsx
+            $"""
         import Create from '@mui/icons-material/Create';
         <Create />
     """
 
     //info icon
     [<JSX.Component>]
-    let Medication = JSX.jsx $"""
+    let Medication =
+        JSX.jsx
+            $"""
         import Medication from '@mui/icons-material/Medication';
         <Medication />
     """
 
     //info icon
     [<JSX.Component>]
-    let MedicationLiquid = JSX.jsx $"""
+    let MedicationLiquid =
+        JSX.jsx
+            $"""
         import MedicationLiquid from '@mui/icons-material/MedicationLiquid';
         <MedicationLiquid />
     """
 
     //info icon
     [<JSX.Component>]
-    let Vaccines = JSX.jsx $"""
+    let Vaccines =
+        JSX.jsx
+            $"""
         import Vaccines from '@mui/icons-material/Vaccines';
         <Vaccines />
     """
 
     //info icon
     [<JSX.Component>]
-    let Notes = JSX.jsx $"""
+    let Notes =
+        JSX.jsx
+            $"""
         import Notes from '@mui/icons-material/Notes';
         <Notes />
     """
 
     //info icon
     [<JSX.Component>]
-    let CampaignIcon = JSX.jsx $"""
+    let CampaignIcon =
+        JSX.jsx
+            $"""
         import CampaignIcon from '@mui/icons-material/Campaign';
         <CampaignIcon />
     """
 
     //info icon
     [<JSX.Component>]
-    let Downloading = JSX.jsx $"""
+    let Downloading =
+        JSX.jsx
+            $"""
         import Downloading from '@mui/icons-material/Downloading';
         <Downloading />
     """
 
     //info icon
     [<JSX.Component>]
-    let Clear = JSX.jsx $"""
+    let Clear =
+        JSX.jsx
+            $"""
         import Clear from '@mui/icons-material/Clear';
         <Clear />
     """
 
     [<JSX.Component>]
-    let FireExtinguisher = JSX.jsx $"""
+    let FireExtinguisher =
+        JSX.jsx
+            $"""
         import FireExtinguisher from '@mui/icons-material/FireExtinguisher';
         <FireExtinguisher />
     """
 
     [<JSX.Component>]
-    let LocalPharmacy = JSX.jsx $"""
+    let LocalPharmacy =
+        JSX.jsx
+            $"""
         import LocalPharmacy from '@mui/icons-material/LocalPharmacy';
         <LocalPharmacy />
     """
 
     [<JSX.Component>]
-    let Bloodtype = JSX.jsx $"""
+    let Bloodtype =
+        JSX.jsx
+            $"""
         import Bloodtype from '@mui/icons-material/Bloodtype';
         <Bloodtype />
     """
 
 
     [<JSX.Component>]
-    let Language = JSX.jsx $"""
+    let Language =
+        JSX.jsx
+            $"""
         import Language from '@mui/icons-material/Language';
         <Language />
     """
 
     [<JSX.Component>]
-    let LocalHospital = JSX.jsx $"""
+    let LocalHospital =
+        JSX.jsx
+            $"""
         import LocalHospital from '@mui/icons-material/LocalHospital';
         <LocalHospital />
     """
 
-    let PsychologyIcon = JSX.jsx $"""
+    let PsychologyIcon =
+        JSX.jsx
+            $"""
         import PsychologyIcon from '@mui/icons-material/Psychology';
         <PsychologyIcon />
     """
 
-    let CalculateIcon = JSX.jsx """
+    let CalculateIcon =
+        JSX.jsx
+            """
         import CalculateIcon from '@mui/icons-material/Calculate';
         <CalculateIcon/>
     """
 
-    let SummarizeIcon = JSX.jsx $"""
+    let SummarizeIcon =
+        JSX.jsx
+            $"""
     import SummarizeIcon from '@mui/icons-material/Summarize';
     <SummarizeIcon/>
     """
 
-    let LocalDiningIcon = JSX.jsx $"""
+    let LocalDiningIcon =
+        JSX.jsx
+            $"""
         import LocalDiningIcon from '@mui/icons-material/LocalDining';
         <LocalDiningIcon/>
     """
 
-    let RefreshIcon = JSX.jsx $"""
+    let RefreshIcon =
+        JSX.jsx
+            $"""
      import RefreshIcon from '@mui/icons-material/Refresh';
      <RefreshIcon/>
     """
 
-    let FirstPageIcon = JSX.jsx $"""
+    let FirstPageIcon =
+        JSX.jsx
+            $"""
      import FirstPageIcon from '@mui/icons-material/FirstPage';
      <FirstPageIcon/>
     """
 
-    let LastPageIcon = JSX.jsx $"""
+    let LastPageIcon =
+        JSX.jsx
+            $"""
      import LastPageIcon from '@mui/icons-material/LastPage';
      <LastPageIcon/>
     """
 
-    let SkipNextIcon = JSX.jsx $"""
+    let SkipNextIcon =
+        JSX.jsx
+            $"""
      import SkipNextIcon from '@mui/icons-material/SkipNext';
      <SkipNextIcon/>
     """
 
-    let SkipPreviousIcon = JSX.jsx $"""
+    let SkipPreviousIcon =
+        JSX.jsx
+            $"""
      import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
      <SkipPreviousIcon/>
     """
 
-    let PauseIcon = JSX.jsx $"""
+    let PauseIcon =
+        JSX.jsx
+            $"""
     import PauseIcon from '@mui/icons-material/Pause';
     <PauseIcon/>
     """
 
-    let AlignHorizontalCenterIcon = JSX.jsx $"""
+    let AlignHorizontalCenterIcon =
+        JSX.jsx
+            $"""
     import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
     <AlignHorizontalCenterIcon/>
     """
 
-    let KeyboardArrowUpIcon = JSX.jsx $"""
+    let KeyboardArrowUpIcon =
+        JSX.jsx
+            $"""
     import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
     <KeyboardArrowUpIcon/>
     """
 
-    let KeyboardArrowDownIcon = JSX.jsx $"""
+    let KeyboardArrowDownIcon =
+        JSX.jsx
+            $"""
     import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
     <KeyboardArrowDownIcon/>
     """
 
-    let KeyboardDoubleArrowUpIcon = JSX.jsx $"""
+    let KeyboardDoubleArrowUpIcon =
+        JSX.jsx
+            $"""
     import KeyboardDoubleArrowUpIcon from '@mui/icons-material/KeyboardDoubleArrowUp';
     <KeyboardDoubleArrowUpIcon/>
     """
 
-    let KeyboardDoubleArrowDownIcon = JSX.jsx $"""
+    let KeyboardDoubleArrowDownIcon =
+        JSX.jsx
+            $"""
     import KeyboardDoubleArrowDownIcon from '@mui/icons-material/KeyboardDoubleArrowDown';
     <KeyboardDoubleArrowDownIcon/>
     """
 
 
-type Color = {|
-    ``50`` : string;
-    ``100`` : string;
-    ``200`` : string;
-    ``300`` : string;
-    ``400`` : string;
-    ``500`` : string;
-    ``600`` : string;
-    ``700`` : string;
-    ``800`` : string;
-    ``900`` : string;
-    A100 : string;
-    A200 : string;
-    A400 : string;
-    A700 : string;
-|}
+type Color =
+    {|
+        ``50``: string
+        ``100``: string
+        ``200``: string
+        ``300``: string
+        ``400``: string
+        ``500``: string
+        ``600``: string
+        ``700``: string
+        ``800``: string
+        ``900``: string
+        A100: string
+        A200: string
+        A400: string
+        A700: string
+    |}
 
 
-type PaletteColor = {|
-    main : string;
-    light : string;
-    dark : string;
-    contrastText : string;
-|}
+type PaletteColor =
+    {|
+        main: string
+        light: string
+        dark: string
+        contrastText: string
+    |}
 
 
 [<Erase>]
 type Theme =
-    abstract member palette : {|
-        common: {|
-            black: string;
-            white: string;
-        |}
-        mode: string;
-        contrastThreshold: float;
-        tonalOffset: float;
-        primary: PaletteColor;
-        secondary: PaletteColor;
-        error: PaletteColor;
-        warning: PaletteColor;
-        info: PaletteColor;
-        success: PaletteColor;
-        grey: Color;
-        text: {|
-            primary: string;
-            secondary: string;
-            disabled: string;
-        |}
-        divider: string;
+    abstract member palette:
+        {|
+            common:
+                {|
+                    black: string
+                    white: string
+                |}
+            mode: string
+            contrastThreshold: float
+            tonalOffset: float
+            primary: PaletteColor
+            secondary: PaletteColor
+            error: PaletteColor
+            warning: PaletteColor
+            info: PaletteColor
+            success: PaletteColor
+            grey: Color
+            text:
+                {|
+                    primary: string
+                    secondary: string
+                    disabled: string
+                |}
+            divider: string
 
-        background: {|
-            paper: string;
-            ``default``: string;
-        |}
+            background:
+                {|
+                    paper: string
+                    ``default``: string
+                |}
 
-        getContrastText: string -> string;
-    |}
-
-    abstract member shadows : string[]
-
-    abstract member spacing : int -> string
-
-    abstract member zIndex : {|
-        mobileStepper: int;
-        speedDial: int;
-        appBar: int;
-        drawer: int;
-        modal: int;
-        snackbar: int;
-        tooltip: int;
-        fab: int;
-    |}
-
-    abstract member typography : {|
-        fontFamily: string;
-        fontSize: int;
-        fontWeightLight: int;
-        fontWeightRegular: int;
-        fontWeightMedium: int;
-        fontWeightBold: int;
-        h1: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        h2: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        h3: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        h4: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        h5: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        h6: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        subtitle1: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        subtitle2: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        body1: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        body2: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        button: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        caption: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-        overline: {|
-            fontFamily: string;
-            fontWeight: int;
-            fontSize: string;
-            lineHeight: string;
-            letterSpacing: string;
-        |}
-    |}
-
-    abstract member transitions : {|
-        easing: {|
-            easeInOut: string;
-            easeOut: string;
-            easeIn: string;
-            sharp: string;
+            getContrastText: string -> string
         |}
 
-        duration: {|
-            shortest: string;
-            shorter: string;
-            short: string;
-            standard: string;
-            complex: string;
-            enteringScreen: string;
-            leavingScreen: string;
+    abstract member shadows: string[]
+
+    abstract member spacing: int -> string
+
+    abstract member zIndex:
+        {|
+            mobileStepper: int
+            speedDial: int
+            appBar: int
+            drawer: int
+            modal: int
+            snackbar: int
+            tooltip: int
+            fab: int
         |}
 
-        ///prop, duration, easing, delay
-        create: string array -> string -> string -> string -> string;
-    |}
+    abstract member typography:
+        {|
+            fontFamily: string
+            fontSize: int
+            fontWeightLight: int
+            fontWeightRegular: int
+            fontWeightMedium: int
+            fontWeightBold: int
+            h1:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            h2:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            h3:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            h4:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            h5:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            h6:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            subtitle1:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            subtitle2:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            body1:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            body2:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            button:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            caption:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+            overline:
+                {|
+                    fontFamily: string
+                    fontWeight: int
+                    fontSize: string
+                    lineHeight: string
+                    letterSpacing: string
+                |}
+        |}
+
+    abstract member transitions:
+        {|
+            easing:
+                {|
+                    easeInOut: string
+                    easeOut: string
+                    easeIn: string
+                    sharp: string
+                |}
+
+            duration:
+                {|
+                    shortest: string
+                    shorter: string
+                    short: string
+                    standard: string
+                    complex: string
+                    enteringScreen: string
+                    leavingScreen: string
+                |}
+
+            create: string array -> string -> string -> string -> string
+        |}
 
 
-[<Import("useTheme", from="@mui/material/styles")>]
-let useTheme() : Theme = jsNative
+[<Import("useTheme", from = "@mui/material/styles")>]
+let useTheme () : Theme = jsNative
 
 [<Erase>]
 module Colors =
@@ -883,7 +1016,7 @@ module TypoGraphy =
         """
 
 
-    let fromTextBlock (textBlock : TextBlock) =
+    let fromTextBlock (textBlock: TextBlock) =
         let print tb =
             let items, color, hasWarning =
                 match tb with
@@ -934,6 +1067,7 @@ module TypoGraphy =
                     </Typography>
                     """
             )
+
         JSX.jsx
             $"""
         import Box from '@mui/material/Box';
@@ -957,7 +1091,6 @@ module HookImports =
 
     let useMediaQuery_theme (getQuery: Theme -> string) : bool =
         importDefault "@mui/material/useMediaQuery"
-
 
 
 [<Erase>]

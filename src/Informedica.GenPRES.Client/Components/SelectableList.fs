@@ -1,7 +1,6 @@
 namespace Components
 
 
-
 module SelectableList =
 
 
@@ -9,7 +8,13 @@ module SelectableList =
 
 
     [<JSX.Component>]
-    let View (props : {| updateSelected : string -> unit; items : (JSX.Element option * string * bool)[] |}) =
+    let View
+        (props:
+            {|
+                updateSelected: string -> unit
+                items: (JSX.Element option * string * bool)[]
+            |})
+        =
         let items =
             props.items
             |> Array.mapi (fun i (el, text, selected) ->
@@ -51,5 +56,3 @@ module SelectableList =
             {items}
         </List>
         """
-
-

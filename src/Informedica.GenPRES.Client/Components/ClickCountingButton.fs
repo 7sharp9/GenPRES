@@ -10,21 +10,22 @@ module ClickCountingButton =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                disabled : bool
-                onClick : int -> unit
-                icon : JSX.Element
-            |}
-        ) =
+                disabled: bool
+                onClick: int -> unit
+                icon: JSX.Element
+            |})
+        =
 
         let count, setCount = React.useState 0
-        let debounceRef = React.useRef (None : int option)
-        let intervalRef = React.useRef (None : int option)
+        let debounceRef = React.useRef (None: int option)
+        let intervalRef = React.useRef (None: int option)
         let countRef = React.useRef 0
 
         // Cleanup timers on unmount
-        React.useEffect(
+        React.useEffect (
             (fun () ->
                 fun () ->
                     debounceRef.current |> Option.iter JS.clearTimeout
@@ -47,15 +48,20 @@ module ClickCountingButton =
 
         let startDebounce () =
             clearDebounce ()
+
             let id =
                 JS.setTimeout
                     (fun () ->
                         let n = countRef.current
-                        if n > 0 then props.onClick n
+
+                        if n > 0 then
+                            props.onClick n
+
                         resetCount ()
                         debounceRef.current <- None
                     )
                     700
+
             debounceRef.current <- Some id
 
         let increment () =
@@ -70,15 +76,18 @@ module ClickCountingButton =
         let handleHoldStart =
             fun (_: Browser.Types.Event) ->
                 clearHoldInterval ()
+
                 let id =
                     JS.setInterval
-                        (fun () -> increment (); startDebounce ())
+                        (fun () ->
+                            increment ()
+                            startDebounce ()
+                        )
                         150
+
                 intervalRef.current <- Some id
 
-        let handleHoldEnd =
-            fun (_: Browser.Types.Event) ->
-                clearHoldInterval ()
+        let handleHoldEnd = fun (_: Browser.Types.Event) -> clearHoldInterval ()
 
         let badgeContent = if count > 1 then count |> box else null
 

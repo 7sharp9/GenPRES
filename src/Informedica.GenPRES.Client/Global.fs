@@ -17,15 +17,13 @@ type Pages =
 
 let getLocalizedTerm (localizationTerms: Deferred<string[][]>) (lang: Localization.Locales) defVal term =
     localizationTerms
-    |> Deferred.map (fun terms ->
-        Localization.getTerm terms lang term
-        |> Option.defaultValue defVal
-    )
+    |> Deferred.map (fun terms -> Localization.getTerm terms lang term |> Option.defaultValue defVal)
     |> Deferred.defaultValue defVal
 
 
 let pageToString terms locale page =
-    let getTerm term = getLocalizedTerm terms locale $"{term}" term
+    let getTerm term =
+        getLocalizedTerm terms locale $"{term}" term
 
     match page with
     | LifeSupport -> Terms.``Emergency List`` |> getTerm
@@ -38,12 +36,19 @@ let pageToString terms locale page =
     | Settings -> "Instellingen"
 
 
-type Context = { Localization : Localization.Locales; Hospital : string }
+type Context =
+    {
+        Localization: Localization.Locales
+        Hospital: string
+    }
 
-let defContext = { Localization = Localization.Dutch; Hospital = "" }
+let defContext =
+    {
+        Localization = Localization.Dutch
+        Hospital = ""
+    }
 
-let context =
-    React.createContext (defaultValue = defContext)
+let context = React.createContext (defaultValue = defContext)
 
 
 module Speech =
@@ -52,4 +57,3 @@ module Speech =
 
     [<Emit("window.speechSynthesis.speak(new SpeechSynthesisUtterance($0));")>]
     let speak s = ()
-

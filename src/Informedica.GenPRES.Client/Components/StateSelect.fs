@@ -11,25 +11,25 @@ module StateSelect =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                label : string
-                selected : string option
-                values : (int *string) []
-                updateSelected : string option -> unit
-            |}
-        ) =
+                label: string
+                selected: string option
+                values: (int * string)[]
+                updateSelected: string option -> unit
+            |})
+        =
         let handleChange =
             fun ev ->
                 ev?target?value
                 |> string
                 |> function
-                | s when s |> String.IsNullOrWhiteSpace -> None
-                | s -> s |> Some
+                    | s when s |> String.IsNullOrWhiteSpace -> None
+                    | s -> s |> Some
                 |> props.updateSelected
 
-        let clear =
-            fun _ -> props.updateSelected None
+        let clear = fun _ -> props.updateSelected None
 
         let items =
             props.values
@@ -61,7 +61,10 @@ module StateSelect =
         import Select from '@mui/material/Select';
 
         <div>
-        <FormControl variant="standard" sx={ {| margin = 1; minWidth = 120 |} }>
+        <FormControl variant="standard" sx={ {|
+                                                 margin = 1
+                                                 minWidth = 120
+                                             |} }>
             <InputLabel id="demo-simple-select-standard-label">{props.label}</InputLabel>
             <Select
             labelId="demo-simple-select-standard-label"

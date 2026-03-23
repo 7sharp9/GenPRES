@@ -10,32 +10,33 @@ module Slider =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                label : string
-                value : float
-                min : float
-                max : float
-                step : float
-                updateValue : float -> unit
-                isLoading : bool
-            |}
-        ) =
+                label: string
+                value: float
+                min: float
+                max: float
+                step: float
+                updateValue: float -> unit
+                isLoading: bool
+            |})
+        =
 
-        let handleChange =
-            fun (ev, newValue) ->
-                newValue
-                |> float
-                |> props.updateValue
+        let handleChange = fun (ev, newValue) -> newValue |> float |> props.updateValue
 
-        let stopPropagation =
-            fun (ev: Browser.Types.Event) ->
-                ev.stopPropagation()
+        let stopPropagation = fun (ev: Browser.Types.Event) -> ev.stopPropagation ()
 
         let marks =
             [|
-                {| value = props.min; label = string props.min |}
-                {| value = props.max; label = string props.max |}
+                {|
+                    value = props.min
+                    label = string props.min
+                |}
+                {|
+                    value = props.max
+                    label = string props.max
+                |}
             |]
 
         let labelDisplay =
@@ -57,7 +58,10 @@ module Slider =
         import Slider from '@mui/material/Slider';
 
         <Box 
-            sx={ {| width = 250; paddingX = 2 |} }
+            sx={ {|
+                     width = 250
+                     paddingX = 2
+                 |} }
             onClick={stopPropagation}
             onMouseDown={stopPropagation}
         >

@@ -7,40 +7,41 @@ module Accordion =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                expanded : bool
-                onChange : unit -> unit
-                summary : JSX.Element
-                children : JSX.Element
-                isMobile : bool
-                detailsPaddingTop : int option
-                ariaControls : string option
-                summaryId : string option
-            |}
-        ) =
+                expanded: bool
+                onChange: unit -> unit
+                summary: JSX.Element
+                children: JSX.Element
+                isMobile: bool
+                detailsPaddingTop: int option
+                ariaControls: string option
+                summaryId: string option
+            |})
+        =
         let sx =
             {|
-                bgcolor=Mui.Styles.headerBgColor
-                paddingTop=(if props.isMobile then 0 else 1)
-                paddingBottom=(if props.isMobile then 0 else 1)
+                bgcolor = Mui.Styles.headerBgColor
+                paddingTop = (if props.isMobile then 0 else 1)
+                paddingBottom = (if props.isMobile then 0 else 1)
                 minHeight = 0
-                ``&.Mui-expanded`` = {| minHeight=0 |}
-                ``& .MuiAccordionSummary-content`` = {| margin=0; display="flex"; alignItems="center" |}
-                ``& .MuiAccordionSummary-content.Mui-expanded`` = {| margin=0 |}
+                ``&.Mui-expanded`` = {| minHeight = 0 |}
+                ``& .MuiAccordionSummary-content`` =
+                    {|
+                        margin = 0
+                        display = "flex"
+                        alignItems = "center"
+                    |}
+                ``& .MuiAccordionSummary-content.Mui-expanded`` = {| margin = 0 |}
             |}
 
         let detailsPadding =
-            props.detailsPaddingTop
-            |> Option.defaultValue (if props.isMobile then 1 else 2)
+            props.detailsPaddingTop |> Option.defaultValue (if props.isMobile then 1 else 2)
 
-        let ariaControls =
-            props.ariaControls
-            |> Option.defaultValue ""
+        let ariaControls = props.ariaControls |> Option.defaultValue ""
 
-        let summaryId =
-            props.summaryId
-            |> Option.defaultValue ""
+        let summaryId = props.summaryId |> Option.defaultValue ""
 
         JSX.jsx
             $"""
@@ -59,7 +60,7 @@ module Accordion =
             >
             {props.summary}
             </AccordionSummary>
-            <AccordionDetails sx={ {| paddingTop=detailsPadding |} }>
+            <AccordionDetails sx={ {| paddingTop = detailsPadding |} }>
                 {props.children}
             </AccordionDetails>
         </Accordion>

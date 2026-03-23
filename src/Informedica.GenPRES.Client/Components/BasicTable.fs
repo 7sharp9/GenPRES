@@ -8,14 +8,21 @@ module BasicTable =
 
 
     [<JSX.Component>]
-    let View (props: {| header: obj []; rows : obj [][] |}) =
+    let View
+        (props:
+            {|
+                header: obj[]
+                rows: obj[][]
+            |})
+        =
         let createRow i cells =
             let key = $"{cells |> Array.head}-{i}"
 
             let cells =
                 cells
                 |> Array.mapi (fun i c ->
-                    JSX.jsx $"""
+                    JSX.jsx
+                        $"""
                     import TableCell from '@mui/material/TableCell';
                     <TableCell key={i}>
                         {c}
@@ -23,17 +30,15 @@ module BasicTable =
                     """
                 )
 
-            JSX.jsx $"""
+            JSX.jsx
+                $"""
             import TableRow from '@mui/material/TableRow';
             <TableRow key={key}>
                 {cells}
             </TableRow>
             """
 
-        let rows =
-            props.rows
-            |> Array.filter (Array.isEmpty >> not)
-            |> Array.mapi createRow
+        let rows = props.rows |> Array.filter (Array.isEmpty >> not) |> Array.mapi createRow
 
         JSX.jsx
             $"""
