@@ -88,7 +88,7 @@ let catalog : FunctionEntry list =
         { Module = "BSA"; Name = "duBois";           Signature = "float -> float -> float";                        Purity = Pure; Tested = isTested ["duBois"; "DuBois"]; Notes = "BSA formula — already tested" }
         { Module = "BSA"; Name = "haycock";          Signature = "float -> float -> float";                        Purity = Pure; Tested = isTested ["haycock"; "Haycock"]; Notes = "BSA formula — already tested" }
         { Module = "BSA"; Name = "gehanAndGeorge";   Signature = "float -> float -> float";                        Purity = Pure; Tested = isTested ["gehanAndGeorge"; "Gehan"]; Notes = "BSA formula — already tested" }
-        { Module = "BSA"; Name = "fujimoto";         Signature = "float -> float -> float";                        Purity = Pure; Tested = isTested ["fujimoto"; "Fuijimoto"]; Notes = "BSA formula — already tested" }
+        { Module = "BSA"; Name = "fujimoto";         Signature = "float -> float -> float";                        Purity = Pure; Tested = isTested ["fujimoto"; "Fujimoto"]; Notes = "BSA formula — already tested" }
         { Module = "BSA"; Name = "calcBSA";          Signature = "formula -> int option -> decimal<kg> -> decimal<cm> -> decimal<bsa>"; Purity = Pure; Tested = isTested ["calcBSA"]; Notes = "dispatcher — tested indirectly" }
 
         // === Calculations.Renal ===
