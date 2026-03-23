@@ -29,14 +29,14 @@ module Adapters =
                 async {
                     return
                         form
-                        |> Formulary.get provider
+                        |> FormularyService.get provider
                 }
 
             getParenteralia = fun par ->
                 async {
                     return
                         par
-                        |> Parenteralia.get provider
+                        |> ParenteraliaService.get provider
                         |> Result.mapError Array.singleton
                 }
         }
@@ -62,8 +62,8 @@ module Adapters =
                     do! setComponentName "TreatmentPlan" agent
 
                     return
-                        OrderPlan.updateOrderPlan logger provider tp cmdOpt
-                        |> OrderPlan.calculateTotals
+                        OrderPlanService.updateOrderPlan logger provider tp cmdOpt
+                        |> OrderPlanService.calculateTotals
                         |> Ok
                 }
 
@@ -71,7 +71,7 @@ module Adapters =
                 async {
                     return
                         tp
-                        |> OrderPlan.calculateTotals
+                        |> OrderPlanService.calculateTotals
                         |> Ok
                 }
         }
@@ -81,32 +81,32 @@ module Adapters =
         {
             initNutritionPlan = fun patient ->
                 async {
-                    return NutritionPlan.initNutritionPlan logger provider patient
+                    return NutritionPlanService.initNutritionPlan logger provider patient
                 }
 
             addNutritionContext = fun (plan, category) ->
                 async {
-                    return NutritionPlan.addNutritionContext logger provider (plan, category)
+                    return NutritionPlanService.addNutritionContext logger provider (plan, category)
                 }
 
             removeNutritionContext = fun (plan, id) ->
                 async {
-                    return NutritionPlan.removeNutritionContext (plan, id)
+                    return NutritionPlanService.removeNutritionContext (plan, id)
                 }
 
             updateNutritionOrderContext = fun (plan, label, ctx) ->
                 async {
-                    return NutritionPlan.updateNutritionOrderContext logger provider (plan, label, ctx)
+                    return NutritionPlanService.updateNutritionOrderContext logger provider (plan, label, ctx)
                 }
 
             selectNutritionOrderScenario = fun (plan, label, ctx) ->
                 async {
-                    return NutritionPlan.selectNutritionOrderScenario logger provider (plan, label, ctx)
+                    return NutritionPlanService.selectNutritionOrderScenario logger provider (plan, label, ctx)
                 }
 
             navigateNutritionOrderContext = fun (plan, label, ctxCmd, ctx) ->
                 async {
-                    return NutritionPlan.navigateNutritionOrderContext logger provider (plan, label, ctxCmd, ctx)
+                    return NutritionPlanService.navigateNutritionOrderContext logger provider (plan, label, ctxCmd, ctx)
                 }
         }
 

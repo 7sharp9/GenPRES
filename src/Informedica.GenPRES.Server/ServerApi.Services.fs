@@ -1,7 +1,7 @@
 namespace ServerApi
 
 
-module Formulary =
+module FormularyService =
 
     open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
@@ -146,7 +146,7 @@ DoseTypes: {form.DoseTypes |> Array.length}
         Ok form
 
 
-module Parenteralia =
+module ParenteraliaService =
 
     open Informedica.GenOrder.Lib
     open Informedica.Utils.Lib.ConsoleWriter.NewLineTime
@@ -194,7 +194,7 @@ module Parenteralia =
         |> Ok
 
 
-module Order =
+module OrderService =
 
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
@@ -255,7 +255,7 @@ module OrderContextService =
 
                 ctx.Scenarios
                 |> Array.map _.Order
-                |> Order.getTotals a w
+                |> OrderService.getTotals a w
         }
 
 
@@ -355,7 +355,7 @@ module OrderContextService =
                 Error [| e.Message |]
 
 
-module OrderPlan =
+module OrderPlanService =
 
     open Shared
     open Shared.Types
@@ -402,11 +402,11 @@ module OrderPlan =
 
                 scs
                 |> Array.map _.Order
-                |> Order.getTotals a w
+                |> OrderService.getTotals a w
         }
 
 
-module NutritionPlan =
+module NutritionPlanService =
 
     open Shared
     open Shared.Types
@@ -563,7 +563,7 @@ module NutritionPlan =
                 let a = plan.Patient |> Models.Patient.getAgeInDays |> Option.map int
                 plan.NutritionContexts
                 |> Array.collect (fun nc -> nc.OrderContext.Scenarios |> Array.map _.Order)
-                |> Order.getTotals a w
+                |> OrderService.getTotals a w
         }
 
 

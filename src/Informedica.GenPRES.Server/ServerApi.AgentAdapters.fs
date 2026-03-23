@@ -76,12 +76,12 @@ module AgentAdapters =
         match cmd with
         | ServerCommand.GetFormulary form ->
             form
-            |> Formulary.get provider
+            |> FormularyService.get provider
             |> ServerResponse.Formulary
 
         | ServerCommand.GetParenteralia par ->
             par
-            |> Parenteralia.get provider
+            |> ParenteraliaService.get provider
             |> Result.mapError Array.singleton
             |> ServerResponse.Parenteralia
 
@@ -93,39 +93,39 @@ module AgentAdapters =
 
         | ServerCommand.UpdateOrderPlan (tp, cmdOpt) ->
             setComponent "TreatmentPlan"
-            OrderPlan.updateOrderPlan logger provider tp cmdOpt
-            |> OrderPlan.calculateTotals
+            OrderPlanService.updateOrderPlan logger provider tp cmdOpt
+            |> OrderPlanService.calculateTotals
             |> Ok
             |> ServerResponse.OrderPlan
 
         | ServerCommand.FilterOrderPlan tp ->
             tp
-            |> OrderPlan.calculateTotals
+            |> OrderPlanService.calculateTotals
             |> Ok
             |> ServerResponse.OrderPlan
 
         | ServerCommand.InitNutritionPlan patient ->
-            NutritionPlan.initNutritionPlan logger provider patient
+            NutritionPlanService.initNutritionPlan logger provider patient
             |> ServerResponse.NutritionPlan
 
         | ServerCommand.AddNutritionContext (plan, category) ->
-            NutritionPlan.addNutritionContext logger provider (plan, category)
+            NutritionPlanService.addNutritionContext logger provider (plan, category)
             |> ServerResponse.NutritionPlan
 
         | ServerCommand.RemoveNutritionContext (plan, id) ->
-            NutritionPlan.removeNutritionContext (plan, id)
+            NutritionPlanService.removeNutritionContext (plan, id)
             |> ServerResponse.NutritionPlan
 
         | ServerCommand.UpdateNutritionOrderContext (plan, label, ctx) ->
-            NutritionPlan.updateNutritionOrderContext logger provider (plan, label, ctx)
+            NutritionPlanService.updateNutritionOrderContext logger provider (plan, label, ctx)
             |> ServerResponse.NutritionPlan
 
         | ServerCommand.SelectNutritionOrderScenario (plan, label, ctx) ->
-            NutritionPlan.selectNutritionOrderScenario logger provider (plan, label, ctx)
+            NutritionPlanService.selectNutritionOrderScenario logger provider (plan, label, ctx)
             |> ServerResponse.NutritionPlan
 
         | ServerCommand.NavigateNutritionOrderContext (plan, label, ctxCmd, ctx) ->
-            NutritionPlan.navigateNutritionOrderContext logger provider (plan, label, ctxCmd, ctx)
+            NutritionPlanService.navigateNutritionOrderContext logger provider (plan, label, ctxCmd, ctx)
             |> ServerResponse.NutritionPlan
 
 
