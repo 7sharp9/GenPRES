@@ -1,0 +1,264 @@
+/// NKFCITests.fsx — Pure NKF tests for W3 CI migration
+///
+/// Contains the 14 data-independent (pure) tests identified by NKFTestAnalysis.fsx
+/// that can be run in CI without requiring GENPRES_URL_ID or a ZIndex cache file.
+///
+/// Prerequisites:
+///   dotnet run Build          # compile DLLs first
+///
+/// To run:
+///   dotnet fsi scripts/NKFCITests.fsx
+///
+/// To migrate to CI:
+///   Copy the module bodies below into
+///   tests/Informedica.NKF.Tests/Tests.fs replacing the hello-world stub.
+///
+/// Modules covered:
+///   Utils.Regex        (3 tests) — matchFloat, matchAlpha, matchFloatAlpha
+///   Drug.Frequency     (7 tests) — isValid, toDoseType, getFrequency
+///   Drug.Target        (5 tests) — getTarget, genderToString, getAge
+///   Drug.createDrug    (1 test)  — smart constructor invariants
+///   Export.cleanGenericName (3 tests) — name normalization
+///
+/// W3 roadmap: NKFTestAnalysis.fsx → NKFCITests.fsx → migrate to Tests.fs
+
+#I __SOURCE_DIRECTORY__
+
+#load "load-dependencies.fsx"
+
+#r "../src/Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
+#r "../src/Informedica.GenUnits.Lib/bin/Debug/net10.0/Informedica.GenUnits.Lib.dll"
+#r "../src/Informedica.ZIndex.Lib/bin/Debug/net10.0/Informedica.ZIndex.Lib.dll"
+#r "../src/Informedica.NKF.Lib/bin/Debug/net10.0/Informedica.NKF.Lib.dll"
+
+open Expecto
+open Expecto.Flip
+
+open Informedica.KinderFormularium.Lib
+open Informedica.KinderFormularium.Lib.Drug
+
+
+// ---------------------------------------------------------------------------
+// Utils.Regex — pure string extraction functions
+// ---------------------------------------------------------------------------
+
+module RegexTests =
+
+    let tests =
+        testList "Utils.Regex" [
+            test "matchFloat extracts numeric portion from alphanumeric string" {
+                "12.5mg"
+                |> Utils.Regex.matchFloat
+                |> Expect.equal "should return '12.5'" "12.5"
+            }
+
+            test "matchAlpha extracts alphabetic portion from alphanumeric string" {
+                "12.5mg"
+                |> Utils.Regex.matchAlpha
+                |> Expect.equal "should return 'mg'" "mg"
+            }
+
+            test "matchFloatAlpha splits value and unit from combined string" {
+                "3.0mcg"
+                |> Utils.Regex.matchFloatAlpha
+                |> Expect.equal "should return ('3.0', 'mcg')" ("3.0", "mcg")
+            }
+        ]
+
+
+// ---------------------------------------------------------------------------
+// Drug.Frequency — pure DU validation and conversion
+// ---------------------------------------------------------------------------
+
+module FrequencyTests =
+
+    open Frequency
+
+    let validQty = { Min = 1; Max = 3; Time = 24; Unit = "uur" }
+    let zeroTimeQty = { validQty with Time = 0 }
+    let emptyUnitQty = { validQty with Unit = "" }
+
+    let tests =
+        testList "Drug.Frequency" [
+            test "isValid returns true for Frequency with positive Max, Time and non-empty Unit" {
+                Frequency validQty
+                |> isValid
+                |> Expect.isTrue "valid Frequency should be valid"
+            }
+
+            test "isValid returns false when Time is zero" {
+                Frequency zeroTimeQty
+                |> isValid
+                |> Expect.isFalse "zero Time should be invalid"
+            }
+
+            test "isValid returns false when Unit is empty" {
+                Frequency emptyUnitQty
+                |> isValid
+                |> Expect.isFalse "empty Unit should be invalid"
+            }
+
+            test "isValid returns true for AnteNoctum (no Quantity)" {
+                AnteNoctum
+                |> isValid
+                |> Expect.isTrue "AnteNoctum should always be valid"
+            }
+
+            test "toDoseType maps Frequency to 'onderhoud'" {
+                Frequency validQty
+                |> toDoseType
+                |> Expect.equal "Frequency → onderhoud" "onderhoud"
+            }
+
+            test "toDoseType maps PRN to 'prn'" {
+                PRN validQty
+                |> toDoseType
+                |> Expect.equal "PRN → prn" "prn"
+            }
+
+            test "toDoseType maps Once to 'eenmalig'" {
+                Once
+                |> toDoseType
+                |> Expect.equal "Once → eenmalig" "eenmalig"
+            }
+
+            test "getFrequency returns semicolon-delimited range for Frequency 1..3" {
+                Frequency validQty
+                |> getFrequency
+                |> Expect.equal "should return '1;2;3'" "1;2;3"
+            }
+
+            test "getFrequency returns empty string for AnteNoctum" {
+                AnteNoctum
+                |> getFrequency
+                |> Expect.equal "non-range frequencies return empty string" ""
+            }
+        ]
+
+
+// ---------------------------------------------------------------------------
+// Drug.Target — pure DU unwrapping and gender/age extraction
+// ---------------------------------------------------------------------------
+
+module TargetTests =
+
+    open Target
+
+    let unknownTarget = Unknown ("x", "y")
+    let allTarget = Target (AllType, AllAge, AllWeight)
+    let boyTarget = Target (Boy, AllAge, AllWeight)
+    let girlTarget = Target (Girl, AllAge, AllWeight)
+
+    let ageTarget =
+        let minAge = Some { Quantity = 1.0; Unit = "month" }
+        let maxAge = Some { Quantity = 12.0; Unit = "month" }
+        Target (AllType, Age (minAge, maxAge), AllWeight)
+
+    let tests =
+        testList "Drug.Target" [
+            test "getTarget returns None for Unknown" {
+                unknownTarget
+                |> getTarget
+                |> Expect.isNone "Unknown → None"
+            }
+
+            test "getTarget returns Some for Target" {
+                allTarget
+                |> getTarget
+                |> Expect.isSome "Target (...) → Some"
+            }
+
+            test "genderToString returns 'man' for Boy" {
+                boyTarget
+                |> genderToString
+                |> Expect.equal "Boy → 'man'" "man"
+            }
+
+            test "genderToString returns 'vrouw' for Girl" {
+                girlTarget
+                |> genderToString
+                |> Expect.equal "Girl → 'vrouw'" "vrouw"
+            }
+
+            test "genderToString returns empty string for AllType" {
+                allTarget
+                |> genderToString
+                |> Expect.equal "AllType → ''" ""
+            }
+
+            test "getAge returns (None, None) for AllAge variant" {
+                allTarget
+                |> getAge
+                |> Expect.equal "AllAge → (None, None)" (None, None)
+            }
+
+            test "getAge extracts min and max from Age variant" {
+                let (minOpt, maxOpt) = ageTarget |> getAge
+                minOpt |> Expect.isSome "min age should be Some"
+                maxOpt |> Expect.isSome "max age should be Some"
+            }
+        ]
+
+
+// ---------------------------------------------------------------------------
+// Drug.createDrug — smart constructor invariants
+// ---------------------------------------------------------------------------
+
+module CreateDrugTests =
+
+    let tests =
+        testList "Drug.createDrug" [
+            test "createDrug populates Id, Atc, Generic and Brand; Doses is empty" {
+                let drug = createDrug "id1" "N02BE01" "paracetamol" "Panadol"
+                drug.Id |> Expect.equal "Id" "id1"
+                drug.Atc |> Expect.equal "Atc" "N02BE01"
+                drug.Generic |> Expect.equal "Generic" "paracetamol"
+                drug.Brand |> Expect.equal "Brand" "Panadol"
+                drug.Doses |> Expect.isEmpty "Doses should be empty"
+            }
+        ]
+
+
+// ---------------------------------------------------------------------------
+// Export.cleanGenericName — pure name normalisation
+// ---------------------------------------------------------------------------
+
+module CleanGenericNameTests =
+
+    let tests =
+        testList "Export.cleanGenericName" [
+            test "cleanGenericName lowercases the generic name" {
+                let drug = createDrug "" "" "Paracetamol" ""
+                (Export.cleanGenericName drug).Generic
+                |> Expect.equal "should be lower-case" "paracetamol"
+            }
+
+            test "cleanGenericName replaces ë with e" {
+                let drug = createDrug "" "" "colistimethaatnatriüm" ""
+                let cleaned = (Export.cleanGenericName drug).Generic
+                cleaned |> Expect.isFalse "should not contain ë" (cleaned.Contains("ë"))
+            }
+
+            test "cleanGenericName strips ' (combinatiepreparaat)' suffix" {
+                let drug = createDrug "" "" "co-trimoxazol (combinatiepreparaat)" ""
+                (Export.cleanGenericName drug).Generic
+                |> Expect.equal "suffix removed" "co-trimoxazol"
+            }
+        ]
+
+
+// ---------------------------------------------------------------------------
+// Run all tests
+// ---------------------------------------------------------------------------
+
+let allTests =
+    testList "NKF pure tests" [
+        RegexTests.tests
+        FrequencyTests.tests
+        TargetTests.tests
+        CreateDrugTests.tests
+        CleanGenericNameTests.tests
+    ]
+
+runTestsWithCLIArgs [] [||] allTests
+|> ignore

@@ -25,6 +25,7 @@ module SimpleSelect =
                     useDebounce : bool
                 |} option
                 isLoading : bool
+                disabled : bool
                 hasClear : bool
                 warning : string option
                 minWidth : int option
@@ -68,7 +69,7 @@ module SimpleSelect =
         let clearButton =
             match props.isLoading, isClear with
             | true, _      -> Mui.Icons.Downloading
-            | false, true  -> JSX.jsx "<></>"
+            | false, true  -> null
             | false, false ->
                 JSX.jsx
                     $"""
@@ -91,12 +92,12 @@ module SimpleSelect =
             |> Option.map (fun nav ->
                 let getNav prop =
                     match prop with
-                    | Some onClick -> false, onClick
+                    | Some onClick -> props.disabled, onClick
                     | None -> true, fun () -> ()
 
                 let getNavN prop =
                     match prop with
-                    | Some onClick -> false, onClick
+                    | Some onClick -> props.disabled, onClick
                     | None -> true, fun (_: int) -> ()
 
                 let firstDisabled, firstClick = nav.first |> getNavN
@@ -252,6 +253,7 @@ module SimpleSelect =
             value={props.selected |> Option.defaultValue ""}
             onChange={handleChange}
             label={props.label}
+            disabled={props.disabled}
             endAdornment={endAdornment}
             sx={sx}
             MenuProps={menuProps}

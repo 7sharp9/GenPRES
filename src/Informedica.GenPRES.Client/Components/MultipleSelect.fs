@@ -17,6 +17,7 @@ module MultipleSelect =
                 values : (string * string) []
                 updateSelected : string [] -> unit
                 isLoading : bool
+                disabled : bool
             |}
         ) =
 
@@ -53,7 +54,7 @@ module MultipleSelect =
         let clearButton =
             match props.isLoading, isClear with
             | true, _      -> Mui.Icons.Downloading
-            | false, true  -> JSX.jsx "<></>"
+            | false, true  -> null
             | false, false ->
                 JSX.jsx
                     $"""
@@ -64,6 +65,8 @@ module MultipleSelect =
                     {Mui.Icons.Clear}
                 </IconButton>
                 """
+
+        let selectSx = Mui.Styles.selectIconVisibilitySx (isClear && not props.isLoading)
 
         JSX.jsx
             $"""
@@ -80,16 +83,10 @@ module MultipleSelect =
             value={props.selected}
             onChange={handleChange}
             label={props.label}
+            disabled={props.disabled}
             multiple={true}
             endAdornment={clearButton}
-            sx=
-                {
-                    {| ``& .MuiSelect-icon`` =
-                        {|
-                            visibility = if isClear && not props.isLoading then "visible" else "hidden"
-                        |}
-                    |}
-                }
+            sx={selectSx}
             >
                 {items}
             </Select>

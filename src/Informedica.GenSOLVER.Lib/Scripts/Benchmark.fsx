@@ -20,6 +20,7 @@
 // =============================================================
 
 open System
+open MathNet.Numerics
 open Informedica.GenUnits.Lib
 open Informedica.GenSolver.Lib
 

@@ -23,15 +23,20 @@ module TreatmentPlan =
         let context = React.useContext Global.context
         let lang = context.Localization
 
-        let modalOpen, setModalOpen = React.useState false
+        // Derive modal visibility from Elmish state — if an order is selected, the modal is open.
+        // This avoids duplicating tp.Selected.IsSome in local React state.
+        let modalOpen =
+            match props.treatmentPlan with
+            | Resolved tp | Recalculating tp -> tp.Selected.IsSome
+            | _ -> false
+
         let handleModalClose =
             fun () ->
                 match props.treatmentPlan with
-                | Resolved tp ->
+                | Resolved tp | Recalculating tp ->
                     { tp with Selected = None }
                     |> props.updateTreatmentPlan
                 | _ -> ()
-                setModalOpen false
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
@@ -68,7 +73,7 @@ module TreatmentPlan =
                 |> String.concat ""
 
             match props.treatmentPlan with
-            | Resolved tp ->
+            | Resolved tp | Recalculating tp ->
                 tp.Scenarios
                 |> Array.map _.Order
                 |> Array.mapi (fun i o ->
@@ -161,7 +166,7 @@ module TreatmentPlan =
 
         let selectOrder id =
             match props.treatmentPlan with
-            | Resolved tp ->
+            | Resolved tp | Recalculating tp ->
                 tp.Scenarios
                 |> Array.tryFind (fun sc -> sc.Order.Id = id)
                 |> function
@@ -171,13 +176,11 @@ module TreatmentPlan =
                 | Some sc ->
                     { tp with Filtered = [||]; Selected = Some sc }
                     |> props.updateTreatmentPlan
-
-                    setModalOpen true
             | _ -> ()
 
         let filterOrders ids =
             match props.treatmentPlan with
-            | Resolved tp ->
+            | Resolved tp | Recalculating tp ->
                 { tp with
                     Selected = None
                     Filtered =
@@ -195,7 +198,7 @@ module TreatmentPlan =
 
         let selectedRows =
             match props.treatmentPlan with
-            | Resolved tp ->
+            | Resolved tp | Recalculating tp ->
                 tp.Filtered
                 |> Array.map _.Order
                 |> Array.map _.Id
@@ -204,7 +207,7 @@ module TreatmentPlan =
         let onDelete =
             fun () ->
                 match props.treatmentPlan with
-                | Resolved tp ->
+                | Resolved tp | Recalculating tp ->
                     { tp with
                         Scenarios =
                             tp.Scenarios
@@ -226,7 +229,7 @@ module TreatmentPlan =
 
         let deleteBtn =
             match props.treatmentPlan with
-            | Resolved tp when tp.Filtered |> Array.length > 0 ->
+            | Resolved tp | Recalculating tp when tp.Filtered |> Array.length > 0 ->
                 JSX.jsx $"""
                 import Button from '@mui/material/Button';
 
@@ -236,7 +239,7 @@ module TreatmentPlan =
                     </Button>
                 </Box>
                 """
-            | _ -> ViewHelpers.empty
+            | _ -> null
 
 
         JSX.jsx
@@ -259,6 +262,7 @@ module TreatmentPlan =
                     onSelectChange = filterOrders
                     showToolbar = true
                     showFooter = true
+                    onPrint = None
                 |})
             }
             <Modal open={modalOpen} onClose={handleModalClose} >
@@ -267,7 +271,7 @@ module TreatmentPlan =
                         Order.View {|
                             orderContext =
                                 match props.treatmentPlan with
-                                | Resolved tp ->
+                                | Resolved tp | Recalculating tp ->
                                     tp.Selected
                                     |> Option.map (fun sc ->
                                         OrderContext.fromOrderScenario tp.Patient sc

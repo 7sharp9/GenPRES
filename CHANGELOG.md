@@ -18,17 +18,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scripts**: `NKFTestAnalysis.fsx` for W3 NKF test coverage — catalogues 14 pure testable functions and prints ready-to-use Expecto test cases
 - **Scripts**: `GenOrderTestScaffolding.fsx` for W3 GenORDER test scaffolding — identifies coverage gaps and provides concrete test scaffolding for Patient, Medication, and OrderVariable modules
 - **Server/GenForm**: Improve error handling when resources (Google Sheets / CSV) cannot be loaded
+- **Tests (ZForm)**: Migrate 11 pure ZForm tests from `ZFormCITests.fsx` script into `tests/Informedica.ZForm.Tests/Tests.fs` formal test suite (W3)
+- **Scripts (NKF)**: Add `NKFCITests.fsx` — 19 pure NKF tests ready for CI migration (W3)
+- **Scripts (NKF)**: Add `NKFTestAnalysis.fsx` — W3 test coverage analysis for NKF library
+- **Scripts (ZForm)**: Add `ZFormTestMigration.fsx` — analysis script for ZForm test migration
+- **Scripts**: Add `TestMigrationStatus.fsx` — W3 test migration status across all libraries
+- **Scripts (ZForm)**: Add `ZFormCITests.fsx` — 11 pure ZForm tests ready for CI migration (W3)
 
-### Changed
+---
 
-- **Docs**: Improve user guides and add examples table with URLs
-- **Docs**: Fix Markdown linter problems in documentation files
+## [0.1.1-alpha] - 2026-03-16
+
+> ⚠️ **Alpha release** — Early development stage. Major features are incomplete. **Not for clinical use.**
+
+### Added
+
+- **Client (UI)**: Move resource-reload action to the Settings page for better UX organisation
+- **Client (UI)**: Improved loading and calculation busy-state indicators
+- **Scripts (GenSolver)**: Add `Benchmark.fsx` — baseline performance measurements for constraint solver (Roadmap W2)
+- **Scripts (GenSolver)**: Add `Profile.fsx` — profiling script for W2 review
+- **Scripts (GenSolver)**: Add `Memo.fsx` — prototype memoization layer for `Equation.solve` (Roadmap W2)
+- **Scripts (GenSolver)**: Add `CoverageAnalysis.fsx` — W3 test-coverage analysis
+- **Scripts (GenForm)**: Add `LocalProducts.fsx` — prototype for type-safe local product support (`ProductId = ZIndex | Local`)
+- **Docs**: Expanded user guide with examples table and deployment URLs
+- **Tests (ZIndex)**: Port ZIndex test script to the formal test suite
 
 ### Fixed
 
-- **Client**: Remove duplicate `isLoading` logic; clear error banner when server recovers
-- **Tests**: Add tests for resource load failure scenarios
-- **Tests**: Fix ZIndex test failures
+- **Client (UI)**: Fix proper loading mask when reloading resources
+- **Client (UI)**: Remove duplicate is-loading logic; clear error banner when server returns online
+- **Server**: Improve error handling and propagation when resources cannot be loaded
+- **Server**: Fix errors in profile and benchmark scripts
+- **ZIndex Tests**: Prevent data loss of pre-existing BST files in fixture teardown
+- **Docs**: Fix Markdown lint warnings in user guide
 
 ---
 

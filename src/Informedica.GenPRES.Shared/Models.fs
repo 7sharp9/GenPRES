@@ -1643,6 +1643,26 @@ module Models =
                     |> Option.defaultValue false
 
 
+            let displayString (ovar: OrderVariable) =
+                ovar.Variable.Vals
+                |> Option.bind (fun v ->
+                    v.Value
+                    |> Array.tryHead
+                    |> Option.map (fun (_, d) -> (d |> Decimal.toStringNumberNLWithoutTrailingZeros) + " " + v.Unit)
+                )
+                |> Option.defaultValue ""
+
+
+            let displayStringFormatted (format: decimal -> string) (ovar: OrderVariable) =
+                ovar.Variable.Vals
+                |> Option.bind (fun v ->
+                    v.Value
+                    |> Array.tryHead
+                    |> Option.map (fun (_, d) -> (d |> format) + " " + v.Unit)
+                )
+                |> Option.defaultValue ""
+
+
             let (|NonNavigable|Navigable|Selectable|Stepable|) (ovar: OrderVariable) =
                 let var = ovar.Variable
                 let def = ovar.DefinedConstraints
@@ -2215,6 +2235,41 @@ module Models =
                 | i -> failwith $"not a valid textblock: {i}"
 
 
+        /// Flatten TextBlock[][] to a single-row TextBlock[][] for compact display.
+        /// Joins rows with " + " separators and uses the max severity level.
+        let flatten (blocks: TextBlock [][]) : TextBlock [][] =
+            if blocks |> Array.isEmpty then blocks
+            else
+                let getItems tb =
+                    match tb with
+                    | Valid itms
+                    | Caution itms
+                    | Warning itms
+                    | Alert itms ->
+                        itms
+                        |> Array.append [| " " |> Normal |]
+
+                let add xs =
+                    let plus = [| [| " + " |> Normal |] |]
+
+                    xs
+                    |> Array.fold (fun acc x ->
+                        if acc |> Array.isEmpty then x
+                        else
+                            x
+                            |> Array.append plus
+                            |> Array.append acc
+                    ) [||]
+                    |> Array.collect id
+
+                blocks
+                |> Array.map (Array.map getItems)
+                |> add
+                |> (blocks |> maxTb)
+                |> Array.singleton
+                |> Array.singleton
+
+
     module OrderPlan =
 
         let create pat srs =
@@ -2229,7 +2284,14 @@ module Models =
 
     module NutritionContext =
 
-        let create label ctx : NutritionContext = { Label = label; OrderContext = ctx }
+        let create id label category removable ctx : NutritionContext =
+            {
+                Id = id
+                Label = label
+                Category = category
+                Removable = removable
+                OrderContext = ctx
+            }
 
 
     module NutritionPlan =

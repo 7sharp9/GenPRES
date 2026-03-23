@@ -860,7 +860,7 @@ module OrderContext =
             | Api.SelectOrderScenario -> serverCtx |> OrderContext.SelectOrderScenario
             | Api.UpdateOrderScenario -> serverCtx |> OrderContext.UpdateOrderScenario
             | Api.ResetOrderScenario -> serverCtx |> OrderContext.ResetOrderScenario
-            | Api.ReloadResources -> serverCtx |> OrderContext.ReloadResources
+            | Api.ReloadResources _ -> serverCtx |> OrderContext.ReloadResources
             // Frequency property commands
             | Api.DecreaseScheduleFrequencyProperty -> serverCtx |> OrderContext.DecreaseScheduleFrequencyProperty
             | Api.IncreaseScheduleFrequencyProperty -> serverCtx |> OrderContext.IncreaseScheduleFrequencyProperty
@@ -886,21 +886,28 @@ module OrderContext =
             | Api.SetMaxComponentOrderableQuantityProperty cmp -> OrderContext.SetMaxComponentQuantityProperty (serverCtx, cmp)
             | Api.SetMedianComponentOrderableQuantityProperty cmp -> OrderContext.SetMedianComponentQuantityProperty (serverCtx, cmp)
 
-        try
-            ctx
-            |> mapFromShared logger provider pat
-            |> toServerCmd
-            |> OrderContext.logOrderContext logger "start eval"
-            |> OrderContext.evaluate logger provider
-            |> Result.get
-            |> OrderContext.logOrderContext logger "finish eval"
-            |> extractServerCtx
-            |> map
-            |> Ok
-        with
-        | e ->
-            writeErrorMessage $"errored:\n{e}"
-            raise e
+        match cmd with
+        | Api.ReloadResources password
+            when Informedica.Utils.Lib.Env.getItem "GENPRES_RELOAD_PASSWORD"
+                 |> Option.map (fun expected -> password <> expected)
+                 |> Option.defaultValue true ->  // no env var = always reject
+            Error [| "Invalid password" |]
+        | _ ->
+            try
+                ctx
+                |> mapFromShared logger provider pat
+                |> toServerCmd
+                |> OrderContext.logOrderContext logger "start eval"
+                |> OrderContext.evaluate logger provider
+                |> Result.get
+                |> OrderContext.logOrderContext logger "finish eval"
+                |> extractServerCtx
+                |> map
+                |> Ok
+            with
+            | e ->
+                writeErrorMessage $"errored:\n{e}"
+                raise e
 
 
 module OrderPlan =
@@ -993,6 +1000,117 @@ module NutritionPlan =
         }
 
 
+    let enteralFeedingDoseRuleSet =
+        {
+            Label = "Enterale Voeding"
+            Indications = [|
+                "Enterale voeding"
+            |]
+            Generics = [|
+                "Infatrini"
+                "Nutrini"
+                "Nutrini Energy"
+                "Nutrini Energy Multi Fibre"
+                "Nutrini Multi Fibre"
+                "Nutrison"
+                "Nutrison Energy"
+                "Nutrison Energy Multi Fibre"
+                "Nutrison Multi Fibre"
+                "Nutrison Protein Plus"
+                "Nutrison Protein Plus Multi Fibre"
+                "Peptisorb"
+                "Peptisorb Plus"
+                "Moedermelk"
+                "Nutrilon Premature"
+                "Nutrilon Nenatal Start"
+                "Nutrilon Nenatal 1"
+            |]
+            DoseTypes = [||]
+        }
+
+
+    let enteralSupplementDoseRuleSet =
+        {
+            Label = "Enteraal Supplement"
+            Indications = [|
+                "Enterale toevoeging"
+            |]
+            Generics = [|
+                "Calogen neutraal pdr"
+                "Fantomalt pdr"
+                "Hero Baby 1 NS Comfort pdr"
+                "Hero Baby 1 NS Pep pdr"
+                "Hero Baby 1 NS Standaard pdr"
+                "Hero Baby 2 NS Comfort pdr"
+                "Hero Baby 2 NS Pep pdr"
+                "Hero Baby 2 NS Standaard pdr"
+                "Liquigen pdr"
+                "Neocate Junior pdr"
+                "Neocate LCP pdr"
+                "Nutramigen 1 LGG pdr"
+                "Nutramigen 2 LGG pdr"
+                "Nutrilon 1 pdr"
+                "Nutrilon Hypoallergeen 1 pdr"
+                "Nutrilon Nenatal 1 pdr"
+                "Nutrilon Nenatal BMF pdr"
+                "Nutrilon Nenatal Protein Fortifier pdr"
+                "Nutrilon Nenatal Start pdr"
+                "Nutrilon Pepti 1 pdr"
+                "Nutrilon Pepti Junior pdr"
+                "Nutrison Advanced Peptisorb pdr"
+                "Nutriton pdr"
+            |]
+            DoseTypes = [||]
+        }
+
+
+    let lipidDoseRuleSet =
+        {
+            Label = "Vetten"
+            Indications = [|
+                "Parenterale vetten"
+            |]
+            Generics = [|
+                "Intralipid 20%"
+                "SMOFlipid 20%"
+            |]
+            DoseTypes = [||]
+        }
+
+
+    let electrolyteGlucoseDoseRuleSet =
+        {
+            Label = "Elektrolyten/Glucose"
+            Indications = [|
+                "Parenterale suppletie"
+            |]
+            Generics = [|
+                "NaCl 0,9%"
+                "NaCl 3%"
+                "Glucose 5%"
+                "Glucose 10%"
+                "Glucose 20%"
+                "Glucose 50%"
+                "calciumglubionat/calciumgluconaat"
+                "KCl 7,4%"
+                "KCl"
+                "NaCl"
+                "magnesiumsulfaat"
+                "fosfaat"
+                "calciumgluconaat"
+            |]
+            DoseTypes = [||]
+        }
+
+
+    let getDoseRuleSet = function
+        | NutritionCategory.EnteralFeeding -> enteralFeedingDoseRuleSet
+        | NutritionCategory.EnteralSupplement -> enteralSupplementDoseRuleSet
+        | NutritionCategory.TPN -> tpnDoseRuleSet
+        | NutritionCategory.Lipid -> lipidDoseRuleSet
+        | NutritionCategory.ElectrolyteGlucose -> electrolyteGlucoseDoseRuleSet
+
+
     let calculateNutritionTotals (plan: NutritionPlan) =
         { plan with
             Totals =
@@ -1027,82 +1145,108 @@ module NutritionPlan =
         | Error _ -> None
 
 
-    let initNutritionPlan logger provider (patient: Patient) : Result<NutritionPlan, string[]> =
-        [|
-            Models.OrderContext.empty
-            |> Models.OrderContext.setPatient patient
-            |> fun ctx ->
-                { ctx with
-                    Filter =
-                        { ctx.Filter with
-                            Indications = tpnDoseRuleSet.Indications
-                            Generics = tpnDoseRuleSet.Generics
-                        }
-                }
-            |> discoverFilterOptions logger provider
-            |> Option.map (fun resolved ->
-                Models.NutritionContext.create tpnDoseRuleSet.Label resolved
-            )
-        |]
-        |> Array.choose id
+    let initNutritionPlan _logger _provider (patient: Patient) : Result<NutritionPlan, string[]> =
+        [||]
         |> Models.NutritionPlan.create patient
         |> calculateNutritionTotals
         |> Ok
 
 
     /// Filters a resolved OrderContext's filter arrays against the configured
-    /// tpnDoseRuleSet. If a configured array is non-empty, only matching values
+    /// dose rule set. If a configured array is non-empty, only matching values
     /// are kept; if empty, no restriction is applied.
-    let filterByDoseRuleSet (resolved: OrderContext) =
+    let filterByDoseRuleSet (drs: NutritionDoseRuleSet) (resolved: OrderContext) =
         { resolved with
             Filter =
                 { resolved.Filter with
                     Indications =
-                        if tpnDoseRuleSet.Indications |> Array.isEmpty then resolved.Filter.Indications
+                        if drs.Indications |> Array.isEmpty then resolved.Filter.Indications
                         else
                             resolved.Filter.Indications
-                            |> Array.filter (fun i -> tpnDoseRuleSet.Indications |> Array.contains i)
+                            |> Array.filter (fun i -> drs.Indications |> Array.contains i)
                     Generics =
-                        if tpnDoseRuleSet.Generics |> Array.isEmpty then resolved.Filter.Generics
+                        if drs.Generics |> Array.isEmpty then resolved.Filter.Generics
                         else
                             resolved.Filter.Generics
-                            |> Array.filter (fun g -> tpnDoseRuleSet.Generics |> Array.contains g)
+                            |> Array.filter (fun g -> drs.Generics |> Array.contains g)
                     DoseTypes = resolved.Filter.DoseTypes
                 }
         }
 
 
-    let updateContext label resolved (plan: NutritionPlan) =
+    let updateContext id resolved (plan: NutritionPlan) =
         let updatedContexts =
             plan.NutritionContexts
             |> Array.map (fun nc ->
-                if nc.Label = label then
-                    { nc with OrderContext = resolved |> filterByDoseRuleSet }
+                if nc.Id = id then
+                    let drs = getDoseRuleSet nc.Category
+                    { nc with OrderContext = resolved |> filterByDoseRuleSet drs }
                 else nc
             )
         { plan with NutritionContexts = updatedContexts }
         |> calculateNutritionTotals
 
 
-    let updateNutritionOrderContext logger provider (plan: NutritionPlan, label: string, ctx: OrderContext) : Result<NutritionPlan, string[]> =
+    let updateNutritionOrderContext logger provider (plan: NutritionPlan, id: string, ctx: OrderContext) : Result<NutritionPlan, string[]> =
         match OrderContext.evaluate logger provider Api.UpdateOrderContext ctx with
         | Ok resolved ->
-            plan |> updateContext label resolved |> Ok
+            plan |> updateContext id resolved |> Ok
         | Error errs -> Error errs
 
 
-    let navigateNutritionOrderContext logger provider (plan: NutritionPlan, label: string, ctxCmd: Api.OrderContextCommand, ctx: OrderContext) : Result<NutritionPlan, string[]> =
+    let navigateNutritionOrderContext logger provider (plan: NutritionPlan, id: string, ctxCmd: Api.OrderContextCommand, ctx: OrderContext) : Result<NutritionPlan, string[]> =
         match OrderContext.evaluate logger provider ctxCmd ctx with
         | Ok resolved ->
-            plan |> updateContext label resolved |> Ok
+            plan |> updateContext id resolved |> Ok
         | Error errs -> Error errs
 
 
-    let selectNutritionOrderScenario logger provider (plan: NutritionPlan, label: string, ctx: OrderContext) : Result<NutritionPlan, string[]> =
+    let selectNutritionOrderScenario logger provider (plan: NutritionPlan, id: string, ctx: OrderContext) : Result<NutritionPlan, string[]> =
         match OrderContext.evaluate logger provider Api.SelectOrderScenario ctx with
         | Ok resolved ->
-            plan |> updateContext label resolved |> Ok
+            plan |> updateContext id resolved |> Ok
         | Error errs -> Error errs
+
+
+    let addNutritionContext logger provider (plan: NutritionPlan, category: NutritionCategory) : Result<NutritionPlan, string[]> =
+        let drs = getDoseRuleSet category
+        let ctx =
+            Models.OrderContext.empty
+            |> Models.OrderContext.setPatient plan.Patient
+            |> fun c ->
+                { c with
+                    Filter =
+                        { c.Filter with
+                            Indications = drs.Indications
+                            Generics = drs.Generics
+                        }
+                }
+        match discoverFilterOptions logger provider ctx with
+        | Some resolved ->
+            let id = System.Guid.NewGuid().ToString()
+            let nc = Models.NutritionContext.create id drs.Label category true resolved
+            { plan with NutritionContexts = Array.append plan.NutritionContexts [| nc |] }
+            |> calculateNutritionTotals
+            |> Ok
+        | None -> Error [| "Could not discover filter options for nutrition context" |]
+
+
+    let removeNutritionContext (plan: NutritionPlan, id: string) : Result<NutritionPlan, string[]> =
+        let removedCtx = plan.NutritionContexts |> Array.tryFind (fun nc -> nc.Id = id)
+        let cascadeRemoveSupplements =
+            removedCtx
+            |> Option.map (fun nc -> nc.Category = NutritionCategory.EnteralFeeding)
+            |> Option.defaultValue false
+        { plan with
+            NutritionContexts =
+                plan.NutritionContexts
+                |> Array.filter (fun nc ->
+                    nc.Id <> id &&
+                    (not cascadeRemoveSupplements || nc.Category <> NutritionCategory.EnteralSupplement)
+                )
+        }
+        |> calculateNutritionTotals
+        |> Ok
 
 
 module Command =
@@ -1210,6 +1354,20 @@ module Command =
             async {
                 return
                     NutritionPlan.navigateNutritionOrderContext logger provider (plan, label, ctxCmd, ctx)
+                    |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
+            }
+
+        | NutritionPlanCmd (AddNutritionContext (plan, category)) ->
+            async {
+                return
+                    NutritionPlan.addNutritionContext logger provider (plan, category)
+                    |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
+            }
+
+        | NutritionPlanCmd (RemoveNutritionContext (plan, id)) ->
+            async {
+                return
+                    NutritionPlan.removeNutritionContext (plan, id)
                     |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
             }
 

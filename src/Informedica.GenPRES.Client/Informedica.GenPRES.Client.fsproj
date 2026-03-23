@@ -1,4 +1,3 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -25,6 +24,7 @@
     <Compile Include="./Components/SideMenu.fs" />
     <Compile Include="./Components/BottomDrawer.fs" />
     <Compile Include="./Components/BasicTable.fs" />
+    <Compile Include="./Components/Accordion.fs" />
     <Compile Include="./Components/ResponsiveTable.fs" />
     <Compile Include="./Views/ViewHelpers.fs" />
     <Compile Include="./Views/Disclaimer.fs" />
@@ -38,13 +38,12 @@
     <Compile Include="./Views/TreatmentPlan.fs" />
     <Compile Include="./Views/Formulary.fs" />
     <Compile Include="./Views/Parenteralia.fs" />
+    <Compile Include="./Views/Settings.fs" />
     <Compile Include="./Pages/GenPres.fs" />
-    <Compile Include="App.fs" />    
+    <Compile Include="App.fs" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Informedica.GenPRES.Shared\Informedica.GenPRES.Shared.fsproj" />
   </ItemGroup>
-
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

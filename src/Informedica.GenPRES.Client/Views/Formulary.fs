@@ -199,8 +199,8 @@ module Formulary =
                 |]
             )
 
-        let select = ViewHelpers.simpleSelect
-        let autoComplete = ViewHelpers.autoComplete
+        let select = ViewHelpers.filterSelect false
+        let autoComplete = ViewHelpers.autoComplete false
 
 
         let progress = ViewHelpers.progressOrEmpty props.formulary
@@ -292,7 +292,7 @@ module Formulary =
                                         |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
                                         |> select isLoading lbl sel (DoseTypeChange >> dispatch)
 
-                            | _ -> ViewHelpers.empty
+                            | _ -> null
 
                         }
                     </Stack>
@@ -313,7 +313,7 @@ module Formulary =
                             |> List.singleton
                             |> Feliz.Markdown.Markdown.markdown
                         | _ ->
-                            JSX.jsx "<></>"
+                            null
                             |> toReact
 
                     }

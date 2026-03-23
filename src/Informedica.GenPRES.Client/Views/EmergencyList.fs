@@ -13,11 +13,14 @@ module EmergencyList =
 
 
     [<JSX.Component>]
-    let View (props : {| interventions: Deferred<Types.Intervention list>; localizationTerms : Deferred<string [] []>; onSelectItem: string -> unit |}) =
+    let View (props : {| interventions: Deferred<Types.Intervention list>; localizationTerms : Deferred<string [] []>; patient: Patient option; onSelectItem: string -> unit |}) =
 
         let context = React.useContext(Global.context)
         let lang = context.Localization
         let hosp = context.Hospital
+
+        let printOpen, setPrintOpen = React.useState false
+        let weightKg = ViewHelpers.PrintView.patientWeight props.patient
 
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
@@ -148,18 +151,106 @@ module EmergencyList =
                 |}
             |> box
 
-        Components.ResponsiveTable.View({|
-            hideFilter = false
-            columns = columns
-            rows = rows
-            rowCreate = rowCreate
-            height = "calc(100vh - 200px)"
-            onRowClick = props.onSelectItem
-            checkboxSelection = false
-            selectedRows = [||]
-            onSelectChange = ignore
-            showToolbar = true
-            showFooter = true
-        |})
+        let printData, setPrintData = React.useState [||]
+
+        let makePrintTableRows data =
+            data
+            |> Array.map (fun (r : {| cells : {| field: string; value: string |} []; actions : ReactElement option |}) ->
+                let row =
+                    r.cells
+                    |> Array.map (fun c -> c.field, c.value)
+                    |> Map.ofArray
+                let get f = row |> Map.tryFind f |> Option.defaultValue "" |> fun s -> s.Replace("*", "")
+                let id = get "id"
+                let catagory = get "catagory"
+                let intervention = get "intervention"
+                let calculated = get "calculated"
+                let preparation = get "preparation"
+                let advice = get "advice"
+                JSX.jsx
+                    $"""
+                import TableRow from '@mui/material/TableRow';
+                import TableCell from '@mui/material/TableCell';
+
+                <TableRow key={id}>
+                    <TableCell>{catagory}</TableCell>
+                    <TableCell>{intervention}</TableCell>
+                    <TableCell>{calculated}</TableCell>
+                    <TableCell>{preparation}</TableCell>
+                    <TableCell>{advice}</TableCell>
+                </TableRow>
+                """
+            )
+            |> unbox
+            |> React.fragment
+
+        let patientHeader = ViewHelpers.PrintView.PatientHeader {| weightKg = weightKg |}
+        let patientSignature = ViewHelpers.PrintView.PatientSignature ()
+        let printTableRows = makePrintTableRows printData
+
+        let printContent =
+            JSX.jsx
+                $"""
+            import Table from '@mui/material/Table';
+            import TableBody from '@mui/material/TableBody';
+            import TableHead from '@mui/material/TableHead';
+            import TableRow from '@mui/material/TableRow';
+            import TableCell from '@mui/material/TableCell';
+
+            <React.Fragment>
+                {patientHeader}
+                <Table size="small" sx={ {| tableLayout="fixed"; width="100%" |} }>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell sx={ {| fontWeight="bold"; width="15%" |} }>Categorie</TableCell>
+                            <TableCell sx={ {| fontWeight="bold"; width="20%" |} }>Interventie</TableCell>
+                            <TableCell sx={ {| fontWeight="bold"; width="25%" |} }>Berekend</TableCell>
+                            <TableCell sx={ {| fontWeight="bold"; width="25%" |} }>Bereiding</TableCell>
+                            <TableCell sx={ {| fontWeight="bold"; width="15%" |} }>Advies</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {printTableRows}
+                    </TableBody>
+                </Table>
+                {patientSignature}
+            </React.Fragment>
+            """
+            |> toReact
+
+        JSX.jsx
+            $"""
+        import React from 'react';
+
+        <React.Fragment>
+            {
+                Components.ResponsiveTable.View({|
+                    hideFilter = false
+                    columns = columns
+                    rows = rows
+                    rowCreate = rowCreate
+                    height = "calc(100vh - 200px)"
+                    onRowClick = props.onSelectItem
+                    checkboxSelection = false
+                    selectedRows = [||]
+                    onSelectChange = ignore
+                    showToolbar = true
+                    showFooter = true
+                    onPrint = Some (fun filteredRows ->
+                        setPrintData filteredRows
+                        setPrintOpen true
+                    )
+                |})
+            }
+            {
+                ViewHelpers.PrintView.PrintDialog {|
+                    isOpen = printOpen
+                    onClose = fun () -> setPrintOpen false
+                    title = "Noodlijst"
+                    children = printContent
+                |}
+            }
+        </React.Fragment>
+        """
 
 

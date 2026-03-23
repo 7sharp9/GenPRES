@@ -41,6 +41,7 @@ GENPRES_URL_ID={tryGetEnv "GENPRES_URL_ID" |> Option.defaultValue "NO GENPRES_UR
 GENPRES_LOG={tryGetEnv "GENPRES_LOG" |> Option.defaultValue "0"}
 GENPRES_PROD={tryGetEnv "GENPRES_PROD" |> Option.defaultValue "0"}
 GENPRES_DEBUG={tryGetEnv "GENPRES_DEBUG" |> Option.defaultValue "i"}
+GENPRES_RELOAD_PASSWORD={if tryGetEnv "GENPRES_RELOAD_PASSWORD" |> Option.isSome then "***" else "NOT SET (reload disabled)"}
 
 === System Info ===
 

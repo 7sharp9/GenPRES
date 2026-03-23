@@ -137,9 +137,9 @@ module Patient =
         React.useEffect(
             (fun () ->
                 if isExpanded then
-                    let timeoutId = 
-                        JS.setTimeout 
-                            (fun () -> setExpanded false) 
+                    let timeoutId =
+                        JS.setTimeout
+                            (fun () -> setExpanded false)
                             5000
                     React.createDisposable(fun () -> JS.clearTimeout timeoutId)
                 else
@@ -157,7 +157,7 @@ module Patient =
 
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
-        let handleChange = fun _ -> 
+        let handleChange = fun _ ->
             if props.patient |> canCalculate |> not then true |> setExpanded
             else
                 isExpanded |> not |> setExpanded
@@ -170,6 +170,7 @@ module Patient =
                 updateSelected = changeValue
                 navigate = None
                 isLoading = false
+                disabled = false
                 hasClear = true
                 warning = None
                 minWidth = None
@@ -367,52 +368,38 @@ module Patient =
                 """
             )
 
+        let children =
+            JSX.jsx
+                $"""
+            import React from 'react';
+            import Grid from '@mui/material/Grid';
+            import Box from '@mui/material/Box';
+            import Button from '@mui/material/Button';
 
-        JSX.jsx
-            $"""
-        import React from "react";
-        import Stack from '@mui/material/Stack';
-        import Box from '@mui/material/Box';
-        import Button from '@mui/material/Button';
-        import Grid from '@mui/material/Grid';
-        import Accordion from '@mui/material/Accordion';
-        import AccordionDetails from '@mui/material/AccordionDetails';
-        import AccordionSummary from '@mui/material/AccordionSummary';
-        import Typography from '@mui/material/Typography';
-        import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-        import FormControlLabel from '@mui/material/FormControlLabel';
+            <React.Fragment>
+                <Grid container spacing={2}>
+                    {React.fragment (items1 |> unbox)}
+                </Grid>
+                <Grid container spacing={2} sx={ {| marginTop=2 |} } >
+                    {React.fragment (items2 |> unbox)}
+                </Grid>
+                <Box sx={ {| marginTop=2 |} }>
+                    <Button variant="text" onClick={fun _ -> Clear |> dispatch} fullWidth startIcon={Mui.Icons.Delete} >
+                        {Terms.Delete |> getTerm "Verwijder"}
+                    </Button>
+                </Box>
+            </React.Fragment>
+            """
 
-        <React.Fragment>
-            <Accordion expanded={isExpanded} onChange={handleChange}>
-                <AccordionSummary
-                sx={
-                    {|
-                        bgcolor=Mui.Styles.headerBgColor
-                        paddingTop=(if isMobile then 0 else 1)
-                        paddingBottom=(if isMobile then 0 else 1)
-                        ``& .MuiAccordionSummary-content`` = {| margin=0; minHeight=0 |}
-                    |}
-                }
-                expandIcon={{ <ExpandMoreIcon /> }}
-                aria-controls="patient"
-                id="patient-details"
-                >
-                { pat |> show lang props.localizationTerms }
-                </AccordionSummary>
-                <AccordionDetails sx={ {| paddingTop=(if isMobile then 1 else 2) |} } >
-                    <Grid container spacing={2}>
-                        {React.fragment (items1 |> unbox)}
-                    </Grid>
-                    <Grid container spacing={2} sx={ {| marginTop=2 |} } >
-                        {React.fragment (items2 |> unbox)}
-                    </Grid>
-                    <Box sx={ {| marginTop=2 |} }>
-                        <Button variant="text" onClick={fun _ -> Clear |> dispatch} fullWidth startIcon={Mui.Icons.Delete} >
-                            {Terms.Delete |> getTerm "Verwijder"}
-                        </Button>
-                    </Box>
-                </AccordionDetails>
-            </Accordion>
-        </React.Fragment>
-        """
+        Components.Accordion.View
+            {|
+                expanded = isExpanded
+                onChange = handleChange
+                summary = pat |> show lang props.localizationTerms |> toJsx
+                children = children
+                isMobile = isMobile
+                detailsPaddingTop = None
+                ariaControls = Some "patient"
+                summaryId = Some "patient-details"
+            |}
 

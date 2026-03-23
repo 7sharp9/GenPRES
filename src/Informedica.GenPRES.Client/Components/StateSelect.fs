@@ -19,12 +19,6 @@ module StateSelect =
                 updateSelected : string option -> unit
             |}
         ) =
-        let state, setState = React.useState props.selected
-
-        let applyState v =
-            v |> setState
-            v |> props.updateSelected
-
         let handleChange =
             fun ev ->
                 ev?target?value
@@ -32,10 +26,10 @@ module StateSelect =
                 |> function
                 | s when s |> String.IsNullOrWhiteSpace -> None
                 | s -> s |> Some
-                |> applyState
+                |> props.updateSelected
 
         let clear =
-            fun _ -> None |> applyState
+            fun _ -> props.updateSelected None
 
         let items =
             props.values
@@ -46,7 +40,7 @@ module StateSelect =
                 """
             )
 
-        let isClear = state |> Option.defaultValue "" |> String.IsNullOrWhiteSpace
+        let isClear = props.selected |> Option.defaultValue "" |> String.IsNullOrWhiteSpace
 
         let clearButton =
             JSX.jsx
@@ -54,7 +48,7 @@ module StateSelect =
             import ClearIcon from '@mui/icons-material/Clear';
             import IconButton from "@mui/material/IconButton";
 
-            <IconButton sx={ {| visibility = if isClear then "hidden" else "visible" |} } onClick={clear}>
+            <IconButton sx={Mui.Styles.clearButtonVisibilitySx isClear} onClick={clear}>
                 <ClearIcon/>
             </IconButton>
             """
@@ -72,10 +66,10 @@ module StateSelect =
             <Select
             labelId="demo-simple-select-standard-label"
             id="demo-simple-select-standard"
-            value={state |> Option.defaultValue ""}
+            value={props.selected |> Option.defaultValue ""}
             onChange={handleChange}
             label={props.label}
-            sx={ {| ``& .MuiSelect-icon`` = {| visibility = if isClear then "visible" else "hidden" |} |} }
+            sx={Mui.Styles.selectIconVisibilitySx isClear}
             endAdornment={clearButton}
             >
                 {items}

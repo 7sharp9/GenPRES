@@ -131,8 +131,8 @@ module Parenteralia =
                 |]
             )
 
-        let select = ViewHelpers.simpleSelect
-        let autoComplete = ViewHelpers.autoComplete
+        let select = ViewHelpers.filterSelect false
+        let autoComplete = ViewHelpers.autoComplete false
 
         let progress = ViewHelpers.progressOrEmpty props.parenteralia
 
@@ -171,7 +171,7 @@ module Parenteralia =
                         | Resolved par -> false, par.Form, par.Forms
                         | _ -> true, None, [||]
                         |> fun (isLoading, sel, items) ->
-                            if items |> Array.isEmpty then JSX.jsx "<></>"
+                            if items |> Array.isEmpty then null
                             else
                                 if isMobile then
                                     items
@@ -211,9 +211,7 @@ module Parenteralia =
                             |> Markdown.markdown.children
                             |> List.singleton
                             |> Feliz.Markdown.Markdown.markdown
-                        | _ ->
-                            JSX.jsx "<></>"
-                            |> toReact
+                        | _ -> null
 
                     }
                 </Box>

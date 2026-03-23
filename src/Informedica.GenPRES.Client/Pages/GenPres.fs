@@ -130,6 +130,7 @@ module GenPres =
             updateFormulary : Formulary -> unit
             parenteralia : Deferred<Parenteralia>
             updateParenteralia : Parenteralia -> unit
+            reloadResources : string -> unit
             page : Global.Pages
             localizationTerms : Deferred<string[][]>
             languages : Localization.Locales []
@@ -177,6 +178,24 @@ module GenPres =
                     | _ -> "auto"
             |}
 
+        let patientBox =
+            match props.page with
+            | Global.Pages.Settings -> null
+            | _ ->
+                JSX.jsx
+                    $"""
+                import Box from '@mui/material/Box';
+                <Box sx={ {| flexBasis=1 |} } >
+                    {
+                        Views.Patient.View({|
+                            patient = props.patient
+                            updatePatient = props.updatePatient
+                            localizationTerms = props.localizationTerms
+                        |})
+                    }
+                </Box>
+                """
+
         JSX.jsx
             $"""
         import {{ ThemeProvider }} from '@mui/material/styles';
@@ -215,15 +234,7 @@ module GenPres =
             </React.Fragment>
             <Container id="page-container" sx={ {| height="87%"; marginTop= 3 |} } >
                 <Stack sx={ {| height="100%" |} }>
-                    <Box sx={ {| flexBasis=1 |} } >
-                        {
-                            Views.Patient.View({|
-                                patient = props.patient
-                                updatePatient = props.updatePatient
-                                localizationTerms = props.localizationTerms
-                            |})
-                        }
-                    </Box>
+                    {patientBox}
                     <Box id="page-box" sx={sxPageBox}>
                         {
                             match props.page with
@@ -231,12 +242,14 @@ module GenPres =
                                 Views.EmergencyList.View {|
                                     interventions = props.bolusMedication
                                     localizationTerms = props.localizationTerms
+                                    patient = props.patient
                                     onSelectItem = props.onSelectEmergencyListItem
                                 |}
                             | Global.Pages.ContinuousMeds ->
                                 Views.ContinuousMeds.View {|
                                     interventions = props.continuousMedication
                                     localizationTerms = props.localizationTerms
+                                    patient = props.patient
                                     onSelectItem = props.onSelectContinuousMedicationItem
                                 |}
                             | Global.Pages.Prescribe ->
@@ -248,7 +261,7 @@ module GenPres =
                                     localizationTerms = props.localizationTerms
                                 |}
                             | Global.Pages.Nutrition ->
-                                Views.Nutrion.View {|
+                                Views.Nutrition.View {|
                                     patient = props.patient
                                     nutritionPlan = props.nutritionPlan
                                     nutritionPlanMsg = props.nutritionPlanMsg
@@ -280,11 +293,9 @@ module GenPres =
                                     updateParenteralia = props.updateParenteralia
                                 |}
                             | Global.Pages.Settings ->
-                                Views.Prescribe.View {|
+                                Views.Settings.View {|
+                                    reloadResources = props.reloadResources
                                     orderContext = props.orderContext
-                                    orderContextMsg = props.orderContextMsg
-                                    treatmentPlan = props.treatmentPlan
-                                    updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan (tp, None) |> props.treatmentPlanCommand
                                     localizationTerms = props.localizationTerms
                                 |}
 
@@ -297,18 +308,18 @@ module GenPres =
                                 match props.orderContext with
                                 | Resolved pr ->
                                     Views.Totals.View {| intake = pr.Intake |}
-                                | _ -> JSX.jsx "<></>"
+                                | _ -> null
                             | Global.Pages.Nutrition ->
                                 match props.nutritionPlan with
                                 | Resolved np ->
                                     Views.Totals.View {| intake = np.Totals |}
-                                | _ -> JSX.jsx "<></>"
+                                | _ -> null
                             | Global.Pages.TreatmentPlan ->
                                 match props.treatmentPlan with
                                 | Resolved tp ->
                                     Views.Totals.View {| intake = tp.Totals |}
-                                | _ -> JSX.jsx "<></>"
-                            | _ -> JSX.jsx "<></>"
+                                | _ -> null
+                            | _ -> null
                         }
                     </Box>
                 </Stack>
