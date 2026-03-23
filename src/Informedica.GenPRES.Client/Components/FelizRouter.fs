@@ -1,3 +1,6 @@
+// VENDORED: Feliz.Router source vendored here because Feliz.Router v4.0.0 is
+// incompatible with Fable 5.  Once an upstream release supports Fable 5,
+// remove this file and restore the Feliz.Router NuGet reference.
 namespace Feliz.Router
 
 open Browser.Dom
