@@ -55,14 +55,15 @@ module Adapters =
         }
 
 
-    let private makeOrderPlanPort agent logger (provider: Resources.IResourceProvider) : OrderPlanPort =
+    let private makeOrderPlanPort agent (orderCtxPort: OrderContextPort) : OrderPlanPort =
         {
             updateOrderPlan = fun tp cmdOpt ->
                 async {
                     do! setComponentName "TreatmentPlan" agent
 
+                    let! updated = OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
                     return
-                        OrderPlanService.updateOrderPlan logger provider tp cmdOpt
+                        updated
                         |> OrderPlanService.calculateTotals
                         |> Ok
                 }
@@ -77,7 +78,7 @@ module Adapters =
         }
 
 
-    let private makeNutritionPlanPort logger (provider: Resources.IResourceProvider) : NutritionPlanPort =
+    let private makeNutritionPlanPort (orderCtxPort: OrderContextPort) logger (provider: Resources.IResourceProvider) : NutritionPlanPort =
         {
             initNutritionPlan = fun patient ->
                 async {
@@ -85,9 +86,7 @@ module Adapters =
                 }
 
             addNutritionContext = fun (plan, category) ->
-                async {
-                    return NutritionPlanService.addNutritionContext logger provider (plan, category)
-                }
+                NutritionPlanService.addNutritionContext orderCtxPort (plan, category)
 
             removeNutritionContext = fun (plan, id) ->
                 async {
@@ -95,30 +94,25 @@ module Adapters =
                 }
 
             updateNutritionOrderContext = fun (plan, label, ctx) ->
-                async {
-                    return NutritionPlanService.updateNutritionOrderContext logger provider (plan, label, ctx)
-                }
+                NutritionPlanService.updateNutritionOrderContext orderCtxPort (plan, label, ctx)
 
             selectNutritionOrderScenario = fun (plan, label, ctx) ->
-                async {
-                    return NutritionPlanService.selectNutritionOrderScenario logger provider (plan, label, ctx)
-                }
+                NutritionPlanService.selectNutritionOrderScenario orderCtxPort (plan, label, ctx)
 
             navigateNutritionOrderContext = fun (plan, label, ctxCmd, ctx) ->
-                async {
-                    return NutritionPlanService.navigateNutritionOrderContext logger provider (plan, label, ctxCmd, ctx)
-                }
+                NutritionPlanService.navigateNutritionOrderContext orderCtxPort (plan, label, ctxCmd, ctx)
         }
 
 
     let makeAppEnv (provider: Resources.IResourceProvider) : AppEnv =
         let agent, logger = resolveLogger ()
+        let orderCtxPort = makeOrderContextPort agent logger provider
 
         {
             formulary = makeFormularyPort provider
-            orderContext = makeOrderContextPort agent logger provider
-            orderPlan = makeOrderPlanPort agent logger provider
-            nutritionPlan = makeNutritionPlanPort logger provider
+            orderContext = orderCtxPort
+            orderPlan = makeOrderPlanPort agent orderCtxPort
+            nutritionPlan = makeNutritionPlanPort orderCtxPort logger provider
             requireLoaded = fun () ->
                 let info = provider.GetResourceInfo()
                 if info.IsLoaded then None

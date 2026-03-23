@@ -1,8 +1,8 @@
 namespace ServerApi
 
 /// Agent-backed adapter implementations for the AppEnv ports.
-/// Wraps all service calls through a MailboxProcessor for:
-///   - Serialized access to the IResourceProvider (prevents concurrent mutation)
+/// Each bounded domain context gets its own MailboxProcessor agent for:
+///   - Per-component serialization (prevents cross-domain blocking)
 ///   - Debug-level console logging of command entry/completion
 ///   - Async boundary for all callers
 module AgentAdapters =
@@ -15,149 +15,272 @@ module AgentAdapters =
     open Shared.Types
 
 
-    /// Internal command DU covering all port operations.
-    /// Each case carries the arguments needed by the corresponding service function.
+    // ---------------------------------------------------------------
+    //  Formulary Component
+    // ---------------------------------------------------------------
+
     [<RequireQualifiedAccess>]
-    type ServerCommand =
-        // Formulary
+    type FormularyCommand =
         | GetFormulary of Formulary
         | GetParenteralia of Parenteralia
-        // OrderContext
-        | EvaluateOrderContext of OrderContextCommand * OrderContext
-        // OrderPlan
-        | UpdateOrderPlan of OrderPlan * (OrderContextCommand * OrderContext) option
-        | FilterOrderPlan of OrderPlan
-        // NutritionPlan
-        | InitNutritionPlan of Patient
-        | AddNutritionContext of NutritionPlan * NutritionCategory
-        | RemoveNutritionContext of NutritionPlan * string
-        | UpdateNutritionOrderContext of NutritionPlan * string * OrderContext
-        | SelectNutritionOrderScenario of NutritionPlan * string * OrderContext
-        | NavigateNutritionOrderContext of NutritionPlan * string * OrderContextCommand * OrderContext
 
 
-    /// Internal response DU matching each command case.
     [<RequireQualifiedAccess>]
-    type ServerResponse =
+    type FormularyResponse =
         | Formulary of Result<Formulary, string []>
         | Parenteralia of Result<Parenteralia, string []>
+
+
+    let private formularyCommandToString = function
+        | FormularyCommand.GetFormulary _ -> "GetFormulary"
+        | FormularyCommand.GetParenteralia _ -> "GetParenteralia"
+
+
+    let private processFormularyCommand
+        (provider: Resources.IResourceProvider)
+        (cmd: FormularyCommand)
+        : FormularyResponse =
+        match cmd with
+        | FormularyCommand.GetFormulary form ->
+            form
+            |> FormularyService.get provider
+            |> FormularyResponse.Formulary
+
+        | FormularyCommand.GetParenteralia par ->
+            par
+            |> ParenteraliaService.get provider
+            |> Result.mapError Array.singleton
+            |> FormularyResponse.Parenteralia
+
+
+    let private createFormularyAgent provider =
+        Agent.createReply<FormularyCommand, FormularyResponse>(fun cmd ->
+            try
+                writeDebugMessage $"[FormularyAgent] <- {cmd |> formularyCommandToString}"
+                let response = processFormularyCommand provider cmd
+                writeDebugMessage $"[FormularyAgent] -> {cmd |> formularyCommandToString} completed"
+                response
+            with ex ->
+                writeErrorMessage $"[FormularyAgent] error in {cmd |> formularyCommandToString}: {ex}"
+                match cmd with
+                | FormularyCommand.GetFormulary _ ->
+                    FormularyResponse.Formulary (Error [| ex.Message |])
+                | FormularyCommand.GetParenteralia _ ->
+                    FormularyResponse.Parenteralia (Error [| ex.Message |])
+        )
+
+
+    let private extractFormulary = function
+        | FormularyResponse.Formulary r -> r
+        | other -> Error [| $"Unexpected response: {other}" |]
+
+
+    let private extractParenteralia = function
+        | FormularyResponse.Parenteralia r -> r
+        | other -> Error [| $"Unexpected response: {other}" |]
+
+
+    // ---------------------------------------------------------------
+    //  OrderContext Component
+    // ---------------------------------------------------------------
+
+    [<RequireQualifiedAccess>]
+    type OrderCtxCommand =
+        | Evaluate of OrderContextCommand * OrderContext
+
+
+    [<RequireQualifiedAccess>]
+    type OrderCtxResponse =
         | OrderContext of Result<OrderContext, string []>
-        | OrderPlan of Result<OrderPlan, string []>
-        | NutritionPlan of Result<NutritionPlan, string []>
 
 
-    let private commandToString = function
-        | ServerCommand.GetFormulary _ -> "GetFormulary"
-        | ServerCommand.GetParenteralia _ -> "GetParenteralia"
-        | ServerCommand.EvaluateOrderContext _ -> "EvaluateOrderContext"
-        | ServerCommand.UpdateOrderPlan _ -> "UpdateOrderPlan"
-        | ServerCommand.FilterOrderPlan _ -> "FilterOrderPlan"
-        | ServerCommand.InitNutritionPlan _ -> "InitNutritionPlan"
-        | ServerCommand.AddNutritionContext _ -> "AddNutritionContext"
-        | ServerCommand.RemoveNutritionContext _ -> "RemoveNutritionContext"
-        | ServerCommand.UpdateNutritionOrderContext _ -> "UpdateNutritionOrderContext"
-        | ServerCommand.SelectNutritionOrderScenario _ -> "SelectNutritionOrderScenario"
-        | ServerCommand.NavigateNutritionOrderContext _ -> "NavigateNutritionOrderContext"
+    let private orderCtxCommandToString = function
+        | OrderCtxCommand.Evaluate _ -> "EvaluateOrderContext"
 
 
-    /// Create the command processor that dispatches to existing service functions.
-    let private processCommand
+    let private processOrderCtxCommand
         logAgent
         (logger: Informedica.Logging.Lib.Logger)
         (provider: Resources.IResourceProvider)
-        (cmd: ServerCommand)
-        : ServerResponse =
-
+        (cmd: OrderCtxCommand)
+        : OrderCtxResponse =
         let setComponent name =
             match logAgent with
             | Some a -> a |> Logging.setComponentName (Some name) |> Async.RunSynchronously
             | None -> ()
 
         match cmd with
-        | ServerCommand.GetFormulary form ->
-            form
-            |> FormularyService.get provider
-            |> ServerResponse.Formulary
-
-        | ServerCommand.GetParenteralia par ->
-            par
-            |> ParenteraliaService.get provider
-            |> Result.mapError Array.singleton
-            |> ServerResponse.Parenteralia
-
-        | ServerCommand.EvaluateOrderContext (ctxCmd, ctx) ->
+        | OrderCtxCommand.Evaluate (ctxCmd, ctx) ->
             setComponent "OrderContext"
             ctx
             |> OrderContextService.evaluate logger provider ctxCmd
-            |> ServerResponse.OrderContext
+            |> OrderCtxResponse.OrderContext
 
-        | ServerCommand.UpdateOrderPlan (tp, cmdOpt) ->
+
+    let private createOrderCtxAgent logAgent logger provider =
+        Agent.createReply<OrderCtxCommand, OrderCtxResponse>(fun cmd ->
+            try
+                writeDebugMessage $"[OrderCtxAgent] <- {cmd |> orderCtxCommandToString}"
+                let response = processOrderCtxCommand logAgent logger provider cmd
+                writeDebugMessage $"[OrderCtxAgent] -> {cmd |> orderCtxCommandToString} completed"
+                response
+            with ex ->
+                writeErrorMessage $"[OrderCtxAgent] error in {cmd |> orderCtxCommandToString}: {ex}"
+                OrderCtxResponse.OrderContext (Error [| ex.Message |])
+        )
+
+
+    let private extractOrderContext = function
+        | OrderCtxResponse.OrderContext r -> r
+
+
+    // ---------------------------------------------------------------
+    //  OrderPlan Component
+    // ---------------------------------------------------------------
+
+    [<RequireQualifiedAccess>]
+    type OrderPlanCommand =
+        | Update of OrderPlan * (OrderContextCommand * OrderContext) option
+        | Filter of OrderPlan
+
+
+    [<RequireQualifiedAccess>]
+    type OrderPlanResponse =
+        | OrderPlan of Result<OrderPlan, string []>
+
+
+    let private orderPlanCommandToString = function
+        | OrderPlanCommand.Update _ -> "UpdateOrderPlan"
+        | OrderPlanCommand.Filter _ -> "FilterOrderPlan"
+
+
+    let private processOrderPlanCommand
+        logAgent
+        (orderCtxPort: OrderContextPort)
+        (cmd: OrderPlanCommand)
+        : OrderPlanResponse =
+        let setComponent name =
+            match logAgent with
+            | Some a -> a |> Logging.setComponentName (Some name) |> Async.RunSynchronously
+            | None -> ()
+
+        match cmd with
+        | OrderPlanCommand.Update (tp, cmdOpt) ->
             setComponent "TreatmentPlan"
-            OrderPlanService.updateOrderPlan logger provider tp cmdOpt
+            OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
+            |> Async.RunSynchronously
             |> OrderPlanService.calculateTotals
             |> Ok
-            |> ServerResponse.OrderPlan
+            |> OrderPlanResponse.OrderPlan
 
-        | ServerCommand.FilterOrderPlan tp ->
+        | OrderPlanCommand.Filter tp ->
             tp
             |> OrderPlanService.calculateTotals
             |> Ok
-            |> ServerResponse.OrderPlan
-
-        | ServerCommand.InitNutritionPlan patient ->
-            NutritionPlanService.initNutritionPlan logger provider patient
-            |> ServerResponse.NutritionPlan
-
-        | ServerCommand.AddNutritionContext (plan, category) ->
-            NutritionPlanService.addNutritionContext logger provider (plan, category)
-            |> ServerResponse.NutritionPlan
-
-        | ServerCommand.RemoveNutritionContext (plan, id) ->
-            NutritionPlanService.removeNutritionContext (plan, id)
-            |> ServerResponse.NutritionPlan
-
-        | ServerCommand.UpdateNutritionOrderContext (plan, label, ctx) ->
-            NutritionPlanService.updateNutritionOrderContext logger provider (plan, label, ctx)
-            |> ServerResponse.NutritionPlan
-
-        | ServerCommand.SelectNutritionOrderScenario (plan, label, ctx) ->
-            NutritionPlanService.selectNutritionOrderScenario logger provider (plan, label, ctx)
-            |> ServerResponse.NutritionPlan
-
-        | ServerCommand.NavigateNutritionOrderContext (plan, label, ctxCmd, ctx) ->
-            NutritionPlanService.navigateNutritionOrderContext logger provider (plan, label, ctxCmd, ctx)
-            |> ServerResponse.NutritionPlan
+            |> OrderPlanResponse.OrderPlan
 
 
-    /// Create the MailboxProcessor agent that serializes all service calls.
-    let private createServerAgent logAgent logger provider =
-        Agent.createReply<ServerCommand, ServerResponse>(fun cmd ->
+    let private createOrderPlanAgent logAgent orderCtxPort =
+        Agent.createReply<OrderPlanCommand, OrderPlanResponse>(fun cmd ->
             try
-                writeDebugMessage $"[AGENT] <- {cmd |> commandToString}"
-                let response = processCommand logAgent logger provider cmd
-                writeDebugMessage $"[AGENT] -> {cmd |> commandToString} completed"
+                writeDebugMessage $"[OrderPlanAgent] <- {cmd |> orderPlanCommandToString}"
+                let response = processOrderPlanCommand logAgent orderCtxPort cmd
+                writeDebugMessage $"[OrderPlanAgent] -> {cmd |> orderPlanCommandToString} completed"
                 response
             with ex ->
-                writeErrorMessage $"[AGENT] error in {cmd |> commandToString}: {ex}"
-                match cmd with
-                | ServerCommand.GetFormulary _ ->
-                    ServerResponse.Formulary (Error [| ex.Message |])
-                | ServerCommand.GetParenteralia _ ->
-                    ServerResponse.Parenteralia (Error [| ex.Message |])
-                | ServerCommand.EvaluateOrderContext _ ->
-                    ServerResponse.OrderContext (Error [| ex.Message |])
-                | ServerCommand.UpdateOrderPlan _
-                | ServerCommand.FilterOrderPlan _ ->
-                    ServerResponse.OrderPlan (Error [| ex.Message |])
-                | ServerCommand.InitNutritionPlan _
-                | ServerCommand.AddNutritionContext _
-                | ServerCommand.RemoveNutritionContext _
-                | ServerCommand.UpdateNutritionOrderContext _
-                | ServerCommand.SelectNutritionOrderScenario _
-                | ServerCommand.NavigateNutritionOrderContext _ ->
-                    ServerResponse.NutritionPlan (Error [| ex.Message |])
+                writeErrorMessage $"[OrderPlanAgent] error in {cmd |> orderPlanCommandToString}: {ex}"
+                OrderPlanResponse.OrderPlan (Error [| ex.Message |])
         )
 
+
+    let private extractOrderPlan = function
+        | OrderPlanResponse.OrderPlan r -> r
+
+
+    // ---------------------------------------------------------------
+    //  NutritionPlan Component
+    // ---------------------------------------------------------------
+
+    [<RequireQualifiedAccess>]
+    type NutritionCommand =
+        | Init of Patient
+        | Add of NutritionPlan * NutritionCategory
+        | Remove of NutritionPlan * string
+        | UpdateOrderContext of NutritionPlan * string * OrderContext
+        | SelectOrderScenario of NutritionPlan * string * OrderContext
+        | Navigate of NutritionPlan * string * OrderContextCommand * OrderContext
+
+
+    [<RequireQualifiedAccess>]
+    type NutritionResponse =
+        | NutritionPlan of Result<NutritionPlan, string []>
+
+
+    let private nutritionCommandToString = function
+        | NutritionCommand.Init _ -> "InitNutritionPlan"
+        | NutritionCommand.Add _ -> "AddNutritionContext"
+        | NutritionCommand.Remove _ -> "RemoveNutritionContext"
+        | NutritionCommand.UpdateOrderContext _ -> "UpdateNutritionOrderContext"
+        | NutritionCommand.SelectOrderScenario _ -> "SelectNutritionOrderScenario"
+        | NutritionCommand.Navigate _ -> "NavigateNutritionOrderContext"
+
+
+    let private processNutritionCommand
+        (logger: Informedica.Logging.Lib.Logger)
+        (provider: Resources.IResourceProvider)
+        (orderCtxPort: OrderContextPort)
+        (cmd: NutritionCommand)
+        : NutritionResponse =
+        match cmd with
+        | NutritionCommand.Init patient ->
+            NutritionPlanService.initNutritionPlan logger provider patient
+            |> NutritionResponse.NutritionPlan
+
+        | NutritionCommand.Add (plan, category) ->
+            NutritionPlanService.addNutritionContext orderCtxPort (plan, category)
+            |> Async.RunSynchronously
+            |> NutritionResponse.NutritionPlan
+
+        | NutritionCommand.Remove (plan, id) ->
+            NutritionPlanService.removeNutritionContext (plan, id)
+            |> NutritionResponse.NutritionPlan
+
+        | NutritionCommand.UpdateOrderContext (plan, label, ctx) ->
+            NutritionPlanService.updateNutritionOrderContext orderCtxPort (plan, label, ctx)
+            |> Async.RunSynchronously
+            |> NutritionResponse.NutritionPlan
+
+        | NutritionCommand.SelectOrderScenario (plan, label, ctx) ->
+            NutritionPlanService.selectNutritionOrderScenario orderCtxPort (plan, label, ctx)
+            |> Async.RunSynchronously
+            |> NutritionResponse.NutritionPlan
+
+        | NutritionCommand.Navigate (plan, label, ctxCmd, ctx) ->
+            NutritionPlanService.navigateNutritionOrderContext orderCtxPort (plan, label, ctxCmd, ctx)
+            |> Async.RunSynchronously
+            |> NutritionResponse.NutritionPlan
+
+
+    let private createNutritionAgent logger provider orderCtxPort =
+        Agent.createReply<NutritionCommand, NutritionResponse>(fun cmd ->
+            try
+                writeDebugMessage $"[NutritionAgent] <- {cmd |> nutritionCommandToString}"
+                let response = processNutritionCommand logger provider orderCtxPort cmd
+                writeDebugMessage $"[NutritionAgent] -> {cmd |> nutritionCommandToString} completed"
+                response
+            with ex ->
+                writeErrorMessage $"[NutritionAgent] error in {cmd |> nutritionCommandToString}: {ex}"
+                NutritionResponse.NutritionPlan (Error [| ex.Message |])
+        )
+
+
+    let private extractNutritionPlan = function
+        | NutritionResponse.NutritionPlan r -> r
+
+
+    // ---------------------------------------------------------------
+    //  Helper
+    // ---------------------------------------------------------------
 
     /// Helper: post a command to the agent and extract the expected response case.
     let private postAsync (agent: Agent<_>) cmd extract =
@@ -167,33 +290,17 @@ module AgentAdapters =
         }
 
 
-    let private extractFormulary = function
-        | ServerResponse.Formulary r -> r
-        | other -> Error [| $"Unexpected response: {other}" |]
+    // ---------------------------------------------------------------
+    //  Composition: build AppEnv with per-component agents
+    // ---------------------------------------------------------------
 
-    let private extractParenteralia = function
-        | ServerResponse.Parenteralia r -> r
-        | other -> Error [| $"Unexpected response: {other}" |]
-
-    let private extractOrderContext = function
-        | ServerResponse.OrderContext r -> r
-        | other -> Error [| $"Unexpected response: {other}" |]
-
-    let private extractOrderPlan = function
-        | ServerResponse.OrderPlan r -> r
-        | other -> Error [| $"Unexpected response: {other}" |]
-
-    let private extractNutritionPlan = function
-        | ServerResponse.NutritionPlan r -> r
-        | other -> Error [| $"Unexpected response: {other}" |]
-
-
-    /// Build an AppEnv backed by a single MailboxProcessor agent.
-    /// All service calls are serialized through the agent, providing
-    /// thread-safe access to the provider.
-    /// Note: requireLoaded is not routed through the agent because it only
+    /// Build an AppEnv backed by per-component MailboxProcessor agents.
+    /// Each domain context gets its own agent, providing:
+    ///   - Independent serialization per component (no cross-domain blocking)
+    ///   - Thread-safe access to the provider within each component
+    /// Note: requireLoaded is not routed through any agent because it only
     /// reads the thread-safe ResourceInfo and returns a different type
-    /// (string[] option) than the agent's ServerResponse DU.
+    /// (string[] option) than the agents' response DUs.
     let makeAppEnv (provider: Resources.IResourceProvider) : AppEnv =
         let logAgent, logger =
             match Logging.loggingLevel with
@@ -202,45 +309,53 @@ module AgentAdapters =
                 let a = Logging.getLogger level Logging.OrderLogger
                 (Some a, a.Logger)
 
-        let agent = createServerAgent logAgent logger provider
+        let formularyAgent = createFormularyAgent provider
+        let orderCtxAgent = createOrderCtxAgent logAgent logger provider
+
+        // Build the OrderContext port backed by its agent, so OrderPlan
+        // and Nutrition agents can route inter-component calls through it.
+        let orderCtxPort : OrderContextPort =
+            {
+                evaluate = fun ctxCmd ctx ->
+                    postAsync orderCtxAgent (OrderCtxCommand.Evaluate (ctxCmd, ctx)) extractOrderContext
+            }
+
+        let orderPlanAgent = createOrderPlanAgent logAgent orderCtxPort
+        let nutritionAgent = createNutritionAgent logger provider orderCtxPort
 
         {
             formulary =
                 {
                     getFormulary = fun form ->
-                        postAsync agent (ServerCommand.GetFormulary form) extractFormulary
+                        postAsync formularyAgent (FormularyCommand.GetFormulary form) extractFormulary
                     getParenteralia = fun par ->
-                        postAsync agent (ServerCommand.GetParenteralia par) extractParenteralia
+                        postAsync formularyAgent (FormularyCommand.GetParenteralia par) extractParenteralia
                 }
 
-            orderContext =
-                {
-                    evaluate = fun ctxCmd ctx ->
-                        postAsync agent (ServerCommand.EvaluateOrderContext (ctxCmd, ctx)) extractOrderContext
-                }
+            orderContext = orderCtxPort
 
             orderPlan =
                 {
                     updateOrderPlan = fun tp cmdOpt ->
-                        postAsync agent (ServerCommand.UpdateOrderPlan (tp, cmdOpt)) extractOrderPlan
+                        postAsync orderPlanAgent (OrderPlanCommand.Update (tp, cmdOpt)) extractOrderPlan
                     filterOrderPlan = fun tp ->
-                        postAsync agent (ServerCommand.FilterOrderPlan tp) extractOrderPlan
+                        postAsync orderPlanAgent (OrderPlanCommand.Filter tp) extractOrderPlan
                 }
 
             nutritionPlan =
                 {
                     initNutritionPlan = fun patient ->
-                        postAsync agent (ServerCommand.InitNutritionPlan patient) extractNutritionPlan
+                        postAsync nutritionAgent (NutritionCommand.Init patient) extractNutritionPlan
                     addNutritionContext = fun (plan, category) ->
-                        postAsync agent (ServerCommand.AddNutritionContext (plan, category)) extractNutritionPlan
+                        postAsync nutritionAgent (NutritionCommand.Add (plan, category)) extractNutritionPlan
                     removeNutritionContext = fun (plan, id) ->
-                        postAsync agent (ServerCommand.RemoveNutritionContext (plan, id)) extractNutritionPlan
+                        postAsync nutritionAgent (NutritionCommand.Remove (plan, id)) extractNutritionPlan
                     updateNutritionOrderContext = fun (plan, label, ctx) ->
-                        postAsync agent (ServerCommand.UpdateNutritionOrderContext (plan, label, ctx)) extractNutritionPlan
+                        postAsync nutritionAgent (NutritionCommand.UpdateOrderContext (plan, label, ctx)) extractNutritionPlan
                     selectNutritionOrderScenario = fun (plan, label, ctx) ->
-                        postAsync agent (ServerCommand.SelectNutritionOrderScenario (plan, label, ctx)) extractNutritionPlan
+                        postAsync nutritionAgent (NutritionCommand.SelectOrderScenario (plan, label, ctx)) extractNutritionPlan
                     navigateNutritionOrderContext = fun (plan, label, ctxCmd, ctx) ->
-                        postAsync agent (ServerCommand.NavigateNutritionOrderContext (plan, label, ctxCmd, ctx)) extractNutritionPlan
+                        postAsync nutritionAgent (NutritionCommand.Navigate (plan, label, ctxCmd, ctx)) extractNutritionPlan
                 }
 
             requireLoaded = fun () ->
