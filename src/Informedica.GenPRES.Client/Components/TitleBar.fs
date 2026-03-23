@@ -10,23 +10,26 @@ module TitleBar =
 
 
     [<JSX.Component>]
-    let View (props: {|
-            title: string
-            toggleSideMenu : unit -> unit
-            languages : Shared.Localization.Locales []
-            hospitals : Deferred<string []>
-            switchLang : Shared.Localization.Locales -> unit
-            switchHosp : string -> unit
-        |}) =
+    let View
+        (props:
+            {|
+                title: string
+                toggleSideMenu: unit -> unit
+                languages: Shared.Localization.Locales[]
+                hospitals: Deferred<string[]>
+                switchLang: Shared.Localization.Locales -> unit
+                switchHosp: string -> unit
+            |})
+        =
 
-        let context : Global.Context = React.useContext Global.context
+        let context: Global.Context = React.useContext Global.context
 
-        let anchorElHosp, setAnchorElHosp = React.useState(None)
+        let anchorElHosp, setAnchorElHosp = React.useState (None)
 
         let handleOpenHospMenu = fun ev -> ev?currentTarget |> setAnchorElHosp
         let handleCloseHospMenu = fun _ -> setAnchorElHosp None
 
-        let anchorElLang, setAnchorElLang = React.useState(None)
+        let anchorElLang, setAnchorElLang = React.useState (None)
 
         let handleOpenLangMenu = fun ev -> ev?currentTarget |> setAnchorElLang
         let handleCloseLangMenu = fun _ -> setAnchorElLang None
@@ -97,14 +100,20 @@ module TitleBar =
 
                     <Box sx={ {| paddingLeft = 1 |} }>
                         <IconButton color="inherit" onClick={handleOpenHospMenu}>
-                            { Mui.Icons.LocalHospital }
+                            {Mui.Icons.LocalHospital}
                         </IconButton>
                         <Menu
-                            sx={ {| marginTop="40px" |} }
+                            sx={ {| marginTop = "40px" |} }
                             anchorEl={anchorElHosp}
-                            anchorOrigin={ {| vertical="top"; horizontal="right" |} }
+                            anchorOrigin={ {|
+                                               vertical = "top"
+                                               horizontal = "right"
+                                           |} }
                             keepMounted
-                            transformOrigin={ {| vertical="top"; horizontal="right" |} }
+                            transformOrigin={ {|
+                                                  vertical = "top"
+                                                  horizontal = "right"
+                                              |} }
                             open={anchorElHosp.IsSome}
                             onClose={handleCloseHospMenu}
                         >
@@ -117,14 +126,20 @@ module TitleBar =
 
                     <Box >
                         <IconButton color="inherit" onClick={handleOpenLangMenu}>
-                            { Mui.Icons.Language }
+                            {Mui.Icons.Language}
                         </IconButton>
                         <Menu
-                            sx={ {| marginTop="40px" |} }
+                            sx={ {| marginTop = "40px" |} }
                             anchorEl={anchorElLang}
-                            anchorOrigin={ {| vertical="top"; horizontal="right" |} }
+                            anchorOrigin={ {|
+                                               vertical = "top"
+                                               horizontal = "right"
+                                           |} }
                             keepMounted
-                            transformOrigin={ {| vertical="top"; horizontal="right" |} }
+                            transformOrigin={ {|
+                                                  vertical = "top"
+                                                  horizontal = "right"
+                                              |} }
                             open={anchorElLang.IsSome}
                             onClose={handleCloseLangMenu}
                         >

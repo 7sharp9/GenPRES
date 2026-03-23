@@ -8,15 +8,16 @@ module SideMenu =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                anchor : string
-                isOpen : bool
-                toggle : unit -> unit
-                menuClick : string -> unit
-                items : (JSX.Element option * string * bool)[]
-            |}
-        ) =
+                anchor: string
+                isOpen: bool
+                toggle: unit -> unit
+                menuClick: string -> unit
+                items: (JSX.Element option * string * bool)[]
+            |})
+        =
         let drawerWidth = 240
 
         let menu =

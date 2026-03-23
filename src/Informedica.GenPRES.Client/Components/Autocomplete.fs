@@ -10,25 +10,25 @@ module Autocomplete =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                label : string
-                selected : string option
-                values : string []
-                updateSelected : string option -> unit
-                isLoading : bool
-                disabled : bool
-            |}
-        ) =
+                label: string
+                selected: string option
+                values: string[]
+                updateSelected: string option -> unit
+                isLoading: bool
+                disabled: bool
+            |})
+        =
 
         let handleChange =
             fun ev ->
                 ev?target?innerText
                 |> string
                 |> function
-                | s when s |> String.IsNullOrWhiteSpace ||
-                         s = "undefined" -> None
-                | s -> s |> Some
+                    | s when s |> String.IsNullOrWhiteSpace || s = "undefined" -> None
+                    | s -> s |> Some
                 |> props.updateSelected
 
         let renderInput pars =
@@ -36,10 +36,12 @@ module Autocomplete =
             // then add the label, avoiding Fable 5 interpolation issue: https://github.com/fable-compiler/Fable/issues/3999
             let parsCopy = emitJsExpr pars "Object.assign({}, $0)"
             parsCopy?label <- props.label
-            JSX.jsx """
+
+            JSX.jsx
+                """
                 <TextField {...parsCopy} />
             """
-            
+
         JSX.jsx
             $"""
         import InputLabel from '@mui/material/InputLabel';

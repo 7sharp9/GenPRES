@@ -9,14 +9,17 @@ module Localization =
     open Fable.Core.JsInterop
 
 
-//    [<ReactComponent>]
-    let View (props : {|
-            languages : Shared.Localization.Locales []
-            switchLang : Shared.Localization.Locales -> unit
-    |}) =
+    //    [<ReactComponent>]
+    let View
+        (props:
+            {|
+                languages: Shared.Localization.Locales[]
+                switchLang: Shared.Localization.Locales -> unit
+            |})
+        =
 
-        let context : Global.Context = React.useContext Global.context
-        let anchorElLang, setAnchorElLang = React.useState(None)
+        let context: Global.Context = React.useContext Global.context
+        let anchorElLang, setAnchorElLang = React.useState (None)
 
         let handleOpenLangMenu = fun ev -> ev?currentTarget |> setAnchorElLang
         let handleCloseLangMenu = fun _ -> setAnchorElLang None
@@ -49,14 +52,20 @@ module Localization =
 
         <Box >
             <IconButton color="inherit" onClick={handleOpenLangMenu}>
-                { Mui.Icons.Language }
+                {Mui.Icons.Language}
             </IconButton>
             <Menu
-                sx={ {| marginTop="40px" |} }
+                sx={ {| marginTop = "40px" |} }
                 anchorEl={anchorElLang}
-                anchorOrigin={ {| vertical="top"; horizontal="right" |} }
+                anchorOrigin={ {|
+                                   vertical = "top"
+                                   horizontal = "right"
+                               |} }
                 keepMounted
-                transformOrigin={ {| vertical="top"; horizontal="right" |} }
+                transformOrigin={ {|
+                                      vertical = "top"
+                                      horizontal = "right"
+                                  |} }
                 open={anchorElLang.IsSome}
                 onClose={handleCloseLangMenu}
             >

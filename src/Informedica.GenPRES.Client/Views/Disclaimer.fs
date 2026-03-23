@@ -1,7 +1,6 @@
 namespace Views
 
 
-
 module Disclaimer =
 
     open Fable.Core
@@ -24,23 +23,27 @@ This application has not been certified as a medical device and is not intended 
     open Shared
 
     [<JSX.Component>]
-    let View(props: {|
-            languages : Localization.Locales []
-            switchLang : Localization.Locales -> unit
-            localizationTerms : Deferred<string [] []>
-            accept : bool -> unit
-        |}) =
+    let View
+        (props:
+            {|
+                languages: Localization.Locales[]
+                switchLang: Localization.Locales -> unit
+                localizationTerms: Deferred<string[][]>
+                accept: bool -> unit
+            |})
+        =
 
-        let context : Global.Context = React.useContext Global.context
+        let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
 
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang
 
         let langBtn =
-            Components.Localization.View {|
-                languages = props.languages
-                switchLang = props.switchLang
-            |}
+            Components.Localization.View
+                {|
+                    languages = props.languages
+                    switchLang = props.switchLang
+                |}
 
         JSX.jsx
             $"""
@@ -52,7 +55,7 @@ This application has not been certified as a medical device and is not intended 
         import Button from '@mui/material/Button';
         import Typography from '@mui/material/Typography';
 
-        <Card sx={ {| p=4 |} } variant="outlined">
+        <Card sx={ {| p = 4 |} } variant="outlined">
             <CardHeader
                 action={langBtn}
                 title={(Disclaimer |> getTerm "Disclaimer only for test/demo").ToUpper()} />
@@ -71,4 +74,3 @@ This application has not been certified as a medical device and is not intended 
             </CardActions>
         </Card>
         """
-

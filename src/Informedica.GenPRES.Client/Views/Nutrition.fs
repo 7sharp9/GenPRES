@@ -22,8 +22,8 @@ module Nutrition =
 
         type State =
             {
-                Order : Order option
-                SelectedComponent : string option
+                Order: Order option
+                SelectedComponent: string option
             }
 
         type Msg =
@@ -56,54 +56,58 @@ module Nutrition =
             | SetMedianComponentQuantityProperty of cmp: string
 
 
-        let init (ctx : Deferred<OrderContext>) =
+        let init (ctx: Deferred<OrderContext>) =
             let ord, cmp =
                 match ctx with
-                | Resolved ctx | Recalculating ctx ->
+                | Resolved ctx
+                | Recalculating ctx ->
                     match ctx.Scenarios with
                     | [| sc |] ->
                         let ord = sc.Order
+
                         match ord.Orderable.Components with
                         | [||] -> Some ord, None
                         | cmps -> Some ord, Some cmps[0].Name
                     | _ ->
                         if ctx.Scenarios |> Array.length > 1 then
                             Logging.error "received multiple scenarios" ctx.Scenarios.Length
+
                         None, None
                 | _ -> None, None
 
             {
                 SelectedComponent = cmp
                 Order = ord
-            }
-            , Cmd.none
+            },
+            Cmd.none
 
 
         let update
             updateOrderScenario
             resetOrderScenario
-            (navigate :
+            (navigate:
                 {|
-                    setRateMin : OrderLoader -> unit
-                    setRateDec : int * bool -> OrderLoader -> unit
-                    setRateMed : OrderLoader -> unit
-                    setRateInc : int * bool -> OrderLoader -> unit
-                    setRateMax : OrderLoader -> unit
+                    setRateMin: OrderLoader -> unit
+                    setRateDec: int * bool -> OrderLoader -> unit
+                    setRateMed: OrderLoader -> unit
+                    setRateInc: int * bool -> OrderLoader -> unit
+                    setRateMax: OrderLoader -> unit
 
-                    setDoseQtyMin : OrderLoader -> unit
-                    setDoseQtyDec : int * bool -> OrderLoader -> unit
-                    setDoseQtyMed : OrderLoader -> unit
-                    setDoseQtyInc : int * bool -> OrderLoader -> unit
-                    setDoseQtyMax : OrderLoader -> unit
+                    setDoseQtyMin: OrderLoader -> unit
+                    setDoseQtyDec: int * bool -> OrderLoader -> unit
+                    setDoseQtyMed: OrderLoader -> unit
+                    setDoseQtyInc: int * bool -> OrderLoader -> unit
+                    setDoseQtyMax: OrderLoader -> unit
 
-                    setComponentQtyMin : OrderLoader -> unit
-                    setComponentQtyDec : int * bool -> OrderLoader -> unit
-                    setComponentQtyMed : OrderLoader -> unit
-                    setComponentQtyInc : int * bool -> OrderLoader  -> unit
-                    setComponentQtyMax : OrderLoader -> unit
+                    setComponentQtyMin: OrderLoader -> unit
+                    setComponentQtyDec: int * bool -> OrderLoader -> unit
+                    setComponentQtyMed: OrderLoader -> unit
+                    setComponentQtyInc: int * bool -> OrderLoader -> unit
+                    setComponentQtyMax: OrderLoader -> unit
                 |})
             (msg: Msg)
-            (state : State) : State * Cmd<Msg>
+            (state: State)
+            : State * Cmd<Msg>
             =
             let setOvar = OrderVariable.setOvar
 
@@ -111,56 +115,36 @@ module Nutrition =
                 match state.Order with
                 | None -> state, Cmd.none
                 | Some ord ->
-                    OrderLoader.create state.SelectedComponent None ord
-                    |> nav
-                    { state with
-                        Order = None
-                    }
-                    , Cmd.none
+                    OrderLoader.create state.SelectedComponent None ord |> nav
+                    { state with Order = None }, Cmd.none
 
             let handleNavWithCmp cmpName nav =
                 match state.Order with
                 | None -> state, Cmd.none
                 | Some ord ->
-                    OrderLoader.create (Some cmpName) None ord
-                    |> nav
-                    { state with
-                        Order = None
-                    }
-                    , Cmd.none
+                    OrderLoader.create (Some cmpName) None ord |> nav
+                    { state with Order = None }, Cmd.none
 
             match msg with
 
             | UpdateOrderScenario ord ->
-                OrderLoader.create state.SelectedComponent None ord
-                |> updateOrderScenario
+                OrderLoader.create state.SelectedComponent None ord |> updateOrderScenario
 
-                { state with
-                    Order = None
-                }
-                , Cmd.none
+                { state with Order = None }, Cmd.none
 
             | ResetOrderScenario ->
                 match state.Order with
-                | Some ord ->
-                    OrderLoader.create state.SelectedComponent None ord
-                    |> resetOrderScenario
+                | Some ord -> OrderLoader.create state.SelectedComponent None ord |> resetOrderScenario
                 | None -> ()
 
-                { state with
-                    Order = None
-                }
-                , Cmd.none
+                { state with Order = None }, Cmd.none
 
             | ChangeComponent cmp ->
                 match cmp with
                 | None -> state, Cmd.none
-                | Some _ ->
-                    { state with
-                        SelectedComponent = cmp
-                    }, Cmd.none
+                | Some _ -> { state with SelectedComponent = cmp }, Cmd.none
 
-            | ChangeComponentOrderableQuantity (cmpName, s) ->
+            | ChangeComponentOrderableQuantity(cmpName, s) ->
                 match state.Order with
                 | Some ord ->
                     let msg =
@@ -171,11 +155,9 @@ module Nutrition =
                                         ord.Orderable.Components
                                         |> Array.map (fun cmp ->
                                             if cmp.Name = cmpName then
-                                                { cmp with
-                                                    OrderableQuantity =
-                                                        cmp.OrderableQuantity |> setOvar s
-                                                }
-                                            else cmp
+                                                { cmp with OrderableQuantity = cmp.OrderableQuantity |> setOvar s }
+                                            else
+                                                cmp
                                         )
                                 }
                         }
@@ -184,7 +166,7 @@ module Nutrition =
                     { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
-            | ChangeComponentDoseQuantityAdjust (cmpName, s) ->
+            | ChangeComponentDoseQuantityAdjust(cmpName, s) ->
                 match state.Order with
                 | Some ord ->
                     let msg =
@@ -198,11 +180,11 @@ module Nutrition =
                                                 { cmp with
                                                     Dose =
                                                         { cmp.Dose with
-                                                            QuantityAdjust =
-                                                                cmp.Dose.QuantityAdjust |> setOvar s
+                                                            QuantityAdjust = cmp.Dose.QuantityAdjust |> setOvar s
                                                         }
                                                 }
-                                            else cmp
+                                            else
+                                                cmp
                                         )
                                 }
                         }
@@ -218,15 +200,11 @@ module Nutrition =
                         { ord with
                             Orderable =
                                 { ord.Orderable with
-                                    Dose =
-                                        { ord.Orderable.Dose with
-                                            Rate =
-                                                ord.Orderable.Dose.Rate
-                                                |> setOvar s
-                                        }
+                                    Dose = { ord.Orderable.Dose with Rate = ord.Orderable.Dose.Rate |> setOvar s }
                                 }
                         }
                         |> UpdateOrderScenario
+
                     { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
@@ -236,13 +214,10 @@ module Nutrition =
                     let msg =
                         { ord with
                             Orderable =
-                                { ord.Orderable with
-                                    OrderableQuantity =
-                                        ord.Orderable.OrderableQuantity
-                                        |> setOvar s
-                                }
+                                { ord.Orderable with OrderableQuantity = ord.Orderable.OrderableQuantity |> setOvar s }
                         }
                         |> UpdateOrderScenario
+
                     { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
@@ -250,15 +225,9 @@ module Nutrition =
                 match state.Order with
                 | Some ord ->
                     let msg =
-                        { ord with
-                            Schedule =
-                                { ord.Schedule with
-                                    Frequency =
-                                        ord.Schedule.Frequency
-                                        |> setOvar s
-                                }
-                        }
+                        { ord with Schedule = { ord.Schedule with Frequency = ord.Schedule.Frequency |> setOvar s } }
                         |> UpdateOrderScenario
+
                     { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
@@ -270,90 +239,100 @@ module Nutrition =
                             Orderable =
                                 { ord.Orderable with
                                     Dose =
-                                        { ord.Orderable.Dose with
-                                            Quantity =
-                                                ord.Orderable.Dose.Quantity
-                                                |> setOvar s
-                                        }
+                                        { ord.Orderable.Dose with Quantity = ord.Orderable.Dose.Quantity |> setOvar s }
                                 }
                         }
                         |> UpdateOrderScenario
+
                     { state with Order = None }, Cmd.ofMsg msg
                 | _ -> state, Cmd.none
 
             // Rate navigation
             | SetMinDoseRateProperty -> handleNav navigate.setRateMin
-            | DecreaseDoseRateProperty (n, uc) -> handleNav (navigate.setRateDec (n, uc))
+            | DecreaseDoseRateProperty(n, uc) -> handleNav (navigate.setRateDec (n, uc))
             | SetMedianDoseRateProperty -> handleNav navigate.setRateMed
-            | IncreaseDoseRateProperty (n, uc) -> handleNav (navigate.setRateInc (n, uc))
+            | IncreaseDoseRateProperty(n, uc) -> handleNav (navigate.setRateInc (n, uc))
             | SetMaxDoseRateProperty -> handleNav navigate.setRateMax
 
             // Dose Quantity navigation
             | SetMinDoseQuantityProperty -> handleNav navigate.setDoseQtyMin
-            | DecreaseDoseQuantityProperty (n, uc) -> handleNav (navigate.setDoseQtyDec (n, uc))
+            | DecreaseDoseQuantityProperty(n, uc) -> handleNav (navigate.setDoseQtyDec (n, uc))
             | SetMedianDoseQuantityProperty -> handleNav navigate.setDoseQtyMed
-            | IncreaseDoseQuantityProperty (n, uc) -> handleNav (navigate.setDoseQtyInc (n, uc))
+            | IncreaseDoseQuantityProperty(n, uc) -> handleNav (navigate.setDoseQtyInc (n, uc))
             | SetMaxDoseQuantityProperty -> handleNav navigate.setDoseQtyMax
 
             // Component Quantity navigation
             | SetMinComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMin
-            | DecreaseComponentQuantityProperty (cmp, n, uc) -> handleNavWithCmp cmp (navigate.setComponentQtyDec (n, uc))
+            | DecreaseComponentQuantityProperty(cmp, n, uc) ->
+                handleNavWithCmp cmp (navigate.setComponentQtyDec (n, uc))
             | SetMedianComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMed
-            | IncreaseComponentQuantityProperty (cmp, n, uc) -> handleNavWithCmp cmp (navigate.setComponentQtyInc (n, uc))
+            | IncreaseComponentQuantityProperty(cmp, n, uc) ->
+                handleNavWithCmp cmp (navigate.setComponentQtyInc (n, uc))
             | SetMaxComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMax
 
 
     open Elmish
 
 
-    let private halfSize = {| xs = 12; md = 6 |}
+    let private halfSize =
+        {|
+            xs = 12
+            md = 6
+        |}
 
-    let private cellSx = {| minWidth = 350; ``& .MuiFormControl-root`` = {| width = "100%" |} |}
+    let private cellSx =
+        {|
+            minWidth = 350
+            ``& .MuiFormControl-root`` = {| width = "100%" |}
+        |}
 
 
-    let private renderAdminSummary (key: string) (name: string) (blocks: TextBlock []) =
+    let private renderAdminSummary (key: string) (name: string) (blocks: TextBlock[]) =
         JSX.jsx
             $"""
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <Box key={key} display="inline" sx={ {| marginLeft=1 |} }>
+        <Box key={key} display="inline" sx={ {| marginLeft = 1 |} }>
             <Typography display="inline" variant="body2" color="text.secondary">
                 {name}:
             </Typography>
-            {
-                blocks
-                |> Array.map Mui.TypoGraphy.fromTextBlock
-                |> unbox<seq<ReactElement>>
-                |> React.Fragment
-            }
+            {blocks
+             |> Array.map Mui.TypoGraphy.fromTextBlock
+             |> unbox<seq<ReactElement>>
+             |> React.Fragment}
         </Box>
         """
 
 
     [<JSX.Component>]
-    let private ParenteralPrintView (props: {|
-        plan: NutritionPlan
-        onClose: unit -> unit
-    |}) =
+    let private ParenteralPrintView
+        (props:
+            {|
+                plan: NutritionPlan
+                onClose: unit -> unit
+            |})
+        =
         let weightKg = ViewHelpers.PrintView.patientWeight (props.plan.Patient |> Some)
 
         let parenteralContexts =
             props.plan.NutritionContexts
             |> Array.filter (fun nc ->
-                nc.Category = NutritionCategory.TPN ||
-                nc.Category = NutritionCategory.Lipid ||
-                nc.Category = NutritionCategory.ElectrolyteGlucose
+                nc.Category = NutritionCategory.TPN
+                || nc.Category = NutritionCategory.Lipid
+                || nc.Category = NutritionCategory.ElectrolyteGlucose
             )
 
-        let tableSx = {| tableLayout = "fixed"; width = "100%" |}
+        let tableSx =
+            {|
+                tableLayout = "fixed"
+                width = "100%"
+            |}
 
         let contextSections =
             parenteralContexts
             |> Array.map (fun nc ->
-                let scenario =
-                    nc.OrderContext.Scenarios
-                    |> Array.tryExactlyOne
+                let scenario = nc.OrderContext.Scenarios |> Array.tryExactlyOne
 
                 match scenario with
                 | None ->
@@ -362,8 +341,13 @@ module Nutrition =
                     import Box from '@mui/material/Box';
                     import Typography from '@mui/material/Typography';
 
-                    <Box key={nc.Id} sx={ {| marginBottom=2 |} }>
-                        <Typography variant="subtitle1" sx={ {| fontWeight="bold"; backgroundColor="#f5f5f5"; padding="4px 8px"; borderRadius=1 |} }>
+                    <Box key={nc.Id} sx={ {| marginBottom = 2 |} }>
+                        <Typography variant="subtitle1" sx={ {|
+                                                                 fontWeight = "bold"
+                                                                 backgroundColor = "#f5f5f5"
+                                                                 padding = "4px 8px"
+                                                                 borderRadius = 1
+                                                             |} }>
                             {nc.Label}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
@@ -380,7 +364,10 @@ module Nutrition =
                         |> Array.map (fun cmp ->
                             let cmpQty = cmp.OrderableQuantity |> OrderVariable.displayString
                             let fixPrec2 = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 2
-                            let doseAdj = cmp.Dose.QuantityAdjust |> OrderVariable.displayStringFormatted fixPrec2
+
+                            let doseAdj =
+                                cmp.Dose.QuantityAdjust |> OrderVariable.displayStringFormatted fixPrec2
+
                             JSX.jsx
                                 $"""
                             import TableRow from '@mui/material/TableRow';
@@ -401,12 +388,17 @@ module Nutrition =
                             let rate = ord.Orderable.Dose.Rate |> OrderVariable.displayString
                             let fixPrec2 = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 2
                             let time = ord.Schedule.Time |> OrderVariable.displayStringFormatted fixPrec2
+
                             JSX.jsx
                                 $"""
                             import Typography from '@mui/material/Typography';
                             import Box from '@mui/material/Box';
 
-                            <Box sx={ {| display="flex"; gap=3; marginTop=2 |} }>
+                            <Box sx={ {|
+                                          display = "flex"
+                                          gap = 3
+                                          marginTop = 2
+                                      |} }>
                                 <Typography variant="body2">
                                     Pompsnelheid: <strong>{rate}</strong>
                                 </Typography>
@@ -415,7 +407,8 @@ module Nutrition =
                                 </Typography>
                             </Box>
                             """
-                        else null
+                        else
+                            null
 
                     JSX.jsx
                         $"""
@@ -427,8 +420,14 @@ module Nutrition =
                     import TableCell from '@mui/material/TableCell';
                     import TableHead from '@mui/material/TableHead';
 
-                    <Box key={nc.Id} sx={ {| marginBottom=3 |} }>
-                        <Typography variant="subtitle1" sx={ {| fontWeight="bold"; marginBottom=1; backgroundColor="#f5f5f5"; padding="4px 8px"; borderRadius=1 |} }>
+                    <Box key={nc.Id} sx={ {| marginBottom = 3 |} }>
+                        <Typography variant="subtitle1" sx={ {|
+                                                                 fontWeight = "bold"
+                                                                 marginBottom = 1
+                                                                 backgroundColor = "#f5f5f5"
+                                                                 padding = "4px 8px"
+                                                                 borderRadius = 1
+                                                             |} }>
                             {nc.Label} - {orderableName}
                         </Typography>
                         <Table size="small" sx={tableSx}>
@@ -442,8 +441,8 @@ module Nutrition =
                             <TableBody>
                                 {componentRows |> unbox<seq<ReactElement>> |> React.Fragment}
                                 <TableRow>
-                                    <TableCell colSpan={2} sx={ {| fontWeight="bold" |} }>Totaal volume</TableCell>
-                                    <TableCell align="right" sx={ {| fontWeight="bold" |} }>{totalVolume}</TableCell>
+                                    <TableCell colSpan={2} sx={ {| fontWeight = "bold" |} }>Totaal volume</TableCell>
+                                    <TableCell align="right" sx={ {| fontWeight = "bold" |} }>{totalVolume}</TableCell>
                                     <TableCell />
                                 </TableRow>
                             </TableBody>
@@ -456,6 +455,7 @@ module Nutrition =
         let totalsSection =
             let intake = props.plan.Totals
             let rows = Totals.intakeRows
+
             let activeRows =
                 rows
                 |> Array.filter (fun cells ->
@@ -470,22 +470,32 @@ module Nutrition =
                     let name = cells[0]
                     let unit = cells[2]
                     let items = Totals.substanceToField intake name
+
                     let value =
                         if items.Length >= 2 then
-                            items[0..items.Length - 2]
+                            items[0 .. items.Length - 2]
                             |> Array.map (fun item ->
                                 match item with
-                                | Normal s | Bold s | Italic s -> s
+                                | Normal s
+                                | Bold s
+                                | Italic s -> s
                             )
                             |> String.concat " "
-                        else ""
+                        else
+                            ""
+
                     let normal =
                         if items.Length >= 1 then
                             let s =
                                 match items.[items.Length - 1] with
-                                | Normal s | Bold s | Italic s -> s
+                                | Normal s
+                                | Bold s
+                                | Italic s -> s
+
                             if s = "" then "" else s + " " + unit
-                        else ""
+                        else
+                            ""
+
                     JSX.jsx
                         $"""
                     import TableRow from '@mui/material/TableRow';
@@ -499,7 +509,8 @@ module Nutrition =
                     """
                 )
 
-            if activeRows.Length = 0 then null
+            if activeRows.Length = 0 then
+                null
             else
                 JSX.jsx
                     $"""
@@ -508,8 +519,14 @@ module Nutrition =
                 import Table from '@mui/material/Table';
                 import TableBody from '@mui/material/TableBody';
 
-                <Box sx={ {| marginTop=2 |} }>
-                    <Typography variant="subtitle1" sx={ {| fontWeight="bold"; marginBottom=1; backgroundColor="#f5f5f5"; padding="4px 8px"; borderRadius=1 |} }>
+                <Box sx={ {| marginTop = 2 |} }>
+                    <Typography variant="subtitle1" sx={ {|
+                                                             fontWeight = "bold"
+                                                             marginBottom = 1
+                                                             backgroundColor = "#f5f5f5"
+                                                             padding = "4px 8px"
+                                                             borderRadius = 1
+                                                         |} }>
                         Totalen
                     </Typography>
                     <Table size="small" sx={tableSx}>
@@ -526,35 +543,45 @@ module Nutrition =
             import Typography from '@mui/material/Typography';
 
             <React.Fragment>
-                <Typography variant="subtitle1" sx={ {| fontWeight="bold"; backgroundColor="#f5f5f5"; padding="4px 8px"; borderRadius=1; marginBottom=2 |} }>
+                <Typography variant="subtitle1" sx={ {|
+                                                         fontWeight = "bold"
+                                                         backgroundColor = "#f5f5f5"
+                                                         padding = "4px 8px"
+                                                         borderRadius = 1
+                                                         marginBottom = 2
+                                                     |} }>
                     INFUUS AFSPRAKEN CENTRAAL VENEUZE CATHETERS
                 </Typography>
                 {ViewHelpers.PrintView.PatientHeader {| weightKg = weightKg |}}
                 {contextSections |> unbox<seq<ReactElement>> |> React.Fragment}
                 {totalsSection}
-                {ViewHelpers.PrintView.PatientSignature ()}
+                {ViewHelpers.PrintView.PatientSignature()}
             </React.Fragment>
             """
             |> toReact
 
-        ViewHelpers.PrintView.PrintDialog {|
-            isOpen = true
-            onClose = props.onClose
-            title = "Parenterale Voeding"
-            children = printContent
-        |}
+        ViewHelpers.PrintView.PrintDialog
+            {|
+                isOpen = true
+                onClose = props.onClose
+                title = "Parenterale Voeding"
+                children = printContent
+            |}
 
 
     [<JSX.Component>]
-    let private NutritionSlot (props: {|
-        nutritionContext: NutritionContext
-        plan: NutritionPlan
-        nutritionPlanMsg: Api.NutritionPlanCommand -> unit
-        localizationTerms: Deferred<string [][]>
-        onRemove: (unit -> unit) option
-        wrapInAccordion: bool
-        isRecalculating: bool
-    |}) =
+    let private NutritionSlot
+        (props:
+            {|
+                nutritionContext: NutritionContext
+                plan: NutritionPlan
+                nutritionPlanMsg: Api.NutritionPlanCommand -> unit
+                localizationTerms: Deferred<string[][]>
+                onRemove: (unit -> unit) option
+                wrapInAccordion: bool
+                isRecalculating: bool
+            |})
+        =
         let ctx = props.nutritionContext.OrderContext
         let ncId = props.nutritionContext.Id
         let label = props.nutritionContext.Label
@@ -577,88 +604,90 @@ module Nutrition =
             |> fun updCtx ->
                 // In Nutrition, Generic is upstream of Indication.
                 // Clear Indication selection (but NOT the Indications list — server repopulates it).
-                { updCtx with
-                    Filter =
-                        { updCtx.Filter with
-                            Indication = None
-                        }
-                }
+                { updCtx with Filter = { updCtx.Filter with Indication = None } }
             |> fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderContext, updCtx)
             |> props.nutritionPlanMsg
 
         let indicationChange s =
-            ctx |> OrderContext.indicationChange s
+            ctx
+            |> OrderContext.indicationChange s
             |> fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderContext, updCtx)
             |> props.nutritionPlanMsg
 
         let doseTypeChange s =
             let dt = s |> Option.map DoseType.doseTypeFromString
-            ctx |> OrderContext.doseTypeChange dt
+
+            ctx
+            |> OrderContext.doseTypeChange dt
             |> fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderContext, updCtx)
             |> props.nutritionPlanMsg
 
-        let updateOrderScenario (ol : OrderLoader) =
+        let updateOrderScenario (ol: OrderLoader) =
             { ctx with
                 Scenarios =
                     ctx.Scenarios
                     |> Array.map (fun sc ->
-                        if sc.Order.Id <> ol.Order.Id then sc
+                        if sc.Order.Id <> ol.Order.Id then
+                            sc
                         else
-                            {
-                                sc with
-                                    Component = ol.Component
-                                    Item = ol.Item
-                                    Order = ol.Order
+                            { sc with
+                                Component = ol.Component
+                                Item = ol.Item
+                                Order = ol.Order
                             }
                     )
             }
-            |> fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderScenario, updCtx) |> props.nutritionPlanMsg
+            |> fun updCtx ->
+                Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderScenario, updCtx)
+                |> props.nutritionPlanMsg
 
-        let resetOrderScenario (_ol : OrderLoader) =
+        let resetOrderScenario (_ol: OrderLoader) =
             Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.ResetOrderScenario, ctx)
             |> props.nutritionPlanMsg
 
         let navigate =
             let create nav =
-                fun (ol : OrderLoader) ->
+                fun (ol: OrderLoader) ->
                     let updCtx =
                         { ctx with
                             Scenarios =
                                 ctx.Scenarios
                                 |> Array.map (fun sc ->
-                                    if sc.Order.Id <> ol.Order.Id then sc
+                                    if sc.Order.Id <> ol.Order.Id then
+                                        sc
                                     else
-                                        {
-                                            sc with
-                                                Component = ol.Component
-                                                Item = ol.Item
-                                                Order = ol.Order
+                                        { sc with
+                                            Component = ol.Component
+                                            Item = ol.Item
+                                            Order = ol.Order
                                         }
                                 )
                         }
+
                     nav updCtx
 
             let createWithN nav =
-                fun (n, uc) (ol : OrderLoader) ->
+                fun (n, uc) (ol: OrderLoader) ->
                     let updCtx =
                         { ctx with
                             Scenarios =
                                 ctx.Scenarios
                                 |> Array.map (fun sc ->
-                                    if sc.Order.Id <> ol.Order.Id then sc
+                                    if sc.Order.Id <> ol.Order.Id then
+                                        sc
                                     else
-                                        {
-                                            sc with
-                                                Component = ol.Component
-                                                Item = ol.Item
-                                                Order = ol.Order
+                                        { sc with
+                                            Component = ol.Component
+                                            Item = ol.Item
+                                            Order = ol.Order
                                         }
                                 )
                         }
+
                     nav (updCtx, n, uc)
 
             let createWithCmp nav =
-                fun (ol : OrderLoader) ->
+                fun (ol: OrderLoader) ->
                     match ol.Component with
                     | None -> ()
                     | Some cmp ->
@@ -667,20 +696,21 @@ module Nutrition =
                                 Scenarios =
                                     ctx.Scenarios
                                     |> Array.map (fun sc ->
-                                        if sc.Order.Id <> ol.Order.Id then sc
+                                        if sc.Order.Id <> ol.Order.Id then
+                                            sc
                                         else
-                                            {
-                                                sc with
-                                                    Component = ol.Component
-                                                    Item = ol.Item
-                                                    Order = ol.Order
+                                            { sc with
+                                                Component = ol.Component
+                                                Item = ol.Item
+                                                Order = ol.Order
                                             }
                                     )
                             }
+
                         nav (updCtx, cmp)
 
             let createWithCmpN nav =
-                fun (n, uc) (ol : OrderLoader) ->
+                fun (n, uc) (ol: OrderLoader) ->
                     match ol.Component with
                     | None -> ()
                     | Some cmp ->
@@ -689,22 +719,38 @@ module Nutrition =
                                 Scenarios =
                                     ctx.Scenarios
                                     |> Array.map (fun sc ->
-                                        if sc.Order.Id <> ol.Order.Id then sc
+                                        if sc.Order.Id <> ol.Order.Id then
+                                            sc
                                         else
-                                            {
-                                                sc with
-                                                    Component = ol.Component
-                                                    Item = ol.Item
-                                                    Order = ol.Order
+                                            { sc with
+                                                Component = ol.Component
+                                                Item = ol.Item
+                                                Order = ol.Order
                                             }
                                     )
                             }
+
                         nav (updCtx, cmp, n, uc)
 
-            let navRate cmd = fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd, updCtx) |> props.nutritionPlanMsg
-            let navRateN cmd = fun (updCtx, n, uc) -> Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd (n, uc), updCtx) |> props.nutritionPlanMsg
-            let navCmpQty cmd = fun (updCtx, cmp) -> Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd cmp, updCtx) |> props.nutritionPlanMsg
-            let navCmpQtyN cmd = fun (updCtx, cmp, n, uc) -> Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd (cmp, n, uc), updCtx) |> props.nutritionPlanMsg
+            let navRate cmd =
+                fun updCtx ->
+                    Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd, updCtx)
+                    |> props.nutritionPlanMsg
+
+            let navRateN cmd =
+                fun (updCtx, n, uc) ->
+                    Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd (n, uc), updCtx)
+                    |> props.nutritionPlanMsg
+
+            let navCmpQty cmd =
+                fun (updCtx, cmp) ->
+                    Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd cmp, updCtx)
+                    |> props.nutritionPlanMsg
+
+            let navCmpQtyN cmd =
+                fun (updCtx, cmp, n, uc) ->
+                    Api.NavigateNutritionOrderContext(planRef.current, ncId, cmd (cmp, n, uc), updCtx)
+                    |> props.nutritionPlanMsg
 
             {|
                 // Dose Rate
@@ -728,11 +774,7 @@ module Nutrition =
             |}
 
         let state, dispatch =
-            React.useElmish (
-                init (Resolved ctx),
-                update updateOrderScenario resetOrderScenario navigate,
-                [| box ctx |]
-            )
+            React.useElmish (init (Resolved ctx), update updateOrderScenario resetOrderScenario navigate, [| box ctx |])
 
         let isOrderLoading = props.isRecalculating
         let isLoading = state.Order.IsNone && not props.isRecalculating
@@ -746,11 +788,7 @@ module Nutrition =
         // while the server is processing.
         let displayOrder =
             state.Order
-            |> Option.orElseWith (fun () ->
-                ctx.Scenarios
-                |> Array.tryExactlyOne
-                |> Option.map _.Order
-            )
+            |> Option.orElseWith (fun () -> ctx.Scenarios |> Array.tryExactlyOne |> Option.map _.Order)
 
         let componentRows =
             match displayOrder with
@@ -765,20 +803,26 @@ module Nutrition =
 
                     let nav =
                         let c = qtyVals |> Array.length
-                        let show =
-                            cmp.OrderableQuantity.Variable.Min.IsSome &&
-                            cmp.OrderableQuantity.Variable.Incr.IsSome &&
-                            cmp.OrderableQuantity.Variable.Max.IsSome ||
-                            c >= 1
 
-                        if not show then None
+                        let show =
+                            cmp.OrderableQuantity.Variable.Min.IsSome
+                            && cmp.OrderableQuantity.Variable.Incr.IsSome
+                            && cmp.OrderableQuantity.Variable.Max.IsSome
+                            || c >= 1
+
+                        if not show then
+                            None
                         else
                             let cmpName = cmp.Name
-                            ViewHelpers.createNav dispatch navigable solved
+
+                            ViewHelpers.createNav
+                                dispatch
+                                navigable
+                                solved
                                 (SetMinComponentQuantityProperty cmpName)
-                                (fun (n, uc) -> DecreaseComponentQuantityProperty (cmpName, n, uc))
+                                (fun (n, uc) -> DecreaseComponentQuantityProperty(cmpName, n, uc))
                                 (SetMedianComponentQuantityProperty cmpName)
-                                (fun (n, uc) -> IncreaseComponentQuantityProperty (cmpName, n, uc))
+                                (fun (n, uc) -> IncreaseComponentQuantityProperty(cmpName, n, uc))
                                 (SetMaxComponentQuantityProperty cmpName)
 
                     let qtyWarning = cmp.OrderableQuantity.Level |> getWarning
@@ -786,7 +830,16 @@ module Nutrition =
                     let qtyLabel = cmp.OrderableQuantity |> ViewHelpers.ovarLabel cmp.Name
 
                     let qtyControl =
-                        select isLoading qtyLabel None (fun s -> ChangeComponentOrderableQuantity (cmp.Name, s) |> dispatch) nav false qtyWarning (Some 400) qtyVals
+                        select
+                            isLoading
+                            qtyLabel
+                            None
+                            (fun s -> ChangeComponentOrderableQuantity(cmp.Name, s) |> dispatch)
+                            nav
+                            false
+                            qtyWarning
+                            (Some 400)
+                            qtyVals
 
                     // Dose display (dosering) - always show with label
                     let doseLabel = cmp.Dose.QuantityAdjust |> ViewHelpers.ovarLabel cmp.Name
@@ -794,7 +847,16 @@ module Nutrition =
                     let doseVals = cmp.Dose.QuantityAdjust |> ViewHelpers.ovarVals (fixPrecision 3)
 
                     let doseDisplay =
-                        select isLoading doseLabel None (fun s -> ChangeComponentDoseQuantityAdjust (cmp.Name, s) |> dispatch) None false doseWarning (Some 400) doseVals
+                        select
+                            isLoading
+                            doseLabel
+                            None
+                            (fun s -> ChangeComponentDoseQuantityAdjust(cmp.Name, s) |> dispatch)
+                            None
+                            false
+                            doseWarning
+                            (Some 400)
+                            doseVals
 
                     JSX.jsx
                         $"""
@@ -814,8 +876,7 @@ module Nutrition =
                     </Grid>
                     """
                 )
-            | None ->
-                [| null |]
+            | None -> [| null |]
 
         let isEnteral =
             props.nutritionContext.Category = NutritionCategory.EnteralFeeding
@@ -827,70 +888,85 @@ module Nutrition =
             match displayOrder with
             | Some ord ->
                 let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
-                let label = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarLabel "toedien hoeveelheid"
+
+                let label =
+                    ord.Orderable.Dose.Quantity |> ViewHelpers.ovarLabel "toedien hoeveelheid"
+
                 let vals = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarValsWithRange string 3
 
                 let showNav =
                     ord.Orderable.Components
                     |> Array.forall (fun cmp ->
                         cmp.OrderableQuantity.Variable.Vals
-                        |> Option.map (fun vu ->
-                            vu.Value |> Array.length = 1
-                        )
+                        |> Option.map (fun vu -> vu.Value |> Array.length = 1)
                         |> Option.defaultValue false
                     )
 
                 let doseQtyNav =
-                    if not showNav then None
+                    if not showNav then
+                        None
                     else
                         let canIncr =
-                            ord.Orderable.Components |> Array.length = 1 ||
-                            ord.Orderable.DoseCount.Variable.Vals
-                            |> Option.map (fun vu ->
-                                vu.Value
-                                |> Array.map snd
-                                |> Array.forall (fun v -> v > 1m)
-                            )
-                            |> Option.defaultValue false
+                            ord.Orderable.Components |> Array.length = 1
+                            || ord.Orderable.DoseCount.Variable.Vals
+                               |> Option.map (fun vu -> vu.Value |> Array.map snd |> Array.forall (fun v -> v > 1m))
+                               |> Option.defaultValue false
 
                         let solved = ord |> isSolved
-                        let navigable =
-                            ord.Orderable.Dose.Quantity
-                            |> OrderVariable.isNavigable
+                        let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
 
                         {|
                             first =
-                                if navigable then (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
-                                elif solved then (fun n -> (n, true) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
-                                else None
+                                if navigable then
+                                    (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
+                                elif solved then
+                                    (fun n -> (n, true) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                else
+                                    None
                             decrease =
-                                if solved then (fun n -> (n, false) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
-                                else None
+                                if solved then
+                                    (fun n -> (n, false) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
+                                else
+                                    None
                             median =
-                                if navigable then (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
-                                else None
+                                if navigable then
+                                    (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
+                                else
+                                    None
                             increase =
-                                if solved && canIncr then (fun n -> (n, false) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
-                                else None
+                                if solved && canIncr then
+                                    (fun n -> (n, false) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                else
+                                    None
                             last =
-                                if navigable then (fun (_: int) -> SetMaxDoseQuantityProperty |> dispatch) |> Some
-                                elif solved && canIncr then (fun n -> (n, true) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
-                                else None
+                                if navigable then
+                                    (fun (_: int) -> SetMaxDoseQuantityProperty |> dispatch) |> Some
+                                elif solved && canIncr then
+                                    (fun n -> (n, true) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                else
+                                    None
                             useDebounce = not navigable && solved
                         |}
                         |> Some
 
-                select isLoading label None (ChangeOrderableDoseQuantity >> dispatch) doseQtyNav false warning selectMinWidth vals
-            | None ->
-                null
+                select
+                    isLoading
+                    label
+                    None
+                    (ChangeOrderableDoseQuantity >> dispatch)
+                    doseQtyNav
+                    false
+                    warning
+                    selectMinWidth
+                    vals
+            | None -> null
 
         let dosePerTimeAdjDisplay =
             match displayOrder with
             | Some ord ->
                 ord.Orderable.Dose.PerTimeAdjust
                 |> ViewHelpers.ovarDisplay select "dosering" (fixPrecision 3) selectMinWidth
-            | None ->
-                null
+            | None -> null
 
         let frequencyControl =
             match displayOrder with
@@ -900,8 +976,7 @@ module Nutrition =
                 let freqVals = ord.Schedule.Frequency |> ViewHelpers.ovarVals string
 
                 select isLoading label None (ChangeFrequency >> dispatch) None false warning selectMinWidth freqVals
-            | _ ->
-                null
+            | _ -> null
 
         let genericFilter =
             let sel = ctx.Filter.Generic
@@ -910,12 +985,9 @@ module Nutrition =
             let onChange = genericChange
 
             if isMobile then
-                items
-                |> Array.map (fun s -> s, s)
-                |> filterSelect lbl sel onChange
+                items |> Array.map (fun s -> s, s) |> filterSelect lbl sel onChange
             else
-                items
-                |> autoComplete lbl sel onChange
+                items |> autoComplete lbl sel onChange
 
         let frequencyDoseRow =
             if isEnteral then
@@ -927,6 +999,7 @@ module Nutrition =
                         alignItems = "flex-end"
                         width = "100%"
                     |}
+
                 let itemSx =
                     {|
                         flex = "1 1 0%"
@@ -934,6 +1007,7 @@ module Nutrition =
                         ``& .MuiFormControl-root`` = {| width = "100%" |}
                         ``& .MuiAutocomplete-root`` = {| minWidth = "unset" |}
                     |}
+
                 JSX.jsx
                     $"""
                 import Box from '@mui/material/Box';
@@ -978,7 +1052,10 @@ module Nutrition =
                 let navigable = ord.Orderable.Dose.Rate |> OrderVariable.isNavigable
 
                 let nav =
-                    ViewHelpers.createNav dispatch navigable solved
+                    ViewHelpers.createNav
+                        dispatch
+                        navigable
+                        solved
                         SetMinDoseRateProperty
                         DecreaseDoseRateProperty
                         SetMedianDoseRateProperty
@@ -1014,23 +1091,19 @@ module Nutrition =
                     </Grid>
                 </Grid>
                 """
-            | _ ->
-                null
+            | _ -> null
 
         let totalVolumeDisplay =
             match displayOrder with
             | Some ord ->
                 ord.Orderable.OrderableQuantity
                 |> ViewHelpers.ovarDisplay select "totaal volume" string (Some 400)
-            | None ->
-                null
+            | None -> null
 
-        let onClickReset =
-            fun () -> ResetOrderScenario |> dispatch
+        let onClickReset = fun () -> ResetOrderScenario |> dispatch
 
         let administrationDivider =
-            JSX.jsx
-                $"""<Divider><Typography variant="caption">toediening</Typography></Divider>"""
+            JSX.jsx $"""<Divider><Typography variant="caption">toediening</Typography></Divider>"""
 
         let headerRow =
             JSX.jsx
@@ -1048,18 +1121,15 @@ module Nutrition =
             """
 
         let preparationSection =
-            if isEnteral then null
+            if isEnteral then
+                null
             else
                 JSX.jsx
                     $"""
                 import Divider from '@mui/material/Divider';
                 <>
                     {headerRow}
-                    {
-                        componentRows
-                        |> unbox<seq<ReactElement>>
-                        |> React.Fragment
-                    }
+                    {componentRows |> unbox<seq<ReactElement>> |> React.Fragment}
                     <Divider />
                     {totalVolumeDisplay}
                 </>
@@ -1090,22 +1160,25 @@ module Nutrition =
             """
 
         let indicationFilter =
-            if ctx.Filter.Generic.IsNone || ctx.Filter.Indications |> Array.length <= 1 then null
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Indications |> Array.length <= 1 then
+                null
             else
                 let sel = ctx.Filter.Indication
                 let items = ctx.Filter.Indications
                 let lbl = "Indicatie"
 
                 if isMobile then
-                    items
-                    |> Array.map (fun s -> s, s)
-                    |> filterSelect lbl sel indicationChange
+                    items |> Array.map (fun s -> s, s) |> filterSelect lbl sel indicationChange
                 else
-                    items
-                    |> autoComplete lbl sel indicationChange
+                    items |> autoComplete lbl sel indicationChange
 
         let doseTypeFilter =
-            if ctx.Filter.Generic.IsNone || ctx.Filter.Indication.IsNone || ctx.Filter.DoseTypes |> Array.length <= 1 then null
+            if
+                ctx.Filter.Generic.IsNone
+                || ctx.Filter.Indication.IsNone
+                || ctx.Filter.DoseTypes |> Array.length <= 1
+            then
+                null
             else
                 let sel = ctx.Filter.DoseType |> Option.map DoseType.doseTypeToString
                 let items = ctx.Filter.DoseTypes
@@ -1116,32 +1189,34 @@ module Nutrition =
                 |> filterSelect lbl sel doseTypeChange
 
         let filterSx = {| marginBottom = 2 |}
+
         let filterControls =
             JSX.jsx
                 $"""
             import Stack from '@mui/material/Stack';
             <Stack direction="column" spacing={2} sx={filterSx}>
-                {if isEnteral && displayOrder.IsSome then null else genericFilter}
+                {if isEnteral && displayOrder.IsSome then
+                     null
+                 else
+                     genericFilter}
                 {indicationFilter}
                 {doseTypeFilter}
             </Stack>
             """
 
-        let orderDetails =
-            if displayOrder.IsSome then details
-            else loadingIndicator
+        let orderDetails = if displayOrder.IsSome then details else loadingIndicator
 
         let expanded, setExpanded = React.useState true
 
-        let handleAccordionChange =
-            fun _ -> setExpanded (not expanded)
+        let handleAccordionChange = fun _ -> setExpanded (not expanded)
 
         let removeButton =
             match props.onRemove with
             | Some onRemove ->
                 let handleClick (e: Browser.Types.Event) =
-                    e.stopPropagation()
+                    e.stopPropagation ()
                     onRemove ()
+
                 JSX.jsx
                     $"""
                 import Box from '@mui/material/Box';
@@ -1149,17 +1224,15 @@ module Nutrition =
                 <Box
                     component="span"
                     onClick={handleClick}
-                    sx={
-                        {|
-                            marginLeft="auto"
-                            display="inline-flex"
-                            alignItems="center"
-                            cursor="pointer"
-                            padding="4px"
-                            borderRadius="50%"
-                            ``&:hover`` = {| backgroundColor="rgba(0, 0, 0, 0.04)" |}
-                        |}
-                    }
+                    sx={ {|
+                             marginLeft = "auto"
+                             display = "inline-flex"
+                             alignItems = "center"
+                             cursor = "pointer"
+                             padding = "4px"
+                             borderRadius = "50%"
+                             ``&:hover`` = {| backgroundColor = "rgba(0, 0, 0, 0.04)" |}
+                         |} }
                 >
                     <DeleteIcon fontSize="small" />
                 </Box>
@@ -1171,10 +1244,7 @@ module Nutrition =
                 let adminSummary =
                     match ctx.Scenarios with
                     | [| sc |] when sc.Administration |> Array.isEmpty |> not ->
-                        let blocks =
-                            sc.Administration
-                            |> TextBlock.flatten
-                            |> Array.collect id
+                        let blocks = sc.Administration |> TextBlock.flatten |> Array.collect id
                         renderAdminSummary (string props.nutritionContext.Id) sc.Order.Orderable.Name blocks
                     | _ -> null
 
@@ -1184,10 +1254,15 @@ module Nutrition =
                 import Typography from '@mui/material/Typography';
                 import Box from '@mui/material/Box';
 
-                <Box sx={ {| display="flex"; alignItems="center"; width="100%"; overflow="hidden" |} }>
+                <Box sx={ {|
+                              display = "flex"
+                              alignItems = "center"
+                              width = "100%"
+                              overflow = "hidden"
+                          |} }>
                     <Typography>{props.nutritionContext.Label}</Typography>
                     {adminSummary}
-                    <Box sx={ {| marginLeft="auto" |} }>
+                    <Box sx={ {| marginLeft = "auto" |} }>
                         {removeButton}
                     </Box>
                 </Box>
@@ -1238,10 +1313,13 @@ module Nutrition =
 
 
     [<JSX.Component>]
-    let private AddButton (props: {|
-        label: string
-        onClick: unit -> unit
-    |}) =
+    let private AddButton
+        (props:
+            {|
+                label: string
+                onClick: unit -> unit
+            |})
+        =
         JSX.jsx
             $"""
         import Button from '@mui/material/Button';
@@ -1251,7 +1329,10 @@ module Nutrition =
             size="small"
             startIcon={{ <AddIcon /> }}
             onClick={fun _ -> props.onClick ()}
-            sx={ {| marginTop=1; marginBottom=1 |} }
+            sx={ {|
+                     marginTop = 1
+                     marginBottom = 1
+                 |} }
         >
             {props.label}
         </Button>
@@ -1259,21 +1340,23 @@ module Nutrition =
 
 
     [<JSX.Component>]
-    let View (props: {|
-        patient: Patient option
-        nutritionPlan: Deferred<NutritionPlan>
-        nutritionPlanMsg: Api.NutritionPlanCommand -> unit
-        orderContextMsg: (Api.OrderContextCommand * OrderContext) -> unit
-        localizationTerms: Deferred<string[][]>
-    |}) =
+    let View
+        (props:
+            {|
+                patient: Patient option
+                nutritionPlan: Deferred<NutritionPlan>
+                nutritionPlanMsg: Api.NutritionPlanCommand -> unit
+                orderContextMsg: (Api.OrderContextCommand * OrderContext) -> unit
+                localizationTerms: Deferred<string[][]>
+            |})
+        =
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
-        React.useEffect(
+        React.useEffect (
             (fun () ->
                 match props.patient, props.nutritionPlan with
-                | Some pat, HasNotStartedYet ->
-                    props.nutritionPlanMsg (Api.InitNutritionPlan pat)
+                | Some pat, HasNotStartedYet -> props.nutritionPlanMsg (Api.InitNutritionPlan pat)
                 | _ -> ()
             ),
             [| box props.patient; box props.nutritionPlan |]
@@ -1281,10 +1364,8 @@ module Nutrition =
 
         let progress =
             match props.nutritionPlan with
-            | HasNotStartedYet when props.patient.IsNone ->
-                JSX.jsx $"<>Voer eerst patient gegevens in</>"
-            | _ ->
-                ViewHelpers.progressOrEmpty props.nutritionPlan
+            | HasNotStartedYet when props.patient.IsNone -> JSX.jsx $"<>Voer eerst patient gegevens in</>"
+            | _ -> ViewHelpers.progressOrEmpty props.nutritionPlan
 
         let isRecalculating =
             match props.nutritionPlan with
@@ -1299,25 +1380,29 @@ module Nutrition =
             let onRemove =
                 if nc.Removable then
                     let hasSupplements =
-                        nc.Category = NutritionCategory.EnteralFeeding &&
-                        plan.NutritionContexts |> Array.exists (fun c -> c.Category = NutritionCategory.EnteralSupplement)
-                    Some (fun () ->
+                        nc.Category = NutritionCategory.EnteralFeeding
+                        && plan.NutritionContexts
+                           |> Array.exists (fun c -> c.Category = NutritionCategory.EnteralSupplement)
+
+                    Some(fun () ->
                         if hasSupplements then
                             setConfirmDeleteTarget (Some nc.Id)
                         else
-                            Api.RemoveNutritionContext(plan, nc.Id)
-                            |> props.nutritionPlanMsg
+                            Api.RemoveNutritionContext(plan, nc.Id) |> props.nutritionPlanMsg
                     )
-                else None
-            NutritionSlot {|
-                nutritionContext = nc
-                plan = plan
-                nutritionPlanMsg = props.nutritionPlanMsg
-                localizationTerms = props.localizationTerms
-                onRemove = onRemove
-                wrapInAccordion = wrapInAccordion
-                isRecalculating = isRecalculating
-            |}
+                else
+                    None
+
+            NutritionSlot
+                {|
+                    nutritionContext = nc
+                    plan = plan
+                    nutritionPlanMsg = props.nutritionPlanMsg
+                    localizationTerms = props.localizationTerms
+                    onRemove = onRemove
+                    wrapInAccordion = wrapInAccordion
+                    isRecalculating = isRecalculating
+                |}
 
         let addContext plan category =
             Api.AddNutritionContext(plan, category) |> props.nutritionPlanMsg
@@ -1339,18 +1424,14 @@ module Nutrition =
                 let parenteralContexts =
                     plan.NutritionContexts
                     |> Array.filter (fun nc ->
-                        nc.Category = NutritionCategory.TPN ||
-                        nc.Category = NutritionCategory.Lipid ||
-                        nc.Category = NutritionCategory.ElectrolyteGlucose
+                        nc.Category = NutritionCategory.TPN
+                        || nc.Category = NutritionCategory.Lipid
+                        || nc.Category = NutritionCategory.ElectrolyteGlucose
                     )
 
-                let enteralSlots =
-                    enteralContexts
-                    |> Array.map (makeSlot false plan)
+                let enteralSlots = enteralContexts |> Array.map (makeSlot false plan)
 
-                let parenteralSlots =
-                    parenteralContexts
-                    |> Array.map (makeSlot true plan)
+                let parenteralSlots = parenteralContexts |> Array.map (makeSlot true plan)
 
                 let hasEnteral = hasCategory plan NutritionCategory.EnteralFeeding
                 let hasTPN = hasCategory plan NutritionCategory.TPN
@@ -1358,21 +1439,43 @@ module Nutrition =
 
                 let enteralFeedingAddButton =
                     if not hasEnteral then
-                        AddButton {| label = "Enterale Voeding"; onClick = fun () -> addContext plan NutritionCategory.EnteralFeeding |}
-                    else null
+                        AddButton
+                            {|
+                                label = "Enterale Voeding"
+                                onClick = fun () -> addContext plan NutritionCategory.EnteralFeeding
+                            |}
+                    else
+                        null
 
                 let supplementAddButton =
                     if hasEnteral then
-                        AddButton {| label = "Supplement toevoegen"; onClick = fun () -> addContext plan NutritionCategory.EnteralSupplement |}
-                    else null
+                        AddButton
+                            {|
+                                label = "Supplement toevoegen"
+                                onClick = fun () -> addContext plan NutritionCategory.EnteralSupplement
+                            |}
+                    else
+                        null
 
                 let parenteralAddButtons =
                     [|
                         if not hasTPN then
-                            AddButton {| label = "TPN"; onClick = fun () -> addContext plan NutritionCategory.TPN |}
+                            AddButton
+                                {|
+                                    label = "TPN"
+                                    onClick = fun () -> addContext plan NutritionCategory.TPN
+                                |}
                         if not hasLipid then
-                            AddButton {| label = "Vetten"; onClick = fun () -> addContext plan NutritionCategory.Lipid |}
-                        AddButton {| label = "Elektrolyten/Glucose"; onClick = fun () -> addContext plan NutritionCategory.ElectrolyteGlucose |}
+                            AddButton
+                                {|
+                                    label = "Vetten"
+                                    onClick = fun () -> addContext plan NutritionCategory.Lipid
+                                |}
+                        AddButton
+                            {|
+                                label = "Elektrolyten/Glucose"
+                                onClick = fun () -> addContext plan NutritionCategory.ElectrolyteGlucose
+                            |}
                     |]
 
                 let enteralAccordion =
@@ -1382,12 +1485,8 @@ module Nutrition =
                             |> Array.choose (fun nc ->
                                 match nc.OrderContext.Scenarios with
                                 | [| sc |] when sc.Administration |> Array.isEmpty |> not ->
-                                    let blocks =
-                                        sc.Administration
-                                        |> TextBlock.flatten
-                                        |> Array.collect id
-                                    renderAdminSummary (string nc.Id) sc.Order.Orderable.Name blocks
-                                    |> Some
+                                    let blocks = sc.Administration |> TextBlock.flatten |> Array.collect id
+                                    renderAdminSummary (string nc.Id) sc.Order.Orderable.Name blocks |> Some
                                 | _ -> None
                             )
 
@@ -1396,7 +1495,12 @@ module Nutrition =
                         import Typography from '@mui/material/Typography';
                         import Box from '@mui/material/Box';
 
-                        <Box sx={ {| display="flex"; alignItems="center"; width="100%"; overflow="hidden" |} }>
+                        <Box sx={ {|
+                                      display = "flex"
+                                      alignItems = "center"
+                                      width = "100%"
+                                      overflow = "hidden"
+                                  |} }>
                             <Typography>Enterale Voeding</Typography>
                             {adminSummaries |> unbox<seq<ReactElement>> |> React.Fragment}
                         </Box>
@@ -1437,7 +1541,10 @@ module Nutrition =
 
                 <Stack direction="column" spacing={1}>
                     {enteralAccordion}
-                    <Divider sx={ {| marginTop=2; marginBottom=2 |} } />
+                    <Divider sx={ {|
+                                      marginTop = 2
+                                      marginBottom = 2
+                                  |} } />
                     <Stack direction="row" alignItems="center" spacing={1}>
                         <Typography variant="h6">Parenteraal</Typography>
                         <Button color="primary" size="small" disabled={printDisabled} onClick={fun _ -> setPrintOpen true} startIcon={{<PrintIcon />}}>
@@ -1446,11 +1553,7 @@ module Nutrition =
                     </Stack>
                     {parenteralSlots |> unbox<seq<ReactElement>> |> React.Fragment}
                     <Stack direction="row" spacing={1}>
-                        {
-                            parenteralAddButtons
-                            |> unbox<seq<ReactElement>>
-                            |> React.Fragment
-                        }
+                        {parenteralAddButtons |> unbox<seq<ReactElement>> |> React.Fragment}
                     </Stack>
                 </Stack>
                 """
@@ -1459,13 +1562,16 @@ module Nutrition =
         let confirmDeleteDialog =
             let isOpen = confirmDeleteTarget.IsSome
             let handleCancel = fun _ -> setConfirmDeleteTarget None
-            let handleConfirm = fun _ ->
-                match confirmDeleteTarget, props.nutritionPlan with
-                | Some ncId, (Resolved plan | Recalculating plan) ->
-                    Api.RemoveNutritionContext(plan, ncId)
-                    |> props.nutritionPlanMsg
-                | _ -> ()
-                setConfirmDeleteTarget None
+
+            let handleConfirm =
+                fun _ ->
+                    match confirmDeleteTarget, props.nutritionPlan with
+                    | Some ncId, (Resolved plan | Recalculating plan) ->
+                        Api.RemoveNutritionContext(plan, ncId) |> props.nutritionPlanMsg
+                    | _ -> ()
+
+                    setConfirmDeleteTarget None
+
             JSX.jsx
                 $"""
             import Dialog from '@mui/material/Dialog';
@@ -1492,7 +1598,11 @@ module Nutrition =
         let printDialog =
             match printOpen, props.nutritionPlan with
             | true, (Resolved plan | Recalculating plan) ->
-                ParenteralPrintView {| plan = plan; onClose = fun () -> setPrintOpen false |}
+                ParenteralPrintView
+                    {|
+                        plan = plan
+                        onClose = fun () -> setPrintOpen false
+                    |}
             | _ -> null
 
         JSX.jsx
@@ -1501,7 +1611,7 @@ module Nutrition =
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <Box sx={ {| paddingBottom=(if isMobile then "16px" else "220px") |} }>
+        <Box sx={ {| paddingBottom = (if isMobile then "16px" else "220px") |} }>
             {content}
             {progress}
             {confirmDeleteDialog}

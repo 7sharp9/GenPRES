@@ -1,4 +1,4 @@
-src/Informedica.GenPRES.Client/
+src/Informedica.GenPRES.Client/output/
 obj/
 # Fantomas bug: formatting these files produces invalid F# code
 tests/Informedica.Agents.Tests/Tests.fs

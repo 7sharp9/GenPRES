@@ -14,20 +14,26 @@ module Totals =
 
     let private splitIntoColumns maxCols (arr: 'a[]) =
         let n = arr.Length
-        if n = 0 then [||]
+
+        if n = 0 then
+            [||]
         else
             let cols = min n maxCols
             let colSize = (n + cols - 1) / cols
+
             [|
                 for c in 0 .. cols - 1 do
                     let start = c * colSize
                     let stop = min (start + colSize - 1) (n - 1)
-                    if start < n then arr[start .. stop]
+
+                    if start < n then
+                        arr[start..stop]
             |]
 
 
-    let private typoGraphy (items : TextItem[]) =
+    let private typoGraphy (items: TextItem[]) =
         let variant = "body2"
+
         let print item =
             match item with
             | Normal s ->
@@ -70,14 +76,15 @@ module Totals =
 
 
     [<JSX.Component>]
-    let View(props: {| intake : Totals |}) =
+    let View (props: {| intake: Totals |}) =
         let mapRow (intake: Totals) row =
             let print n itms =
-                if itms |> Array.length < 2 then [||]
+                if itms |> Array.length < 2 then
+                    [||]
                 else
                     [|
                         [| Normal n |] |> typoGraphy
-                        itms[0..(itms.Length - 2)] |> typoGraphy
+                        itms[0 .. (itms.Length - 2)] |> typoGraphy
                         [| itms |> Array.last |] |> typoGraphy
                     |]
                 |> Array.map box
@@ -102,18 +109,27 @@ module Totals =
         let content =
             columns
             |> Array.mapi (fun i col ->
-                $"table{i + 1}", Components.BasicTable.View({| header = [||]; rows = mapRow props.intake col |}) |> toReact
+                $"table{i + 1}",
+                Components.BasicTable.View(
+                    {|
+                        header = [||]
+                        rows = mapRow props.intake col
+                    |}
+                )
+                |> toReact
             )
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         if isMobile then
-            JSX.jsx $"""
+            JSX.jsx
+                $"""
             import React from 'react';
             <React.Fragment />
             """
         else
-            Components.BottomDrawer.View {|
-                isOpen = true;
-                content = content
+            Components.BottomDrawer.View
+                {|
+                    isOpen = true
+                    content = content
                 |}

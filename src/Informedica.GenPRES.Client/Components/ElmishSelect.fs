@@ -17,15 +17,17 @@ module ElmishSelect =
         type State = string option
 
 
-        type Msg = | Select of string | Clear
+        type Msg =
+            | Select of string
+            | Clear
 
 
         let init s : State * Cmd<Msg> = s, Cmd.none
 
 
-        let update updateSelected (msg : Msg) _ : State * Cmd<Msg> =
+        let update updateSelected (msg: Msg) _ : State * Cmd<Msg> =
             match msg with
-            | Clear    -> None, Cmd.none
+            | Clear -> None, Cmd.none
             | Select s -> Some s, Cmd.none
             |> fun (s, c) ->
                 s |> updateSelected
@@ -36,25 +38,25 @@ module ElmishSelect =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                label : string
-                selected : string option
-                values : (int *string) []
-                updateSelected : string option -> unit
-            |}
-        ) =
+                label: string
+                selected: string option
+                values: (int * string)[]
+                updateSelected: string option -> unit
+            |})
+        =
         let depArr = [||] //[| box props.dispatch |]
-        let state, dispatch = React.useElmish(init props.selected, update props.updateSelected, depArr)
+
+        let state, dispatch =
+            React.useElmish (init props.selected, update props.updateSelected, depArr)
 
         let handleChange =
             fun ev ->
                 let value = ev?target?value
 
-                value
-                |> string
-                |> Select
-                |> dispatch
+                value |> string |> Select |> dispatch
 
         let clear = fun _ -> Clear |> dispatch
 
@@ -90,7 +92,10 @@ module ElmishSelect =
         import Select from '@mui/material/Select';
 
         <div>
-        <FormControl variant="standard" sx={ {| margin = 1; minWidth = 120 |} }>
+        <FormControl variant="standard" sx={ {|
+                                                 margin = 1
+                                                 minWidth = 120
+                                             |} }>
             <InputLabel id="demo-simple-select-standard-label">{props.label}</InputLabel>
             <Select
             labelId="demo-simple-select-standard-label"
@@ -106,4 +111,3 @@ module ElmishSelect =
         </FormControl>
         </div>
         """
-

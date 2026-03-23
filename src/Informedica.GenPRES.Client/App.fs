@@ -19,9 +19,9 @@ module private Elmish =
 
     type State =
         {
-            Page : Global.Pages
+            Page: Global.Pages
             Patient: Patient option
-            NormalValues : Deferred<NormalValues>
+            NormalValues: Deferred<NormalValues>
             BolusMedication: Deferred<BolusMedication list>
             ContinuousMedication: Deferred<ContinuousMedication list>
             Products: Deferred<Product list>
@@ -30,17 +30,16 @@ module private Elmish =
             NutritionPlan: Deferred<NutritionPlan>
             Formulary: Deferred<Formulary>
             Parenteralia: Deferred<Parenteralia>
-            Localization: Deferred<string [][]>
-            Hospitals: Deferred<string []>
+            Localization: Deferred<string[][]>
+            Hospitals: Deferred<string[]>
             Context: Context
             ShowDisclaimer: bool
             IsDemo: bool
-            SnackbarMsg : string
-            SnackbarOpen : bool
-            ServerStatus : Deferred<bool>
-            ServerError : string option
+            SnackbarMsg: string
+            SnackbarOpen: bool
+            ServerStatus: Deferred<bool>
+            ServerError: string option
         }
-
 
 
     type Msg =
@@ -74,7 +73,7 @@ module private Elmish =
         | LoadParenteralia of ApiResponse
 
         | UpdateLanguage of Localization.Locales
-        | LoadLocalization of AsyncOperationStatus<Result<string [] [], string>>
+        | LoadLocalization of AsyncOperationStatus<Result<string[][], string>>
 
         | UpdateHospital of string
         | CloseSnackbar
@@ -82,7 +81,7 @@ module private Elmish =
         | DismissServerError
 
 
-    and ApiResponse = AsyncOperationStatus<Result<Api.Response, string []>>
+    and ApiResponse = AsyncOperationStatus<Result<Api.Response, string[]>>
 
 
     let serverApi =
@@ -95,9 +94,9 @@ module private Elmish =
         async {
             try
                 let! result = serverApi.testApi ()
-                return CheckServer (Finished (Ok result))
+                return CheckServer(Finished(Ok result))
             with ex ->
-                return CheckServer (Finished (Error ex))
+                return CheckServer(Finished(Error ex))
         }
         |> Cmd.fromAsync
 
@@ -112,29 +111,17 @@ module private Elmish =
 
     let processApiMsg (state: State) msg =
         match msg with
-        | Api.OrderContextResp (Api.OrderContextResult ctx) ->
-            { state with
-                OrderContext = Resolved ctx
-            }, Cmd.none
-        | Api.OrderPlanResp (Api.OrderPlanFiltered tp)
-        | Api.OrderPlanResp (Api.OrderPlanUpdated tp) ->
-            {  state with
-                TreatmentPlan = Resolved tp
-            }, Cmd.none
-        | Api.FormularyResp form ->
-            { state with
-                Formulary = Resolved form
-            }, Cmd.none
-        | Api.ParenteraliaResp par ->
-            { state with
-                Parenteralia = Resolved par
-            }, Cmd.none
-        | Api.NutritionPlanResp (Api.NutritionPlanInitialised plan)
-        | Api.NutritionPlanResp (Api.NutritionPlanUpdated plan) ->
-            { state with NutritionPlan = Resolved plan }, Cmd.none
+        | Api.OrderContextResp(Api.OrderContextResult ctx) -> { state with OrderContext = Resolved ctx }, Cmd.none
+        | Api.OrderPlanResp(Api.OrderPlanFiltered tp)
+        | Api.OrderPlanResp(Api.OrderPlanUpdated tp) -> { state with TreatmentPlan = Resolved tp }, Cmd.none
+        | Api.FormularyResp form -> { state with Formulary = Resolved form }, Cmd.none
+        | Api.ParenteraliaResp par -> { state with Parenteralia = Resolved par }, Cmd.none
+        | Api.NutritionPlanResp(Api.NutritionPlanInitialised plan)
+        | Api.NutritionPlanResp(Api.NutritionPlanUpdated plan) -> { state with NutritionPlan = Resolved plan }, Cmd.none
 
 
-    let loadOrderContext resp = Api.OrderContextCmd >> createApiMsg resp
+    let loadOrderContext resp =
+        Api.OrderContextCmd >> createApiMsg resp
 
 
     let loadTreatmentPlan resp = Api.OrderPlanCmd >> createApiMsg resp
@@ -167,7 +154,7 @@ module private Elmish =
     // * dt: dosetype
     let private tryParseInt key paramsMap =
         match Map.tryFind key paramsMap with
-        | Some (Route.Int v) -> Some v
+        | Some(Route.Int v) -> Some v
         | _ -> None
 
     let private parsePatientParams paramsMap =
@@ -185,16 +172,16 @@ module private Elmish =
 
             let pat =
                 match Map.tryFind "by" paramsMap, Map.tryFind "ad" paramsMap with
-                | Some (Route.Int year), _ ->
+                | Some(Route.Int year), _ ->
                     // birthday year is required
                     let month =
                         match Map.tryFind "bm" paramsMap with
-                        | Some (Route.Int months) -> months
+                        | Some(Route.Int months) -> months
                         | _ -> 1 // january is the default
 
                     let day =
                         match Map.tryFind "bd" paramsMap with
-                        | Some (Route.Int days) -> days
+                        | Some(Route.Int days) -> days
                         | _ -> 1 // first day of the month is the default
 
                     let weight, height, gaWeeks, gaDays, dep = parsePatientParams paramsMap
@@ -217,13 +204,16 @@ module private Elmish =
                             gaWeeks
                             gaDays
                             UnknownGender
-                            [ if cvl then CVL ]
+                            [
+                                if cvl then
+                                    CVL
+                            ]
                             None
                             dep
 
                     Logging.log "parsed: " patient
                     patient
-                | _, Some (Route.Int days) ->
+                | _, Some(Route.Int days) ->
                     let weight, height, gaWeeks, gaDays, dep = parsePatientParams paramsMap
 
                     let cvl =
@@ -271,7 +261,7 @@ module private Elmish =
                 | Some s when s = "gr" -> Some Localization.German
                 | Some s when s = "sp" -> Some Localization.Spanish
                 | Some s when s = "it" -> Some Localization.Italian
-//                | Some s when s = "ch" -> Some Localization.Chinees // refact: to Chinese
+                //                | Some s when s = "ch" -> Some Localization.Chinees // refact: to Chinese
                 | _ -> None
 
             let discl =
@@ -285,24 +275,32 @@ module private Elmish =
                     medication = paramsMap |> Map.tryFind "md"
                     route = paramsMap |> Map.tryFind "rt"
                     form = paramsMap |> Map.tryFind "fr"
-                    dosetype =
-                        paramsMap
-                        |> Map.tryFind "dt"
-                        |> Option.map DoseType.doseTypeFromString
+                    dosetype = paramsMap |> Map.tryFind "dt" |> Option.map DoseType.doseTypeFromString
                 |}
                 |> Some
 
             pat, page, lang, discl, med
 
         | _ ->
-            sl
-            |> String.concat ""
-            |> Logging.warning "could not parse url"
+            sl |> String.concat "" |> Logging.warning "could not parse url"
 
             None, None, None, true, None
 
 
-    let initialState pat page lang discl (med : {| indication: string option; medication: string option; route: string option; form: string option; dosetype: DoseType option |} option) =
+    let initialState
+        pat
+        page
+        lang
+        discl
+        (med:
+            {|
+                indication: string option
+                medication: string option
+                route: string option
+                form: string option
+                dosetype: DoseType option
+            |} option)
+        =
         {
             ShowDisclaimer = discl
             Page = page |> Option.defaultValue LifeSupport
@@ -315,7 +313,8 @@ module private Elmish =
                 match med with
                 | None -> HasNotStartedYet
                 | Some m ->
-                    OrderContext.empty |> OrderContext.setMedication m.indication m.medication m.route m.form m.dosetype
+                    OrderContext.empty
+                    |> OrderContext.setMedication m.indication m.medication m.route m.form m.dosetype
                     |> Resolved
             TreatmentPlan =
                 match pat with
@@ -343,30 +342,26 @@ module private Elmish =
         let pat, page, lang, discl, med = Router.currentUrl () |> parseUrl
 
         let cmds =
-            Cmd.batch [
-                checkServer
-                Cmd.ofMsg (LoadNormalValues Started)
-                Cmd.ofMsg (LoadBolusMedication Started)
-                Cmd.ofMsg (LoadContinuousMedication Started)
-                Cmd.ofMsg (LoadProducts Started)
-                Cmd.ofMsg (LoadLocalization Started)
-                Cmd.ofMsg (LoadFormulary Started)
-                Cmd.ofMsg (LoadParenteralia Started)
-            ]
+            Cmd.batch
+                [
+                    checkServer
+                    Cmd.ofMsg (LoadNormalValues Started)
+                    Cmd.ofMsg (LoadBolusMedication Started)
+                    Cmd.ofMsg (LoadContinuousMedication Started)
+                    Cmd.ofMsg (LoadProducts Started)
+                    Cmd.ofMsg (LoadLocalization Started)
+                    Cmd.ofMsg (LoadFormulary Started)
+                    Cmd.ofMsg (LoadParenteralia Started)
+                ]
 
-        initialState pat page lang discl med
-        , cmds
+        initialState pat page lang discl med, cmds
 
 
-    let applyNormalValues (normalValues: Deferred<NormalValues>) (pat : Patient option) =
+    let applyNormalValues (normalValues: Deferred<NormalValues>) (pat: Patient option) =
         match normalValues, pat with
         | Resolved nv, Some p ->
             p
-            |> Patient.applyNormalValues
-                (Some nv.Weights)
-                (Some nv.Heights)
-                (Some nv.NeoWeights)
-                (Some nv.NeoHeights)
+            |> Patient.applyNormalValues (Some nv.Weights) (Some nv.Heights) (Some nv.NeoWeights) (Some nv.NeoHeights)
             |> Some
         | _ -> pat
 
@@ -374,72 +369,68 @@ module private Elmish =
     module CommandHandlers =
 
 
-        let handleOrderContext state cmd (ctx : OrderContext) =
-                let ctx =
-                    { ctx with
-                        Patient =
-                            state.Patient
-                            |> Option.defaultValue ctx.Patient
-                    }
+        let handleOrderContext state cmd (ctx: OrderContext) =
+            let ctx = { ctx with Patient = state.Patient |> Option.defaultValue ctx.Patient }
 
-                let base' = { state with OrderContext = Resolved ctx }
+            let base' = { state with OrderContext = Resolved ctx }
 
-                match cmd with
-                | Api.UpdateOrderContext | Api.ReloadResources _ ->
-                    { base' with
-                        Formulary =
-                            base'.Formulary
-                            |> Deferred.map (OrderContext.syncFilterToFormulary ctx.Filter)
-                        Parenteralia =
-                            base'.Parenteralia
-                            |> Deferred.map (OrderContext.syncFilterToParenteralia ctx.Filter)
-                    },
-                    Cmd.batch [
-                        Cmd.ofMsg (LoadOrderContextResult (cmd, Started))
+            match cmd with
+            | Api.UpdateOrderContext
+            | Api.ReloadResources _ ->
+                { base' with
+                    Formulary = base'.Formulary |> Deferred.map (OrderContext.syncFilterToFormulary ctx.Filter)
+                    Parenteralia =
+                        base'.Parenteralia
+                        |> Deferred.map (OrderContext.syncFilterToParenteralia ctx.Filter)
+                },
+                Cmd.batch
+                    [
+                        Cmd.ofMsg (LoadOrderContextResult(cmd, Started))
                         Cmd.ofMsg (LoadFormulary Started)
                         Cmd.ofMsg (LoadParenteralia Started)
                     ]
-                | _ ->
-                    base',
-                    Cmd.ofMsg (LoadOrderContextResult (cmd, Started))
-
-
-
-
+            | _ -> base', Cmd.ofMsg (LoadOrderContextResult(cmd, Started))
 
 
     let update (msg: Msg) (state: State) =
         let processOk = processApiMsg state
+
         let processError err (state, cmd) =
             let errMsg =
                 err
                 |> Array.truncate 3
                 |> Array.map (fun (s: string) -> if s.Length > 200 then s[..199] + "..." else s)
                 |> String.concat "; "
+
             Logging.error "error" err
+
             { state with
                 SnackbarMsg = "Er ging iets mis, herladen"
                 SnackbarOpen = true
                 ServerError = Some $"Server fout: {errMsg}"
-            }, cmd
+            },
+            cmd
 
         match msg with
         | CloseSnackbar ->
             { state with
                 SnackbarMsg = ""
                 SnackbarOpen = false
-            }, Cmd.none
-
-        | CheckServer Started ->
-            { state with ServerStatus = InProgress },
-            checkServer
-
-        | CheckServer (Finished (Ok _)) ->
-            { state with ServerStatus = Resolved true; ServerError = None },
+            },
             Cmd.none
 
-        | CheckServer (Finished (Error err)) ->
+        | CheckServer Started -> { state with ServerStatus = InProgress }, checkServer
+
+        | CheckServer(Finished(Ok _)) ->
+            { state with
+                ServerStatus = Resolved true
+                ServerError = None
+            },
+            Cmd.none
+
+        | CheckServer(Finished(Error err)) ->
             Logging.error "server niet bereikbaar" err
+
             { state with
                 ServerStatus = Resolved false
                 ServerError = Some "De server is niet bereikbaar. Controleer of de server is gestart."
@@ -450,44 +441,42 @@ module private Elmish =
             }
             |> Cmd.fromAsync
 
-        | DismissServerError ->
-            { state with ServerError = None }, Cmd.none
+        | DismissServerError -> { state with ServerError = None }, Cmd.none
 
-        | AcceptDisclaimer ->
-            { state with
-                ShowDisclaimer = false
-            },
-            Cmd.none
+        | AcceptDisclaimer -> { state with ShowDisclaimer = false }, Cmd.none
 
         | UpdateLanguage lang ->
             { state with
                 ShowDisclaimer = true
                 State.Context.Localization = lang
-            }, Cmd.none
+            },
+            Cmd.none
 
         | UpdateHospital hosp ->
             { state with
                 ShowDisclaimer = true
                 State.Context.Hospital = hosp
-            }, Cmd.none
+            },
+            Cmd.none
 
         | UpdatePage page ->
             // make sure that the order context is not in use
             // i.e. the order context should be "fresh"
-            if page = ContinuousMeds &&
-               state.OrderContext |> Deferred.map(fun ctx -> ctx.Filter.Generic |> Option.isSome) |> Deferred.defaultValue true
-                then
+            if
+                page = ContinuousMeds
+                && state.OrderContext
+                   |> Deferred.map (fun ctx -> ctx.Filter.Generic |> Option.isSome)
+                   |> Deferred.defaultValue true
+            then
                 { state with
                     Page = page
                     OrderContext = HasNotStartedYet
-                }, Cmd.ofMsg (LoadOrderContextResult (Api.UpdateOrderContext, Started))
+                },
+                Cmd.ofMsg (LoadOrderContextResult(Api.UpdateOrderContext, Started))
+            else if page = Settings then
+                { state with Page = page }, Cmd.none
             else
-                if page = Settings then
-                    { state with Page = page }, Cmd.none
-                else
-                    { state with
-                        Page = page
-                    }, Cmd.none
+                { state with Page = page }, Cmd.none
 
         | UpdatePatient pat ->
             let pat = pat |> applyNormalValues state.NormalValues
@@ -508,26 +497,24 @@ module private Elmish =
                     | None -> HasNotStartedYet
                     | Some p ->
                         let tp = OrderPlan.create p [||]
+
                         state.TreatmentPlan
-                        |> Deferred.map (fun tp ->
-                            { tp with Patient = p }
-                        )
+                        |> Deferred.map (fun tp -> { tp with Patient = p })
                         |> Deferred.defaultValue tp
                         |> Resolved
                 NutritionPlan = HasNotStartedYet
-                Formulary =
-                    { Formulary.empty with Patient = pat }
-                    |> Resolved
-                Parenteralia =
-                    Parenteralia.empty
-                    |> Resolved
+                Formulary = { Formulary.empty with Patient = pat } |> Resolved
+                Parenteralia = Parenteralia.empty |> Resolved
             },
-            Cmd.batch [
-                Cmd.ofMsg (LoadOrderContextResult (Api.UpdateOrderContext, Started))
-                Cmd.ofMsg (LoadOrderPlanResult (Api.UpdateOrderPlan (OrderPlan.create Patient.empty [||], None), Started))
-                Cmd.ofMsg (LoadFormulary Started)
-                Cmd.ofMsg (LoadParenteralia Started)
-            ]
+            Cmd.batch
+                [
+                    Cmd.ofMsg (LoadOrderContextResult(Api.UpdateOrderContext, Started))
+                    Cmd.ofMsg (
+                        LoadOrderPlanResult(Api.UpdateOrderPlan(OrderPlan.create Patient.empty [||], None), Started)
+                    )
+                    Cmd.ofMsg (LoadFormulary Started)
+                    Cmd.ofMsg (LoadParenteralia Started)
+                ]
 
         | UrlChanged sl ->
             let pat, page, lang, discl, med = sl |> parseUrl
@@ -535,13 +522,14 @@ module private Elmish =
             { state with
                 ShowDisclaimer = discl
                 Page = page |> Option.defaultValue LifeSupport
-                Patient =  pat
+                Patient = pat
                 OrderContext =
                     match med with
                     | None -> state.OrderContext
                     | Some m ->
                         match state.OrderContext with
-                        | InProgress | Recalculating _ -> state.OrderContext
+                        | InProgress
+                        | Recalculating _ -> state.OrderContext
                         | HasNotStartedYet ->
                             OrderContext.empty
                             |> OrderContext.setMedication m.indication m.medication m.route m.form m.dosetype
@@ -550,55 +538,37 @@ module private Elmish =
                             ctx
                             |> OrderContext.setMedication m.indication m.medication m.route m.form m.dosetype
                             |> Resolved
-                Context =
-                    { state.Context with
-                        Localization =
-                            lang |> Option.defaultValue Localization.English
-                    }
+                Context = { state.Context with Localization = lang |> Option.defaultValue Localization.English }
             },
             Cmd.ofMsg (pat |> UpdatePatient)
 
         | LoadLocalization Started ->
-            { state with
-                Localization = InProgress
-            },
-            Cmd.fromAsync (GoogleDocs.loadLocalization LoadLocalization)
+            { state with Localization = InProgress }, Cmd.fromAsync (GoogleDocs.loadLocalization LoadLocalization)
 
-        | LoadLocalization (Finished (Ok terms)) ->
+        | LoadLocalization(Finished(Ok terms)) ->
 
-            { state with
-                Localization = terms |> Resolved
-            },
-            Cmd.none
+            { state with Localization = terms |> Resolved }, Cmd.none
 
-        | LoadLocalization (Finished (Error s)) ->
+        | LoadLocalization(Finished(Error s)) ->
             Logging.error "cannot load localization" s
             state, Cmd.none
 
         | LoadNormalValues Started ->
-            { state with
-                NormalValues = InProgress
-            },
-            Cmd.fromAsync (GoogleDocs.loadNormalValues LoadNormalValues)
+            { state with NormalValues = InProgress }, Cmd.fromAsync (GoogleDocs.loadNormalValues LoadNormalValues)
 
-        | LoadNormalValues (Finished (Ok normalValues)) ->
-            { state with
-                NormalValues = normalValues |> Resolved
-            },
-            Cmd.ofMsg (UpdatePatient state.Patient)
+        | LoadNormalValues(Finished(Ok normalValues)) ->
+            { state with NormalValues = normalValues |> Resolved }, Cmd.ofMsg (UpdatePatient state.Patient)
 
-        | LoadNormalValues (Finished (Error s)) ->
+        | LoadNormalValues(Finished(Error s)) ->
             Logging.error "cannot load normal values" s
             state, Cmd.none
 
 
         | LoadBolusMedication Started ->
-            { state with
-                BolusMedication = InProgress
-            },
+            { state with BolusMedication = InProgress },
             Cmd.fromAsync (GoogleDocs.loadBolusMedication LoadBolusMedication)
 
-        | LoadBolusMedication (Finished (Ok meds)) ->
+        | LoadBolusMedication(Finished(Ok meds)) ->
             { state with
                 BolusMedication = meds |> Resolved
                 Hospitals =
@@ -611,31 +581,25 @@ module private Elmish =
             },
             Cmd.none
 
-        | LoadBolusMedication (Finished (Error s)) ->
+        | LoadBolusMedication(Finished(Error s)) ->
             Logging.error "cannot load emergency treatment" s
             state, Cmd.none
 
         | LoadContinuousMedication Started ->
-            { state with
-                ContinuousMedication = InProgress
-            },
-            Cmd.fromAsync (
-                GoogleDocs.loadContinuousMedication LoadContinuousMedication
-            )
+            { state with ContinuousMedication = InProgress },
+            Cmd.fromAsync (GoogleDocs.loadContinuousMedication LoadContinuousMedication)
 
-        | LoadContinuousMedication (Finished (Ok meds)) ->
+        | LoadContinuousMedication(Finished(Ok meds)) ->
 
-            { state with
-                ContinuousMedication = meds |> Resolved
-            },
-            Cmd.none
+            { state with ContinuousMedication = meds |> Resolved }, Cmd.none
 
-        | LoadContinuousMedication (Finished (Error s)) ->
+        | LoadContinuousMedication(Finished(Error s)) ->
             Logging.error "cannot load continuous medication" s
             state, Cmd.none
 
         | OnSelectContinuousMedicationItem item ->
             Logging.log $"selected continuous medication item" item
+
             match state.ContinuousMedication with
             | Resolved meds ->
                 match meds |> List.tryFind (fun m -> item.EndsWith($".{m.Medication}")) with
@@ -648,28 +612,34 @@ module private Elmish =
                             Filter =
                                 { OrderContext.empty.Filter with
                                     Indication =
-                                        if selected.Indication = "" then None
-                                        else Some selected.Indication
+                                        if selected.Indication = "" then
+                                            None
+                                        else
+                                            Some selected.Indication
                                     Generic = Some selected.Generic
                                     Route = Some "INTRAVENEUS"
                                     DoseType =
-                                        if selected.DoseType = "" then None
-                                        else Some (DoseType.doseTypeFromString selected.DoseType)
+                                        if selected.DoseType = "" then
+                                            None
+                                        else
+                                            Some(DoseType.doseTypeFromString selected.DoseType)
                                 }
                         }
+
                     { state with
                         Page = Prescribe
                         OrderContext = ctx |> Resolved
-                    }, Cmd.ofMsg (OrderContextMsg (Api.UpdateOrderContext, ctx))
+                    },
+                    Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, ctx))
             | _ -> state, Cmd.none
 
         | OnSelectEmergencyListItem item ->
             Logging.log "selected emergency list item" item
+
             match state.BolusMedication with
             | Resolved meds ->
                 match meds |> List.tryFind (fun m -> item.EndsWith($".{m.Generic}")) with
-                | None ->
-                    state, Cmd.none
+                | None -> state, Cmd.none
                 | Some selected ->
                     let ctx =
                         { OrderContext.empty with
@@ -679,65 +649,61 @@ module private Elmish =
                                     Route = Some "INTRAVENEUS"
                                 }
                         }
+
                     { state with
                         Page = Prescribe
                         OrderContext = ctx |> Resolved
-                    }, Cmd.ofMsg (OrderContextMsg (Api.UpdateOrderContext, ctx))
+                    },
+                    Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, ctx))
             | _ -> state, Cmd.none
 
         | LoadProducts Started ->
-            { state with Products = InProgress },
-            Cmd.fromAsync (GoogleDocs.loadProducts LoadProducts)
+            { state with Products = InProgress }, Cmd.fromAsync (GoogleDocs.loadProducts LoadProducts)
 
-        | LoadProducts (Finished (Ok prods)) ->
+        | LoadProducts(Finished(Ok prods)) ->
 
-            { state with
-                Products = prods |> Resolved
-            },
-            Cmd.none
+            { state with Products = prods |> Resolved }, Cmd.none
 
-        | LoadProducts (Finished (Error s)) ->
+        | LoadProducts(Finished(Error s)) ->
             Logging.error "cannot load products" s
             state, Cmd.none
 
-        | OrderContextMsg (ctxCmd, ctx) ->
-            ctx |> CommandHandlers.handleOrderContext state ctxCmd
+        | OrderContextMsg(ctxCmd, ctx) -> ctx |> CommandHandlers.handleOrderContext state ctxCmd
 
-        | LoadOrderContextResult (cmd, Started) ->
+        | LoadOrderContextResult(cmd, Started) ->
             match state.Patient with
             | None ->
                 match cmd with
                 | Api.ReloadResources pw ->
                     { state with OrderContext = HasNotStartedYet },
                     (Api.ReloadResources pw, OrderContext.empty)
-                    |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
-                | _ ->
-                    { state with OrderContext = HasNotStartedYet }, Cmd.none
+                    |> loadOrderContext (fun resp -> LoadOrderContextResult(cmd, resp))
+                | _ -> { state with OrderContext = HasNotStartedYet }, Cmd.none
             | Some pat ->
                 match state.OrderContext with
-                | InProgress | Recalculating _ -> state, Cmd.none
+                | InProgress
+                | Recalculating _ -> state, Cmd.none
                 | HasNotStartedYet ->
                     { state with OrderContext = InProgress },
                     (cmd, OrderContext.empty |> OrderContext.setPatient pat)
-                    |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
+                    |> loadOrderContext (fun resp -> LoadOrderContextResult(cmd, resp))
                 | Resolved ctx ->
                     { state with OrderContext = Recalculating ctx },
                     (cmd, { ctx with Patient = pat })
-                    |> loadOrderContext (fun resp -> LoadOrderContextResult (cmd, resp))
+                    |> loadOrderContext (fun resp -> LoadOrderContextResult(cmd, resp))
 
-        | LoadOrderContextResult (_, Finished (Ok msg)) -> msg |> processOk
-        | LoadOrderContextResult (_, Finished (Error err)) ->
-            ({ state with OrderContext = HasNotStartedYet }, Cmd.none)
-            |> processError err
+        | LoadOrderContextResult(_, Finished(Ok msg)) -> msg |> processOk
+        | LoadOrderContextResult(_, Finished(Error err)) ->
+            ({ state with OrderContext = HasNotStartedYet }, Cmd.none) |> processError err
 
 
         | TreatmentPlanMsg tpCmd ->
             match tpCmd with
-            | Api.UpdateOrderPlan (tp, Some (ctxCmd, ctx)) ->
+            | Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)) ->
                 { state with TreatmentPlan = InProgress },
-                Api.OrderPlanCmd (Api.UpdateOrderPlan (tp, Some (ctxCmd, ctx)))
-                |> createApiMsg (fun resp -> LoadOrderPlanResult (tpCmd, resp))
-            | Api.UpdateOrderPlan (tp, None) ->
+                Api.OrderPlanCmd(Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)))
+                |> createApiMsg (fun resp -> LoadOrderPlanResult(tpCmd, resp))
+            | Api.UpdateOrderPlan(tp, None) ->
                 let onlySetOrderContext =
                     state.TreatmentPlan
                     |> Deferred.map (fun st -> st.Selected.IsNone && tp.Selected.IsSome)
@@ -745,62 +711,67 @@ module private Elmish =
 
                 let cmd =
                     if state.Page = TreatmentPlan then
-                        if onlySetOrderContext then Cmd.none else Cmd.ofMsg (LoadOrderPlanResult (tpCmd, Started))
+                        if onlySetOrderContext then
+                            Cmd.none
+                        else
+                            Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
                     else
-                        Cmd.batch [
-                            Cmd.ofMsg (OrderContextMsg (Api.UpdateOrderContext, OrderContext.empty))
-                            Cmd.ofMsg (LoadOrderPlanResult (tpCmd, Started))
-                        ]
+                        Cmd.batch
+                            [
+                                Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, OrderContext.empty))
+                                Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
+                            ]
 
                 { state with
                     Page = TreatmentPlan
                     TreatmentPlan = Resolved tp
-                }, cmd
+                },
+                cmd
             | Api.FilterOrderPlan tp ->
-                { state with
-                    TreatmentPlan = Resolved tp
-                }, Cmd.ofMsg (LoadOrderPlanResult (tpCmd, Started))
+                { state with TreatmentPlan = Resolved tp }, Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
 
-        | LoadOrderPlanResult (cmd, Started) ->
+        | LoadOrderPlanResult(cmd, Started) ->
             match state.Patient with
             | None -> { state with TreatmentPlan = HasNotStartedYet }, Cmd.none
             | Some pat ->
                 match state.TreatmentPlan with
-                | InProgress | Recalculating _ -> state, Cmd.none
+                | InProgress
+                | Recalculating _ -> state, Cmd.none
                 | HasNotStartedYet ->
                     let apiCmd =
                         match cmd with
-                        | Api.FilterOrderPlan _ -> Api.FilterOrderPlan (OrderPlan.create pat [||])
-                        | Api.UpdateOrderPlan (_, ctxOpt) -> Api.UpdateOrderPlan (OrderPlan.create pat [||], ctxOpt)
+                        | Api.FilterOrderPlan _ -> Api.FilterOrderPlan(OrderPlan.create pat [||])
+                        | Api.UpdateOrderPlan(_, ctxOpt) -> Api.UpdateOrderPlan(OrderPlan.create pat [||], ctxOpt)
+
                     { state with TreatmentPlan = InProgress },
-                    apiCmd |> loadTreatmentPlan (fun resp -> LoadOrderPlanResult (cmd, resp))
+                    apiCmd |> loadTreatmentPlan (fun resp -> LoadOrderPlanResult(cmd, resp))
                 | Resolved tp ->
                     let apiCmd =
                         match cmd with
                         | Api.FilterOrderPlan _ -> Api.FilterOrderPlan tp
-                        | Api.UpdateOrderPlan (_, ctxOpt) -> Api.UpdateOrderPlan (tp, ctxOpt)
-                    { state with TreatmentPlan = InProgress },
-                    apiCmd |> loadTreatmentPlan (fun resp -> LoadOrderPlanResult (cmd, resp))
+                        | Api.UpdateOrderPlan(_, ctxOpt) -> Api.UpdateOrderPlan(tp, ctxOpt)
 
-        | LoadOrderPlanResult (_, Finished (Ok msg)) -> msg |> processOk
-        | LoadOrderPlanResult (_, Finished (Error err)) ->
-            ({ state with TreatmentPlan = HasNotStartedYet }, Cmd.none)
-            |> processError err
+                    { state with TreatmentPlan = InProgress },
+                    apiCmd |> loadTreatmentPlan (fun resp -> LoadOrderPlanResult(cmd, resp))
+
+        | LoadOrderPlanResult(_, Finished(Ok msg)) -> msg |> processOk
+        | LoadOrderPlanResult(_, Finished(Error err)) ->
+            ({ state with TreatmentPlan = HasNotStartedYet }, Cmd.none) |> processError err
 
         | NutritionPlanMsg npCmd ->
             let planState =
                 match state.NutritionPlan with
                 | Resolved plan -> Recalculating plan
                 | _ -> InProgress
+
             { state with NutritionPlan = planState },
             Api.NutritionPlanCmd npCmd
-            |> createApiMsg (fun resp -> LoadNutritionPlanResult (npCmd, resp))
+            |> createApiMsg (fun resp -> LoadNutritionPlanResult(npCmd, resp))
 
-        | LoadNutritionPlanResult (_, Started) -> state, Cmd.none
-        | LoadNutritionPlanResult (_, Finished (Ok msg)) -> msg |> processOk
-        | LoadNutritionPlanResult (_, Finished (Error err)) ->
-            ({ state with NutritionPlan = HasNotStartedYet }, Cmd.none)
-            |> processError err
+        | LoadNutritionPlanResult(_, Started) -> state, Cmd.none
+        | LoadNutritionPlanResult(_, Finished(Ok msg)) -> msg |> processOk
+        | LoadNutritionPlanResult(_, Finished(Error err)) ->
+            ({ state with NutritionPlan = HasNotStartedYet }, Cmd.none) |> processError err
 
         | LoadFormulary Started ->
             match state.Formulary with
@@ -808,30 +779,23 @@ module private Elmish =
             | _ ->
                 let form =
                     match state.Formulary with
-                    | Resolved form ->
-                        { form with
-                            Patient =
-                                state.Patient
-                        }
+                    | Resolved form -> { form with Patient = state.Patient }
                     | _ -> Formulary.empty
 
                 let cmd = form |> loadFormuarly
 
                 { state with Formulary = InProgress }, cmd
 
-        | LoadFormulary (Finished (Ok msg)) -> processOk msg
+        | LoadFormulary(Finished(Ok msg)) -> processOk msg
 
-        | LoadFormulary (Finished(Error err)) ->
-            ({ state with Formulary = HasNotStartedYet }, Cmd.none)
-            |> processError err
+        | LoadFormulary(Finished(Error err)) ->
+            ({ state with Formulary = HasNotStartedYet }, Cmd.none) |> processError err
 
         | UpdateFormulary form ->
             let state =
                 { state with
                     Formulary = Resolved form
-                    OrderContext =
-                        state.OrderContext
-                        |> Deferred.map (OrderContext.syncFormularyToFilter form)
+                    OrderContext = state.OrderContext |> Deferred.map (OrderContext.syncFormularyToFilter form)
                     Parenteralia =
                         state.Parenteralia
                         |> Deferred.map (fun par ->
@@ -842,30 +806,30 @@ module private Elmish =
                             }
                         )
                 }
+
             state,
-            Cmd.batch [
-                Cmd.ofMsg (LoadFormulary Started)
-                Cmd.ofMsg (LoadOrderContextResult (Api.UpdateOrderContext, Started))
-                Cmd.ofMsg (LoadParenteralia Started)
-            ]
+            Cmd.batch
+                [
+                    Cmd.ofMsg (LoadFormulary Started)
+                    Cmd.ofMsg (LoadOrderContextResult(Api.UpdateOrderContext, Started))
+                    Cmd.ofMsg (LoadParenteralia Started)
+                ]
 
         | LoadParenteralia Started ->
             match state.Parenteralia with
             | InProgress -> state, Cmd.none
             | _ ->
                 let cmd =
-                    let par =
-                        state.Parenteralia
-                        |> Deferred.defaultValue Parenteralia.empty
+                    let par = state.Parenteralia |> Deferred.defaultValue Parenteralia.empty
 
                     loadParenteralia par
+
                 { state with Parenteralia = InProgress }, cmd
 
-        | LoadParenteralia (Finished(Ok msg)) -> msg |> processOk
+        | LoadParenteralia(Finished(Ok msg)) -> msg |> processOk
 
-        | LoadParenteralia (Finished (Error err)) ->
-            ({ state with Parenteralia = HasNotStartedYet }, Cmd.none)
-            |> processError err
+        | LoadParenteralia(Finished(Error err)) ->
+            ({ state with Parenteralia = HasNotStartedYet }, Cmd.none) |> processError err
 
         | UpdateParenteralia par ->
             let state =
@@ -882,16 +846,16 @@ module private Elmish =
                                 DoseType = None
                             }
                         )
-                    OrderContext =
-                        state.OrderContext
-                        |> Deferred.map (OrderContext.syncParenteraliaToFilter par)
+                    OrderContext = state.OrderContext |> Deferred.map (OrderContext.syncParenteraliaToFilter par)
                 }
+
             state,
-            Cmd.batch [
-                Cmd.ofMsg (LoadFormulary Started)
-                Cmd.ofMsg (LoadOrderContextResult (Api.UpdateOrderContext, Started))
-                Cmd.ofMsg (LoadParenteralia Started)
-            ]
+            Cmd.batch
+                [
+                    Cmd.ofMsg (LoadFormulary Started)
+                    Cmd.ofMsg (LoadOrderContextResult(Api.UpdateOrderContext, Started))
+                    Cmd.ofMsg (LoadParenteralia Started)
+                ]
 
 
     let calculatInterventions calc meds pat =
@@ -910,7 +874,8 @@ open Elmish
 
 
 [<Literal>]
-let private themeDef = """
+let private themeDef =
+    """
 responsiveFontSizes(createTheme({
     typography: { fontSize: 12 },
     spacing: 6,
@@ -926,13 +891,14 @@ responsiveFontSizes(createTheme({
 """
 
 
-[<Import("createTheme", from="@mui/material/styles")>]
+[<Import("createTheme", from = "@mui/material/styles")>]
 [<Emit(themeDef)>]
-let private theme : obj = jsNative
+let private theme: obj = jsNative
 
 
 [<Literal>]
-let private mobileDef = """
+let private mobileDef =
+    """
 responsiveFontSizes(createTheme({
     typography: { fontSize: 11 },
     spacing: 6,
@@ -948,9 +914,9 @@ responsiveFontSizes(createTheme({
 """
 
 
-[<Import("createTheme", from="@mui/material/styles")>]
+[<Import("createTheme", from = "@mui/material/styles")>]
 [<Emit(mobileDef)>]
-let private mobile : obj = jsNative
+let private mobile: obj = jsNative
 
 
 // Entry point must be in a separate file
@@ -963,10 +929,7 @@ let View () =
     let handleClose = fun _ -> CloseSnackbar |> dispatch
 
     let bm =
-        calculatInterventions
-            EmergencyTreatment.calculate
-            state.BolusMedication
-            state.Patient
+        calculatInterventions EmergencyTreatment.calculate state.BolusMedication state.Patient
 
     let cm =
         let calc =
@@ -978,11 +941,18 @@ let View () =
         calculatInterventions calc state.ContinuousMedication state.Patient
 
     let sx =
-        if isMobile
-        then
-            {| height= "100vh"; overflowY = "hidden"; mb=5 |}
+        if isMobile then
+            {|
+                height = "100vh"
+                overflowY = "hidden"
+                mb = 5
+            |}
         else
-            {| height= "100vh"; overflowY = "hidden"; mb=0 |}
+            {|
+                height = "100vh"
+                overflowY = "hidden"
+                mb = 0
+            |}
 
     let theme = if isMobile then mobile else theme
 
@@ -990,9 +960,10 @@ let View () =
         match state.ServerError with
         | Some errMsg ->
             let onClose = fun _ -> dispatch DismissServerError
+
             JSX.jsx
                 $"""
-                <Alert severity="error" sx={ {| width= "100%" |} } onClose={onClose}>
+                <Alert severity="error" sx={ {| width = "100%" |} } onClose={onClose}>
                     <AlertTitle>Server probleem</AlertTitle>
                     {errMsg}
                 </Alert>
@@ -1014,51 +985,50 @@ let View () =
 
     <React.StrictMode>
         <ThemeProvider theme={theme}>
-            <Box sx={ sx }>
+            <Box sx={sx}>
                 <CssBaseline />
                 {serverErrorBanner}
-                {
-                    Components.Router.View {| onUrlChanged = UrlChanged >> dispatch |}
-                }
-                {
-                    Pages.GenPres.View({|
-                        showDisclaimer = state.ShowDisclaimer
-                        isDemo = state.IsDemo
-                        acceptDisclaimer = fun _ -> AcceptDisclaimer |> dispatch
-                        patient = state.Patient
-                        updatePage = UpdatePage >> dispatch
-                        updatePatient = UpdatePatient >> dispatch
-                        bolusMedication = bm
-                        continuousMedication = cm
-                        onSelectContinuousMedicationItem = OnSelectContinuousMedicationItem >> dispatch
-                        onSelectEmergencyListItem = OnSelectEmergencyListItem >> dispatch
-                        products = state.Products
-                        orderContext = state.OrderContext
-                        orderContextMsg = fun (cmd, ctx) -> OrderContextMsg (cmd, ctx) |> dispatch
-                        treatmentPlan = state.TreatmentPlan
-                        treatmentPlanCommand = TreatmentPlanMsg >> dispatch
-                        nutritionPlan = state.NutritionPlan
-                        nutritionPlanMsg = NutritionPlanMsg >> dispatch
-                        formulary = state.Formulary
-                        updateFormulary = UpdateFormulary >> dispatch
-                        parenteralia = state.Parenteralia
-                        updateParenteralia = UpdateParenteralia >> dispatch
-                        reloadResources = fun pw -> OrderContextMsg (Api.ReloadResources pw, OrderContext.empty) |> dispatch
-                        page = state.Page
-                        localizationTerms = state.Localization
-                        languages = Localization.languages
-                        hospitals = state.Hospitals
-                        switchLang = UpdateLanguage >> dispatch
-                        switchHosp = UpdateHospital >> dispatch
-                    |})
-                    |> toReact |> Components.Context.Context state.Context
-                }
+                {Components.Router.View {| onUrlChanged = UrlChanged >> dispatch |}}
+                {Pages.GenPres.View(
+                     {|
+                         showDisclaimer = state.ShowDisclaimer
+                         isDemo = state.IsDemo
+                         acceptDisclaimer = fun _ -> AcceptDisclaimer |> dispatch
+                         patient = state.Patient
+                         updatePage = UpdatePage >> dispatch
+                         updatePatient = UpdatePatient >> dispatch
+                         bolusMedication = bm
+                         continuousMedication = cm
+                         onSelectContinuousMedicationItem = OnSelectContinuousMedicationItem >> dispatch
+                         onSelectEmergencyListItem = OnSelectEmergencyListItem >> dispatch
+                         products = state.Products
+                         orderContext = state.OrderContext
+                         orderContextMsg = fun (cmd, ctx) -> OrderContextMsg(cmd, ctx) |> dispatch
+                         treatmentPlan = state.TreatmentPlan
+                         treatmentPlanCommand = TreatmentPlanMsg >> dispatch
+                         nutritionPlan = state.NutritionPlan
+                         nutritionPlanMsg = NutritionPlanMsg >> dispatch
+                         formulary = state.Formulary
+                         updateFormulary = UpdateFormulary >> dispatch
+                         parenteralia = state.Parenteralia
+                         updateParenteralia = UpdateParenteralia >> dispatch
+                         reloadResources = fun pw -> OrderContextMsg(Api.ReloadResources pw, OrderContext.empty) |> dispatch
+                         page = state.Page
+                         localizationTerms = state.Localization
+                         languages = Localization.languages
+                         hospitals = state.Hospitals
+                         switchLang = UpdateLanguage >> dispatch
+                         switchHosp = UpdateHospital >> dispatch
+                     |}
+                 )
+                 |> toReact
+                 |> Components.Context.Context state.Context}
             </Box>
             <div>
                 <Snackbar
-                    open={ state.SnackbarOpen }
+                    open={state.SnackbarOpen}
                     autoHideDuration={3000}
-                    message={ state.SnackbarMsg }
+                    message={state.SnackbarMsg}
                     onClose={handleClose}
                 />
             </div>

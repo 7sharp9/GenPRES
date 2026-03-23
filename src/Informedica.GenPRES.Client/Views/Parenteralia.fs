@@ -17,7 +17,6 @@ module Parenteralia =
     module private Elmish =
 
 
-
         type State =
             {
                 Generic: string option
@@ -59,15 +58,14 @@ module Parenteralia =
             (parentaralia: Deferred<Parenteralia>)
             updateParenteralia
             (msg: Msg)
-            (state : State) : State * Cmd<Msg>
+            (state: State)
+            : State * Cmd<Msg>
             =
 
             match msg with
             | Clear ->
                 match parentaralia with
-                | Resolved par ->
-                    Parenteralia.empty
-                    |> updateParenteralia
+                | Resolved par -> Parenteralia.empty |> updateParenteralia
                 | _ -> ()
 
                 empty, Cmd.none
@@ -75,7 +73,8 @@ module Parenteralia =
             | GenericChange s ->
                 match parentaralia with
                 | Resolved par ->
-                    if s |> Option.isNone then Parenteralia.empty
+                    if s |> Option.isNone then
+                        Parenteralia.empty
                     else
                         { par with Generic = s }
                     |> updateParenteralia
@@ -86,7 +85,8 @@ module Parenteralia =
             | FormChange s ->
                 match parentaralia with
                 | Resolved par ->
-                    if s |> Option.isNone then Parenteralia.empty
+                    if s |> Option.isNone then
+                        Parenteralia.empty
                     else
                         { par with Form = s }
                     |> updateParenteralia
@@ -97,7 +97,8 @@ module Parenteralia =
             | RouteChange s ->
                 match parentaralia with
                 | Resolved par ->
-                    if s |> Option.isNone then Parenteralia.empty
+                    if s |> Option.isNone then
+                        Parenteralia.empty
                     else
                         { par with Route = s }
                     |> updateParenteralia
@@ -110,13 +111,15 @@ module Parenteralia =
 
 
     [<JSX.Component>]
-    let View (props:
-        {|
-            parenteralia: Deferred<Parenteralia>
-            updateParenteralia: Parenteralia -> unit
-        |}) =
+    let View
+        (props:
+            {|
+                parenteralia: Deferred<Parenteralia>
+                updateParenteralia: Parenteralia -> unit
+            |})
+        =
 
-        let context : Global.Context = React.useContext Global.context
+        let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:900px)"
 
@@ -126,9 +129,7 @@ module Parenteralia =
             React.useElmish (
                 init props.parenteralia,
                 update props.parenteralia props.updateParenteralia,
-                [|
-                    box props.parenteralia
-                |]
+                [| box props.parenteralia |]
             )
 
         let select = ViewHelpers.filterSelect false
@@ -136,8 +137,7 @@ module Parenteralia =
 
         let progress = ViewHelpers.progressOrEmpty props.parenteralia
 
-        let stackDirection =
-            if isMobile then "column" else "row"
+        let stackDirection = if isMobile then "column" else "row"
 
         let content =
             JSX.jsx
@@ -148,72 +148,82 @@ module Parenteralia =
             import Paper from '@mui/material/Paper';
 
             <CardContent>
-                <Typography sx={ {| fontSize=14; pb=2 |} } color="text.secondary" gutterBottom>
+                <Typography sx={ {|
+                                     fontSize = 14
+                                     pb = 2
+                                 |} } color="text.secondary" gutterBottom>
                     {Terms.Formulary |> getTerm "Parenteralia"}
                 </Typography>
                 <Stack direction={stackDirection} spacing={3} >
-                    {
-                        match props.parenteralia with
-                        | Resolved par -> false, par.Generic, par.Generics
-                        | _ -> true, None, [||]
-                        |> fun (isLoading, sel, items) ->
-                            if isMobile then
-                                items
-                                |> Array.map (fun s -> s, s)
-                                |> select isLoading (Terms.``Formulary Medications`` |> getTerm "Medicatie") state.Generic (GenericChange >> dispatch)
-                            else
-                                items
-                                |> autoComplete isLoading (Terms.``Formulary Medications`` |> getTerm "Medicatie") state.Generic (GenericChange >> dispatch)
+                    {match props.parenteralia with
+                     | Resolved par -> false, par.Generic, par.Generics
+                     | _ -> true, None, [||]
+                     |> fun (isLoading, sel, items) ->
+                         if isMobile then
+                             items
+                             |> Array.map (fun s -> s, s)
+                             |> select
+                                 isLoading
+                                 (Terms.``Formulary Medications`` |> getTerm "Medicatie")
+                                 state.Generic
+                                 (GenericChange >> dispatch)
+                         else
+                             items
+                             |> autoComplete
+                                 isLoading
+                                 (Terms.``Formulary Medications`` |> getTerm "Medicatie")
+                                 state.Generic
+                                 (GenericChange >> dispatch)
 
-                    }
-                    {
-                        match props.parenteralia with
-                        | Resolved par -> false, par.Form, par.Forms
-                        | _ -> true, None, [||]
-                        |> fun (isLoading, sel, items) ->
-                            if items |> Array.isEmpty then null
-                            else
-                                if isMobile then
-                                    items
-                                    |> Array.map (fun s -> s, s)
-                                    |> select isLoading (Terms.``Formulary Indications`` |> getTerm "Forms") state.Form (FormChange >> dispatch)
-                                else
-                                    items
-                                    |> autoComplete isLoading (Terms.``Formulary Indications`` |> getTerm "Forms") state.Form (FormChange >> dispatch)
-                    }
-                    {
-                        match props.parenteralia with
-                        | Resolved par -> false, par.Route, par.Routes
-                        | _ -> true, None, [||]
-                        |> fun (isLoading, sel, items) ->
-                            if isMobile then
-                                items
-                                |> Array.map (fun s -> s, s)
-                                |> select isLoading (Terms.``Formulary Routes`` |> getTerm "Routes") state.Route (RouteChange >> dispatch)
-                            else
-                                items
-                                |> autoComplete isLoading (Terms.``Formulary Routes`` |> getTerm "Routes") state.Route (RouteChange >> dispatch)
+                }
+                    {match props.parenteralia with
+                     | Resolved par -> false, par.Form, par.Forms
+                     | _ -> true, None, [||]
+                     |> fun (isLoading, sel, items) ->
+                         if items |> Array.isEmpty then
+                             null
+                         else if isMobile then
+                             items
+                             |> Array.map (fun s -> s, s)
+                             |> select isLoading (Terms.``Formulary Indications`` |> getTerm "Forms") state.Form (FormChange >> dispatch)
+                         else
+                             items
+                             |> autoComplete
+                                 isLoading
+                                 (Terms.``Formulary Indications`` |> getTerm "Forms")
+                                 state.Form
+                                 (FormChange >> dispatch)}
+                    {match props.parenteralia with
+                     | Resolved par -> false, par.Route, par.Routes
+                     | _ -> true, None, [||]
+                     |> fun (isLoading, sel, items) ->
+                         if isMobile then
+                             items
+                             |> Array.map (fun s -> s, s)
+                             |> select isLoading (Terms.``Formulary Routes`` |> getTerm "Routes") state.Route (RouteChange >> dispatch)
+                         else
+                             items
+                             |> autoComplete isLoading (Terms.``Formulary Routes`` |> getTerm "Routes") state.Route (RouteChange >> dispatch)
 
-                    }
+                }
 
-                    <Box sx={ {| marginTop=2 |} }>
-                        <Button variant="text" onClick={fun _ -> Clear |> dispatch } fullWidth startIcon={Mui.Icons.Delete} >
+                    <Box sx={ {| marginTop = 2 |} }>
+                        <Button variant="text" onClick={fun _ -> Clear |> dispatch} fullWidth startIcon={Mui.Icons.Delete} >
                             {Terms.Delete |> getTerm "Verwijder"}
                         </Button>
                         </Box>
 
                 </Stack>
                 <Box sx={ {| color = Mui.Colors.Indigo.``900`` |} } >
-                    {
-                        match props.parenteralia with
-                        | Resolved par ->
-                            par.Markdown
-                            |> Markdown.markdown.children
-                            |> List.singleton
-                            |> Feliz.Markdown.Markdown.markdown
-                        | _ -> null
+                    {match props.parenteralia with
+                     | Resolved par ->
+                         par.Markdown
+                         |> Markdown.markdown.children
+                         |> List.singleton
+                         |> Feliz.Markdown.Markdown.markdown
+                     | _ -> null
 
-                    }
+                }
                 </Box>
             </CardContent>
             """
@@ -227,9 +237,8 @@ module Parenteralia =
         import Button from '@mui/material/Button';
         import Typography from '@mui/material/Typography';
 
-        <Box sx={ {| height="100%" |} }>
+        <Box sx={ {| height = "100%" |} }>
                 {content}
                 {progress}
         </Box>
         """
-

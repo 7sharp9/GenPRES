@@ -10,27 +10,29 @@ module SimpleSelect =
 
 
     [<JSX.Component>]
-    let View (props :
+    let View
+        (props:
             {|
-                label : string
-                selected : string option
-                values : (string * string) []
-                updateSelected : string option -> unit
-                navigate : {|
-                    first : (int -> unit) option
-                    decrease : (int -> unit) option
-                    median : (unit -> unit) option
-                    increase : (int -> unit) option
-                    last : (int -> unit) option
-                    useDebounce : bool
-                |} option
-                isLoading : bool
-                disabled : bool
-                hasClear : bool
-                warning : string option
-                minWidth : int option
-            |}
-        ) =
+                label: string
+                selected: string option
+                values: (string * string)[]
+                updateSelected: string option -> unit
+                navigate:
+                    {|
+                        first: (int -> unit) option
+                        decrease: (int -> unit) option
+                        median: (unit -> unit) option
+                        increase: (int -> unit) option
+                        last: (int -> unit) option
+                        useDebounce: bool
+                    |} option
+                isLoading: bool
+                disabled: bool
+                hasClear: bool
+                warning: string option
+                minWidth: int option
+            |})
+        =
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
@@ -47,8 +49,8 @@ module SimpleSelect =
                 value
                 |> string
                 |> function
-                | s when s |> String.IsNullOrWhiteSpace -> None
-                | s -> s |> Some
+                    | s when s |> String.IsNullOrWhiteSpace -> None
+                    | s -> s |> Some
                 |> props.updateSelected
 
         let clear = fun _ -> None |> props.updateSelected
@@ -58,7 +60,10 @@ module SimpleSelect =
             |> Array.mapi (fun i (k, v) ->
                 JSX.jsx
                     $"""
-                <MenuItem key={i} value={k} sx = { {| maxWidth = 400; paddingY = (if isMobile then 0.25 else 0.75) |} } dense={isMobile} >
+                <MenuItem key={i} value={k} sx = { {|
+                                                       maxWidth = 400
+                                                       paddingY = (if isMobile then 0.25 else 0.75)
+                                                   |} } dense={isMobile} >
                     {v}
                 </MenuItem>
                 """
@@ -68,8 +73,8 @@ module SimpleSelect =
 
         let clearButton =
             match props.isLoading, isClear with
-            | true, _      -> Mui.Icons.Downloading
-            | false, true  -> null
+            | true, _ -> Mui.Icons.Downloading
+            | false, true -> null
             | false, false ->
                 JSX.jsx
                     $"""
@@ -81,11 +86,12 @@ module SimpleSelect =
                 </IconButton>
                 """
 
-        let navigationSx = {|
-            display = "flex"
-            felxDirection = "column"
-            alignItems = "center"
-        |}
+        let navigationSx =
+            {|
+                display = "flex"
+                felxDirection = "column"
+                alignItems = "center"
+            |}
 
         let navigation =
             props.navigate
@@ -107,11 +113,13 @@ module SimpleSelect =
 
                 let firstButton =
                     if nav.useDebounce then
-                        ClickCountingButton.View({|
-                            disabled = firstDisabled
-                            onClick = firstClick
-                            icon = Mui.Icons.FirstPageIcon
-                        |})
+                        ClickCountingButton.View(
+                            {|
+                                disabled = firstDisabled
+                                onClick = firstClick
+                                icon = Mui.Icons.FirstPageIcon
+                            |}
+                        )
                     else
                         JSX.jsx
                             $"""
@@ -121,11 +129,13 @@ module SimpleSelect =
 
                 let decreaseButton =
                     if nav.useDebounce then
-                        ClickCountingButton.View({|
-                            disabled = decreaseDisabled
-                            onClick = decreaseClick
-                            icon = Mui.Icons.SkipPreviousIcon
-                        |})
+                        ClickCountingButton.View(
+                            {|
+                                disabled = decreaseDisabled
+                                onClick = decreaseClick
+                                icon = Mui.Icons.SkipPreviousIcon
+                            |}
+                        )
                     else
                         JSX.jsx
                             $"""
@@ -135,11 +145,13 @@ module SimpleSelect =
 
                 let increaseButton =
                     if nav.useDebounce then
-                        ClickCountingButton.View({|
-                            disabled = increaseDisabled
-                            onClick = increaseClick
-                            icon = Mui.Icons.SkipNextIcon
-                        |})
+                        ClickCountingButton.View(
+                            {|
+                                disabled = increaseDisabled
+                                onClick = increaseClick
+                                icon = Mui.Icons.SkipNextIcon
+                            |}
+                        )
                     else
                         JSX.jsx
                             $"""
@@ -149,11 +161,13 @@ module SimpleSelect =
 
                 let lastButton =
                     if nav.useDebounce then
-                        ClickCountingButton.View({|
-                            disabled = lastDisabled
-                            onClick = lastClick
-                            icon = Mui.Icons.LastPageIcon
-                        |})
+                        ClickCountingButton.View(
+                            {|
+                                disabled = lastDisabled
+                                onClick = lastClick
+                                icon = Mui.Icons.LastPageIcon
+                            |}
+                        )
                     else
                         JSX.jsx
                             $"""
@@ -180,62 +194,45 @@ module SimpleSelect =
                 """
             )
 
-        let endAdornment = 
-            if navigation.IsNone && not isClear && props.hasClear then Some clearButton
+        let endAdornment =
+            if navigation.IsNone && not isClear && props.hasClear then
+                Some clearButton
             else
                 navigation
 
         let hasNavigation =
             props.navigate
             |> Option.map (fun nav ->
-                nav.first.IsSome ||
-                nav.decrease.IsSome ||
-                nav.median.IsSome ||
-                nav.increase.IsSome ||
-                nav.last.IsSome
+                nav.first.IsSome
+                || nav.decrease.IsSome
+                || nav.median.IsSome
+                || nav.increase.IsSome
+                || nav.last.IsSome
             )
             |> Option.defaultValue false
 
-        let hasInteraction = 
-            hasNavigation || props.values.Length > 1
+        let hasInteraction = hasNavigation || props.values.Length > 1
 
         let sx =
             match props.warning, hasInteraction with
             | Some color, _ ->
                 {|
-                    ``& .MuiSelect-icon`` =
-                        {|
-                            visibility = 
-                                if endAdornment.IsNone then "visible" 
-                                else "hidden"
-                        |}
+                    ``& .MuiSelect-icon`` = {| visibility = if endAdornment.IsNone then "visible" else "hidden" |}
                     textDecoration = "underline double"
                     textDecorationColor = color
                     textUnderlineOffset = "3px"
                 |}
                 |> box
             | None, false ->
-                {| 
-                    ``& .MuiSelect-icon`` =
-                        {|
-                            visibility = 
-                                if endAdornment.IsNone then "visible" 
-                                else "hidden"
-                        |}
+                {|
+                    ``& .MuiSelect-icon`` = {| visibility = if endAdornment.IsNone then "visible" else "hidden" |}
                     backgroundColor = "action.hover"
                     borderRadius = "4px"
                     padding = "2px 8px"
                 |}
                 |> box
             | None, true ->
-                {| 
-                    ``& .MuiSelect-icon`` =
-                        {|
-                            visibility = 
-                                if endAdornment.IsNone then "visible" 
-                                else "hidden"
-                        |}
-                |}
+                {| ``& .MuiSelect-icon`` = {| visibility = if endAdornment.IsNone then "visible" else "hidden" |} |}
                 |> box
 
         JSX.jsx
@@ -245,7 +242,10 @@ module SimpleSelect =
         import FormControl from '@mui/material/FormControl';
         import Select from '@mui/material/Select';
 
-        <FormControl variant="standard" sx={ {| minWidth = props.minWidth |> Option.defaultValue 150; maxWidth = "100%" |} }>
+        <FormControl variant="standard" sx={ {|
+                                                 minWidth = props.minWidth |> Option.defaultValue 150
+                                                 maxWidth = "100%"
+                                             |} }>
             <InputLabel id={props.label}>{props.label}</InputLabel>
             <Select
             labelId={props.label}
@@ -262,4 +262,3 @@ module SimpleSelect =
             </Select>
         </FormControl>
         """
-

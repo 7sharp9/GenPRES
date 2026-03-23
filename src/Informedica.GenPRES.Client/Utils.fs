@@ -4,7 +4,7 @@ module Utils
 
 module String =
 
-    let replace (oldS: string) newS  (s : string) = s.Replace(oldS, newS)
+    let replace (oldS: string) newS (s: string) = s.Replace(oldS, newS)
 
 
 open Fable.Core
@@ -24,13 +24,15 @@ let inline withKey els =
     |> Array.mapi (fun i (key, el) ->
         let key = $"{key}-{i}"
 
-        JSX.jsx $"""
+        JSX.jsx
+            $"""
         import React from 'react';
 
         <React.Fragment key={key}>
             {el}
         </React.Fragment>
-        """)
+        """
+    )
 
 
 let toClass (classes: (string * bool) list) : string =
@@ -39,7 +41,8 @@ let toClass (classes: (string * bool) list) : string =
         match c.Trim(), b with
         | "", _
         | _, false -> None
-        | c, true -> Some c)
+        | c, true -> Some c
+    )
     |> String.concat " "
 
 
@@ -80,12 +83,7 @@ module GoogleDocs =
 
             let result =
                 match statusCode with
-                | 200 ->
-                    responseText
-                    |> Csv.parseCSV
-                    |> parseResponse
-                    |> Ok
-                    |> Finished
+                | 200 -> responseText |> Csv.parseCSV |> parseResponse |> Ok |> Finished
                 | _ -> Finished(Error $"Status {statusCode} => {responseText}")
                 |> msg
 
@@ -109,9 +107,7 @@ module GoogleDocs =
 
 
     let loadBolusMedication msg =
-        dataEMLUrlId
-        |> createUrl "emergencylist"
-        |> getUrl EmergencyTreatment.parse msg
+        dataEMLUrlId |> createUrl "emergencylist" |> getUrl EmergencyTreatment.parse msg
 
 
     let loadContinuousMedication msg =
@@ -121,39 +117,27 @@ module GoogleDocs =
 
 
     let loadProducts msg =
-        dataEMLUrlId
-        |> createUrl "products"
-        |> getUrl Products.parse msg
+        dataEMLUrlId |> createUrl "products" |> getUrl Products.parse msg
 
 
     let loadLocalization msg =
-        dataGPUrlId
-        |> createUrl "Localization"
-        |> getUrl id msg
+        dataGPUrlId |> createUrl "Localization" |> getUrl id msg
 
 
     let loadNormalWeight msg =
-        dataEMLUrlId
-        |> createUrl "weight"
-        |> getUrl NormalValues.parse msg
+        dataEMLUrlId |> createUrl "weight" |> getUrl NormalValues.parse msg
 
 
     let loadNormalHeight msg =
-        dataEMLUrlId
-        |> createUrl "height"
-        |> getUrl NormalValues.parse msg
+        dataEMLUrlId |> createUrl "height" |> getUrl NormalValues.parse msg
 
 
     let loadNormalNeoWeight msg =
-        dataEMLUrlId
-        |> createUrl "weight neo"
-        |> getUrl NormalValues.parse msg
+        dataEMLUrlId |> createUrl "weight neo" |> getUrl NormalValues.parse msg
 
 
     let loadNeoHeight msg =
-        dataEMLUrlId
-        |> createUrl "height neo"
-        |> getUrl NormalValues.parse msg
+        dataEMLUrlId |> createUrl "height neo" |> getUrl NormalValues.parse msg
 
 
     let loadNormalValues msg =
@@ -171,10 +155,12 @@ module GoogleDocs =
             let result =
                 match weights, heights, neoWeights, neoHeights with
                 | Finished(Ok w), Finished(Ok h), Finished(Ok nw), Finished(Ok nh) ->
-                    { Weights = w
-                      Heights = h
-                      NeoWeights = nw
-                      NeoHeights = nh }
+                    {
+                        Weights = w
+                        Heights = h
+                        NeoWeights = nw
+                        NeoHeights = nh
+                    }
                     |> Ok
                     |> Finished
                 | Finished(Error e), _, _, _
