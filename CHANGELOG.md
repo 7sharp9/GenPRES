@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scripts**: `GenCOREPatientScaffolding.fsx` for W3 GenCORE patient scaffolding — identifies coverage gaps and provides concrete test scaffolding for Patient modules
 - **Scripts**: `GenFORMTestScaffolding.fsx` for W3 GenFORM test scaffolding — catalogues pure functions and generates scaffolded Expecto tests for the GenFORM library
 - **Scripts**: `GenOrderTestScaffolding.fsx` for W3 GenORDER test scaffolding — identifies coverage gaps and provides concrete test scaffolding for Patient, Medication, and OrderVariable modules
+- **Server/GenForm**: Improve error handling when resources (Google Sheets / CSV) cannot be loaded
 - **Scripts**: `NKFTestAnalysis.fsx` for W3 NKF test coverage — catalogues 14 pure testable functions and prints ready-to-use Expecto test cases
 - **Tests (ZForm)**: Migrate 11 pure ZForm tests from `ZFormCITests.fsx` script into `tests/Informedica.ZForm.Tests/Tests.fs` formal test suite (W3)
 - **Scripts (NKF)**: Add `NKFCITests.fsx` — 19 pure NKF tests ready for CI migration (W3)
@@ -45,6 +46,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Build**: Apply Fantomas formatting to all F# source files (formatting-only change, no logic changes)
+- **Docs**: Update F# code formatting instructions to reflect Fantomas configuration
+
+### Removed
+
+- **Scripts**: Remove W3 analysis scripts (`GenCORECalculationsScaffolding.fsx`, `GenCOREPatientScaffolding.fsx`, `GenFORMTestScaffolding.fsx`, `GenOrderTestScaffolding.fsx`, `NKFCITests.fsx`, `NKFTestAnalysis.fsx`, `TestMigrationStatus.fsx`) — content has been migrated to formal CI test suites
+
+### Fixed
+
+- **Server (Agents)**: Convert `processOrderPlanCommand` and `processNutritionCommand` to use `let!` for async calls instead of `Async.RunSynchronously`, preventing thread-pool starvation
 - **Dependencies**: Update Fable to latest version (PR #205)
 - **Build**: Apply Fantomas formatting to client UI code (PR #209)
 - **Build**: Apply Fantomas formatting to all F# source files (formatting-only change, no logic changes)
