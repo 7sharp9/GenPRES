@@ -91,7 +91,7 @@ let catalogue =
           Purity = Pure
           Signature = "unit -> Patient"
           Status = hasTest "newBorn"
-          Notes  = "Returns a newborn Patient (age 0–28 days, weight 2.5–4.5 kg)" }
+          Notes  = "Returns an example newborn Patient at 1 week (weight 2.5–4.5 kg)" }
 
         { Module = "Patient"
           Name   = "infant"
