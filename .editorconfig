@@ -11,7 +11,9 @@ insert_final_newline = true
 max_line_length=120
 
 # Settings to get close to the style described in ./.github/instructions/fsharp-code-formatting.md
-# NOTE: neither if/then/else behaviour nor pipeline formatting is as desired.
+# Known Fantomas limitations (not configurable):
+# - if/then/else: cannot keep simple `then` on same line with complex `else` on next line
+# - pipeline: cannot force `|>` to start-of-line positioning
 [*.{fs,fsx}]
 fsharp_multiline_bracket_style = aligned
 fsharp_align_function_signature_to_indentation = true

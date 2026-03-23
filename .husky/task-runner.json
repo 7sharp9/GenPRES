@@ -2,12 +2,11 @@
     "$schema": "https://alirezanet.github.io/Husky.Net/schema.json",
     "tasks": [
         {
-            "name": "format-check",
+            "name": "format-staged",
             "group": "pre-commit",
-            "command": "dotnet",
+            "command": "sh",
             "args": [
-                "fantomas",
-                "--check",
+                ".husky/scripts/format-staged.sh",
                 "${staged}"
             ],
             "include": [
