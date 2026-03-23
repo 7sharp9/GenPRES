@@ -661,6 +661,15 @@ let staticTranslations: (Terms * (Localization.Locales * string) list) list =
             es, "Parenterales"
             it, "Preparazioni parenterali"
         ]
+        Terms.``Interactions``,
+        [
+            en, "Interactions"
+            nl, "Interacties"
+            fr, "Interactions"
+            de, "Interaktionen"
+            es, "Interacciones"
+            it, "Interazioni"
+        ]
         Terms.``Delete``,
         [
             en, "Delete"

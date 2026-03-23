@@ -312,12 +312,31 @@ module AgentAdapters =
         }
 
 
+    let private interactionJson () =
+        let path =
+            System.IO.Path.Combine(
+                Logging.getServerDataPath (),
+                "..",
+                "..",
+                "data",
+                "cache",
+                "interactions",
+                "Data.JSON"
+            )
+            |> System.IO.Path.GetFullPath
+
+        if System.IO.File.Exists(path) then
+            System.IO.File.ReadAllText(path) |> Some
+        else
+            None
+
+
     let private processInteractionCommand (cmd: InteractionCommand) : InteractionResponse =
         match cmd with
         | InteractionCommand.Check drugNames ->
             try
                 let result =
-                    Informedica.GenInteract.Lib.Api.checkInteractions None drugNames
+                    Informedica.GenInteract.Lib.Api.checkInteractions (interactionJson ()) drugNames
                     |> List.map toSharedDrugInteraction
 
                 InteractionResponse.Checked(Ok result)

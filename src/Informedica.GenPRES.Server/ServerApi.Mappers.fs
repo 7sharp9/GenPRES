@@ -356,8 +356,8 @@ module Mappers =
                 |> Array.mapi (fun i (sc, ord) ->
                     OrderScenario.create
                         i
-                        sc.Indication
                         sc.Name
+                        sc.Indication
                         sc.Form
                         sc.Route
                         (sc.DoseType |> mapFromSharedDoseTypeToOrderDoseType)
@@ -540,8 +540,8 @@ module Mappers =
                 newCtx.Scenarios
                 |> Array.map (fun sc ->
                     Models.OrderScenario.create
-                        sc.Name
                         sc.Indication
+                        sc.Name
                         sc.Form
                         sc.Route
                         (sc.DoseType |> mapFromOrderDoseTypeToSharedDoseType)

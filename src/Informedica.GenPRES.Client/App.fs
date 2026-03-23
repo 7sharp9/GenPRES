@@ -27,6 +27,7 @@ module private Elmish =
             Products: Deferred<Product list>
             OrderContext: Deferred<OrderContext>
             TreatmentPlan: Deferred<OrderPlan>
+            Interactions: Deferred<DrugInteraction[]>
             NutritionPlan: Deferred<NutritionPlan>
             Formulary: Deferred<Formulary>
             Parenteralia: Deferred<Parenteralia>
@@ -71,6 +72,9 @@ module private Elmish =
 
         | UpdateParenteralia of Parenteralia
         | LoadParenteralia of ApiResponse
+
+        | CheckInteractions of string list
+        | LoadInteractionsResult of ApiResponse
 
         | UpdateLanguage of Localization.Locales
         | LoadLocalization of AsyncOperationStatus<Result<string[][], string>>
@@ -118,6 +122,8 @@ module private Elmish =
         | Api.ParenteraliaResp par -> { state with Parenteralia = Resolved par }, Cmd.none
         | Api.NutritionPlanResp(Api.NutritionPlanInitialised plan)
         | Api.NutritionPlanResp(Api.NutritionPlanUpdated plan) -> { state with NutritionPlan = Resolved plan }, Cmd.none
+        | Api.InteractionResp(Api.InteractionsChecked interactions) ->
+            { state with Interactions = Resolved interactions }, Cmd.none
 
 
     let loadOrderContext resp =
@@ -323,6 +329,7 @@ module private Elmish =
             NutritionPlan = HasNotStartedYet
             Formulary = HasNotStartedYet
             Parenteralia = HasNotStartedYet
+            Interactions = HasNotStartedYet
             Localization = HasNotStartedYet
             Hospitals = HasNotStartedYet
             Context =
@@ -857,6 +864,16 @@ module private Elmish =
                     Cmd.ofMsg (LoadParenteralia Started)
                 ]
 
+        | CheckInteractions drugs ->
+            { state with Interactions = InProgress },
+            Api.InteractionCmd(Api.CheckInteractions drugs)
+            |> createApiMsg LoadInteractionsResult
+
+        | LoadInteractionsResult(Finished(Ok msg)) -> msg |> processOk
+        | LoadInteractionsResult(Finished(Error err)) ->
+            ({ state with Interactions = HasNotStartedYet }, Cmd.none) |> processError err
+        | LoadInteractionsResult _ -> state, Cmd.none
+
 
     let calculatInterventions calc meds pat =
         meds
@@ -989,7 +1006,7 @@ let View () =
                 <CssBaseline />
                 {serverErrorBanner}
                 {Components.Router.View {| onUrlChanged = UrlChanged >> dispatch |}}
-                {Pages.GenPres.View(
+                {Pages.GenPres.View
                      {|
                          showDisclaimer = state.ShowDisclaimer
                          isDemo = state.IsDemo
@@ -1012,6 +1029,8 @@ let View () =
                          updateFormulary = UpdateFormulary >> dispatch
                          parenteralia = state.Parenteralia
                          updateParenteralia = UpdateParenteralia >> dispatch
+                         interactions = state.Interactions
+                         checkInteractions = fun drugs -> CheckInteractions drugs |> dispatch
                          reloadResources = fun pw -> OrderContextMsg(Api.ReloadResources pw, OrderContext.empty) |> dispatch
                          page = state.Page
                          localizationTerms = state.Localization
@@ -1020,7 +1039,6 @@ let View () =
                          switchLang = UpdateLanguage >> dispatch
                          switchHosp = UpdateHospital >> dispatch
                      |}
-                 )
                  |> toReact
                  |> Components.Context.Context state.Context}
             </Box>

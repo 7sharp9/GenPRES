@@ -81,6 +81,7 @@ type Terms =
     | ``Formulary Routes``
     | ``Formulary Patients``
     | ``Parenteralia``
+    | ``Interactions``
     | ``Delete``
     | ``Edit``
     | ``Ok ``

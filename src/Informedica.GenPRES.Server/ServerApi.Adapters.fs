@@ -104,8 +104,26 @@ module Adapters =
                         fun drugs ->
                             async {
                                 try
+                                    let interactionJson =
+                                        let path =
+                                            System.IO.Path.Combine(
+                                                Logging.getServerDataPath (),
+                                                "..",
+                                                "..",
+                                                "data",
+                                                "cache",
+                                                "interactions",
+                                                "Data.JSON"
+                                            )
+                                            |> System.IO.Path.GetFullPath
+
+                                        if System.IO.File.Exists(path) then
+                                            System.IO.File.ReadAllText(path) |> Some
+                                        else
+                                            None
+
                                     let result =
-                                        Informedica.GenInteract.Lib.Api.checkInteractions None drugs
+                                        Informedica.GenInteract.Lib.Api.checkInteractions interactionJson drugs
                                         |> List.map (fun (di: Informedica.GenInteract.Lib.DrugInteraction) ->
                                             ({
                                                 Name = di.Name
