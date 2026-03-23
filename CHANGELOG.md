@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docs**: Add `docs/mdr/design-history/clean-safe-architecture.md` — investigation of Clean Architecture / Tagless Final patterns for GenPRES
+- **Scripts (Server)**: Add `CleanArchitecture.fsx` — prototype script exploring tagless final and clean architecture patterns
+- **Client (UI)**: Add print dialog for emergency and continuous medication orders
+- **Client (UI)**: Improve nutrition print dialog with date display and better layout
 - **GenSOLVER**: `Profile.fsx` benchmarking script for W2 core architecture review — profiles 5 scenarios including value-set scaling
 - **GenSOLVER**: Baseline benchmark script for solver performance measurement
 - **GenForm**: `LocalProducts.fsx` prototype for type-safe local product support (implementation exploration)
@@ -24,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scripts (ZForm)**: Add `ZFormTestMigration.fsx` — analysis script for ZForm test migration
 - **Scripts**: Add `TestMigrationStatus.fsx` — W3 test migration status across all libraries
 - **Scripts (ZForm)**: Add `ZFormCITests.fsx` — 11 pure ZForm tests ready for CI migration (W3)
+
+### Fixed
+
+- **GenOrder**: Fix incompatible substance concentrations causing incorrect product filtering
+- **GenOrder**: Add warning when filtering out products with incompatible units
+- **Client (UI)**: Fix date formatting — zero-padded day/month display (e.g., `01 - 03 - 2026`)
+- **Docs**: Fix 3 code-snippet bugs in `docs/mdr/design-history/agent-architecture.md`
 
 ---
 
