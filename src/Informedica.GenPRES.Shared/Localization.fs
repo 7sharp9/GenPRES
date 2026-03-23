@@ -81,6 +81,11 @@ type Terms =
     | ``Formulary Routes``
     | ``Formulary Patients``
     | ``Parenteralia``
+    | ``Interactions``
+    | ``Interactions Drug 1``
+    | ``Interactions Drug 2``
+    | ``Interactions Class``
+    | ``Interactions None Found``
     | ``Delete``
     | ``Edit``
     | ``Ok ``

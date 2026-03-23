@@ -456,6 +456,14 @@ module Icons =
     <KeyboardDoubleArrowDownIcon/>
     """
 
+    [<JSX.Component>]
+    let WarningAmber =
+        JSX.jsx
+            $"""
+        import WarningAmber from '@mui/icons-material/WarningAmber';
+        <WarningAmber />
+    """
+
 
 type Color =
     {|

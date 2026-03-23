@@ -12,6 +12,7 @@ type Pages =
     | TreatmentPlan
     | Formulary
     | Parenteralia
+    | Interactions
     | Settings
 
 
@@ -33,6 +34,7 @@ let pageToString terms locale page =
     | TreatmentPlan -> Terms.``Treatment Plan`` |> getTerm
     | Formulary -> Terms.``Formulary`` |> getTerm
     | Parenteralia -> Terms.``Parenteralia`` |> getTerm
+    | Interactions -> Terms.``Interactions`` |> getTerm
     | Settings -> "Instellingen"
 
 

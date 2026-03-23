@@ -76,3 +76,9 @@ module Command =
                     let! result = env.nutritionPlan.removeNutritionContext (plan, id)
                     return result |> Result.map (NutritionPlanUpdated >> NutritionPlanResp)
                 }
+
+            | InteractionCmd(CheckInteractions drugs) ->
+                async {
+                    let! result = env.interaction.checkInteractions drugs
+                    return result |> Result.map (List.toArray >> InteractionsChecked >> InteractionResp)
+                }
