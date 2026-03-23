@@ -15,8 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Client (UI)**: Update to latest Fable releases (Feliz.Router patched for compatibility)
 - **Tests (GenFORM)**: Migrate test scaffolding into formal CI test suite — 218 lines of new Expecto tests
 - **Tests (GenORDER)**: Migrate test scaffolding into formal CI test suite — 120 lines of new Expecto tests
-- **Tests (NKF)**: Migrate NKF test analysis into formal CI test suite — 194 lines of new Expecto tests
 - **Build**: Add Fantomas pre-commit hook — F# source files are now auto-formatted on every commit; `.fantomasignore` updated to exclude client UI code
+
 ---
 
 ## [0.1.2-alpha] - 2026-03-23
