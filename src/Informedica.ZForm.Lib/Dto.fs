@@ -26,60 +26,60 @@ module Dto =
     let (<?) = Limit.optST
 
 
-
     /// A Dto to work wih the ZForm library.
     [<CLIMutable>]
     type Dto =
         {
-            AgeInMo : float
-            WeightKg : float
-            HeightCm : float
-            BSAInM2 : float
-            Gender : string
-            BirthWeightGram : float
-            GestAgeWeeks : int
-            GestAgeDays : int
-            GPK : int list
-            ATC : string
-            TherapyGroup : string
-            TherapySubGroup : string
-            Generic : string
-            TradeProduct : string
-            Form : string
-            Label : string
-            Concentration : float
-            ConcentrationUnit : string
-            Multiple : float
-            MultipleUnit : string
-            Route : string
-            Indication : string
-            IsRate : Boolean
-            RateUnit : string
-            Rules : Rule []
-            Text : string
+            AgeInMo: float
+            WeightKg: float
+            HeightCm: float
+            BSAInM2: float
+            Gender: string
+            BirthWeightGram: float
+            GestAgeWeeks: int
+            GestAgeDays: int
+            GPK: int list
+            ATC: string
+            TherapyGroup: string
+            TherapySubGroup: string
+            Generic: string
+            TradeProduct: string
+            Form: string
+            Label: string
+            Concentration: float
+            ConcentrationUnit: string
+            Multiple: float
+            MultipleUnit: string
+            Route: string
+            Indication: string
+            IsRate: Boolean
+            RateUnit: string
+            Rules: Rule[]
+            Text: string
         }
+
     and Rule =
         {
-            Substance : string
-            Concentration : float
-            Unit : string
+            Substance: string
+            Concentration: float
+            Unit: string
 
-            Frequency : string
+            Frequency: string
 
-            NormTotalDose : float
-            MinTotalDose : float
-            MaxTotalDose : float
-            MaxPerDose : float
+            NormTotalDose: float
+            MinTotalDose: float
+            MaxTotalDose: float
+            MaxPerDose: float
 
-            NormTotalDosePerKg : float
-            MinTotalDosePerKg : float
-            MaxTotalDosePerKg : float
-            MaxPerDosePerKg : float
+            NormTotalDosePerKg: float
+            MinTotalDosePerKg: float
+            MaxTotalDosePerKg: float
+            MaxPerDosePerKg: float
 
-            NormTotalDosePerM2 : float
-            MinTotalDosePerM2 : float
-            MaxTotalDosePerM2 : float
-            MaxPerDosePerM2 : float
+            NormTotalDosePerM2: float
+            MinTotalDosePerM2: float
+            MaxTotalDosePerM2: float
+            MaxPerDosePerM2: float
         }
 
     let rule =
@@ -101,7 +101,6 @@ module Dto =
             MaxTotalDosePerM2 = 0.
             MaxPerDosePerM2 = 0.
         }
-
 
 
     /// An empty Dto.
@@ -147,29 +146,29 @@ module Dto =
         printfn "Finished loading"
 
 
-
     /// <summary>
     /// Find the Generic Product info for the given dto.
     /// </summary>
     /// <param name="dto">The Dto</param>
     /// <returns>The Generic Product info</returns>
-    let find (dto : Dto) =
+    let find (dto: Dto) =
         let gpps =
             let ps =
                 match dto.GPK with
                 | [ gpk ] -> gpk |> GPP.findByGPK
                 | _ -> [||]
+
             if ps |> Array.length = 0 then
                 GPP.filter dto.Generic dto.Form dto.Route
-            else ps
+            else
+                ps
             |> Array.toList
 
         match gpps with
         | [ gpp ] ->
             let gpk, lbl, conc, unt, tps =
                 let gp =
-                    match gpp.GenericProducts
-                          |> Seq.tryFind (fun p -> dto.GPK |> Seq.exists ((=) p.Id)) with
+                    match gpp.GenericProducts |> Seq.tryFind (fun p -> dto.GPK |> Seq.exists ((=) p.Id)) with
                     | Some gp -> gp |> Some
                     | None ->
                         if gpp.GenericProducts |> Seq.length = 1 then
@@ -181,18 +180,18 @@ module Dto =
                 match gp with
                 | Some gp ->
                     let conc, unt =
-                        match gp.Substances |> Seq.tryFind (fun s -> s.SubstanceName |> String.equalsCapInsens gpp.Name) with
+                        match
+                            gp.Substances
+                            |> Seq.tryFind (fun s -> s.SubstanceName |> String.equalsCapInsens gpp.Name)
+                        with
                         | Some s -> s.SubstanceQuantity, s.SubstanceUnit
                         | None -> 0., ""
 
                     let tps =
                         gp.PrescriptionProducts
-                        |> Array.fold (fun acc pp ->
-                            pp.TradeProducts
-                            |> Array.map _.Label
-                            |> Array.toList
-                            |> List.append acc
-                        ) []
+                        |> Array.fold
+                            (fun acc pp -> pp.TradeProducts |> Array.map _.Label |> Array.toList |> List.append acc)
+                            []
                         |> String.concat "||"
 
                     gp.Id, gp.Label, conc, unt, tps
@@ -214,17 +213,18 @@ module Dto =
     /// <param name="d">The Dosage</param>
     /// <param name="r">The Rule dto</param>
     /// <returns>The filled Rule dto</returns>
-    let fillRuleWithDosage gpk (d : Dosage)  (r : Rule) =
+    let fillRuleWithDosage gpk (d: Dosage) (r: Rule) =
 
         let conc, unt =
             match
                 gpk
                 |> GPP.getSubstQtyUnit
-                |> Array.tryFind (fun (n, _, _) -> n |> String.equalsCapInsens d.Name) with
-            | Some (_, conc, unt) -> conc, unt
+                |> Array.tryFind (fun (n, _, _) -> n |> String.equalsCapInsens d.Name)
+            with
+            | Some(_, conc, unt) -> conc, unt
             | None -> 0., ""
 
-        let freqsToStr (fr : Frequency) =
+        let freqsToStr (fr: Frequency) =
             fr.Frequencies
             |> List.map (fun f ->
                 f
@@ -247,46 +247,45 @@ module Dto =
                 | None -> 0.
             )
 
-        {
-            r with
-                Substance = d.Name
-                Concentration = conc
-                Unit = unt
+        { r with
+            Substance = d.Name
+            Concentration = conc
+            Unit = unt
 
-                Frequency =
-                    d.TotalDosage
-                    |> snd
-                    |> freqsToStr
+            Frequency = d.TotalDosage |> snd |> freqsToStr
 
-                MinTotalDose = d |> getValue Dosage.Optics.inclMinNormTotalDosagePrism
-                MaxTotalDose = d |> getValue Dosage.Optics.exclMaxNormTotalDosagePrism
+            MinTotalDose = d |> getValue Dosage.Optics.inclMinNormTotalDosagePrism
+            MaxTotalDose = d |> getValue Dosage.Optics.exclMaxNormTotalDosagePrism
 
-                MinTotalDosePerKg = d |> getValue Dosage.Optics.inclMinNormWeightTotalDosagePrism
-                MaxTotalDosePerKg = d |> getValue Dosage.Optics.exclMaxNormWeightTotalDosagePrism
+            MinTotalDosePerKg = d |> getValue Dosage.Optics.inclMinNormWeightTotalDosagePrism
+            MaxTotalDosePerKg = d |> getValue Dosage.Optics.exclMaxNormWeightTotalDosagePrism
 
-                MinTotalDosePerM2 = d |> getValue Dosage.Optics.inclMinNormBSATotalDosagePrism
-                MaxTotalDosePerM2 = d |> getValue Dosage.Optics.exclMaxNormBSATotalDosagePrism
+            MinTotalDosePerM2 = d |> getValue Dosage.Optics.inclMinNormBSATotalDosagePrism
+            MaxTotalDosePerM2 = d |> getValue Dosage.Optics.exclMaxNormBSATotalDosagePrism
 
-                MaxPerDose   =
-                    if r.MaxPerDose = 0. then
-                        let d1 = d |> getValue Dosage.Optics.exclMaxNormSingleDosagePrism
-                        let d2 = d |> getValue Dosage.Optics.exclMaxNormStartDosagePrism
-                        if d1 = 0. then d2 else d1
-                    else r.MaxPerDose
+            MaxPerDose =
+                if r.MaxPerDose = 0. then
+                    let d1 = d |> getValue Dosage.Optics.exclMaxNormSingleDosagePrism
+                    let d2 = d |> getValue Dosage.Optics.exclMaxNormStartDosagePrism
+                    if d1 = 0. then d2 else d1
+                else
+                    r.MaxPerDose
 
-                MaxPerDosePerKg =
-                    if r.MaxPerDosePerKg = 0. then
-                        let d1 = d |> getValue Dosage.Optics.exclMaxNormWeightSingleDosagePrism
-                        let d2 = d |> getValue Dosage.Optics.exclMaxNormWeightStartDosagePrism
-                        if d1 = 0. then d2 else d1
-                    else r.MaxPerDosePerKg
+            MaxPerDosePerKg =
+                if r.MaxPerDosePerKg = 0. then
+                    let d1 = d |> getValue Dosage.Optics.exclMaxNormWeightSingleDosagePrism
+                    let d2 = d |> getValue Dosage.Optics.exclMaxNormWeightStartDosagePrism
+                    if d1 = 0. then d2 else d1
+                else
+                    r.MaxPerDosePerKg
 
-                MaxPerDosePerM2 =
-                    if r.MaxTotalDosePerM2 = 0. then
-                        let d1 = d |> getValue Dosage.Optics.exclMaxNormBSASingleDosagePrism
-                        let d2 = d |> getValue Dosage.Optics.exclMaxNormBSAStartDosagePrism
-                        if d1 = 0. then d2 else d1
-                    else r.MaxTotalDosePerM2
+            MaxPerDosePerM2 =
+                if r.MaxTotalDosePerM2 = 0. then
+                    let d1 = d |> getValue Dosage.Optics.exclMaxNormBSASingleDosagePrism
+                    let d2 = d |> getValue Dosage.Optics.exclMaxNormBSAStartDosagePrism
+                    if d1 = 0. then d2 else d1
+                else
+                    r.MaxTotalDosePerM2
         }
 
 
@@ -295,33 +294,29 @@ module Dto =
     /// </summary>
     /// <param name="dto">The Dto</param>
     /// <returns>The Dto with the rules filled in</returns>
-    let processDto (dto : Dto) =
+    let processDto (dto: Dto) =
 
         let u =
-            if dto.MultipleUnit |> String.isNullOrWhiteSpace then None
+            if dto.MultipleUnit |> String.isNullOrWhiteSpace then
+                None
             else
-                dto.MultipleUnit
-                |> Mapping.stringToUnit
-                |> Some
+                dto.MultipleUnit |> Mapping.stringToUnit |> Some
 
-        let ru =
-            dto.RateUnit |> Units.fromString
+        let ru = dto.RateUnit |> Units.fromString
 
-        let rte =
-            dto.Route
+        let rte = dto.Route
 
         let dto =
-            if dto.BSAInM2 > 0. then dto
+            if dto.BSAInM2 > 0. then
+                dto
+            else if dto.HeightCm > 0. && dto.WeightKg > 0. then
+                { dto with
+                    BSAInM2 =
+                        // (w / (l  ** 2.)) |> Some
+                        dto.WeightKg / (((dto.HeightCm |> float) ** 2.) |> float)
+                }
             else
-                if dto.HeightCm > 0. && dto.WeightKg > 0. then
-                    {
-                        dto with
-                            BSAInM2 =
-                                // (w / (l  ** 2.)) |> Some
-                                dto.WeightKg / (((dto.HeightCm |> float) ** 2.) |> float)
-                    }
-                else
-                    dto
+                dto
 
         let gpk, gen, frm, lbl, conc, unt, tps = find dto
 
@@ -329,20 +324,18 @@ module Dto =
 
         let rs =
             let su =
-                if dto.MultipleUnit = "" then None
+                if dto.MultipleUnit = "" then
+                    None
                 else
-                    dto.MultipleUnit
-                    |> Mapping.stringToUnit
-                    |> Some
+                    dto.MultipleUnit |> Mapping.stringToUnit |> Some
 
             let tu =
-                if dto.RateUnit = "" then None
+                if dto.RateUnit = "" then
+                    None
                 else
-                    dto.RateUnit
-                    |> Mapping.stringToUnit
-                    |> Some
+                    dto.RateUnit |> Mapping.stringToUnit |> Some
 
-            let cfg : CreateConfig =
+            let cfg: CreateConfig =
                 {
                     GPKs = []
                     IsRate = dto.IsRate
@@ -350,25 +343,15 @@ module Dto =
                     TimeUnit = tu
                 }
 
-            GStand.createDoseRules
-                cfg
-                (Some dto.AgeInMo)
-                (Some dto.WeightKg)
-                (Some dto.BSAInM2)
-                (Some gpk)
-                gen
-                frm
-                rte
+            GStand.createDoseRules cfg (Some dto.AgeInMo) (Some dto.WeightKg) (Some dto.BSAInM2) (Some gpk) gen frm rte
 
         if rs |> Seq.length <> 1 then
             printfn $"found %i{rs |> Seq.length} rules for %s{prodName}"
+
             { dto with
                 GPK =
                     GPP.filter dto.Generic dto.Form rte
-                    |> Array.collect (fun gpp ->
-                        gpp.GenericProducts
-                        |> Array.map _.Id
-                    )
+                    |> Array.collect (fun gpp -> gpp.GenericProducts |> Array.map _.Id)
                     |> Array.toList
             }
         else
@@ -381,8 +364,7 @@ module Dto =
                         d.Indications
                         |> List.exists (fun s ->
                             if dto.Indication |> String.isNullOrWhiteSpace then
-                                d.Indications |> Seq.length = 1 ||
-                                s = "Algemeen"
+                                d.Indications |> Seq.length = 1 || s = "Algemeen"
                             else
                                 s = dto.Indication
                         )
@@ -393,18 +375,18 @@ module Dto =
                     []
                 else
                     let id = ids |> Seq.head
-                    let rds =
-                        id.RouteDosages
+                    let rds = id.RouteDosages
 
                     if rds |> Seq.length <> 1 then
-                        let rts =
-                            rds
-                            |> List.map(_.Route)
-                            |> String.concat ", "
-                        printfn $"wrong rds count: %i{rds |> Seq.length} for %s{prodName} with routes: %s{rts} using route: %s{rte}"
+                        let rts = rds |> List.map (_.Route) |> String.concat ", "
+
+                        printfn
+                            $"wrong rds count: %i{rds |> Seq.length} for %s{prodName} with routes: %s{rts} using route: %s{rte}"
+
                         []
                     else
                         let rd = rds |> Seq.head
+
                         if rd.FormDosages |> Seq.length <> 1 then
                             printfn $"wrong sds count: %i{rd.FormDosages |> Seq.length} for %s{prodName}"
                             []
@@ -413,78 +395,73 @@ module Dto =
 
                             sd.PatientDosages
                             |> List.collect _.SubstanceDosages
-                            |> List.groupBy (fun sd ->
-                                sd
-                                |> Dosage.Optics.getFrequencyTimeUnit
-                            )
+                            |> List.groupBy (fun sd -> sd |> Dosage.Optics.getFrequencyTimeUnit)
                             |> List.collect (fun (_, sds) ->
 
                                 sds
-                                |> List.fold (fun (acc : Rule list) d ->
-                                    match acc |> List.tryFind (fun d_ -> d_.Substance = d.Name) with
-                                    | Some r ->
-                                        let rest =
-                                            acc
-                                            |> List.filter (fun r_ -> r_.Substance <> d.Name)
-                                        [ r
-                                        |> fillRuleWithDosage gpk d ]
-                                        |> List.append rest
+                                |> List.fold
+                                    (fun (acc: Rule list) d ->
+                                        match acc |> List.tryFind (fun d_ -> d_.Substance = d.Name) with
+                                        | Some r ->
+                                            let rest = acc |> List.filter (fun r_ -> r_.Substance <> d.Name)
+                                            [ r |> fillRuleWithDosage gpk d ] |> List.append rest
 
-                                    | None ->
-                                        [ rule
-                                        |> fillRuleWithDosage gpk d ]
-                                        |> List.append acc
-                                ) []
+                                        | None -> [ rule |> fillRuleWithDosage gpk d ] |> List.append acc
+                                    )
+                                    []
                             )
                 |> (fun rules ->
                     match rules |> List.tryFind (fun r -> r.Frequency = "") with
                     | None -> rules
                     | Some noFreq ->
-                        if rules |> Seq.length = 1 then rules
+                        if rules |> Seq.length = 1 then
+                            rules
                         else
                             rules
                             |> List.filter (fun r -> r.Frequency <> "")
                             |> List.map (fun r ->
-                                {
-                                    r with
-                                        MaxPerDose = noFreq.MaxPerDose
-                                        MaxPerDosePerKg = noFreq.MaxPerDosePerKg
-                                        MaxPerDosePerM2 = noFreq.MaxPerDosePerM2
+                                { r with
+                                    MaxPerDose = noFreq.MaxPerDose
+                                    MaxPerDosePerKg = noFreq.MaxPerDosePerKg
+                                    MaxPerDosePerM2 = noFreq.MaxPerDosePerM2
                                 }
                             )
                 )
 
-            {
-                dto with
-                    ATC = r.ATC
-                    TherapyGroup = r.ATCTherapyGroup
-                    TherapySubGroup = r.ATCTherapySubGroup
-                    GPK =
-                        if dto.GPK |> Seq.exists ((=) gpk) then [ gpk ]
-                        else dto.GPK
-                    Generic = gen
-                    TradeProduct = tps
-                    Form = frm
-                    Label = lbl
-                    Concentration = conc
-                    ConcentrationUnit =
+            { dto with
+                ATC = r.ATC
+                TherapyGroup = r.ATCTherapyGroup
+                TherapySubGroup = r.ATCTherapySubGroup
+                GPK = if dto.GPK |> Seq.exists ((=) gpk) then [ gpk ] else dto.GPK
+                Generic = gen
+                TradeProduct = tps
+                Form = frm
+                Label = lbl
+                Concentration = conc
+                ConcentrationUnit = unt
+                //TODO: rewrite to new online mapping
+                //|> Mapping.mapUnit Mapping.ZIndex Mapping.GenPres
+                Multiple = if dto.Multiple = 0. then conc else dto.Multiple
+                MultipleUnit =
+                    if dto.MultipleUnit = "" then
                         unt
-                        //TODO: rewrite to new online mapping
-                        //|> Mapping.mapUnit Mapping.ZIndex Mapping.GenPres
-                    Multiple =
-                        if dto.Multiple = 0. then conc
-                        else dto.Multiple
-                    MultipleUnit =
-                        if dto.MultipleUnit = "" then
-                            unt
-                            //TODO: rewrite to new online mapping
-                            //|> Mapping.mapUnit Mapping.ZIndex Mapping.GenPres
-                        else dto.MultipleUnit
-                    Rules = rules |> List.toArray
-                    Text =
-                        r
-                        |> (fun dr -> match u  with | Some u -> dr |> DoseRule.convertSubstanceUnitTo gen u | None -> dr)
-                        |> (fun dr -> match ru with | Some u -> dr |> DoseRule.convertRateUnitTo gen u | None -> dr)
-                        |> DoseRule.toString false
-                        |> Markdown.toHtml
+                    //TODO: rewrite to new online mapping
+                    //|> Mapping.mapUnit Mapping.ZIndex Mapping.GenPres
+                    else
+                        dto.MultipleUnit
+                Rules = rules |> List.toArray
+                Text =
+                    r
+                    |> (fun dr ->
+                        match u with
+                        | Some u -> dr |> DoseRule.convertSubstanceUnitTo gen u
+                        | None -> dr
+                    )
+                    |> (fun dr ->
+                        match ru with
+                        | Some u -> dr |> DoseRule.convertRateUnitTo gen u
+                        | None -> dr
+                    )
+                    |> DoseRule.toString false
+                    |> Markdown.toHtml
             }

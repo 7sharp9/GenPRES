@@ -3,24 +3,25 @@ namespace Informedica.OpenAI.Lib
 
 module Texts =
 
-    let testTexts = [
-        """
+    let testTexts =
+        [
+            """
 alprazolam
 6 jaar tot 18 jaar Startdosering: 0,125 mg/dag, éénmalig. Onderhoudsdosering: Op geleide van klinisch beeld verhogen met stappen van 0,125-0,25 mg/dosis tot max 0,05 mg/kg/dag in 3 doses. Max: 3 mg/dag. Advies inname/toediening: De dagdosis indien mogelijk verdelen over 3 doses.Bij plotselinge extreme slapeloosheid: alleen voor de nacht innemen; dosering op geleide van effect ophogen tot max 0,05 mg/kg, maar niet hoger dan 3 mg/dag.De effectiviteit bij de behandeling van acute angst is discutabel.
 """
-        """
+            """
 acetylsalicylzuur
 1 maand tot 18 jaar Startdosering:Acetylsalicylzuur: 30 - 50 mg/kg/dag in 3 - 4 doses. Max: 3.000 mg/dag.
 """
-        """
+            """
 paracetamol
 Oraal: Bij milde tot matige pijn en/of koorts: volgens het Kinderformularium van het NKFK bij een leeftijd van 1 maand–18 jaar: 10–15 mg/kg lichaamsgewicht per keer, zo nodig 4×/dag, max. 60 mg/kg/dag en max. 4 g/dag.
 """
-        """
+            """
 amitriptyline
 6 jaar tot 18 jaar Startdosering: voor de nacht: 10 mg/dag in 1 dosisOnderhoudsdosering: langzaam ophogen met 10 mg/dag per 4-6 weken naar 10 - 30 mg/dag in 1 dosis. Max: 30 mg/dag. Behandeling met amitriptyline mag niet plotseling worden gestaakt vanwege het optreden van ontwenningsverschijnselen; de dosering moet geleidelijk worden verminderd.Uit de studie van Powers (2017) blijkt dat de werkzaamheid van amitriptyline bij migraine profylaxe niet effectiever is t.o.v. placebo. Desondanks menen experts dat in individuele gevallen behandeling met amitriptyline overwogen kan worden.
 """
-    ]
+        ]
 
 
     let testUnitTexts =
@@ -28,41 +29,60 @@ amitriptyline
             """
 alprazolam
 6 jaar tot 18 jaar Startdosering: 0,125 mg/dag, éénmalig. Onderhoudsdosering: Op geleide van klinisch beeld verhogen met stappen van 0,125-0,25 mg/dosis tot max 0,05 mg/kg/dag in 3 doses. Max: 3 mg/dag. Advies inname/toediening: De dagdosis indien mogelijk verdelen over 3 doses.Bij plotselinge extreme slapeloosheid: alleen voor de nacht innemen; dosering op geleide van effect ophogen tot max 0,05 mg/kg, maar niet hoger dan 3 mg/dag.De effectiviteit bij de behandeling van acute angst is discutabel.
-"""
-            , "mg", "kg", "dag"
+""",
+            "mg",
+            "kg",
+            "dag"
 
             """
 acetylsalicylzuur
 1 maand tot 18 jaar Startdosering:Acetylsalicylzuur: 30 - 50 mg/kg/dag in 3 - 4 doses. Max: 3.000 mg/dag.
-"""
-            , "mg", "kg", "dag"
+""",
+            "mg",
+            "kg",
+            "dag"
 
             """
 paracetamol
 Oraal: Bij milde tot matige pijn en/of koorts: volgens het Kinderformularium van het NKFK bij een leeftijd van 1 maand–18 jaar: 10–15 mg/kg lichaamsgewicht per keer, zo nodig 4×/dag, max. 60 mg/kg/dag en max. 4 g/dag.
-"""
-            , "mg", "kg", "dag"
+""",
+            "mg",
+            "kg",
+            "dag"
 
             """
 amitriptyline
 6 jaar tot 18 jaar Startdosering: voor de nacht: 10 mg/dag in 1 dosisOnderhoudsdosering: langzaam ophogen met 10 mg/dag per 4-6 weken naar 10 - 30 mg/dag in 1 dosis. Max: 30 mg/dag. Behandeling met amitriptyline mag niet plotseling worden gestaakt vanwege het optreden van ontwenningsverschijnselen; de dosering moet geleidelijk worden verminderd.Uit de studie van Powers (2017) blijkt dat de werkzaamheid van amitriptyline bij migraine profylaxe niet effectiever is t.o.v. placebo. Desondanks menen experts dat in individuele gevallen behandeling met amitriptyline overwogen kan worden.
-"""
-            , "mg", "", "dag"
+""",
+            "mg",
+            "",
+            "dag"
 
             """
 aciclovir
 3 maanden tot 18 jaar 1.500 mg/m2/dag in 3 doses.Behandelduur: Herpes encefalitis: 14-21 dagen Varicella zoster: 7 dagen
-"""
-            , "mg", "m2", "dag"
+""",
+            "mg",
+            "m2",
+            "dag"
 
             """
 aprepitant
 3 jaar tot 18 jaar en < 40 kg 2 maal per week 40 mg/dosis verdeeld over de week.
-"""
-            , "mg", "", "week"
+""",
+            "mg",
+            "",
+            "week"
 
         ]
-        |> List.map (fun (text, su, au, tu) -> text, {| substanceUnit = su; adjustUnit = au; timeUnit = tu |})
+        |> List.map (fun (text, su, au, tu) ->
+            text,
+            {|
+                substanceUnit = su
+                adjustUnit = au
+                timeUnit = tu
+            |}
+        )
 
 
     let testFrequencyTexts =
@@ -70,45 +90,72 @@ aprepitant
             """
 alprazolam
 6 jaar tot 18 jaar Startdosering: 0,125 mg/dag, éénmalig. Onderhoudsdosering: Op geleide van klinisch beeld verhogen met stappen van 0,125-0,25 mg/dosis tot max 0,05 mg/kg/dag in 3 doses. Max: 3 mg/dag. Advies inname/toediening: De dagdosis indien mogelijk verdelen over 3 doses.Bij plotselinge extreme slapeloosheid: alleen voor de nacht innemen; dosering op geleide van effect ophogen tot max 0,05 mg/kg, maar niet hoger dan 3 mg/dag.De effectiviteit bij de behandeling van acute angst is discutabel.
-"""
-            , "mg", "kg", "dag", [3]
+""",
+            "mg",
+            "kg",
+            "dag",
+            [ 3 ]
 
             """
 acetylsalicylzuur
 1 maand tot 18 jaar Startdosering:Acetylsalicylzuur: 30 - 50 mg/kg/dag in 3 - 4 doses. Max: 3.000 mg/dag.
-"""
-            , "mg", "kg", "dag", [3;4]
+""",
+            "mg",
+            "kg",
+            "dag",
+            [ 3; 4 ]
 
             """
 paracetamol
 Oraal: Bij milde tot matige pijn en/of koorts: volgens het Kinderformularium van het NKFK bij een leeftijd van 1 maand–18 jaar: 10–15 mg/kg lichaamsgewicht per keer, zo nodig 4×/dag, max. 60 mg/kg/dag en max. 4 g/dag.
-"""
-            , "mg", "kg", "dag", [4]
+""",
+            "mg",
+            "kg",
+            "dag",
+            [ 4 ]
 
             """
 amitriptyline
 6 jaar tot 18 jaar Startdosering: voor de nacht: 10 mg/dag in 1 dosisOnderhoudsdosering: langzaam ophogen met 10 mg/dag per 4-6 weken naar 10 - 30 mg/dag in 1 dosis. Max: 30 mg/dag. Behandeling met amitriptyline mag niet plotseling worden gestaakt vanwege het optreden van ontwenningsverschijnselen; de dosering moet geleidelijk worden verminderd.Uit de studie van Powers (2017) blijkt dat de werkzaamheid van amitriptyline bij migraine profylaxe niet effectiever is t.o.v. placebo. Desondanks menen experts dat in individuele gevallen behandeling met amitriptyline overwogen kan worden.
-"""
-            , "mg", "", "dag", [1]
+""",
+            "mg",
+            "",
+            "dag",
+            [ 1 ]
 
             """
 aciclovir
 3 maanden tot 18 jaar 1.500 mg/m2/dag in 3 doses.Behandelduur: Herpes encefalitis: 14-21 dagen Varicella zoster: 7 dagen
-"""
-            , "mg", "m2", "dag", [3]
+""",
+            "mg",
+            "m2",
+            "dag",
+            [ 3 ]
 
             """
 aprepitant
 3 jaar tot 18 jaar en < 40 kg 2 maal per week 40 mg/dosis verdeeld over de week.
-"""
-            , "mg", "", "week", [2]
+""",
+            "mg",
+            "",
+            "week",
+            [ 2 ]
 
         ]
         |> List.map (fun (text, su, au, tu, fr) ->
             text,
             {|
-                doseUnits = {| substanceUnit = su; adjustUnit = au; timeUnit = tu |}
-                freqs = {| frequencies = fr; timeUnit = tu |}
+                doseUnits =
+                    {|
+                        substanceUnit = su
+                        adjustUnit = au
+                        timeUnit = tu
+                    |}
+                freqs =
+                    {|
+                        frequencies = fr
+                        timeUnit = tu
+                    |}
             |}
         )
 
@@ -118,51 +165,92 @@ aprepitant
             """
 alprazolam
 6 jaar tot 18 jaar Startdosering: 0,125 mg/dag, éénmalig. Onderhoudsdosering: Op geleide van klinisch beeld verhogen met stappen van 0,125-0,25 mg/dosis tot max 0,05 mg/kg/dag in 3 doses. Max: 3 mg/dag. Advies inname/toediening: De dagdosis indien mogelijk verdelen over 3 doses.Bij plotselinge extreme slapeloosheid: alleen voor de nacht innemen; dosering op geleide van effect ophogen tot max 0,05 mg/kg, maar niet hoger dan 3 mg/dag.De effectiviteit bij de behandeling van acute angst is discutabel.
-"""
-            , "mg", "kg", "dag", [3], (0.125, 0.25)
+""",
+            "mg",
+            "kg",
+            "dag",
+            [ 3 ],
+            (0.125, 0.25)
 
             """
 acetylsalicylzuur
 1 maand tot 18 jaar Startdosering:Acetylsalicylzuur: 30 - 50 mg/kg/dag in 3 - 4 doses. Max: 3.000 mg/dag.
-"""
-            , "mg", "kg", "dag", [3;4], (0., 0.)
+""",
+            "mg",
+            "kg",
+            "dag",
+            [ 3; 4 ],
+            (0., 0.)
 
             """
 paracetamol
 Oraal: Bij milde tot matige pijn en/of koorts: volgens het Kinderformularium van het NKFK bij een leeftijd van 1 maand–18 jaar: 10–15 mg/kg lichaamsgewicht per keer, zo nodig 4×/dag, max. 60 mg/kg/dag en max. 4 g/dag.
-"""
-            , "mg", "kg", "dag", [4], (0., 0.)
+""",
+            "mg",
+            "kg",
+            "dag",
+            [ 4 ],
+            (0., 0.)
 
             """
 amitriptyline
 6 jaar tot 18 jaar Startdosering: voor de nacht: 10 mg/dag in 1 dosisOnderhoudsdosering: langzaam ophogen met 10 mg/dag per 4-6 weken naar 10 - 30 mg/dag in 1 dosis. Max: 30 mg/dag. Behandeling met amitriptyline mag niet plotseling worden gestaakt vanwege het optreden van ontwenningsverschijnselen; de dosering moet geleidelijk worden verminderd.Uit de studie van Powers (2017) blijkt dat de werkzaamheid van amitriptyline bij migraine profylaxe niet effectiever is t.o.v. placebo. Desondanks menen experts dat in individuele gevallen behandeling met amitriptyline overwogen kan worden.
-"""
-            , "mg", "", "dag", [1], (0., 0.)
+""",
+            "mg",
+            "",
+            "dag",
+            [ 1 ],
+            (0., 0.)
 
             """
 aciclovir
 3 maanden tot 18 jaar 1.500 mg/m2/dag in 3 doses.Behandelduur: Herpes encefalitis: 14-21 dagen Varicella zoster: 7 dagen
-"""
-            , "mg", "m2", "dag", [3], (0., 0.)
+""",
+            "mg",
+            "m2",
+            "dag",
+            [ 3 ],
+            (0., 0.)
 
             """
 aprepitant
 3 jaar tot 18 jaar en < 40 kg 2 maal per week 40 mg/dosis verdeeld over de week.
-"""
-            , "mg", "", "week", [2], (40., 40.)
+""",
+            "mg",
+            "",
+            "week",
+            [ 2 ],
+            (40., 40.)
 
         ]
         |> List.map (fun (text, su, au, tu, fr, minMaxQty) ->
             text,
             {|
-                doseUnits = {| substanceUnit = su; adjustUnit = au; timeUnit = tu |}
-                freqs = {| frequencies = fr; timeUnit = tu |}
-                doseQuantities = [|{| minQty = minMaxQty |> fst; maxQty = minMaxQty |> snd; unit = su|}|]
+                doseUnits =
+                    {|
+                        substanceUnit = su
+                        adjustUnit = au
+                        timeUnit = tu
+                    |}
+                freqs =
+                    {|
+                        frequencies = fr
+                        timeUnit = tu
+                    |}
+                doseQuantities =
+                    [|
+                        {|
+                            minQty = minMaxQty |> fst
+                            maxQty = minMaxQty |> snd
+                            unit = su
+                        |}
+                    |]
             |}
         )
 
 
-    let systemDoseIndicationExpert = """
+    let systemDoseIndicationExpert =
+        """
 You are an expert on medication prescribing, preparation and administration.
 You have to answer questions about texts that describing a drug dose.
 You are asked to extract structured information from that text.
@@ -174,7 +262,8 @@ You answer all questions with ONLY the shortest possible answer to the question.
     """
 
 
-    let systemDosePatientExpert = """
+    let systemDosePatientExpert =
+        """
 You are an expert on medication prescribing, preparation and administration.
 You have to answer questions about texts that describing a drug dose.
 You are asked to extract structured information from that text.
@@ -198,14 +287,16 @@ You answer all questions with ONLY the shortest possible answer to the question.
     """
 
 
-    let systemDoseQuantityExpert = $"""
+    let systemDoseQuantityExpert =
+        $"""
 You are an expert on medication prescribing, preparation and administration.
 You have to answer questions about a free text between ''' that describes the dosing of a medication.
 You are asked to extract structured information from that text.
 """
 
 
-    let systemDoseQuantityExpert2 text = $"""
+    let systemDoseQuantityExpert2 text =
+        $"""
 You are an expert on medication prescribing, preparation and administration. You will give
 exact answers. If there is no possible answer return an empty string.
 You have to answer questions about a free text between ''' that describes the dosing of a medication.
@@ -219,7 +310,8 @@ Respond in JSON
 """
 
 
-    let doseRuleStructure = """
+    let doseRuleStructure =
+        """
     {
       "doseRule": {
         "generic": "acetaminophen/ibuprofen", // "The generic name in all small caps, for multiple substances drugs concatenated with '/'"
@@ -301,7 +393,8 @@ Respond in JSON
     """
 
 
-    let doseQuantity = """
+    let doseQuantity =
+        """
     {
       "doseQuantity": {
         "timeRange": {
@@ -353,7 +446,8 @@ Respond in JSON
     """
 
 
-    let context = $"""
+    let context =
+        $"""
     A dose quantity can be characterized by the following structure:
 
     {doseQuantity}
@@ -364,7 +458,8 @@ Respond in JSON
     - or a list of numbers: example: 1;2;3
     """
 
-    let freqRange = """
+    let freqRange =
+        """
     "frequencyRange": {
       "minPerTime": ,
       "maxPerTime": ,
@@ -377,7 +472,3 @@ Respond in JSON
       "freqUnit":
     }
     """
-
-
-
-

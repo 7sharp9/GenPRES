@@ -45,18 +45,11 @@ module TradeProduct =
         let un = Names.getThes hpk.XSEENH Names.FormUnit Names.Fifty
 
         Zindex.BST701T.records ()
-        |> Array.filter (fun ig ->
-            ig.HPKODE = hpk.HPKODE &&
-            ig.MUTKOD <> 1
-        )
+        |> Array.filter (fun ig -> ig.HPKODE = hpk.HPKODE && ig.MUTKOD <> 1)
         |> Array.map (fun ig ->
-            let stam =
-                Zindex.BST750T.records ()
-                |> Array.find (fun s -> s.GNGNK = ig.GNSTAM)
+            let stam = Zindex.BST750T.records () |> Array.find (fun s -> s.GNGNK = ig.GNSTAM)
 
-            let gn =
-                Zindex.BST750T.records ()
-                |> Array.find (fun s -> s.GNGNK = ig.GNGNK)
+            let gn = Zindex.BST750T.records () |> Array.find (fun s -> s.GNGNK = ig.GNGNK)
 
             let isAdditional = ig.GNMWHS = "H"
 
@@ -69,10 +62,7 @@ module TradeProduct =
 
     let _get id =
         Zindex.BST031T.records ()
-        |> Array.filter (fun r  ->
-            r.MUTKOD <> 1 &&
-            r.PRKODE = id
-        )
+        |> Array.filter (fun r -> r.MUTKOD <> 1 && r.PRKODE = id)
         |> Array.map (fun r ->
             let nm = Names.getName r.HPNAMN Names.Full
             let lb = Names.getName r.HPNAMN Names.Label
@@ -98,4 +88,4 @@ module TradeProduct =
     /// <remarks>
     /// This function is memoized
     /// </remarks>
-    let get : int -> TradeProduct [] = Memoization.memoize _get
+    let get: int -> TradeProduct[] = Memoization.memoize _get

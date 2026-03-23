@@ -17,17 +17,22 @@ module Env =
     let environmentVars () =
         let variables = Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         let all = Environment.GetEnvironmentVariables()
+
         for pair in all do
             let entry = unbox<Collections.DictionaryEntry> pair
             let key = string entry.Key
+
             let value =
                 match entry.Value with
                 | null -> ""
                 | :? string as s -> s
                 | v -> v.ToString()
             // last one wins if duplicates appear (shouldn't for process scope)
-            if variables.ContainsKey(key) then variables[key] <- value
-            else variables.Add(key, value)
+            if variables.ContainsKey(key) then
+                variables[key] <- value
+            else
+                variables.Add(key, value)
+
         variables
 
 
@@ -43,14 +48,17 @@ module Env =
     /// Returns the full path if found, None otherwise.
     let private findFileUpward fileName startDir =
         let rec search dir =
-            if String.IsNullOrEmpty(dir) then None
+            if String.IsNullOrEmpty(dir) then
+                None
             else
                 let candidate = Path.Combine(dir, fileName)
-                if File.Exists(candidate) then Some candidate
+
+                if File.Exists(candidate) then
+                    Some candidate
                 else
                     let parent = Directory.GetParent(dir)
-                    if parent <> null then search parent.FullName
-                    else None
+                    if parent <> null then search parent.FullName else None
+
         search startDir
 
 
@@ -66,6 +74,7 @@ module Env =
             File.ReadAllLines(path)
             |> Array.iter (fun line ->
                 let trimmed = line.Trim()
+
                 if not (String.IsNullOrEmpty(trimmed)) && not (trimmed.StartsWith("#")) then
                     match trimmed.IndexOf('=') with
                     | -1 -> ()
@@ -76,6 +85,7 @@ module Env =
                         if Environment.GetEnvironmentVariable(key) |> isNull then
                             Environment.SetEnvironmentVariable(key, value)
             )
+
             true
 
 
@@ -84,6 +94,7 @@ module Env =
         let formatBytes (bytes: int64) =
             let b = float bytes
             let kb, mb, gb, tb = 1024.0, 1024.0 ** 2.0, 1024.0 ** 3.0, 1024.0 ** 4.0
+
             if b >= tb then $"%.2f{b / tb} TB"
             elif b >= gb then $"%.2f{b / gb} GB"
             elif b >= mb then $"%.2f{b / mb} MB"
@@ -104,22 +115,33 @@ module Env =
         // - GC.GetTotalMemory: managed heap size
         let gcInfo = GC.GetGCMemoryInfo()
         let totalAvailBytes = gcInfo.TotalAvailableMemoryBytes
-        let totalAvailStr = if totalAvailBytes > 0L then formatBytes totalAvailBytes else "unknown"
+
+        let totalAvailStr =
+            if totalAvailBytes > 0L then
+                formatBytes totalAvailBytes
+            else
+                "unknown"
 
         let workingSet =
-            try Process.GetCurrentProcess().WorkingSet64 with _ -> 0L
+            try
+                Process.GetCurrentProcess().WorkingSet64
+            with _ ->
+                0L
+
         let workingSetStr = formatBytes workingSet
 
         let managedHeapStr = GC.GetTotalMemory(false) |> int64 |> formatBytes
 
         String.Join(
             Environment.NewLine,
-            [| $"Machine: %s{machine}"
-               $"User: %s{user}"
-               $"OS: %s{osDesc} (%A{osArch})"
-               $".NET: %s{framework} (%A{procArch})"
-               $"CPU cores: %d{cores}"
-               $"Memory (GC total available): %s{totalAvailStr}"
-               $"Memory (process working set): %s{workingSetStr}"
-               $"Memory (managed heap): %s{managedHeapStr}" |]
+            [|
+                $"Machine: %s{machine}"
+                $"User: %s{user}"
+                $"OS: %s{osDesc} (%A{osArch})"
+                $".NET: %s{framework} (%A{procArch})"
+                $"CPU cores: %d{cores}"
+                $"Memory (GC total available): %s{totalAvailStr}"
+                $"Memory (process working set): %s{workingSetStr}"
+                $"Memory (managed heap): %s{managedHeapStr}"
+            |]
         )

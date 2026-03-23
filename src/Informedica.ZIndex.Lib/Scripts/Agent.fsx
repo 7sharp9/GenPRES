@@ -33,26 +33,26 @@ type ZIndexCommand =
     // Product queries
     | GetProducts
     | FilterByGeneric of generic: string
-    | FilterByBrand   of brand: string
-    | FindByGPK       of gpk: int
+    | FilterByBrand of brand: string
+    | FindByGPK of gpk: int
     // Dose / substance queries
     | GetDoseRules
     | GetSubstances
     // Reference-data queries
     | GetATCGroups
     // Lifecycle
-    | Stop            of AsyncReplyChannel<unit>
+    | Stop of AsyncReplyChannel<unit>
 
 
 /// Responses returned by the ZIndex agent
 [<RequireQualifiedAccess>]
 type ZIndexResponse =
-    | Products     of GenPresProduct array
-    | DoseRules    of DoseRule array
-    | Substances   of Substance array
-    | ATCGroups    of ATCGroup array
+    | Products of GenPresProduct array
+    | DoseRules of DoseRule array
+    | Substances of Substance array
+    | ATCGroups of ATCGroup array
     | Stopped
-    | Error        of string
+    | Error of string
 
 
 // ============================================================
@@ -62,10 +62,10 @@ type ZIndexResponse =
 
 type ZIndexState =
     {
-        Products:   GenPresProduct array
-        DoseRules:  DoseRule array
+        Products: GenPresProduct array
+        DoseRules: DoseRule array
         Substances: Substance array
-        ATCGroups:  ATCGroup array
+        ATCGroups: ATCGroup array
     }
 
 
@@ -74,10 +74,10 @@ let loadState () =
     Environment.SetEnvironmentVariable(FilePath.GENPRES_PROD, "0")
     FilePath.useDemo () |> ignore
 
-    let products   = GenPresProduct.get []
-    let doseRules  = DoseRule.get []
+    let products = GenPresProduct.get []
+    let doseRules = DoseRule.get []
     let substances = Substance.get ()
-    let atcGroups  = ATCGroup.get ()
+    let atcGroups = ATCGroup.get ()
 
     printfn $"  Products:   {products.Length}"
     printfn $"  DoseRules:  {doseRules.Length}"
@@ -85,10 +85,10 @@ let loadState () =
     printfn $"  ATCGroups:  {atcGroups.Length}"
 
     {
-        Products   = products
-        DoseRules  = doseRules
+        Products = products
+        DoseRules = doseRules
         Substances = substances
-        ATCGroups  = atcGroups
+        ATCGroups = atcGroups
     }
 
 
@@ -99,39 +99,31 @@ let loadState () =
 let processCommand (state: ZIndexState) (cmd: ZIndexCommand) : ZIndexResponse * ZIndexState =
     let response =
         match cmd with
-        | ZIndexCommand.GetProducts ->
-            ZIndexResponse.Products state.Products
+        | ZIndexCommand.GetProducts -> ZIndexResponse.Products state.Products
 
         | ZIndexCommand.FilterByGeneric generic ->
             state.Products
-            |> Array.filter (fun p ->
-                p.Name |> String.toLower |> String.contains (generic |> String.toLower)
-            )
+            |> Array.filter (fun p -> p.Name |> String.toLower |> String.contains (generic |> String.toLower))
             |> ZIndexResponse.Products
 
-        | ZIndexCommand.FilterByBrand brand ->
-            GenPresProduct.findByBrand brand
-            |> ZIndexResponse.Products
+        | ZIndexCommand.FilterByBrand brand -> GenPresProduct.findByBrand brand |> ZIndexResponse.Products
 
         | ZIndexCommand.FindByGPK gpk ->
             match GenPresProduct.findByGPK gpk with
             | Some p -> ZIndexResponse.Products [| p |]
-            | None   -> ZIndexResponse.Products [||]
+            | None -> ZIndexResponse.Products [||]
 
-        | ZIndexCommand.GetDoseRules ->
-            ZIndexResponse.DoseRules state.DoseRules
+        | ZIndexCommand.GetDoseRules -> ZIndexResponse.DoseRules state.DoseRules
 
-        | ZIndexCommand.GetSubstances ->
-            ZIndexResponse.Substances state.Substances
+        | ZIndexCommand.GetSubstances -> ZIndexResponse.Substances state.Substances
 
-        | ZIndexCommand.GetATCGroups ->
-            ZIndexResponse.ATCGroups state.ATCGroups
+        | ZIndexCommand.GetATCGroups -> ZIndexResponse.ATCGroups state.ATCGroups
 
         | ZIndexCommand.Stop replyChannel ->
             replyChannel.Reply(())
             ZIndexResponse.Stopped
 
-    response, state   // state is read-only; always return unchanged
+    response, state // state is read-only; always return unchanged
 
 
 // ============================================================
@@ -141,18 +133,14 @@ let processCommand (state: ZIndexState) (cmd: ZIndexCommand) : ZIndexResponse * 
 /// Create and start a ZIndex agent pre-loaded with medication data.
 let createZIndexAgent () =
     let state = loadState ()
-    Agent.createStatefulReply<ZIndexCommand, ZIndexResponse, ZIndexState>(
-        state,
-        processCommand
-    )
+    Agent.createStatefulReply<ZIndexCommand, ZIndexResponse, ZIndexState> (state, processCommand)
 
 
 // ============================================================
 // Helper: send a command and get a typed response
 // ============================================================
 
-let ask (agent: Agent<ZIndexCommand * AsyncReplyChannel<ZIndexResponse>>) cmd =
-    agent |> Agent.postAndReply cmd
+let ask (agent: Agent<ZIndexCommand * AsyncReplyChannel<ZIndexResponse>>) cmd = agent |> Agent.postAndReply cmd
 
 
 // ============================================================
@@ -165,39 +153,29 @@ let agent = createZIndexAgent ()
 
 // 1. Query total product count
 match agent |> ask ZIndexCommand.GetProducts with
-| ZIndexResponse.Products ps ->
-    printfn $"Total GenPresProducts: {ps.Length}"
-| other ->
-    printfn $"Unexpected: {other}"
+| ZIndexResponse.Products ps -> printfn $"Total GenPresProducts: {ps.Length}"
+| other -> printfn $"Unexpected: {other}"
 
 
 // 2. Filter by generic name
 match agent |> ask (ZIndexCommand.FilterByGeneric "paracetamol") with
 | ZIndexResponse.Products ps ->
     printfn $"\nParacetamol products found: {ps.Length}"
-    ps
-    |> Array.truncate 3
-    |> Array.iter (fun p -> printfn $"  {p.Name} ({p.Form})")
-| other ->
-    printfn $"Unexpected: {other}"
+    ps |> Array.truncate 3 |> Array.iter (fun p -> printfn $"  {p.Name} ({p.Form})")
+| other -> printfn $"Unexpected: {other}"
 
 
 // 3. Query ATC groups
 match agent |> ask ZIndexCommand.GetATCGroups with
-| ZIndexResponse.ATCGroups gs ->
-    printfn $"\nATC groups: {gs.Length}"
-| other ->
-    printfn $"Unexpected: {other}"
+| ZIndexResponse.ATCGroups gs -> printfn $"\nATC groups: {gs.Length}"
+| other -> printfn $"Unexpected: {other}"
 
 
 // 4. Look up a specific GPK
 match agent |> ask (ZIndexCommand.FindByGPK 2194) with
-| ZIndexResponse.Products [| p |] ->
-    printfn $"\nGPK 2194: {p.Name}"
-| ZIndexResponse.Products [||] ->
-    printfn "\nGPK 2194: not found"
-| other ->
-    printfn $"Unexpected: {other}"
+| ZIndexResponse.Products [| p |] -> printfn $"\nGPK 2194: {p.Name}"
+| ZIndexResponse.Products [||] -> printfn "\nGPK 2194: not found"
+| other -> printfn $"Unexpected: {other}"
 
 
 // 5. Dispose agent

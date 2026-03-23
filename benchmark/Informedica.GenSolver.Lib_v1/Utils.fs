@@ -20,9 +20,7 @@ module Utils =
 
         /// Maximum quantity of a numerator or denominator to prevent
         /// infinite loops calculating a minimum or maximum.
-        let MAX_BIGINT =
-            999999999999999999999999999999999999999999999999I
-
+        let MAX_BIGINT = 999999999999999999999999999999999999999999999999I
 
 
     module ValueUnit =
@@ -79,8 +77,8 @@ module Utils =
                 |> String.replace "*" "/"
                 |> String.split "/"
                 |> function
-                | [u1;u2;u3] when u3 |> String.startsWith "kg" -> [u1;u3;u2]
-                | xs -> xs
+                    | [ u1; u2; u3 ] when u3 |> String.startsWith "kg" -> [ u1; u3; u2 ]
+                    | xs -> xs
                 |> String.concat "/"
                 |> Units.fromString
                 |> Option.defaultValue (vu |> getUnit)
@@ -91,35 +89,27 @@ module Utils =
             |> toStringDecimalDutchShortWithPrec prec
             |> String.split " "
             |> function
-            | v::u ->
-                let u = u |> String.concat " "
-                let v =
-                    v
-                    |> String.split ";"
-                    |> List.map (sprintf "#%s#")
-                    |> String.concat ", "
+                | v :: u ->
+                    let u = u |> String.concat " "
+                    let v = v |> String.split ";" |> List.map (sprintf "#%s#") |> String.concat ", "
 
-                $"{v} |{u}|"
-            | s -> s |> String.concat " "
+                    $"{v} |{u}|"
+                | s -> s |> String.concat " "
 
 
         module Operators =
 
             /// Constant 0
-            let zero =
-                [| 0N |] |> create Units.Count.times
+            let zero = [| 0N |] |> create Units.Count.times
 
             /// Constant 1
-            let one =
-                [| 1N |] |> create Units.Count.times
+            let one = [| 1N |] |> create Units.Count.times
 
             /// Constant 2
-            let two =
-                [| 2N |] |> create Units.Count.times
+            let two = [| 2N |] |> create Units.Count.times
 
             /// Constant 3
-            let three =
-                [| 3N |] |> create Units.Count.times
+            let three = [| 3N |] |> create Units.Count.times
 
             /// Check whether the operator is subtraction
             let opIsSubtr op = (three |> op <| two) = three - two // = 1
@@ -134,7 +124,6 @@ module Utils =
             let opIsDiv op = (three |> op <| two) = three / two // = 3/2
 
 
-
             /// Match an operator `op` to either
             /// multiplication, division, addition
             /// or subtraction, fails when
@@ -146,4 +135,3 @@ module Utils =
                 | _ when op |> opIsAdd -> Add
                 | _ when op |> opIsSubtr -> Sub
                 | _ -> failwith "Operator is not supported"
-

@@ -51,7 +51,7 @@ type DoseRuleExtracted =
         generic: string
         form: string
         brand: string
-        gpks: string []
+        gpks: string[]
         indication: string
         route: string
         department: string
@@ -69,7 +69,7 @@ type DoseRuleExtracted =
         doseType: string
         doseText: string
         scheduleText: string
-        frequencies: int []
+        frequencies: int[]
         freqUnit: string
         minTime: Nullable<float>
         maxTime: Nullable<float>
@@ -116,21 +116,27 @@ type ValidationResult =
 
     member this.IsValid =
         this.Fields
-        |> List.forall (function
+        |> List.forall (
+            function
             | Invalid _ -> false
-            | _ -> true)
+            | _ -> true
+        )
 
     member this.Errors =
         this.Fields
-        |> List.choose (function
+        |> List.choose (
+            function
             | Invalid(f, v, r) -> Some(f, v, r)
-            | _ -> None)
+            | _ -> None
+        )
 
     member this.Warnings =
         this.Fields
-        |> List.choose (function
+        |> List.choose (
+            function
             | Warning(f, v, m) -> Some(f, v, m)
-            | _ -> None)
+            | _ -> None
+        )
 
 
 module Validation =
@@ -151,15 +157,12 @@ module Validation =
                 genericNames
                 |> List.tryFind (fun g ->
                     g |> String.containsCapsInsens extracted.generic
-                    || extracted.generic |> String.containsCapsInsens g)
+                    || extracted.generic |> String.containsCapsInsens g
+                )
 
             match partialMatch with
             | Some candidate ->
-                Warning(
-                    "generic",
-                    extracted.generic,
-                    $"No exact match found; closest formulary entry is '{candidate}'"
-                )
+                Warning("generic", extracted.generic, $"No exact match found; closest formulary entry is '{candidate}'")
             | None ->
                 Invalid(
                     "generic",
@@ -169,21 +172,19 @@ module Validation =
 
 
     /// Validate the route against the formulary route mappings.
-    let validateRoute
-        (routeMappings: RouteMapping array)
-        (extracted: DoseRuleExtracted)
-        =
+    let validateRoute (routeMappings: RouteMapping array) (extracted: DoseRuleExtracted) =
         if extracted.route |> String.isNullOrWhiteSpace then
             Warning("route", extracted.route, "Route is empty; a route is expected for most dose rules")
         else
             let matched =
                 routeMappings
-                |> Array.exists (fun rm ->
-                    equalsCI rm.Long extracted.route || equalsCI rm.Short extracted.route)
+                |> Array.exists (fun rm -> equalsCI rm.Long extracted.route || equalsCI rm.Short extracted.route)
 
-            if matched then Valid("route", extracted.route)
+            if matched then
+                Valid("route", extracted.route)
             else
                 let knownRoutes = routeMappings |> Array.map _.Long |> String.concat ", "
+
                 Invalid(
                     "route",
                     extracted.route,
@@ -207,6 +208,7 @@ module Validation =
             Valid("doseType", extracted.doseType)
         else
             let validList = valid |> List.filter ((<>) "") |> String.concat ", "
+
             Invalid(
                 "doseType",
                 extracted.doseType,
@@ -266,11 +268,7 @@ module Validation =
 
     /// Validate that the unit structure for a compound unit field is correct.
     /// For example, MinPerTimeAdj should be: doseUnit / adjustUnit / freqUnit
-    let validateUnitStructure
-        (fieldName: string)
-        (expectedParts: string list)
-        (extracted: DoseRuleExtracted)
-        =
+    let validateUnitStructure (fieldName: string) (expectedParts: string list) (extracted: DoseRuleExtracted) =
         let nonEmpty s = s |> String.isNullOrWhiteSpace |> not
         let nonEmptyParts = expectedParts |> List.filter nonEmpty
 
@@ -282,13 +280,11 @@ module Validation =
             Valid(fieldName, $"unit structure ok: {composed}")
         else
             // Some expected parts are empty strings — incomplete unit structure
-            let missing = expectedParts |> List.filter (String.isNullOrWhiteSpace) |> List.length
+            let missing =
+                expectedParts |> List.filter (String.isNullOrWhiteSpace) |> List.length
+
             let parts = expectedParts |> String.concat "/"
-            Warning(
-                fieldName,
-                "",
-                $"Unit structure incomplete for {fieldName}: {parts}; missing: {missing} part(s)"
-            )
+            Warning(fieldName, "", $"Unit structure incomplete for {fieldName}: {parts}; missing: {missing} part(s)")
 
 
     /// Validate the unit structures for all dose limit fields.
@@ -296,39 +292,38 @@ module Validation =
         [
             // QtyAdj: doseUnit / adjustUnit
             if extracted.minQtyAdj.HasValue || extracted.maxQtyAdj.HasValue then
-                yield
-                    validateUnitStructure
-                        "QtyAdj units"
-                        [ extracted.doseUnit; extracted.adjustUnit ]
-                        extracted
+                yield validateUnitStructure "QtyAdj units" [ extracted.doseUnit; extracted.adjustUnit ] extracted
 
             // PerTime: doseUnit / freqUnit
             if extracted.minPerTime.HasValue || extracted.maxPerTime.HasValue then
-                yield
-                    validateUnitStructure
-                        "PerTime units"
-                        [ extracted.doseUnit; extracted.freqUnit ]
-                        extracted
+                yield validateUnitStructure "PerTime units" [ extracted.doseUnit; extracted.freqUnit ] extracted
 
             // PerTimeAdj: doseUnit / adjustUnit / freqUnit
             if extracted.minPerTimeAdj.HasValue || extracted.maxPerTimeAdj.HasValue then
                 yield
                     validateUnitStructure
                         "PerTimeAdj units"
-                        [ extracted.doseUnit; extracted.adjustUnit; extracted.freqUnit ]
+                        [
+                            extracted.doseUnit
+                            extracted.adjustUnit
+                            extracted.freqUnit
+                        ]
                         extracted
 
             // Rate: doseUnit / rateUnit
             if extracted.minRate.HasValue || extracted.maxRate.HasValue then
-                yield
-                    validateUnitStructure "Rate units" [ extracted.doseUnit; extracted.rateUnit ] extracted
+                yield validateUnitStructure "Rate units" [ extracted.doseUnit; extracted.rateUnit ] extracted
 
             // RateAdj: doseUnit / adjustUnit / rateUnit
             if extracted.minRateAdj.HasValue || extracted.maxRateAdj.HasValue then
                 yield
                     validateUnitStructure
                         "RateAdj units"
-                        [ extracted.doseUnit; extracted.adjustUnit; extracted.rateUnit ]
+                        [
+                            extracted.doseUnit
+                            extracted.adjustUnit
+                            extracted.rateUnit
+                        ]
                         extracted
         ]
 
@@ -341,14 +336,12 @@ module Validation =
         | false, true -> [ Valid($"{fieldBase}Range", $"(no min) max={mx.Value}") ]
         | true, true ->
             if mn.Value <= mx.Value then
-                [ Valid($"{fieldBase}Range", $"min={mn.Value} max={mx.Value}") ]
+                [
+                    Valid($"{fieldBase}Range", $"min={mn.Value} max={mx.Value}")
+                ]
             else
                 [
-                    Invalid(
-                        $"{fieldBase}Range",
-                        $"{mn.Value}–{mx.Value}",
-                        $"min ({mn.Value}) > max ({mx.Value})"
-                    )
+                    Invalid($"{fieldBase}Range", $"{mn.Value}–{mx.Value}", $"min ({mn.Value}) > max ({mx.Value})")
                 ]
 
 
@@ -357,7 +350,8 @@ module Validation =
         (routeMappings: RouteMapping array)
         (genericNames: string list)
         (extracted: DoseRuleExtracted)
-        : ValidationResult =
+        : ValidationResult
+        =
 
         let fields =
             [
@@ -402,7 +396,10 @@ module Validation =
                 yield! validateDoseLimitUnits extracted
             ]
 
-        { Extracted = extracted; Fields = fields }
+        {
+            Extracted = extracted
+            Fields = fields
+        }
 
 
     /// Print the validation result to stdout.
@@ -414,11 +411,13 @@ module Validation =
 
         if result.Errors |> List.isEmpty |> not then
             printfn "\n#### Errors:"
+
             for (f, v, r) in result.Errors do
                 printfn "  ✗ [%s] '%s' → %s" f v r
 
         if result.Warnings |> List.isEmpty |> not then
             printfn "\n#### Warnings:"
+
             for (f, v, m) in result.Warnings do
                 printfn "  ⚠ [%s] '%s' → %s" f v m
 
@@ -440,9 +439,7 @@ module Formulary =
         Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
         let dataUrlId = System.Environment.GetEnvironmentVariable("GENPRES_URL_ID")
 
-        Api.getCachedProviderWithDataUrlId
-            FormLogging.noOp
-            dataUrlId
+        Api.getCachedProviderWithDataUrlId FormLogging.noOp dataUrlId
 
 
     /// Extract the sorted list of unique generic names from the formulary dose rules.
@@ -455,8 +452,7 @@ module Formulary =
 
 
     /// Get the route mappings from the formulary.
-    let getRouteMappings (provider: IResourceProvider) : RouteMapping array =
-        provider.GetRouteMappings()
+    let getRouteMappings (provider: IResourceProvider) : RouteMapping array = provider.GetRouteMappings()
 
 
 /// -------------------------------------------------------

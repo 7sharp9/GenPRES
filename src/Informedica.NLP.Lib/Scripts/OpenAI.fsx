@@ -1,4 +1,3 @@
-
 #r "nuget: FSharpPlus"
 #r "nuget: Newtonsoft.Json"
 #r "nuget: NJsonSchema"
@@ -25,43 +24,44 @@ open OpenAI.WithState
 "mg/m2\"" |> String.split "/"
 
 let systemMsg model text =
-        let msg =
-            text
-            |> Texts.systemDoseQuantityExpert2 |> Message.system
-        OpenAI.Chat.defaultChatInput model msg []
+    let msg = text |> Texts.systemDoseQuantityExpert2 |> Message.system
+    OpenAI.Chat.defaultChatInput model msg []
 
 
 let unitValidator<'Unit> text get validUnits s =
     let isValidUnit s =
-        if validUnits |> List.isEmpty then true
+        if validUnits |> List.isEmpty then
+            true
         else
-            validUnits
-            |> List.exists (String.equalsCapInsens s)
+            validUnits |> List.exists (String.equalsCapInsens s)
+
     try
         let un = JsonConvert.DeserializeObject<'Unit>(s)
+
         match un |> get |> String.split "/" with
-        | [u] when u |> isValidUnit ->
-            if text |> String.containsCapsInsens u then Ok s
+        | [ u ] when u |> isValidUnit ->
+            if text |> String.containsCapsInsens u then
+                Ok s
             else
-                $"{u} is not mentioned in the text"
-                |> Error
+                $"{u} is not mentioned in the text" |> Error
         | _ ->
-            if validUnits |> List.isEmpty then $"{s} is not a valid unit, the unit should not contain '/'"
+            if validUnits |> List.isEmpty then
+                $"{s} is not a valid unit, the unit should not contain '/'"
             else
                 $"""
 {s} is not a valid unit, the unit should not contain '/' and the unit should be one of the following:
 {validUnits |> String.concat ", "}
 """
             |> Error
-    with
-    | e ->
-        e.ToString()
-        |> Error
+    with e ->
+        e.ToString() |> Error
 
 
 let extractSubstanceUnit model text =
     let zero = {| substanceUnit = "" |}
-    let validator = unitValidator text (fun (u: {| substanceUnit: string |}) -> u.substanceUnit)  []
+
+    let validator =
+        unitValidator text (fun (u: {| substanceUnit: string |}) -> u.substanceUnit) []
 
     """
 Use the provided schema to extract the unit of measurement (substance unit) from the medication dosage information contained in the text.
@@ -82,8 +82,9 @@ Respond in JSON
 
 let extractAdjustUnit model text =
     let zero = {| adjustUnit = "" |}
+
     let validator =
-        ["kg"; "m2"; "mˆ2"]
+        [ "kg"; "m2"; "mˆ2" ]
         |> unitValidator text (fun (u: {| adjustUnit: string |}) -> u.adjustUnit)
 
     """
@@ -106,12 +107,9 @@ Respond in JSON
 
 let extractTimeUnit model text =
     let zero = {| timeUnit = "" |}
+
     let validator =
-        [
-            "dag"
-            "week"
-            "maand"
-        ]
+        [ "dag"; "week"; "maand" ]
         |> unitValidator text (fun (u: {| timeUnit: string |}) -> u.timeUnit)
 
     """
@@ -150,24 +148,18 @@ let createDoseUnits model text =
 let un, input =
     let text = Texts.testTexts[3]
     let model = OpenAI.Models.``gpt-4-turbo-preview``
-    State.run
-        (createDoseUnits model text)
-        (systemMsg model text)
+    State.run (createDoseUnits model text) (systemMsg model text)
 
 printfn $"## The final extracted structure:\n{un}\n\n"
 
 printfn "## The full conversation"
-input
-|> OpenAI.Chat.print
+input |> OpenAI.Chat.print
 
 
 let test model =
     [
         for text, exp in Texts.testUnitTexts do
-            let un, _ =
-                State.run
-                    (createDoseUnits model text)
-                    (systemMsg model text)
+            let un, _ = State.run (createDoseUnits model text) (systemMsg model text)
             if un = exp then 1 else 0
     ]
     |> List.sum
@@ -184,5 +176,5 @@ let test model =
     model, s
 )
 |> List.maxBy snd
-|> fun (m, s) -> printfn $"\n\n## And the winner is: {m} with a high score: {s} from {Texts.testUnitTexts |> List.length}"
-
+|> fun (m, s) ->
+    printfn $"\n\n## And the winner is: {m} with a high score: {s} from {Texts.testUnitTexts |> List.length}"

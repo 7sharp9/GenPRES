@@ -8,34 +8,33 @@ module StringBuilder =
     open System.Text
 
     /// Creates a new StringBuilder with the given initial value.
-    let builder (s : string) = StringBuilder(s)
+    let builder (s: string) = StringBuilder(s)
 
     /// Append the given string to the StringBuilder.
-    let append (s : string) (sb : StringBuilder) = sb.Append(s)
+    let append (s: string) (sb: StringBuilder) = sb.Append(s)
 
     /// Append a string as a new line to the StringBuilder.
-    let appendLine (s : string) (sb : StringBuilder) = sb.AppendLine(s)
+    let appendLine (s: string) (sb: StringBuilder) = sb.AppendLine(s)
 
     /// Append a new line to the StringBuilder.
     let newLine = appendLine ""
 
     /// Append 2 new lines to the StringBuilder.
-    let newLine2 sb =
-        sb
-        |> appendLine ""
-        |> appendLine ""
+    let newLine2 sb = sb |> appendLine "" |> appendLine ""
 
     /// Append and format the given string to the StringBuilder.
-    let appendFormat (fs : string) vs (sb : StringBuilder) = sb.AppendFormat(fs, (vs |> List.toArray))
+    let appendFormat (fs: string) vs (sb: StringBuilder) =
+        sb.AppendFormat(fs, (vs |> List.toArray))
 
     /// Append and format the given string as a new line to the StringBuilder.
-    let appendLineFormat (fs : string) vs (sb : StringBuilder) = sb.AppendFormat(fs + "\n", (vs |> List.toArray))
+    let appendLineFormat (fs: string) vs (sb: StringBuilder) =
+        sb.AppendFormat(fs + "\n", (vs |> List.toArray))
 
     /// Replace all occurrences of the given string with the given string in the StringBuilder.
-    let replace (s1 : string) s2 (sb : StringBuilder) = sb.Replace(s1, s2)
+    let replace (s1: string) s2 (sb: StringBuilder) = sb.Replace(s1, s2)
 
     /// Return the string representation of the StringBuilder.
-    let toString (sb : StringBuilder) = sb.ToString()
+    let toString (sb: StringBuilder) = sb.ToString()
 
 
     module Tests =
@@ -73,14 +72,14 @@ module StringBuilder =
         /// Test StringBuilder.appendFormat
         let testAppendFormat () =
             let sb = StringBuilder("")
-            let r = sb |> appendFormat "{0} World" ["Hello"] |> toString
+            let r = sb |> appendFormat "{0} World" [ "Hello" ] |> toString
             test <@ r = "Hello World" @>
 
 
         /// Test StringBuilder.appendLineFormat
         let testAppendLineFormat () =
             let sb = StringBuilder("")
-            let r = sb |> appendLineFormat "{0} World" ["Hello"] |> toString
+            let r = sb |> appendLineFormat "{0} World" [ "Hello" ] |> toString
             test <@ r = "Hello World\n" @>
 
 
@@ -92,11 +91,11 @@ module StringBuilder =
 
         /// Run all tests
         let test () =
-            testAppend()
-            testAppendLine()
-            testNewLine()
-            testNewLine2()
-            testAppendFormat()
-            testAppendLineFormat()
-            testReplace()
+            testAppend ()
+            testAppendLine ()
+            testNewLine ()
+            testNewLine2 ()
+            testAppendFormat ()
+            testAppendLineFormat ()
+            testReplace ()
             ()

@@ -12,9 +12,7 @@ module Exceptions =
     let raiseExc log errs m =
 
         match log with
-        | Some log ->
-            m |> Logging.logError log
+        | Some log -> m |> Logging.logError log
         | None -> ()
 
-        m::errs |> SolverException |> raise
-
+        m :: errs |> SolverException |> raise

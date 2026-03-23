@@ -16,22 +16,12 @@ module Mappers =
     module Order =
 
 
-        let mapToValueUnit (dto : ValueUnit.Dto.Dto) : Types.ValueUnit =
-            let v =
-                dto.Value
-                |> Array.map (fun br ->
-                    $"{br}", br |> BigRational.toDecimal
-                )
-            Models.Order.ValueUnit.create
-                v
-                dto.Unit
-                dto.Group
-                dto.Short
-                dto.Language
-                dto.Json
+        let mapToValueUnit (dto: ValueUnit.Dto.Dto) : Types.ValueUnit =
+            let v = dto.Value |> Array.map (fun br -> $"{br}", br |> BigRational.toDecimal)
+            Models.Order.ValueUnit.create v dto.Unit dto.Group dto.Short dto.Language dto.Json
 
 
-        let mapFromValueUnit (vu : Types.ValueUnit) : ValueUnit.Dto.Dto =
+        let mapFromValueUnit (vu: Types.ValueUnit) : ValueUnit.Dto.Dto =
             let v = vu.Value |> Array.map (fst >> BigRational.parse)
             let dto = ValueUnit.Dto.dto ()
             dto.Value <- v
@@ -45,7 +35,9 @@ module Mappers =
 
 
         let mapToVariable (dto: Informedica.GenSolver.Lib.Variable.Dto.Dto) : Variable =
-            Models.Order.Variable.create dto.Name dto.IsNonZeroPositive
+            Models.Order.Variable.create
+                dto.Name
+                dto.IsNonZeroPositive
                 (dto.MinOpt |> Option.map mapToValueUnit)
                 dto.MinIncl
                 (dto.IncrOpt |> Option.map mapToValueUnit)
@@ -54,7 +46,7 @@ module Mappers =
                 (dto.ValsOpt |> Option.map mapToValueUnit)
 
 
-        let mapFromVariable (var : Variable) : Informedica.GenSolver.Lib.Variable.Dto.Dto =
+        let mapFromVariable (var: Variable) : Informedica.GenSolver.Lib.Variable.Dto.Dto =
             let dto = Informedica.GenSolver.Lib.Variable.Dto.dto ()
 
             dto.Name <- var.Name
@@ -74,7 +66,7 @@ module Mappers =
             dto
 
 
-        let mapToOrderVariable (dto : OrderVariable.Dto.Dto) : Types.OrderVariable =
+        let mapToOrderVariable (dto: OrderVariable.Dto.Dto) : Types.OrderVariable =
             let level =
                 match dto.Level with
                 | OrderVariable.Dto.IsNormal -> IsNormal
@@ -90,12 +82,13 @@ module Mappers =
                 level
 
 
-        let mapFromOrderVariable (ov : Types.OrderVariable) : OrderVariable.Dto.Dto =
+        let mapFromOrderVariable (ov: Types.OrderVariable) : OrderVariable.Dto.Dto =
             let dto = OrderVariable.Dto.dto ()
             dto.Name <- ov.Name
             dto.Variable <- ov.Variable |> mapFromVariable
             dto.Constraints <- ov.DefinedConstraints |> mapFromVariable
             dto.Calculated <- ov.CalculatedConstraints |> mapFromVariable
+
             dto.Level <-
                 match ov.Level with
                 | IsNormal -> OrderVariable.Dto.IsNormal
@@ -106,7 +99,7 @@ module Mappers =
             dto
 
 
-        let mapToDose (dto : Order.Orderable.Dose.Dto.Dto) : Dose =
+        let mapToDose (dto: Order.Orderable.Dose.Dto.Dto) : Dose =
             Models.Order.Dose.create
                 (dto.Quantity |> mapToOrderVariable)
                 (dto.PerTime |> mapToOrderVariable)
@@ -118,7 +111,7 @@ module Mappers =
                 (dto.TotalAdjust |> mapToOrderVariable)
 
 
-        let mapFromDose (dose : Dose) : Order.Orderable.Dose.Dto.Dto =
+        let mapFromDose (dose: Dose) : Order.Orderable.Dose.Dto.Dto =
             let dto = Order.Orderable.Dose.Dto.dto ()
             dto.Quantity <- dose.Quantity |> mapFromOrderVariable
             dto.PerTime <- dose.PerTime |> mapFromOrderVariable
@@ -132,7 +125,7 @@ module Mappers =
             dto
 
 
-        let mapToItem sns (dto : Order.Orderable.Item.Dto.Dto) : Item =
+        let mapToItem sns (dto: Order.Orderable.Item.Dto.Dto) : Item =
             Models.Order.Item.create
                 dto.Name
                 (dto.ComponentQuantity |> mapToOrderVariable)
@@ -144,8 +137,8 @@ module Mappers =
                 (sns |> Array.exists (String.equalsCapInsens dto.Name) |> not)
 
 
-        let mapFromItem (item : Item) : Order.Orderable.Item.Dto.Dto =
-            let dto = Order.Orderable.Item.Dto.Dto ()
+        let mapFromItem (item: Item) : Order.Orderable.Item.Dto.Dto =
+            let dto = Order.Orderable.Item.Dto.Dto()
             dto.Name <- item.Name
             dto.ComponentQuantity <- item.ComponentQuantity |> mapFromOrderVariable
             dto.OrderableQuantity <- item.OrderableQuantity |> mapFromOrderVariable
@@ -156,7 +149,7 @@ module Mappers =
             dto
 
 
-        let mapToComponent sns (dto : Order.Orderable.Component.Dto.Dto) : Component =
+        let mapToComponent sns (dto: Order.Orderable.Component.Dto.Dto) : Component =
             Models.Order.Component.create
                 dto.Id
                 dto.Name
@@ -171,7 +164,7 @@ module Mappers =
                 (dto.Items |> List.toArray |> Array.map (mapToItem sns))
 
 
-        let mapFromComponent (comp : Component) : Order.Orderable.Component.Dto.Dto =
+        let mapFromComponent (comp: Component) : Order.Orderable.Component.Dto.Dto =
             let dto = Order.Orderable.Component.Dto.Dto()
             dto.Id <- comp.Id
             dto.Name <- comp.Name
@@ -188,7 +181,7 @@ module Mappers =
             dto
 
 
-        let mapToOrderable sns (dto : Order.Orderable.Dto.Dto) : Orderable =
+        let mapToOrderable sns (dto: Order.Orderable.Dto.Dto) : Orderable =
             Models.Order.Orderable.create
                 dto.Name
                 (dto.OrderableQuantity |> mapToOrderVariable)
@@ -206,7 +199,7 @@ module Mappers =
         // member val DoseCount = OrderVariable.Dto.dto () with get, set
         // member val Dose = Dose.Dto.dto () with get, set
         // member val Components : Component.Dto.Dto list = [] with get, set
-        let mapFromOrderable id n (orderable : Orderable) : Order.Orderable.Dto.Dto =
+        let mapFromOrderable id n (orderable: Orderable) : Order.Orderable.Dto.Dto =
             let dto = Order.Orderable.Dto.dto id n
             dto.OrderableQuantity <- orderable.OrderableQuantity |> mapFromOrderVariable
             dto.OrderQuantity <- orderable.OrderQuantity |> mapFromOrderVariable
@@ -218,7 +211,7 @@ module Mappers =
             dto
 
 
-        let mapToPrescription (dto : Order.Schedule.Dto.Dto) : Schedule =
+        let mapToPrescription (dto: Order.Schedule.Dto.Dto) : Schedule =
             Models.Order.Prescription.create
                 dto.IsOnce
                 dto.IsOnceTimed
@@ -229,8 +222,8 @@ module Mappers =
                 (dto.Time |> mapToOrderVariable)
 
 
-        let mapFromPrescription (prescription : Schedule) : Order.Schedule.Dto.Dto =
-            let dto = Order.Schedule.Dto.Dto ()
+        let mapFromPrescription (prescription: Schedule) : Order.Schedule.Dto.Dto =
+            let dto = Order.Schedule.Dto.Dto()
             dto.IsOnce <- prescription.IsOnce
             dto.IsOnceTimed <- prescription.IsOnceTimed
             dto.IsDiscontinuous <- prescription.IsDiscontinuous
@@ -242,7 +235,7 @@ module Mappers =
             dto
 
 
-        let mapFromOrderToShared sns (dto : Order.Dto.Dto) : Types.Order =
+        let mapFromOrderToShared sns (dto: Order.Dto.Dto) : Types.Order =
             Models.Order.create
                 dto.Id
                 (dto.Adjust |> mapToOrderVariable)
@@ -254,7 +247,7 @@ module Mappers =
                 dto.Stop
 
 
-        let mapFromSharedToOrder (order : Types.Order) : Order.Dto.Dto =
+        let mapFromSharedToOrder (order: Types.Order) : Order.Dto.Dto =
             let dto = Order.Dto.Dto(order.Id, order.Orderable.Name)
 
             dto.Adjust <- order.Adjust |> mapFromOrderVariable
@@ -288,14 +281,9 @@ module Mappers =
         | Informedica.GenForm.Lib.Types.NoDoseType -> NoDoseType
 
 
-    let mapFromSharedPatient
-        (pat: Types.Patient)
-        =
+    let mapFromSharedPatient (pat: Types.Patient) =
         { Patient.patient with
-            Department =
-                pat.Department
-                |> Option.defaultValue "ICK"
-                |> Some
+            Department = pat.Department |> Option.defaultValue "ICK" |> Some
             Age =
                 pat
                 |> Models.Patient.getAgeInDays
@@ -344,22 +332,25 @@ module Mappers =
         |> Patient.calcPMAge
 
 
-    let mapFromShared logger provider pat (ctx : OrderContext)  : Informedica.GenOrder.Lib.Types.OrderContext =
+    let mapFromShared logger provider pat (ctx: OrderContext) : Informedica.GenOrder.Lib.Types.OrderContext =
 
         let mappedCtx = OrderContext.create logger provider pat
 
         let setFilter eqs itm items =
-            match items |> Array.tryFind (fun x -> itm |> Option.map (eqs x) |> Option.defaultValue false) with
+            match
+                items
+                |> Array.tryFind (fun x -> itm |> Option.map (eqs x) |> Option.defaultValue false)
+            with
             | Some x -> itm, [| x |]
-            | None   -> None, items
+            | None -> None, items
 
         { mappedCtx with
             Scenarios =
                 ctx.Scenarios
                 |> Array.collect (fun sc ->
-                        match sc.Order |> Order.mapFromSharedToOrder |> Order.Dto.fromDto with
-                        | Ok ord -> [| (sc, ord) |]
-                        | Error _ -> [||]
+                    match sc.Order |> Order.mapFromSharedToOrder |> Order.Dto.fromDto with
+                    | Ok ord -> [| (sc, ord) |]
+                    | Error _ -> [||]
 
                 )
                 |> Array.mapi (fun i (sc, ord) ->
@@ -384,11 +375,22 @@ module Mappers =
                 )
 
             Filter =
-                let ind, inds = mappedCtx.Filter.Indications |> setFilter String.equalsCapInsens ctx.Filter.Indication
-                let gen, gens = mappedCtx.Filter.Generics |> setFilter String.equalsCapInsens ctx.Filter.Generic
-                let rte, rtes = mappedCtx.Filter.Routes |> setFilter String.equalsCapInsens ctx.Filter.Route
-                let shp, shps = mappedCtx.Filter.Forms |> setFilter String.equalsCapInsens ctx.Filter.Form
-                let dtp, dtps = mappedCtx.Filter.DoseTypes |> setFilter DoseType.eqs (ctx.Filter.DoseType |> Option.map mapFromSharedDoseTypeToOrderDoseType)
+                let ind, inds =
+                    mappedCtx.Filter.Indications
+                    |> setFilter String.equalsCapInsens ctx.Filter.Indication
+
+                let gen, gens =
+                    mappedCtx.Filter.Generics |> setFilter String.equalsCapInsens ctx.Filter.Generic
+
+                let rte, rtes =
+                    mappedCtx.Filter.Routes |> setFilter String.equalsCapInsens ctx.Filter.Route
+
+                let shp, shps =
+                    mappedCtx.Filter.Forms |> setFilter String.equalsCapInsens ctx.Filter.Form
+
+                let dtp, dtps =
+                    mappedCtx.Filter.DoseTypes
+                    |> setFilter DoseType.eqs (ctx.Filter.DoseType |> Option.map mapFromSharedDoseTypeToOrderDoseType)
 
                 { mappedCtx.Filter with
                     Indication = ind
@@ -401,8 +403,10 @@ module Mappers =
                     Forms = shps
                     DoseType = dtp
                     DoseTypes =
-                        if dtps |> Array.length = 1 then dtps
-                        else ctx.Filter.DoseTypes |> Array.map mapFromSharedDoseTypeToOrderDoseType
+                        if dtps |> Array.length = 1 then
+                            dtps
+                        else
+                            ctx.Filter.DoseTypes |> Array.map mapFromSharedDoseTypeToOrderDoseType
                     Diluents = ctx.Filter.Diluents
                     Components = ctx.Filter.Components
                     Diluent = ctx.Filter.Diluent
@@ -428,13 +432,30 @@ module Mappers =
             // Define delimiter configurations - easy to extend with new cases
             let delimiters =
                 [
-                    { Delimiter = "#"; Constructor = Bold; IsActive = function Bold _ -> true | _ -> false }
-                    { Delimiter = "|"; Constructor = Italic; IsActive = function Italic _ -> true | _ -> false }
+                    {
+                        Delimiter = "#"
+                        Constructor = Bold
+                        IsActive =
+                            function
+                            | Bold _ -> true
+                            | _ -> false
+                    }
+                    {
+                        Delimiter = "|"
+                        Constructor = Italic
+                        IsActive =
+                            function
+                            | Italic _ -> true
+                            | _ -> false
+                    }
                 ]
 
             /// Get the text content from a TextItem
-            let getText = function
-                | Normal s | Bold s | Italic s -> s
+            let getText =
+                function
+                | Normal s
+                | Bold s
+                | Italic s -> s
 
             /// Check if a delimiter is active for the current state
             let tryFindActiveDelimiter char currentItem =
@@ -443,8 +464,7 @@ module Mappers =
 
             /// Check if a character is any delimiter
             let tryFindDelimiter char =
-                delimiters
-                |> List.tryFind (fun d -> d.Delimiter = char)
+                delimiters |> List.tryFind (fun d -> d.Delimiter = char)
 
             /// Process each character through the state machine
             let processChar (currentItem, completedItems) char =
@@ -460,11 +480,13 @@ module Mappers =
                     | None ->
                         // Regular character: append to current item
                         let currentText = getText currentItem
+
                         let newItem =
                             match currentItem with
-                            | Normal _ -> Normal (currentText + char)
-                            | Bold _ -> Bold (currentText + char)
-                            | Italic _ -> Italic (currentText + char)
+                            | Normal _ -> Normal(currentText + char)
+                            | Bold _ -> Bold(currentText + char)
+                            | Italic _ -> Italic(currentText + char)
+
                         newItem, completedItems
 
             s
@@ -482,9 +504,11 @@ module Mappers =
         | Informedica.GenOrder.Lib.Types.Caution s
         | Informedica.GenOrder.Lib.Types.Warning s
         | Informedica.GenOrder.Lib.Types.Alert s ->
-            if s |> String.isNullOrWhiteSpace then [||] |> Valid
+            if s |> String.isNullOrWhiteSpace then
+                [||] |> Valid
             else
                 let ti = s |> parseTextItem
+
                 match tb with
                 | Informedica.GenOrder.Lib.Types.Valid _ -> ti |> Valid
                 | Informedica.GenOrder.Lib.Types.Caution _ -> ti |> Caution
@@ -492,8 +516,7 @@ module Mappers =
                 | Informedica.GenOrder.Lib.Types.Alert _ -> ti |> Alert
 
 
-
-    let mapToShared ctx (newCtx : Informedica.GenOrder.Lib.Types.OrderContext) : OrderContext =
+    let mapToShared ctx (newCtx: Informedica.GenOrder.Lib.Types.OrderContext) : OrderContext =
         { ctx with
             Filter =
                 { ctx.Filter with
@@ -540,10 +563,9 @@ module Mappers =
         }
 
 
-    let mapToTotals (intake : Informedica.GenOrder.Lib.Types.Totals) : Totals =
-        let toTextItem =
-            Option.map parseTextItem
-            >> (Option.defaultValue [||])
+    let mapToTotals (intake: Informedica.GenOrder.Lib.Types.Totals) : Totals =
+        let toTextItem = Option.map parseTextItem >> (Option.defaultValue [||])
+
         {
             Volume = intake.Volume |> toTextItem
             Energy = intake.Energy |> toTextItem

@@ -1,4 +1,3 @@
-
 // Centralized NuGet dependencies for all F# scripts.
 // Pin versions here to avoid design-time conflicts (e.g. FSharp.Data type providers).
 // Versions match paket.lock.

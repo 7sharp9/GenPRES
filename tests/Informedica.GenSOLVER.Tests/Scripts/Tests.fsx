@@ -1,4 +1,3 @@
-
 #r "nuget: Expecto, 9.0.4"
 #r "nuget: Expecto.FsCheck, 9.0.4"
 #r "nuget: Unquote"
@@ -11,7 +10,7 @@ open Expecto.Logging
 open Expecto.Flip
 
 
-let run = runTestsWithCLIArgs [] [|"--summary" |]
+let run = runTestsWithCLIArgs [] [| "--summary" |]
 
 open Informedica.GenSolver.Tests
 
@@ -22,11 +21,7 @@ module Variable = Informedica.GenSolver.Lib.Variable
 
 MMTests.scenarios "mult"
 |> List.filter (fun s -> s.StartsWith("299"))
-|> List.map (fun s ->
-    MMTests.scenarioToString
-        Calculator.multiplication "x"
-        298
-        MMTests.validPermutations[299]
+|> List.map (fun s -> MMTests.scenarioToString Calculator.multiplication "x" 298 MMTests.validPermutations[299]
 
 )
 

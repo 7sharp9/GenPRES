@@ -10,13 +10,13 @@ module Extraction =
     open FSharpPlus.Data
 
 
-    let inline extract getJson model zero (msg : Message) =
+    let inline extract getJson model zero (msg: Message) =
         monad {
             // get the current input
             let! state = State.get
             // get the structured extraction along with
             // the updated input
-            let state, res = state |> getJson model zero (msg : Message)
+            let state, res = state |> getJson model zero (msg: Message)
             // refresh the state with the updated list of messages
             do! State.put state
             // return the structured extraction
@@ -25,60 +25,62 @@ module Extraction =
 
 
     let inline unitValidator<'Unit> text zero get validUnits s =
-        if s |> String.isNullOrWhiteSpace then s |> Ok
+        if s |> String.isNullOrWhiteSpace then
+            s |> Ok
         else
             let isValidUnit s =
-                if validUnits |> List.isEmpty then true
+                if validUnits |> List.isEmpty then
+                    true
                 else
-                    s |> String.isNullOrWhiteSpace ||
-                    validUnits
-                    |> List.exists (String.equalsCapInsens s)
+                    s |> String.isNullOrWhiteSpace
+                    || validUnits |> List.exists (String.equalsCapInsens s)
+
             try
                 let unitRecord = JsonConvert.DeserializeObject<'Unit>(s)
 
                 // check the 'zero' case
-                if zero |> JsonConvert.SerializeObject = (unitRecord |> JsonConvert.SerializeObject) then Ok s
+                if zero |> JsonConvert.SerializeObject = (unitRecord |> JsonConvert.SerializeObject) then
+                    Ok s
                 else
-                    let unitField =
-                        unitRecord |> get
-                        |> fun s -> if s |> String.empty then "" else s
+                    let unitField = unitRecord |> get |> (fun s -> if s |> String.empty then "" else s)
 
                     match unitField |> String.split "/" with
-                    | [u] when u |> isValidUnit ->
-                        if text |> String.containsCapsInsens u then Ok s
+                    | [ u ] when u |> isValidUnit ->
+                        if text |> String.containsCapsInsens u then
+                            Ok s
                         else
-                            $"{u} is not mentioned in the text"
-                            |> Error
+                            $"{u} is not mentioned in the text" |> Error
                     | xs ->
                         let multUnits =
-                            if xs |> List.length = 1 then ""
+                            if xs |> List.length = 1 then
+                                ""
                             else
                                 $", this is not one unit but {xs |> length} units, just one unit should be extracted, so, the extracted unit should not contain '/'"
+
                         if validUnits |> List.isEmpty then
-                            $"{unitField } is not a valid unit{multUnits}"
+                            $"{unitField} is not a valid unit{multUnits}"
                         else
-                            let multUnits=
-                                if multUnits |> String.isNullOrWhiteSpace then multUnits
+                            let multUnits =
+                                if multUnits |> String.isNullOrWhiteSpace then
+                                    multUnits
                                 else
                                     $"{multUnits}  and"
+
                             $"""
 {unitField} is not a valid unit{multUnits}the unit should be one of the following:
 {validUnits |> String.concat ", "}
 """
                         |> Error
-            with
-            | e ->
-                e.ToString()
-                |> Error
+            with e ->
+                e.ToString() |> Error
 
 
     let extractSubstanceUnit jsonSubstUnit model text =
         let zero = {| substanceUnit = "" |}
+
         let validator =
             []
-            |> unitValidator
-                text (zero |> box)
-                (fun (u: {| substanceUnit: string |}) -> u.substanceUnit)
+            |> unitValidator text (zero |> box) (fun (u: {| substanceUnit: string |}) -> u.substanceUnit)
 
         Prompts.User.substanceUnitText
         |> Message.userWithValidator validator
@@ -87,11 +89,10 @@ module Extraction =
 
     let extractAdjustUnit jsonAdjustUnit model text =
         let zero = {| adjustUnit = "" |}
+
         let validator =
-            ["kg"; "m2"; "mˆ2"]
-            |> unitValidator
-                text (zero |> box)
-                (fun (u: {| adjustUnit: string |}) -> u.adjustUnit)
+            [ "kg"; "m2"; "mˆ2" ]
+            |> unitValidator text (zero |> box) (fun (u: {| adjustUnit: string |}) -> u.adjustUnit)
 
 
         Prompts.User.adjustUnitText zero
@@ -101,31 +102,22 @@ module Extraction =
 
     let extractTimeUnit jsonTimeUnit model text =
         let zero = {| timeUnit = "" |}
+
         let validator =
-            [
-                "dag"
-                "week"
-                "maand"
-            ]
-            |> unitValidator
-                   text (zero |> box)
-                   (fun (u: {| timeUnit: string |}) -> u.timeUnit)
+            [ "dag"; "week"; "maand" ]
+            |> unitValidator text (zero |> box) (fun (u: {| timeUnit: string |}) -> u.timeUnit)
 
         Prompts.User.timeUnitText zero
         |> Message.userWithValidator validator
         |> extract jsonTimeUnit model zero
 
 
-    let createDoseUnits
-        jsonSubstUnit
-        jsonAdjustUnit
-        jsonTimeUnit
-        model text =
+    let createDoseUnits jsonSubstUnit jsonAdjustUnit jsonTimeUnit model text =
 
         monad {
-            let! (substanceUnit : {| substanceUnit: string |})  = extractSubstanceUnit jsonSubstUnit model text
-            let! (adjustUnit : {| adjustUnit : string |}) = extractAdjustUnit jsonAdjustUnit model text
-            let! (timeUnit: {| timeUnit: string  |}) = extractTimeUnit jsonTimeUnit model text
+            let! (substanceUnit: {| substanceUnit: string |}) = extractSubstanceUnit jsonSubstUnit model text
+            let! (adjustUnit: {| adjustUnit: string |}) = extractAdjustUnit jsonAdjustUnit model text
+            let! (timeUnit: {| timeUnit: string |}) = extractTimeUnit jsonTimeUnit model text
 
             return
                 {|
@@ -137,19 +129,34 @@ module Extraction =
 
 
     let extractFrequency jsonFreq model timeUnit =
-        let zero = {| frequencies = List.empty<int>; timeUnit = timeUnit |}
+        let zero =
+            {|
+                frequencies = List.empty<int>
+                timeUnit = timeUnit
+            |}
         // just return zero if there is no time unit
         let jsonFreq =
-            if timeUnit |> String.isNullOrWhiteSpace |> not then jsonFreq
+            if timeUnit |> String.isNullOrWhiteSpace |> not then
+                jsonFreq
             else
                 fun _ _ _ state -> state, zero
+
         let validator =
             fun s ->
                 try
-                    let _ = JsonConvert.DeserializeObject<{| frequencies : int list; timeUnit : string |}>(s)
+                    let _ =
+                        JsonConvert.DeserializeObject<
+                            {|
+                                frequencies: int list
+                                timeUnit: string
+                            |}
+                         >(
+                            s
+                        )
+
                     s |> Ok
-                with
-                | e -> $"The answer: |{s}| was not correct because:\n{e.ToString()}" |> Error
+                with e ->
+                    $"The answer: |{s}| was not correct because:\n{e.ToString()}" |> Error
 
         Prompts.User.frequencyText timeUnit zero
         |> Message.userWithValidator validator
@@ -157,18 +164,30 @@ module Extraction =
 
 
     let extractDoseQuantities json model substanceUnit adjustUnit timeUnit =
-        let zero = {| quantities = [||]|}
+        let zero = {| quantities = [||] |}
+
         let validator =
             fun s ->
                 try
-                    let _ = JsonConvert.DeserializeObject<{| quantities : {| minQty : float; maxQty : float; unit : string |}[]|}>(s)
+                    let _ =
+                        JsonConvert.DeserializeObject<
+                            {|
+                                quantities:
+                                    {|
+                                        minQty: float
+                                        maxQty: float
+                                        unit: string
+                                    |}[]
+                            |}
+                         >(
+                            s
+                        )
+
                     s |> Ok
-                with
-                | e ->
+                with e ->
                     let msg = $"The answer: {s} was not correct because:\n{e.ToString()}"
                     printfn $"{msg}"
-                    msg
-                    |> Error
+                    msg |> Error
 
         Prompts.User.minMaxDoseText substanceUnit adjustUnit timeUnit
         |> Message.userWithValidator validator

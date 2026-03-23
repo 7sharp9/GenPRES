@@ -1,4 +1,3 @@
-
 #r "nuget: MathNet.Numerics.FSharp"
 #r "nuget: FParsec"
 #r "nuget: Newtonsoft.Json"
@@ -16,9 +15,7 @@ open Informedica.Utils.Lib
 let zindexPath = __SOURCE_DIRECTORY__ |> Path.combineWith "../../../"
 
 // Check the path to the zindex
-zindexPath
-|> Path.combineWith "data/zindex/BST000T"
-|> File.exists
+zindexPath |> Path.combineWith "data/zindex/BST000T" |> File.exists
 
 Environment.CurrentDirectory <- zindexPath
 

@@ -7,11 +7,10 @@ module Utils =
     open Informedica.Utils.Lib.Web
 
 
-
     module Constants =
 
-        let [<Literal>] GENPRES_URL_ID = "GENPRES_URL_ID"
-
+        [<Literal>]
+        let GENPRES_URL_ID = "GENPRES_URL_ID"
 
 
     module Web =
@@ -73,7 +72,6 @@ module WrappedString =
         let toString (Id s) = s
 
 
-
     /// Helper functions for `Informedica.GenSolver.Variable.Name` type
     module Name =
 
@@ -82,8 +80,11 @@ module WrappedString =
         module Name = Variable.Name
 
 
-        let [<Literal>] concatWith = "."
-        let [<Literal>] addWith = "_"
+        [<Literal>]
+        let concatWith = "."
+
+        [<Literal>]
+        let addWith = "_"
 
 
         /// <summary>
@@ -93,13 +94,12 @@ module WrappedString =
         let create ns =
             try
                 $"[{ns |> String.concat concatWith}]" |> Name.createExc
-            with
-            | e ->
+            with e ->
                 printfn $"cannot create name with {ns}"
                 raise e
 
         /// Get the string from a `Name`
-        let toString  = Name.toString
+        let toString = Name.toString
 
 
         /// Create a `Name` from a string
@@ -125,7 +125,6 @@ module WrappedString =
         let add s n =
             try
                 $"{n |> toString}{addWith}%s{s}" |> Name.createExc
-            with
-            | e ->
+            with e ->
                 printfn $"cannot add name with {s} and {n}"
                 raise e

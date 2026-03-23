@@ -20,10 +20,7 @@ module ConsumerProduct =
 
     let _get id =
         Zindex.BST004T.records ()
-        |> Array.filter (fun r ->
-            r.MUTKOD <> 1 &&
-            r.HPKODE = id
-        )
+        |> Array.filter (fun r -> r.MUTKOD <> 1 && r.HPKODE = id)
         |> Array.map (fun r ->
             let nm = Names.getName r.ATNMNR Names.Full
             let lb = Names.getName r.ATNMNR Names.Label
@@ -31,9 +28,7 @@ module ConsumerProduct =
 
             let br =
                 Zindex.BST200T.records ()
-                |> Array.filter (fun b ->
-                    b.ATKODE = r.ATKODE
-                )
+                |> Array.filter (fun b -> b.ATKODE = r.ATKODE)
                 |> Array.map _.BARCOD
 
             create r.ATKODE nm lb r.VPDLHV ct br
@@ -46,4 +41,4 @@ module ConsumerProduct =
     /// <remarks>
     /// This is a memoized function.
     /// </remarks>
-    let get : int -> ConsumerProduct [] = Memoization.memoize _get
+    let get: int -> ConsumerProduct[] = Memoization.memoize _get

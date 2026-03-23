@@ -1,4 +1,3 @@
-
 #load "../../../scripts/load-dependencies.fsx"
 
 
@@ -20,4 +19,3 @@ fsi.AddPrinter<DateTime>(fun dt -> dt.ToString("dd-MMM-yy"))
 
 let zindexPath = __SOURCE_DIRECTORY__ |> Path.combineWith "../../../"
 Environment.CurrentDirectory <- zindexPath
-

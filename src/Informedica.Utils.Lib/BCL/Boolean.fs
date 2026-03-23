@@ -1,7 +1,6 @@
 namespace Informedica.Utils.Lib.BCL
 
 
-
 [<RequireQualifiedAccess>]
 module Boolean =
 
@@ -11,5 +10,3 @@ module Boolean =
 
     /// Returns true
     let returnTrue _ = true
-
-

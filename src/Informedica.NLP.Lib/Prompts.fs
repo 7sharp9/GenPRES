@@ -5,7 +5,8 @@ module Prompts =
 
     open Newtonsoft.Json
 
-    let tasks = """
+    let tasks =
+        """
 You are a world-class prompt engineering assistant. Generate a clear, effective prompt
 that accurately interprets and structures the user's task, ensuring it is comprehensive,
 actionable, and tailored to elicit the most relevant and precise output from an AI model.
@@ -13,26 +14,30 @@ When appropriate enhance the prompt with the required persona, format, style, an
 context to showcase a powerful prompt.
 """
 
-    let taskPrompt task = $"""
+    let taskPrompt task =
+        $"""
 # Task
 
 {task}
 """
 
 
-    let assistentAsk = """
+    let assistentAsk =
+        """
 You are a world-class AI assistant. Your communication is brief and concise.
 You're precise and answer only when you're confident in the high quality of your answer.
 """
 
-    let createAsk question = $"""
+    let createAsk question =
+        $"""
 # Question:
 
 {question}
 """
 
 
-    let extractData = """
+    let extractData =
+        """
 You are a world-class expert for function-calling and data extraction.
 Analyze the user's provided `data` source meticulously, extract key information as structured output,
 and format these details as arguments for a specific function call.
@@ -42,7 +47,8 @@ with the user's explicit requirements.
 """
 
 
-    let createExtractData data = $"""
+    let createExtractData data =
+        $"""
 # Data
 
 {data}
@@ -51,7 +57,8 @@ with the user's explicit requirements.
 
     module System =
 
-        let systemDoseQuantityExpert text = $"""
+        let systemDoseQuantityExpert text =
+            $"""
 You are an expert on medication prescribing, preparation and administration. You will give
 exact answers. If there is no possible answer return an empty string.
 You will be asked to extract structured information from the following text between ''':
@@ -72,13 +79,12 @@ Respond in JSON
 
 
         let addZeroCase zero s =
-            let zero =
-                $"{zero |> JsonConvert.SerializeObject}"
-            $"{s}\nIf extraction is not possible return: \"{zero}\""
-            |> respondInJson
+            let zero = $"{zero |> JsonConvert.SerializeObject}"
+            $"{s}\nIf extraction is not possible return: \"{zero}\"" |> respondInJson
 
 
-        let substanceUnitText = """
+        let substanceUnitText =
+            """
 Use the provided schema to extract the unit of measurement for the medication substance (substance unit)
 from the medication dosage information contained in the text.
 
@@ -92,7 +98,8 @@ Here are some examples and expected output:
 """
 
         let adjustUnitText zero =
-            let s = """
+            let s =
+                """
 Use the provided schema to extract the unit of measurement by which a medication dose is adjusted,
 such as patient weight or body surface area, from the medication dosage information contained in the text.
 
@@ -104,10 +111,12 @@ Here are some examples and expected output:
 - For "mg/m2/dag", return: "{ "adjustUnit": "m2" }"
 - For "mg/m2", return: "{ "adjustUnit": "m2" }"
 """
+
             s |> addZeroCase zero
 
         let timeUnitText zero =
-            let s = """
+            let s =
+                """
 Use the provided schema to extract the time unit from the medication dosage information contained in the text.
 The timeunit is the unit by which the frequency of administration is measured.
 
@@ -121,16 +130,19 @@ Here are some examples and expected output:
 - For "per week", return "{ "timeUnit": "week" }"
 - For "per dag", return "{ "timeUnit": "week" }"
 """
+
             s |> addZeroCase zero
 
 
         let frequencyText timeUnit zero =
-            let s = """
+            let s =
+                """
 Use the provided schema to extract the frequencies by which the drug can be administered.
 The frequencies field in the schema should be an array of integers.
 
 Use schema : { frequencies: []; timeUnit: string }
 """
+
             $"{s}\nNote that the frequencies should be possible times of administrations per {timeUnit}"
             |> addZeroCase zero
 
@@ -140,15 +152,9 @@ Use schema : { frequencies: []; timeUnit: string }
                 let secUnit, thirdUnit =
                     match adjustUnit, timeUnit with
                     | None, None -> "keer|dosis", "keer|dosis"
-                    | Some au, Some tu ->
-                        $"{au}|{tu}|keer|dosis",
-                        $"{au}|{tu}|keer|dosis"
-                    | None, Some tu ->
-                        $"{tu}|keer|dosis",
-                        $"{tu}"
-                    | Some au, None ->
-                        $"{au}|keer|dosis",
-                        $"{au}|keer|dosis"
+                    | Some au, Some tu -> $"{au}|{tu}|keer|dosis", $"{au}|{tu}|keer|dosis"
+                    | None, Some tu -> $"{tu}|keer|dosis", $"{tu}"
+                    | Some au, None -> $"{au}|keer|dosis", $"{au}|keer|dosis"
 
                 $"(\d+(\.\d+)?\s?({substanceUnit})(\/({secUnit}))?(\s?\/\s?({thirdUnit}))?\s)"
 
@@ -187,4 +193,5 @@ Use schema :
   "required": ["quantities"]
 }
 
-Respond in JSON""".Replace("[REGEX]", regex)
+Respond in JSON"""
+                .Replace("[REGEX]", regex)

@@ -1,4 +1,3 @@
-
 #r "nuget: FSharpPlus"
 #r "nuget: Newtonsoft.Json"
 #r "nuget: NJsonSchema"
@@ -33,13 +32,11 @@ let inline extract (model: string) zero msg =
 
         let msgs, res =
             msg
-            |> Ollama.validate2
-                model
-                msgs
+            |> Ollama.validate2 model msgs
             |> Async.RunSynchronously
             |> function
-                | Ok (result, msgs) -> msgs, result
-                | Error (_, msgs)   -> msgs, zero
+                | Ok(result, msgs) -> msgs, result
+                | Error(_, msgs) -> msgs, zero
 
         do! State.put msgs
         return res
@@ -48,16 +45,16 @@ let inline extract (model: string) zero msg =
 
 let extractSubstanceUnit model text =
     let zero = {| substanceUnit = "" |}
+
     let validator s =
         try
             let un = JsonConvert.DeserializeObject<{| substanceUnit: string |}>(s)
+
             match un.substanceUnit |> String.split "/" with
-            | [_] -> Ok s
+            | [ _ ] -> Ok s
             | _ -> s |> Error
-        with
-        | e ->
-            e.ToString()
-            |> Error
+        with e ->
+            e.ToString() |> Error
 
     $"""
 Use Schema {"{| substanceUnit: string |}" |> Utils.anonymousTypeStringToJson}
@@ -72,20 +69,19 @@ Respond in JSON
 
 let extractAdjustUnit model text =
     let zero = {| adjustUnit = "" |}
+
     let validator s =
         let validUnit s =
-            ["kg"; "m2"; "mˆ2"]
-            |> List.exists (String.equalsCapInsens s)
+            [ "kg"; "m2"; "mˆ2" ] |> List.exists (String.equalsCapInsens s)
+
         try
             let un = JsonConvert.DeserializeObject<{| adjustUnit: string |}>(s)
+
             match un.adjustUnit |> String.split "/" with
-            | [u] when u |> validUnit ->
-                Ok s
+            | [ u ] when u |> validUnit -> Ok s
             | _ -> $"{s} is not a valid adjust unit" |> Error
-        with
-        | e ->
-            e.ToString()
-            |> Error
+        with e ->
+            e.ToString() |> Error
 
     $"""
 Use Schema {"{| adjustUnit: string |}" |> Utils.anonymousTypeStringToJson}
@@ -100,16 +96,16 @@ Respond in JSON
 
 let extractTimeUnit model text =
     let zero = {| timeUnit = "" |}
+
     let validator s =
         try
             let un = JsonConvert.DeserializeObject<{| timeUnit: string |}>(s)
+
             match un.timeUnit |> String.split "/" with
-            | [_] -> Ok s
+            | [ _ ] -> Ok s
             | _ -> s |> Error
-        with
-        | e ->
-            e.ToString()
-            |> Error
+        with e ->
+            e.ToString() |> Error
 
     $"""
 Use Schema {"{| timeUnit: string |}" |> Utils.anonymousTypeStringToJson}
@@ -137,12 +133,6 @@ let createDoseUnits model text =
     }
 
 let un, msgs =
-    State.run
-        (createDoseUnits Ollama.Models.llama2 Texts.testTexts[0])
-        systemMsg
+    State.run (createDoseUnits Ollama.Models.llama2 Texts.testTexts[0]) systemMsg
 
-msgs
-|> List.iter Message.print
-
-
-
+msgs |> List.iter Message.print

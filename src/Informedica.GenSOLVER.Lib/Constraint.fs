@@ -1,7 +1,6 @@
 namespace Informedica.GenSolver.Lib
 
 
-
 module Constraint =
 
     open Types
@@ -15,13 +14,19 @@ module Constraint =
     /// <summary>
     /// Check whether constraint c1 has the same name as constraint c2.
     /// </summary>
-    let eqsName (c1 : Constraint) (c2 : Constraint) = c1.Name = c2.Name
+    let eqsName (c1: Constraint) (c2: Constraint) = c1.Name = c2.Name
 
 
     /// <summary>
     /// Print the constraint as a string
     /// </summary>
-    let toString { Name = n; Property = p } = $"{n |> Name.toString}: {p}"
+    let toString
+        {
+            Name = n
+            Property = p
+        }
+        =
+        $"{n |> Name.toString}: {p}"
 
 
     /// <summary>
@@ -30,14 +35,13 @@ module Constraint =
     /// </summary>
     /// <param name="c">The constraint</param>
     let scoreConstraint c =
-            match c.Property with
-            | ValsProp vs ->
-                let n = vs |> ValueSet.count
-                if n = 1 then    -3, c
-                else              n, c
-            | MinProp _   -> -5, c
-            | IncrProp _      -> -4, c
-            | _               -> -2, c
+        match c.Property with
+        | ValsProp vs ->
+            let n = vs |> ValueSet.count
+            if n = 1 then -3, c else n, c
+        | MinProp _ -> -5, c
+        | IncrProp _ -> -4, c
+        | _ -> -2, c
 
 
     /// <summary>
@@ -48,35 +52,34 @@ module Constraint =
     let orderConstraints log cs =
         cs
         // calc min and max from valsprop constraints
-        |> List.fold (fun acc c ->
-            match c.Property with
-            | ValsProp vs ->
-                if vs |> ValueSet.count <= 1 then [c] |> List.append acc
-                else
-                    let min = vs |> ValueSet.getMin |> Option.map MinProp
-                    let max = vs |> ValueSet.getMax |> Option.map MaxProp
-                    [
-                        c
-                        if min.IsSome then { c with Property = min.Value }
-                        if max.IsSome then { c with Property = max.Value }
-                    ]
-                    |> List.append acc
-            | _ -> [c] |> List.append acc
-        ) []
-        |> List.fold (fun acc c ->
-            if acc |> List.exists ((=) c) then acc
-            else
-                acc @ [c]
-        ) []
+        |> List.fold
+            (fun acc c ->
+                match c.Property with
+                | ValsProp vs ->
+                    if vs |> ValueSet.count <= 1 then
+                        [ c ] |> List.append acc
+                    else
+                        let min = vs |> ValueSet.getMin |> Option.map MinProp
+                        let max = vs |> ValueSet.getMax |> Option.map MaxProp
+
+                        [
+                            c
+                            if min.IsSome then
+                                { c with Property = min.Value }
+                            if max.IsSome then
+                                { c with Property = max.Value }
+                        ]
+                        |> List.append acc
+                | _ -> [ c ] |> List.append acc
+            )
+            []
+        |> List.fold (fun acc c -> if acc |> List.exists ((=) c) then acc else acc @ [ c ]) []
         |> fun cs -> cs |> List.map scoreConstraint
         |> List.sortBy fst
         |> fun cs ->
-            cs
-            |> Events.ConstraintSortOrder
-            |> Logger.logDebug log
+            cs |> Events.ConstraintSortOrder |> Logger.logDebug log
 
-            cs
-            |> List.map snd
+            cs |> List.map snd
 
 
     /// <summary>
@@ -87,26 +90,19 @@ module Constraint =
     /// <param name="c">The constraint</param>
     /// <param name="eqs">The list of Equations</param>
     /// <returns>The variable the constraint is applied to</returns>
-    let apply log (c : Constraint) eqs =
+    let apply log (c: Constraint) eqs =
 
         eqs
         |> List.collect (Equation.findName c.Name)
         |> function
-        | [] ->
-            (c, eqs)
-            |> Exceptions.ConstraintVariableNotFound
-            |> Exceptions.raiseExc (Some log) []
+            | [] ->
+                (c, eqs)
+                |> Exceptions.ConstraintVariableNotFound
+                |> Exceptions.raiseExc (Some log) []
 
-        | var::_ ->
-            var
-            |> Variable.setValueRange (
-                c.Property
-                |> Property.toValueRange
-            )
+            | var :: _ -> var |> Variable.setValueRange (c.Property |> Property.toValueRange)
         |> fun var ->
-            c
-            |> Events.ConstraintApplied
-            |> Logger.logDebug log
+            c |> Events.ConstraintApplied |> Logger.logDebug log
 
             var
 
@@ -122,14 +118,12 @@ module Constraint =
     /// <param name="eqs">The list of Equations</param>
     /// <typeparam name="'a"></typeparam>
     /// <returns></returns>
-    let solve onlyMinIncrMax log sortQue (c : Constraint) eqs =
+    let solve onlyMinIncrMax log sortQue (c: Constraint) eqs =
         let var = apply log c eqs
 
         eqs
         |> Solver.solveVariable onlyMinIncrMax log sortQue var
         |> fun eqs ->
-            c
-            |> Events.ConstrainedSolved
-            |> Logger.logDebug log
+            c |> Events.ConstrainedSolved |> Logger.logDebug log
 
             eqs

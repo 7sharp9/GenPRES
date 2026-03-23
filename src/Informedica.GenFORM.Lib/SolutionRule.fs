@@ -13,7 +13,6 @@ module SolutionRule =
     open Utils
 
 
-
     let fromTupleInclExcl = MinMax.fromTuple Inclusive Exclusive
 
 
@@ -24,16 +23,18 @@ module SolutionRule =
         try
             Web.getDataFromSheet dataUrlId "SolutionRules"
             |> fun data ->
-                let getColumn =
-                    data
-                    |> Array.head
-                    |> Csv.getStringColumn
+                let getColumn = data |> Array.head |> Csv.getStringColumn
 
                 data
                 |> Array.tail
                 |> Array.map (fun r ->
                     let get = getColumn r >> String.trim
-                    let getOpt = getColumn r >> String.trim >> fun s -> if s |> String.isNullOrWhiteSpace then None else Some s
+
+                    let getOpt =
+                        getColumn r
+                        >> String.trim
+                        >> fun s -> if s |> String.isNullOrWhiteSpace then None else Some s
+
                     let toBrOpt = BigRational.toBrs >> Array.tryHead
 
                     {
@@ -81,15 +82,11 @@ module SolutionRule =
                     }
                 )
             |> Ok
-        with
-        | exn -> GenFormResult.createError "Error in SolutionRule.getResult: " exn
+        with exn ->
+            GenFormResult.createError "Error in SolutionRule.getResult: " exn
 
 
-    let map
-        routeMapping
-        (parenteral : Product[])
-        products
-        data : Result<_, Message list> =
+    let map routeMapping (parenteral: Product[]) products data : Result<_, Message list> =
         data
         |> Array.groupBy (fun r ->
             let du = r.Unit |> Units.fromString
@@ -97,65 +94,50 @@ module SolutionRule =
             {
                 Generic = r.Generic
                 Form =
-                    if r.Form |> String.isNullOrWhiteSpace then None
-                    else r.Form |> Some
+                    if r.Form |> String.isNullOrWhiteSpace then
+                        None
+                    else
+                        r.Form |> Some
                 Route = r.Route
                 Indication =
-                    if r.Indication |> String.isNullOrWhiteSpace then None
-                    else r.Indication |> Some
+                    if r.Indication |> String.isNullOrWhiteSpace then
+                        None
+                    else
+                        r.Indication |> Some
                 PatientCategory =
                     { PatientCategory.empty with
                         Location = r.Location
                         Department = r.Department
                         Access =
                             if r.CVL = "x" then CVL
-                            else
-                                if r.PVL = "x" then PVL
-                                else
-                                    AnyAccess
-                        Age =
-                            (r.MinAge, r.MaxAge)
-                            |> fromTupleInclExcl (Some Units.day)
-                        Weight =
-                            (r.MinWeight, r.MaxWeight)
-                            |> fromTupleInclExcl (Some Units.weightGram)
-                        GestAge =
-                            (r.MinGestAge, r.MaxGestAge)
-                            |> fromTupleInclExcl (Some Units.day)
+                            else if r.PVL = "x" then PVL
+                            else AnyAccess
+                        Age = (r.MinAge, r.MaxAge) |> fromTupleInclExcl (Some Units.day)
+                        Weight = (r.MinWeight, r.MaxWeight) |> fromTupleInclExcl (Some Units.weightGram)
+                        GestAge = (r.MinGestAge, r.MaxGestAge) |> fromTupleInclExcl (Some Units.day)
                     }
-                Dose =
-                    (r.MinDose, r.MaxDose)
-                    |> fromTupleInclIncl du
+                Dose = (r.MinDose, r.MaxDose) |> fromTupleInclIncl du
                 DoseType = DoseType.fromString r.DoseType r.DoseText
                 Diluents =
                     parenteral
                     |> Array.filter (fun p ->
-                        r.Solutions
-                        |> List.exists (fun s ->
-                            p.Generic
-                            |> String.equalsCapInsens s
-                        )
+                        r.Solutions |> List.exists (fun s -> p.Generic |> String.equalsCapInsens s)
                     )
                     |> Array.distinctBy _.Generic
                 Div = r.Div
                 Volumes =
-                    if r.Volumes |> Array.isEmpty then None
+                    if r.Volumes |> Array.isEmpty then
+                        None
                     else
-                        r.Volumes
-                        |> ValueUnit.withUnit Units.mL
-                        |> Some
-                Volume =
-                    (r.MinVol, r.MaxVol)
-                    |> fromTupleInclIncl (Some Units.mL)
+                        r.Volumes |> ValueUnit.withUnit Units.mL |> Some
+                Volume = (r.MinVol, r.MaxVol) |> fromTupleInclIncl (Some Units.mL)
                 VolumeAdjust =
                     (r.MinVolAdj, r.MaxVolAdj)
                     |> fromTupleInclIncl (Units.mL |> Units.per Units.Weight.kiloGram |> Some)
                 DripRate =
                     (r.MinDrip, r.MaxDrip)
-                    |> fromTupleInclIncl (Some (Units.Volume.milliLiter |> Units.per Units.Time.hour))
-                DosePerc =
-                    (r.MinPerc, r.MaxPerc)
-                    |> fromTupleInclIncl (Some Units.Count.times)
+                    |> fromTupleInclIncl (Some(Units.Volume.milliLiter |> Units.per Units.Time.hour))
+                DosePerc = (r.MinPerc, r.MaxPerc) |> fromTupleInclIncl (Some Units.Count.times)
                 SolutionLimits = [||]
             }
         )
@@ -173,47 +155,35 @@ module SolutionRule =
                                 | s, _ when s |> String.isNullOrWhiteSpace |> not -> s |> SubstanceLimitTarget
                                 | _, c when c |> String.isNullOrWhiteSpace |> not -> c |> ComponentLimitTarget
                                 | _ -> failwith "Solution limit should be either a substance or a component limit"
-                            Quantity =
-                                (l.MinQty, l.MaxQty)
-                                |> fromTupleInclIncl u
-                            QuantityAdj =
-                                (l.MinQtyAdj, l.MaxQtyAdj)
-                                |> fromTupleInclIncl au
+                            Quantity = (l.MinQty, l.MaxQty) |> fromTupleInclIncl u
+                            QuantityAdj = (l.MinQtyAdj, l.MaxQtyAdj) |> fromTupleInclIncl au
                             Quantities =
-                                if l.Quantities |> Array.isEmpty then None
+                                if l.Quantities |> Array.isEmpty then
+                                    None
                                 else
                                     match u with
                                     | None -> None
-                                    | Some u ->
-                                        l.Quantities
-                                        |> ValueUnit.withUnit u
-                                        |> Some
+                                    | Some u -> l.Quantities |> ValueUnit.withUnit u |> Some
                             Concentration =
-                                let u =
-                                    u
-                                    |> Option.map (Units.per Units.Volume.milliLiter)
-                                (l.MinConc, l.MaxConc)
-                                |> fromTupleInclIncl u
+                                let u = u |> Option.map (Units.per Units.Volume.milliLiter)
+                                (l.MinConc, l.MaxConc) |> fromTupleInclIncl u
                             Products =
                                 products
                                 |> Array.filter (fun p ->
-                                    p.Generic = l.Component &&
-                                    sr.Form
-                                    |> Option.map (fun s ->
-                                        s |> String.equalsCapInsens p.Form
-                                    )
-                                    |> Option.defaultValue true &&
-                                    p.Routes
-                                    |> Array.exists (Mapping.eqsRoute routeMapping (Some sr.Route))
+                                    p.Generic = l.Component
+                                    && sr.Form
+                                       |> Option.map (fun s -> s |> String.equalsCapInsens p.Form)
+                                       |> Option.defaultValue true
+                                    && p.Routes |> Array.exists (Mapping.eqsRoute routeMapping (Some sr.Route))
                                 )
                         }
                     )
                     // filter out solution limits that are empty
                     |> Array.filter (fun sl ->
-                        (sl.Concentration |> MinMax.isEmpty &&
-                        sl.Quantities |> Option.isNone &&
-                        sl.QuantityAdj |> MinMax.isEmpty &&
-                        sl.Quantity |> MinMax.isEmpty)
+                        (sl.Concentration |> MinMax.isEmpty
+                         && sl.Quantities |> Option.isNone
+                         && sl.QuantityAdj |> MinMax.isEmpty
+                         && sl.Quantity |> MinMax.isEmpty)
                         |> not
                     )
 
@@ -222,19 +192,10 @@ module SolutionRule =
         |> Ok
 
 
-    let get
-        dataUrlId
-        routeMapping
-        (parenteral : Product[])
-        products
-        : Result<_, Message list>
-        =
+    let get dataUrlId routeMapping (parenteral: Product[]) products : Result<_, Message list> =
         try
-            dataUrlId
-            |> getData
-            |> Result.bind (map routeMapping parenteral products)
-        with
-        | exn ->
+            dataUrlId |> getData |> Result.bind (map routeMapping parenteral products)
+        with exn ->
             GenFormResult.createError "Error in SolutionRule.getResult: " exn
 
 
@@ -245,57 +206,50 @@ module SolutionRule =
     /// <param name="filter">The Filter</param>
     /// <param name="solutionRules">The SolutionRules</param>
     /// <returns>The matching SolutionRules</returns>
-    let filter mapping (filter : SolutionFilter) (solutionRules : SolutionRule []) =
-        let eqs a (b : string) =
-            a
-            |> Option.map (String.equalsCapInsens b)
-            |> Option.defaultValue true
+    let filter mapping (filter: SolutionFilter) (solutionRules: SolutionRule[]) =
+        let eqs a (b: string) =
+            a |> Option.map (String.equalsCapInsens b) |> Option.defaultValue true
 
         [|
-            fun (sr : SolutionRule) -> sr.Generic |> String.equalsCapInsens filter.Generic
-            fun (sr : SolutionRule) -> sr.PatientCategory |> PatientCategory.filterPatient filter.Patient
-            fun (sr : SolutionRule) -> sr.Form |> Option.map  (eqs filter.Form) |> Option.defaultValue true
-            fun (sr : SolutionRule) -> sr.Indication |> Option.map (eqs filter.Indication) |> Option.defaultValue true
-            fun (sr : SolutionRule) -> filter.Route |> Option.isNone || sr.Route |> Mapping.eqsRoute mapping filter.Route
-            fun (sr : SolutionRule) ->
-                sr.DoseType = NoDoseType ||
-                filter.DoseType
-                |> Option.map (
-                    if sr.DoseType |> DoseType.getText |> String.isNullOrWhiteSpace then DoseType.eqsType sr.DoseType
-                    else DoseType.eqs sr.DoseType
-                )
-                |> Option.defaultValue true
+            fun (sr: SolutionRule) -> sr.Generic |> String.equalsCapInsens filter.Generic
+            fun (sr: SolutionRule) -> sr.PatientCategory |> PatientCategory.filterPatient filter.Patient
+            fun (sr: SolutionRule) -> sr.Form |> Option.map (eqs filter.Form) |> Option.defaultValue true
+            fun (sr: SolutionRule) -> sr.Indication |> Option.map (eqs filter.Indication) |> Option.defaultValue true
+            fun (sr: SolutionRule) ->
+                filter.Route |> Option.isNone
+                || sr.Route |> Mapping.eqsRoute mapping filter.Route
+            fun (sr: SolutionRule) ->
+                sr.DoseType = NoDoseType
+                || filter.DoseType
+                   |> Option.map (
+                       if sr.DoseType |> DoseType.getText |> String.isNullOrWhiteSpace then
+                           DoseType.eqsType sr.DoseType
+                       else
+                           DoseType.eqs sr.DoseType
+                   )
+                   |> Option.defaultValue true
         |]
-        |> Array.fold (fun (acc : SolutionRule[]) pred ->
-            acc |> Array.filter pred
-        ) solutionRules
+        |> Array.fold (fun (acc: SolutionRule[]) pred -> acc |> Array.filter pred) solutionRules
         |> Array.map (fun sr ->
             { sr with
                 Diluents =
                     sr.Diluents
                     |> Array.filter (fun dil ->
-                        filter.Diluent
-                        |> Option.map ((=) dil.Generic)
-                        |> Option.defaultValue true
+                        filter.Diluent |> Option.map ((=) dil.Generic) |> Option.defaultValue true
                     )
             }
         )
 
 
     /// Helper function to get the distinct values of a member of SolutionRule.
-    let private getMember getter (rules : SolutionRule[]) =
-        rules
-        |> Array.map getter
-        |> Array.distinct
-        |> Array.sort
+    let private getMember getter (rules: SolutionRule[]) =
+        rules |> Array.map getter |> Array.distinct |> Array.sort
 
 
     /// Get all the distinct Generics from the given SolutionRules.
     let generics = getMember _.Generic
 
-    let forms =
-        getMember _.Form
-        >> Array.choose id
+    let forms = getMember _.Form >> Array.choose id
 
 
     let routes = getMember _.Route
@@ -329,7 +283,6 @@ module SolutionRule =
             |> ValueUnit.toStringDecimalDutchShortWithPrec 2
 
 
-
         /// Get the string representation of a SolutionLimit.
         let printSolutionLimit (sr: SolutionRule) (limit: SolutionLimit) =
             let mmToStr = MinMax.toString "min. " "min. " "max. " "max. "
@@ -345,37 +298,36 @@ module SolutionRule =
                 |> Option.map (Utils.ValueUnit.toString -1)
                 |> Option.defaultValue ""
 
-            let q =
-                limit.Quantity
-               |> mmToStr
+            let q = limit.Quantity |> mmToStr
 
             let vol =
-                if sr.Volume
-                   |> mmToStr
-                   |> String.isNullOrWhiteSpace then
+                if sr.Volume |> mmToStr |> String.isNullOrWhiteSpace then
                     ""
                 else
                     sr.Volume
                     |> mmToStr
                     |> fun s -> $""" in {s} {sr.Diluents |> Array.map _.Generic |> String.concat "/"}"""
                 |> fun s ->
-                    if s |> String.isNullOrWhiteSpace |> not then s
+                    if s |> String.isNullOrWhiteSpace |> not then
+                        s
                     else
                         sr.Volumes
                         |> Option.map (Utils.ValueUnit.toString -1)
                         |> Option.defaultValue ""
                         |> fun s ->
                             let sols = sr.Diluents |> Array.map _.Generic |> String.concat "/"
+
                             if s |> String.isNullOrWhiteSpace then
-                                if sols |> String.isNullOrWhiteSpace then " puur"
-                                else $" in {sols}"
+                                if sols |> String.isNullOrWhiteSpace then
+                                    " puur"
+                                else
+                                    $" in {sols}"
                             else
                                 $" in {s} {sols}"
 
             let conc =
-                if limit.Concentration
-                   |> mmToStr
-                   |> String.isNullOrWhiteSpace then ""
+                if limit.Concentration |> mmToStr |> String.isNullOrWhiteSpace then
+                    ""
                 else
                     $"* concentratie: {limit.Concentration |> mmToStr}"
 
@@ -400,7 +352,8 @@ module SolutionRule =
                             $"{min |> toPerc} - {max |> toPerc}"
 
 
-                if p |> String.isNullOrWhiteSpace then ""
+                if p |> String.isNullOrWhiteSpace then
+                    ""
                 else
                     $"* geef %s{p}%% van de bereiding"
 
@@ -408,7 +361,7 @@ module SolutionRule =
 
 
         /// Get the markdown representation of the given SolutionRules.
-        let toMarkdown text (rules: SolutionRule []) =
+        let toMarkdown text (rules: SolutionRule[]) =
             let generic_md generic products =
                 let text = if text |> String.isNullOrWhiteSpace then generic else text
                 $"\n# %s{text}\n---\n#### Producten\n%s{products}\n"
@@ -421,14 +374,16 @@ module SolutionRule =
 
                 $"\n### Afdeling: %s{dep}\n"
 
-            let pat_md pat =
-                $"\n##### %s{pat}\n"
+            let pat_md pat = $"\n##### %s{pat}\n"
 
-            let product_md product =
-                $"\n* %s{product}\n"
+            let product_md product = $"\n* %s{product}\n"
 
 
-            ({| md = ""; rules = [||] |}, rules |> Array.groupBy _.Generic)
+            ({|
+                md = ""
+                rules = [||]
+             |},
+             rules |> Array.groupBy _.Generic)
             ||> Array.fold (fun acc (generic, rs) ->
                 let prods =
                     rs
@@ -464,29 +419,31 @@ module SolutionRule =
                     rules = rs
                 |}
                 |> fun r ->
-                    if r.rules = Array.empty then r
+                    if r.rules = Array.empty then
+                        r
                     else
                         (r, r.rules |> Array.groupBy _.PatientCategory.Department)
                         ||> Array.fold (fun acc (dep, rs) ->
                             let dep = dep |> Option.defaultValue ""
+
                             {| acc with
                                 md = acc.md + (department_md dep)
                                 rules = rs
                             |}
                             |> fun r ->
-                                if r.rules |> Array.isEmpty then r
+                                if r.rules |> Array.isEmpty then
+                                    r
                                 else
                                     (r,
                                      r.rules
                                      |> Array.groupBy (fun r ->
-                                        {|
-                                            Age = r.PatientCategory.Age
-                                            Weight = r.PatientCategory.Weight
-                                            Dose = r.Dose
-                                            DoseType = r.DoseType
-                                        |}
-                                     )
-                                    )
+                                         {|
+                                             Age = r.PatientCategory.Age
+                                             Weight = r.PatientCategory.Weight
+                                             Dose = r.Dose
+                                             DoseType = r.DoseType
+                                         |}
+                                     ))
                                     ||> Array.fold (fun acc (sel, rs) ->
                                         let sol =
                                             rs
@@ -496,9 +453,7 @@ module SolutionRule =
                                                 |> Array.tryHead
                                                 |> function
                                                     | None -> [||]
-                                                    | Some r ->
-                                                        r.SolutionLimits
-                                                        |> Array.map (printSolutionLimit r)
+                                                    | Some r -> r.SolutionLimits |> Array.map (printSolutionLimit r)
                                             )
                                             |> String.concat "\n"
 
@@ -509,43 +464,32 @@ module SolutionRule =
                                                 let s =
                                                     sel.Weight
                                                     |> MinMax.convertTo Units.Weight.kiloGram
-                                                    |> MinMax.toString
-                                                        "van "
-                                                        "van "
-                                                        "tot "
-                                                        "tot "
+                                                    |> MinMax.toString "van " "van " "tot " "tot "
 
                                                 if s |> String.isNullOrWhiteSpace then
                                                     ""
                                                 else
                                                     $"gewicht %s{s}"
 
-                                            if a |> String.isNullOrWhiteSpace
-                                               && w |> String.isNullOrWhiteSpace then
+                                            if a |> String.isNullOrWhiteSpace && w |> String.isNullOrWhiteSpace then
                                                 ""
                                             else
                                                 $"patient: %s{a} %s{w}" |> String.trim
 
-                                        let dose =
-                                            sel.Dose
-                                            |> MinMax.toString
-                                                "van "
-                                                "van "
-                                                "tot "
-                                                "tot "
+                                        let dose = sel.Dose |> MinMax.toString "van " "van " "tot " "tot "
 
                                         let dt =
                                             let s = sel.DoseType |> DoseType.toDescription
-                                            if s |> String.isNullOrWhiteSpace then ""
-                                            else
-                                                $"{s}"
+                                            if s |> String.isNullOrWhiteSpace then "" else $"{s}"
 
 
                                         {| acc with
                                             rules = rs
                                             md =
-                                                if pat |> String.isNullOrWhiteSpace &&
-                                                   dose |> String.isNullOrWhiteSpace then
+                                                if
+                                                    pat |> String.isNullOrWhiteSpace
+                                                    && dose |> String.isNullOrWhiteSpace
+                                                then
                                                     acc.md + $"##### {dt}"
                                                 else
                                                     acc.md + pat_md $"{dt}, {pat}{dose}"
@@ -560,7 +504,7 @@ module SolutionRule =
 
 
         /// Get the markdown representation of the given SolutionRules.
-        let printGenerics (rules: SolutionRule []) =
+        let printGenerics (rules: SolutionRule[]) =
             rules
             |> generics
             |> Array.map (fun generic ->

@@ -19,15 +19,10 @@ module CompositionRoot =
                             let! result = Command.processCmd env cmd
                             writeInfoMessage $"Finished processing command: {cmd |> Shared.Api.Command.toString}"
                             return result
-                        with
-                        | ex ->
+                        with ex ->
                             writeErrorMessage $"Error processing command: {cmd |> Shared.Api.Command.toString}\n{ex}"
                             return Error [| ex.Message |]
                     }
 
-            testApi =
-                fun () ->
-                    async {
-                        return "Hello world!"
-                    }
+            testApi = fun () -> async { return "Hello world!" }
         }

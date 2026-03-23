@@ -31,8 +31,8 @@ module Generators =
 
     let bigRGen (n, d) =
         let d = if d = 0 then 1 else d
-        let n = abs(n) |> BigRational.FromInt
-        let d = abs(d) |> BigRational.FromInt
+        let n = abs (n) |> BigRational.FromInt
+        let d = abs (d) |> BigRational.FromInt
         n / d
 
     let bigRGenOpt (n, d) = bigRGen (n, 1) |> Some
@@ -41,16 +41,17 @@ module Generators =
         gen {
             let! n = Arb.generate<int>
             let! d = Arb.generate<int>
-            return bigRGen(n, d)
+            return bigRGen (n, d)
         }
 
-    type BigRGenerator () =
-        static member BigRational () =
+    type BigRGenerator() =
+        static member BigRational() =
             { new Arbitrary<BigRational>() with
                 override x.Generator = bigRGenerator
             }
 
     type MinMax = MinMax of BigRational * BigRational
+
     let minMaxArb () =
         bigRGenerator
         |> Gen.map abs
@@ -58,26 +59,29 @@ module Generators =
         |> Gen.map (fun (br1, br2) ->
             let br1 = br1.Numerator |> BigRational.FromBigInt
             let br2 = br2.Numerator |> BigRational.FromBigInt
+
             if br1 >= br2 then br2, br1 else br1, br2
-            |> fun (br1, br2) ->
-                if br1 = br2 then br1, br2 + 1N else br1, br2
+            |> fun (br1, br2) -> if br1 = br2 then br1, br2 + 1N else br1, br2
         )
         |> Arb.fromGen
-        |> Arb.convert MinMax (fun (MinMax (min, max)) -> min, max)
+        |> Arb.convert MinMax (fun (MinMax(min, max)) -> min, max)
 
     type ListOf37<'a> = ListOf37 of 'a List
+
     let listOf37Arb () =
         Gen.listOfLength 37 Arb.generate
         |> Arb.fromGen
         |> Arb.convert ListOf37 (fun (ListOf37 xs) -> xs)
 
-    let config = {
-        FsCheckConfig.defaultConfig with
-            arbitrary = [
-                typeof<BigRGenerator>
-                typeof<ListOf37<_>>.DeclaringType
-                typeof<MinMax>.DeclaringType
-            ] @ FsCheckConfig.defaultConfig.arbitrary
+    let config =
+        { FsCheckConfig.defaultConfig with
+            arbitrary =
+                [
+                    typeof<BigRGenerator>
+                    typeof<ListOf37<_>>.DeclaringType
+                    typeof<MinMax>.DeclaringType
+                ]
+                @ FsCheckConfig.defaultConfig.arbitrary
             maxTest = 1000
         }
 
@@ -104,26 +108,25 @@ module MedicationTests =
         s.Split([| ' '; '\t'; '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries)
         |> String.concat " "
 
-    let tests = testList "Medication Scenarios" [
+    let tests =
+        testList
+            "Medication Scenarios"
+            [
 
-        test "fullMedication toString outputs all fields" {
-            let actual =
-                Scenarios.fullMedication
-                |> Medication.toString
-                |> String.concat "\n"
-                |> normalizeWords
+                test "fullMedication toString outputs all fields" {
+                    let actual =
+                        Scenarios.fullMedication
+                        |> Medication.toString
+                        |> String.concat "\n"
+                        |> normalizeWords
 
-            let expected =
-                Scenarios.fullMedicationText
-                |> normalizeWords
+                    let expected = Scenarios.fullMedicationText |> normalizeWords
 
-            actual
-            |> Expect.equal "should match expected output with all fields" expected
-        }
+                    actual |> Expect.equal "should match expected output with all fields" expected
+                }
 
-    ]
+            ]
 
 
 // Run the tests
-MedicationTests.tests
-|> Expecto.run
+MedicationTests.tests |> Expecto.run

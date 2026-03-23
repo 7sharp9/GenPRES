@@ -1,5 +1,3 @@
-
-
 #time
 
 #load "load.fsx"
@@ -30,7 +28,9 @@ formulary
 |> Array.filter (fun drug -> drug.Generic |> String.equalsCapInsens "paracetamol")
 |> Array.map Export.cleanGenericName
 |> Array.collect (Drug.mapDrug >> List.toArray)
-|> fun xs -> printfn $"{xs |> Array.length}"; xs
+|> fun xs ->
+    printfn $"{xs |> Array.length}"
+    xs
 |> Export.map
 |> List.filter (fun r -> r.route = "ORAAL")
 |> List.distinct

@@ -15,7 +15,6 @@ module Measures =
 module String =
 
 
-
     let isNullOrWhiteSpace (s: String) = String.IsNullOrWhiteSpace(s)
 
 
@@ -23,7 +22,6 @@ module String =
 
 
     let split (del: string) (s: string) = s.Split(del)
-
 
 
     /// Apply `f` to string `s`
@@ -40,9 +38,7 @@ module String =
                 (false, 0)
             else
                 t
-                |> Seq.fold
-                    (fun (flag, dec) c' -> if c' = c && flag then (true, dec + 1) else (false, dec))
-                    (true, 0)
+                |> Seq.fold (fun (flag, dec) c' -> if c' = c && flag then (true, dec + 1) else (false, dec)) (true, 0)
 
         count
 
@@ -61,7 +57,8 @@ module String =
 
     /// Get a substring starting at `start` with length `length`
     let subString start length s =
-        if start < 0 || s |> String.length < start + length || start + length < 0  then ""
+        if start < 0 || s |> String.length < start + length || start + length < 0 then
+            ""
         else
             let s' = if length < 0 then start + length else start
             let l' = if length < 0 then -1 * length else length
@@ -74,15 +71,12 @@ module String =
 
 
     /// Get the length of s
-    let length s =
-        (s |> get).Length
+    let length s = (s |> get).Length
 
 
     /// Return the rest of a string as a string
     let restString s =
-        if s = "" then ""
-        else
-            subString 1 ((s |> length) - 1) s
+        if s = "" then "" else subString 1 ((s |> length) - 1) s
 
 
     /// Removes the last 'n' characters from the input string 's'.
@@ -105,33 +99,30 @@ module String =
 
     /// Make the first character upper and the rest lower of a string
     let capitalize s =
-        if s = "" then ""
+        if s = "" then
+            ""
         else
             (s |> firstToUpper) + (s |> restString |> toLower)
 
 
     /// Remove trailing characters from a string
-    let removeTrailing chars (s : String) =
+    let removeTrailing chars (s: String) =
         s
         |> Seq.rev
         |> Seq.map string
-        |> Seq.skipWhile (fun c ->
-            chars |> Seq.exists ((=) c)
-        )
+        |> Seq.skipWhile (fun c -> chars |> Seq.exists ((=) c))
         |> Seq.rev
         |> String.concat ""
 
 
     /// Remove trailing zeros from a Dutch number
-    let removeTrailingZerosFromDutchNumber (s : string) =
-        s.Split([|","|], StringSplitOptions.None)
+    let removeTrailingZerosFromDutchNumber (s: string) =
+        s.Split([| "," |], StringSplitOptions.None)
         |> function
-        | [|n; d|] ->
-            let d = d |> removeTrailing ["0"]
-            if d |> String.IsNullOrEmpty then n
-            else
-                n + "," + d
-        | _ -> s
+            | [| n; d |] ->
+                let d = d |> removeTrailing [ "0" ]
+                if d |> String.IsNullOrEmpty then n else n + "," + d
+            | _ -> s
 
 
 module Math =
@@ -242,7 +233,6 @@ module List =
             deltas |> List.findIndex ((=) minDelta)
 
 
-
 module DateTime =
 
 
@@ -273,8 +263,6 @@ module DateTime =
         (mos / 12), (mos % 12)
 
 
-
-
 [<RequireQualifiedAccess>]
 module Decimal =
 
@@ -288,7 +276,6 @@ module Decimal =
 
 
     let Ten = 10m
-
 
 
     //----------------------------------------------------------------------------
@@ -316,10 +303,13 @@ module Decimal =
     /// If n < 0 then n = 0 is used.
     let getPrecision n (d: Decimal) =
         let n = if n < 0 then 0 else n
-        if d = 0m || n = 0 then n
+
+        if d = 0m || n = 0 then
+            n
         else
             let absF = abs d
             let s = absF.ToString("G", CultureInfo.InvariantCulture)
+
             if s.Contains "E" then
                 let eIndex = s.IndexOf("E") + 2
                 let h = int s[eIndex..]
@@ -329,7 +319,9 @@ module Decimal =
                 let leftPart = parts[0]
                 let p = n - (if leftPart = "0" then 0 else leftPart.Length)
                 let p = if p < 0 then 0 else p
-                if int leftPart > 0 then p
+
+                if int leftPart > 0 then
+                    p
                 else
                     let rightPart = parts[1]
                     let zeroCount = rightPart |> Seq.takeWhile (fun c -> c = '0') |> Seq.length
@@ -351,9 +343,7 @@ module Decimal =
     /// etc
     /// If n < 0 then the value is not changed.
     let fixPrecision n (d: decimal) =
-        if n < 0 then d
-        else
-            Math.Round(d, d |> getPrecision n)
+        if n < 0 then d else Math.Round(d, d |> getPrecision n)
 
 
     //----------------------------------------------------------------------------
@@ -362,23 +352,25 @@ module Decimal =
 
 
     /// Returns a string representation of a decimal in Dutch format
-    let toStringNumberNL p (d: decimal) = 
+    let toStringNumberNL p (d: decimal) =
         let invariantStr = d.ToString("F" + p, CultureInfo.InvariantCulture)
         let parts = invariantStr.Split('.')
         let integerPart = parts[0]
         let decimalPart = if parts.Length > 1 then parts[1] else ""
-        
+
         // Add thousands separators
-        let formattedInteger = 
+        let formattedInteger =
             integerPart
             |> Seq.rev
             |> Seq.chunkBySize 3
             |> Seq.map (Seq.rev >> Seq.map string >> String.concat "")
             |> Seq.rev
             |> String.concat " "
-        
-        if String.IsNullOrEmpty(decimalPart) then formattedInteger
-        else formattedInteger + "," + decimalPart
+
+        if String.IsNullOrEmpty(decimalPart) then
+            formattedInteger
+        else
+            formattedInteger + "," + decimalPart
 
 
     /// Returns a string representation of a decimal in Dutch format without trailing zeros
@@ -393,7 +385,6 @@ module Decimal =
         fixPrecision n >> toStringNumberNLWithoutTrailingZeros
 
 
-
 module Csv =
 
     open System
@@ -406,9 +397,7 @@ module Csv =
         | FloatData ->
             match Double.TryParse(x) with
             | true, n -> n |> box
-            | _ ->
-                $"cannot parse {x} to double"
-                |> failwith
+            | _ -> $"cannot parse {x} to double" |> failwith
         | FloatOptionData ->
             match Double.TryParse(x) with
             | true, n -> n |> Some |> box
@@ -419,13 +408,8 @@ module Csv =
         columns
         |> Array.tryFindIndex ((=) s)
         |> function
-            | None ->
-                $"""cannot find column {s} in {columns |> String.concat ", "}"""
-                |> failwith
-            | Some i ->
-                sl
-                |> Array.item i
-                |> tryCast dt
+            | None -> $"""cannot find column {s} in {columns |> String.concat ", "}""" |> failwith
+            | Some i -> sl |> Array.item i |> tryCast dt
 
 
     let getStringColumn columns sl s =
@@ -437,8 +421,7 @@ module Csv =
 
 
     let getFloatOptionColumn columns sl s =
-        getColumn FloatOptionData columns sl s
-        |> unbox<float option>
+        getColumn FloatOptionData columns sl s |> unbox<float option>
 
 
     let parseCSV (s: string) =
@@ -446,10 +429,7 @@ module Csv =
         |> Array.filter (String.isNullOrWhiteSpace >> not)
         |> Array.map (String.replace "\",\"" "|")
         |> Array.map (String.replace "\"" "")
-        |> Array.map (fun s ->
-            s.Split("|")
-            |> Array.map (fun s -> s.Trim())
-        )
+        |> Array.map (fun s -> s.Split("|") |> Array.map (fun s -> s.Trim()))
 
 
 module TextBlock =
@@ -465,34 +445,42 @@ module TextBlock =
             // Split text into parts where numbers (including decimals, commas, and hyphens) are separated
             let pattern = @"(\d+[\d,.\-]*\d*|\d+)"
             let matches = Regex.Matches(text, pattern)
-            
+
             let rec buildItems (pos: int) (matchIdx: int) (acc: TextItem list) =
                 if matchIdx >= matches.Count then
                     // Add remaining text after last match
                     if pos < text.Length then
                         let remaining = text.Substring(pos)
+
                         if not (String.IsNullOrWhiteSpace remaining) then
                             Normal remaining :: acc
-                        else acc
-                    else acc
+                        else
+                            acc
+                    else
+                        acc
                 else
                     let m = matches.[matchIdx]
+
                     let items =
                         // Add text before match
                         if m.Index > pos then
                             let before = text.Substring(pos, m.Index - pos)
+
                             if not (String.IsNullOrWhiteSpace before) then
                                 Bold m.Value :: Normal before :: acc
                             else
                                 Bold m.Value :: acc
                         else
                             Bold m.Value :: acc
-                    
+
                     buildItems (m.Index + m.Length) (matchIdx + 1) items
-            
+
             let items = buildItems 0 0 []
-            let finalItems = 
-                if items |> List.isEmpty then [| Normal text |]
-                else items |> List.rev |> List.toArray
+
+            let finalItems =
+                if items |> List.isEmpty then
+                    [| Normal text |]
+                else
+                    items |> List.rev |> List.toArray
 
             Valid finalItems

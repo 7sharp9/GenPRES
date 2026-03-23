@@ -60,18 +60,20 @@ module Solver =
     let solveAllMemo onlyMinIncrMax log eqs =
 
         let cache = Dictionary<string, Equation.T * SolveResult>()
-        let hits   = ref 0
+        let hits = ref 0
         let misses = ref 0
 
         // Cache-aware wrapper for Equation.solve
         let solveE n eqs (eq: Equation.T) =
-            let key = eq |> Equation.toString true   // exact state key
+            let key = eq |> Equation.toString true // exact state key
+
             match cache.TryGetValue key with
             | true, cached ->
                 incr hits
                 cached
             | false, _ ->
                 incr misses
+
                 try
                     let result = Equation.solve onlyMinIncrMax log eq
                     cache.[key] <- result
@@ -94,8 +96,10 @@ module Solver =
             | Error _ -> acc
             | Ok acc ->
                 let n = n + 1
+
                 if n > (que @ acc |> List.length) * Constants.MAX_LOOP_COUNT then
                     writeErrorMessage $"too many loops: {n}"
+
                     (n, que @ acc)
                     |> Exceptions.SolverTooManyLoops
                     |> Exceptions.raiseExc (Some log) []
@@ -111,37 +115,29 @@ module Solver =
                 | eq :: tail ->
                     let q, r =
                         if eq |> Equation.isSolvable |> not then
-                            tail,
-                            [ eq ] |> List.append acc |> Ok
+                            tail, [ eq ] |> List.append acc |> Ok
                         else
                             match eq |> solveE n (acc @ que) with
                             | eq, Changed cs ->
                                 let vars = cs |> List.map fst
+
                                 acc
                                 |> replace vars
                                 |> function
-                                | rpl, rst ->
-                                    let que =
-                                        tail
-                                        |> replace vars
-                                        |> function
-                                        | es1, es2 ->
-                                            es1
-                                            |> List.append es2
-                                            |> List.append rpl
-                                    que,
-                                    rst |> List.append [ eq ] |> Ok
+                                    | rpl, rst ->
+                                        let que =
+                                            tail
+                                            |> replace vars
+                                            |> function
+                                                | es1, es2 -> es1 |> List.append es2 |> List.append rpl
 
-                            | eq, Unchanged ->
-                                tail,
-                                [ eq ] |> List.append acc |> Ok
+                                        que, rst |> List.append [ eq ] |> Ok
+
+                            | eq, Unchanged -> tail, [ eq ] |> List.append acc |> Ok
 
                             | eq, Errored m ->
-                                [],
-                                [ eq ]
-                                |> List.append acc
-                                |> List.append que
-                                |> fun eqs -> Error(eqs, m)
+                                [], [ eq ] |> List.append acc |> List.append que |> (fun eqs -> Error(eqs, m))
+
                     loop n q r
 
         // ------------------------------------------------------------------
@@ -154,9 +150,7 @@ module Solver =
                 match eqs with
                 | [] -> eqs |> Ok
                 | _ ->
-                    (onlyMinIncrMax, eqs)
-                    |> Events.SolverStartSolving
-                    |> Logger.logDebug log
+                    (onlyMinIncrMax, eqs) |> Events.SolverStartSolving |> Logger.logDebug log
                     loop 0 eqs (Ok [])
             with
             | Exceptions.SolverException errs -> Error(eqs, errs)
@@ -168,11 +162,14 @@ module Solver =
         let outcome =
             result
             |> function
-            | Ok solved ->
-                let n2 = solved |> List.length
-                if n2 <> n1 then failwith $"equation count changed: was {n1}, got {n2}"
-                Ok solved
-            | Error _ as err -> err
+                | Ok solved ->
+                    let n2 = solved |> List.length
+
+                    if n2 <> n1 then
+                        failwith $"equation count changed: was {n1}, got {n2}"
+
+                    Ok solved
+                | Error _ as err -> err
 
         let stats =
             {
@@ -192,42 +189,47 @@ let noLog = SolverLogging.create (fun _ -> ())
 
 let setValues u n vs eqs =
     let nm = n |> Variable.Name.createExc
+
     let prop =
-        vs
-        |> ValueUnit.create u
-        |> Variable.ValueRange.ValueSet.create
-        |> ValsProp
+        vs |> ValueUnit.create u |> Variable.ValueRange.ValueSet.create |> ValsProp
+
     match eqs |> Api.setVariableValues nm prop with
     | Some var -> eqs |> List.map (Equation.replace var)
     | None -> eqs
 
 let setMinIncl u n v eqs =
     let nm = n |> Variable.Name.createExc
+
     let prop =
         [| v |]
         |> ValueUnit.create u
         |> Variable.ValueRange.Minimum.create true
         |> MinProp
+
     match eqs |> Api.setVariableValues nm prop with
     | Some var -> eqs |> List.map (Equation.replace var)
     | None -> eqs
 
 let setMaxIncl u n v eqs =
     let nm = n |> Variable.Name.createExc
+
     let prop =
         [| v |]
         |> ValueUnit.create u
         |> Variable.ValueRange.Maximum.create true
         |> MaxProp
+
     match eqs |> Api.setVariableValues nm prop with
     | Some var -> eqs |> List.map (Equation.replace var)
     | None -> eqs
 
 let timeMean label iterations (f: unit -> _) =
-    f () |> ignore   // warm-up
+    f () |> ignore // warm-up
     let sw = Diagnostics.Stopwatch.StartNew()
+
     for _ in 1..iterations do
         f () |> ignore
+
     sw.Stop()
     let mean = sw.Elapsed.TotalMilliseconds / float iterations
     printfn "  %-60s %8.2f ms" label mean
@@ -249,11 +251,13 @@ let solveMemo onlyMinMax eqs =
 // ------------------------------------------------------------------
 
 let chainSetup () =
-    [ "a = b * c"
-      "d = a * e"
-      "f = d * g"
-      "h = f * i"
-      "j = h * k" ]
+    [
+        "a = b * c"
+        "d = a * e"
+        "f = d * g"
+        "h = f * i"
+        "j = h * k"
+    ]
     |> Api.init
     |> setMinIncl Units.Count.times "b" 1N
     |> setMaxIncl Units.Count.times "b" 10N
@@ -262,33 +266,39 @@ let chainSetup () =
 
 let valueSetSetup n =
     let vals = [| 1N .. 1N .. BigRational.FromInt n |]
+
     [ "a = b * c" ]
     |> Api.init
     |> setValues Units.Count.times "b" vals
     |> setValues Units.Count.times "c" vals
 
 let dosingSystem () =
-    let weights        = [| 3N; 5N; 10N; 15N; 20N; 30N; 40N; 50N; 60N; 70N |]
-    let dosePerKg      = [| 5N; 10N; 15N; 20N; 25N; 30N |]
-    let timesPerDay    = [| 1N; 2N; 3N; 4N; 6N; 8N |]
-    let concentration  = [| 1N; 2N; 5N; 10N; 20N; 50N |]
-    [ "dose = weight * dosePerKg"
-      "totalDose = dose * timesPerDay"
-      "totalDose = volume * concentration" ]
+    let weights = [| 3N; 5N; 10N; 15N; 20N; 30N; 40N; 50N; 60N; 70N |]
+    let dosePerKg = [| 5N; 10N; 15N; 20N; 25N; 30N |]
+    let timesPerDay = [| 1N; 2N; 3N; 4N; 6N; 8N |]
+    let concentration = [| 1N; 2N; 5N; 10N; 20N; 50N |]
+
+    [
+        "dose = weight * dosePerKg"
+        "totalDose = dose * timesPerDay"
+        "totalDose = volume * concentration"
+    ]
     |> Api.init
-    |> setValues Units.Count.times "weight"        weights
-    |> setValues Units.Count.times "dosePerKg"     dosePerKg
-    |> setValues Units.Count.times "timesPerDay"   timesPerDay
+    |> setValues Units.Count.times "weight" weights
+    |> setValues Units.Count.times "dosePerKg" dosePerKg
+    |> setValues Units.Count.times "timesPerDay" timesPerDay
     |> setValues Units.Count.times "concentration" concentration
 
 let patientWeights = [| 5N; 10N; 15N; 20N; 25N; 30N; 40N; 50N; 60N; 70N |]
 
 let repeatSolveSetup (weight: BigRational) =
-    [ "dose = weight * dosePerKg"
-      "totalDose = dose * timesPerDay" ]
+    [
+        "dose = weight * dosePerKg"
+        "totalDose = dose * timesPerDay"
+    ]
     |> Api.init
-    |> setValues Units.Count.times "weight"      [| weight |]
-    |> setValues Units.Count.times "dosePerKg"   [| 10N; 15N; 20N |]
+    |> setValues Units.Count.times "weight" [| weight |]
+    |> setValues Units.Count.times "dosePerKg" [| 10N; 15N; 20N |]
     |> setValues Units.Count.times "timesPerDay" [| 2N; 3N; 4N |]
 
 
@@ -324,7 +334,8 @@ let allOk =
     ]
     |> List.forall id
 
-if not allOk then printfn "\n  *** Memoized solver produces different results — do not proceed ***\n"
+if not allOk then
+    printfn "\n  *** Memoized solver produces different results — do not proceed ***\n"
 
 
 // ------------------------------------------------------------------
@@ -336,25 +347,33 @@ printfn "\n=== Cache-hit statistics ==="
 let printStats label setup =
     let eqs = setup ()
     let _, stats = Solver.solveAllMemo false noLog eqs
-    printfn "  %-40s  hits=%d  misses=%d  cache_size=%d  hit_rate=%.0f%%"
-        label stats.Hits stats.Misses stats.CacheSize
-        (if stats.Hits + stats.Misses = 0 then 0.0
-         else float stats.Hits / float (stats.Hits + stats.Misses) * 100.0)
 
-printStats "value-set (10 vals)"  (fun () -> valueSetSetup 10)
-printStats "value-set (20 vals)"  (fun () -> valueSetSetup 20)
-printStats "dosing system"        (fun () -> dosingSystem ())
+    printfn
+        "  %-40s  hits=%d  misses=%d  cache_size=%d  hit_rate=%.0f%%"
+        label
+        stats.Hits
+        stats.Misses
+        stats.CacheSize
+        (if stats.Hits + stats.Misses = 0 then
+             0.0
+         else
+             float stats.Hits / float (stats.Hits + stats.Misses) * 100.0)
+
+printStats "value-set (10 vals)" (fun () -> valueSetSetup 10)
+printStats "value-set (20 vals)" (fun () -> valueSetSetup 20)
+printStats "dosing system" (fun () -> dosingSystem ())
 
 // Repeated-solve stats: sum over all patients
-let mutable totalHits   = 0
+let mutable totalHits = 0
 let mutable totalMisses = 0
+
 for w in patientWeights do
     let _, s = Solver.solveAllMemo false noLog (repeatSolveSetup w)
-    totalHits   <- totalHits   + s.Hits
+    totalHits <- totalHits + s.Hits
     totalMisses <- totalMisses + s.Misses
+
 let hitRate = float totalHits / float (totalHits + totalMisses) * 100.0
-printfn "  %-40s  hits=%d  misses=%d  hit_rate=%.0f%%"
-    "repeated-solve (10 patients)" totalHits totalMisses hitRate
+printfn "  %-40s  hits=%d  misses=%d  hit_rate=%.0f%%" "repeated-solve (10 patients)" totalHits totalMisses hitRate
 
 
 // ------------------------------------------------------------------
@@ -365,38 +384,66 @@ printfn "\n=== Performance: baseline vs memoized ==="
 
 // Bench 3: value-set propagation
 printfn "\n-- Bench 3: value-set propagation --"
-let b3_base = timeMean "baseline: b×c=a, 10 values (50 iter)"   50 (fun () -> valueSetSetup 10 |> solveBaseline false)
-let b3_memo = timeMean "memoized: b×c=a, 10 values (50 iter)"   50 (fun () -> valueSetSetup 10 |> solveMemo false)
+
+let b3_base =
+    timeMean "baseline: b×c=a, 10 values (50 iter)" 50 (fun () -> valueSetSetup 10 |> solveBaseline false)
+
+let b3_memo =
+    timeMean "memoized: b×c=a, 10 values (50 iter)" 50 (fun () -> valueSetSetup 10 |> solveMemo false)
+
 printfn "  speedup: %.2fx" (b3_base / b3_memo)
 
-let b3b_base = timeMean "baseline: b×c=a, 20 values (20 iter)"  20 (fun () -> valueSetSetup 20 |> solveBaseline false)
-let b3b_memo = timeMean "memoized: b×c=a, 20 values (20 iter)"  20 (fun () -> valueSetSetup 20 |> solveMemo false)
+let b3b_base =
+    timeMean "baseline: b×c=a, 20 values (20 iter)" 20 (fun () -> valueSetSetup 20 |> solveBaseline false)
+
+let b3b_memo =
+    timeMean "memoized: b×c=a, 20 values (20 iter)" 20 (fun () -> valueSetSetup 20 |> solveMemo false)
+
 printfn "  speedup: %.2fx" (b3b_base / b3b_memo)
 
 // Bench 4: dosing system
 printfn "\n-- Bench 4: dosing system --"
-let b4_base = timeMean "baseline: 3-eq dosing (10 iter)" 10 (fun () -> dosingSystem () |> solveBaseline false)
-let b4_memo = timeMean "memoized: 3-eq dosing (10 iter)" 10 (fun () -> dosingSystem () |> solveMemo false)
+
+let b4_base =
+    timeMean "baseline: 3-eq dosing (10 iter)" 10 (fun () -> dosingSystem () |> solveBaseline false)
+
+let b4_memo =
+    timeMean "memoized: 3-eq dosing (10 iter)" 10 (fun () -> dosingSystem () |> solveMemo false)
+
 printfn "  speedup: %.2fx" (b4_base / b4_memo)
 
 // Bench 5: repeated solves
 printfn "\n-- Bench 5: repeated solves (10 patients) --"
+
 let b5_base =
-    timeMean "baseline: 2-eq × 10 patients (20 iter)" 20 (fun () ->
-        for w in patientWeights do
-            repeatSolveSetup w |> solveBaseline false |> ignore
-    )
+    timeMean
+        "baseline: 2-eq × 10 patients (20 iter)"
+        20
+        (fun () ->
+            for w in patientWeights do
+                repeatSolveSetup w |> solveBaseline false |> ignore
+        )
+
 let b5_memo =
-    timeMean "memoized: 2-eq × 10 patients (20 iter)" 20 (fun () ->
-        for w in patientWeights do
-            repeatSolveSetup w |> solveMemo false |> ignore
-    )
+    timeMean
+        "memoized: 2-eq × 10 patients (20 iter)"
+        20
+        (fun () ->
+            for w in patientWeights do
+                repeatSolveSetup w |> solveMemo false |> ignore
+        )
+
 printfn "  speedup: %.2fx" (b5_base / b5_memo)
 
 // Bench 1/2: min/max chain (should be unaffected)
 printfn "\n-- Bench 1/2: min/max chain (regression guard) --"
-let b1_base = timeMean "baseline: 5-eq chain min/max (100 iter)" 100 (fun () -> chainSetup () |> solveBaseline true)
-let b1_memo = timeMean "memoized: 5-eq chain min/max (100 iter)" 100 (fun () -> chainSetup () |> solveMemo true)
+
+let b1_base =
+    timeMean "baseline: 5-eq chain min/max (100 iter)" 100 (fun () -> chainSetup () |> solveBaseline true)
+
+let b1_memo =
+    timeMean "memoized: 5-eq chain min/max (100 iter)" 100 (fun () -> chainSetup () |> solveMemo true)
+
 printfn "  ratio: %.2fx (expect ~1.0)" (b1_base / b1_memo)
 
 
@@ -404,7 +451,8 @@ printfn "  ratio: %.2fx (expect ~1.0)" (b1_base / b1_memo)
 // Summary
 // ------------------------------------------------------------------
 
-printfn """
+printfn
+    """
 === Summary ===
 
 This prototype adds a per-solve-call Dictionary cache keyed on

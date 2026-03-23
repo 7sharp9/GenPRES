@@ -1,5 +1,3 @@
-
-
 #load "load.fsx"
 
 
@@ -30,52 +28,56 @@ module TestSolver =
     let procss s = printfn $"%s{s} "
 
 
-    let printEqs = function
+    let printEqs =
+        function
         | Ok eqs -> eqs |> Solver.printEqs true procss
         | Error _ -> failwith "errors"
 
 
-    let printEqsWithUnits = function
+    let printEqsWithUnits =
+        function
         | Ok eqs -> eqs |> Solver.printEqs false procss
         | Error _ -> failwith "errors"
 
 
     let setProp n p eqs =
         let n = n |> Name.createExc
+
         match eqs |> Api.setVariableValues n p with
-        | Some var ->
-            eqs
-            |> List.map (fun e ->
-                e |> Equation.replace var
-            )
+        | Some var -> eqs |> List.map (fun e -> e |> Equation.replace var)
         | None -> eqs
 
-    let create c u v =
-        [|v|]
-        |> ValueUnit.create u
-        |> c
+    let create c u v = [| v |] |> ValueUnit.create u |> c
 
     let createMinIncl = create (Minimum.create true)
     let createMinExcl = create (Minimum.create false)
     let createMaxIncl = create (Maximum.create true)
     let createMaxExcl = create (Maximum.create false)
     let createIncr = create Increment.create
-    let createValSet u v =
-        v
-        |> Array.ofSeq
-        |> ValueUnit.create u
-        |> ValueSet.create
 
-    let setIncr u n vals = vals |> createIncr u |> IncrProp |> setProp n
-    let setMinIncl u n min = min |> createMinIncl u |> MinProp|> setProp n
-    let setMinExcl u n min = min |> createMinExcl u |> MinProp |> setProp n
-    let setMaxIncl u n max = max |> createMaxIncl u |> MaxProp |> setProp n
-    let setMaxExcl u n max = max |> createMaxExcl u |> MaxProp |> setProp n
-    let setValues u n vals = vals |> createValSet u |> ValsProp |> setProp n
+    let createValSet u v =
+        v |> Array.ofSeq |> ValueUnit.create u |> ValueSet.create
+
+    let setIncr u n vals =
+        vals |> createIncr u |> IncrProp |> setProp n
+
+    let setMinIncl u n min =
+        min |> createMinIncl u |> MinProp |> setProp n
+
+    let setMinExcl u n min =
+        min |> createMinExcl u |> MinProp |> setProp n
+
+    let setMaxIncl u n max =
+        max |> createMaxIncl u |> MaxProp |> setProp n
+
+    let setMaxExcl u n max =
+        max |> createMaxExcl u |> MaxProp |> setProp n
+
+    let setValues u n vals =
+        vals |> createValSet u |> ValsProp |> setProp n
 
     let logger =
-        fun (s : string) ->
-            printfn $"{s}"
+        fun (s: string) -> printfn $"{s}"
         |> SolverLogging.create
 
     let solve n p eqs =
@@ -86,12 +88,23 @@ module TestSolver =
 
     let solveMinMax = Api.solveAll true logger
 
-    let solveMinIncl u n min = solve n (min |> createMinIncl u |> MinProp)
-    let solveMinExcl u n min = solve n (min |> createMinExcl u  |> MinProp)
-    let solveMaxIncl u n max = solve n (max |> createMaxIncl u |> MaxProp)
-    let solveMaxExcl u n max = solve n (max |> createMaxExcl u |> MaxProp)
-    let solveIncr u n incr = solve n (incr |> createIncr u |> IncrProp)
-    let solveValues u n vals = solve n (vals |> createValSet u |> ValsProp)
+    let solveMinIncl u n min =
+        solve n (min |> createMinIncl u |> MinProp)
+
+    let solveMinExcl u n min =
+        solve n (min |> createMinExcl u |> MinProp)
+
+    let solveMaxIncl u n max =
+        solve n (max |> createMaxIncl u |> MaxProp)
+
+    let solveMaxExcl u n max =
+        solve n (max |> createMaxExcl u |> MaxProp)
+
+    let solveIncr u n incr =
+        solve n (incr |> createIncr u |> IncrProp)
+
+    let solveValues u n vals =
+        solve n (vals |> createValSet u |> ValsProp)
 
     let init = Api.init
     let nonZeroNegative = Api.nonZeroNegative
@@ -102,19 +115,12 @@ module TestSolver =
     let solveCountValues u n vals = solveValues Units.Count.times u n vals
 
 
-
 open MathNet.Numerics
 
 open Informedica.GenSolver.Lib
 open Informedica.GenUnits.Lib
 
-let eqs =
-    [
-        "a = b + c"
-        "d = e * a"
-        "d = f * b"
-    ]
-    |> Api.init
+let eqs = [ "a = b + c"; "d = e * a"; "d = f * b" ] |> Api.init
 
 
 eqs
@@ -129,12 +135,11 @@ eqs
         eqs |> Solver.printEqs true (fun s -> printfn $"{s}") |> ignore
 
         eqs
-        |> TestSolver.setValues Units.Count.times "a" [| 1N..2N..10_000N |]
-        |> TestSolver.setValues Units.Count.times "b" [| 1N..2N..10_000N |]
+        |> TestSolver.setValues Units.Count.times "a" [| 1N .. 2N .. 10_000N |]
+        |> TestSolver.setValues Units.Count.times "b" [| 1N .. 2N .. 10_000N |]
         |> Solver.solveAll false TestSolver.logger
         |> function
-            | Ok eqs ->
-                eqs |> Solver.printEqs true (fun s -> printfn $"{s}") |> ignore
+            | Ok eqs -> eqs |> Solver.printEqs true (fun s -> printfn $"{s}") |> ignore
             | Error _ -> failwith "errors"
     | Error _ -> failwith "errors"
 
@@ -157,50 +162,38 @@ let max =
     |> Variable.ValueRange.Maximum.create true
     |> Some
 
-{ Variable.empty ("test" |> Variable.Name.createExc) with
-    Values =
-        Variable.ValueRange.create min incr max None
-}
+{ Variable.empty ("test" |> Variable.Name.createExc) with Values = Variable.ValueRange.create min incr max None }
 |> Variable.minIncrMaxToValues (Some 10)
 
 
 open Informedica.Utils.Lib
 
 let prune incr n =
-    let rec loop m incr (xs : BigRational []) =
-        let filtered =
-            xs
-            |> Array.filter (fun x -> (x / (incr * m)).Denominator = 1I)
+    let rec loop m incr (xs: BigRational[]) =
+        let filtered = xs |> Array.filter (fun x -> (x / (incr * m)).Denominator = 1I)
 
-        if filtered |> Array.length <= n then filtered
-        else loop (m + 1N) incr xs
+        if filtered |> Array.length <= n then
+            filtered
+        else
+            loop (m + 1N) incr xs
 
     fun vu ->
         let u = vu |> ValueUnit.getUnit
+
         let v =
             match incr |> Option.map ValueUnit.getBaseValue with
-            | Some [| incr |] ->
-                vu
-                |> ValueUnit.convertTo u
-                |> ValueUnit.getValue
-                |> loop 1N incr
-            | _ ->
-                vu
-                |> ValueUnit.getValue
-                |> Array.prune n //Constants.PRUNE
-        vu
-        |> ValueUnit.setValue v
+            | Some [| incr |] -> vu |> ValueUnit.convertTo u |> ValueUnit.getValue |> loop 1N incr
+            | _ -> vu |> ValueUnit.getValue |> Array.prune n //Constants.PRUNE
+
+        vu |> ValueUnit.setValue v
 
 
 let prune10 =
-    Units.Volume.liter
-    |> ValueUnit.singleWithValue (5N / 1000N)
-    |> Some
-    |> prune
+    Units.Volume.liter |> ValueUnit.singleWithValue (5N / 1000N) |> Some |> prune
 
 
 Units.Volume.milliLiter
-|> ValueUnit.withValue [| 5N..5N..1000N |]
+|> ValueUnit.withValue [| 5N .. 5N .. 1000N |]
 |> prune10 50
 |> ValueUnit.getValue
 |> Array.length

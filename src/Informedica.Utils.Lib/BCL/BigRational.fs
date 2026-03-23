@@ -24,7 +24,6 @@ module BigRational =
     exception BigRationalException of Message
 
 
-
     /// Raise exception with message `m`
     let raiseExc m = m |> BigRationalException |> raise
 
@@ -50,11 +49,9 @@ module BigRational =
     /// either to `succ` or `fail` function
     let parseCont succ fail s =
         try
-            s
-            |> BigRational.Parse
-            |> succ
-        with
-        | _ -> s |> CannotParseString |> fail
+            s |> BigRational.Parse |> succ
+        with _ ->
+            s |> CannotParseString |> fail
 
 
     /// Parse a string to a bigrational
@@ -66,8 +63,7 @@ module BigRational =
     /// Try to parse a string and
     /// return `None` if it fails
     /// otherwise `Some` bigrational
-    let tryParse =
-        parseCont Some (fun _ -> None)
+    let tryParse = parseCont Some (fun _ -> None)
 
 
     //----------------------------------------------------------------------------
@@ -131,13 +127,14 @@ module BigRational =
 
     /// Convert an optional `BigRational` to a `string`.
     /// If `None` then return empty `string`.
-    let optToString = function
+    let optToString =
+        function
         | Some v' -> v' |> toString
-        | None    -> ""
+        | None -> ""
 
 
     /// Convert a BigRational to a string in Dutch format
-    let toStringNl (br : BigRational) =
+    let toStringNl (br: BigRational) =
         if br.Denominator = 1I then
             br |> BigRational.ToInt32 |> Int32.toStringNumberNL
         else
@@ -169,7 +166,7 @@ module BigRational =
 
     /// Get the greatest common divisor
     /// of two BigRationals `a` and `b`
-    let gcd (a : BigRational) (b: BigRational) =
+    let gcd (a: BigRational) (b: BigRational) =
         let den = a.Denominator * b.Denominator
         let num = BigInteger.gcd (a.Numerator * b.Denominator) (b.Numerator * a.Denominator)
         (num |> BigRational.FromBigInt) / (den |> BigRational.FromBigInt)
@@ -199,8 +196,9 @@ module BigRational =
 
 
     /// Checks whether `v` is a multiple of `incr`
-    let isMultiple (incr : BigRational) (v : BigRational) =
-        if incr = 0N then false
+    let isMultiple (incr: BigRational) (v: BigRational) =
+        if incr = 0N then
+            false
         else
             (v.Numerator * incr.Denominator) % (incr.Numerator * v.Denominator) = 0I
 
@@ -210,15 +208,15 @@ module BigRational =
 
 
     /// Check whether the operator is addition
-    let opIsAdd op   = (three |> op <| two) = three + two // = 5
+    let opIsAdd op = (three |> op <| two) = three + two // = 5
 
 
     /// Check whether the operator is multiplication
-    let opIsMult op  = (three |> op <| two) = three * two // = 6
+    let opIsMult op = (three |> op <| two) = three * two // = 6
 
 
     /// Check whether the operator is divsion
-    let opIsDiv op   = (three |> op <| two) = three / two // = 3/2
+    let opIsDiv op = (three |> op <| two) = three / two // = 3/2
 
 
     /// Match an operator `op` to either
@@ -227,20 +225,19 @@ module BigRational =
     /// Returns NoMatch otherwise
     let (|Mult|Div|Add|Subtr|NoMatch|) op =
         match op with
-        | _ when op |> opIsMult  -> Mult
-        | _ when op |> opIsDiv   -> Div
-        | _ when op |> opIsAdd   -> Add
+        | _ when op |> opIsMult -> Mult
+        | _ when op |> opIsDiv -> Div
+        | _ when op |> opIsAdd -> Add
         | _ when op |> opIsSubtr -> Subtr
         | _ -> NoMatch
-
 
 
     /// Perform a calculation when
     /// both `n1` and `n2` are 'some'
     let calculate n1 o n2 =
         match n1, n2 with
-        |Some x1, Some x2 -> x1 |> o <| x2 |> Some
-        |_ -> None
+        | Some x1, Some x2 -> x1 |> o <| x2 |> Some
+        | _ -> None
 
 
     //let inline triangular n = (n * (n + (n/n))) / ((n + n) / n)
@@ -249,19 +246,23 @@ module BigRational =
     /// Calculate the set of possible solutions with a concentration `conc` up
     /// to a maximum value `max` in descending order
     let calcConc max conc =
-        seq { for f in (BigInteger.farey max false) do
+        seq {
+            for f in (BigInteger.farey max false) do
                 let fn, fd = f
                 let r = (fn |> BigRational.FromBigInt) / (fd |> BigRational.FromBigInt)
-                yield r * conc } |> Seq.cache
+                yield r * conc
+        }
+        |> Seq.cache
 
 
     /// Generic function to calculate all divisors
     /// of `n`, using a `modulo` function
     let inline getDivisors modulo zero one two n =
         let n = abs n
+
         match n with
-        | _ when n = zero-> []
-        | _ -> List.append ([one..(n/two)] |> List.filter(fun x -> modulo n x = zero)) [n]
+        | _ when n = zero -> []
+        | _ -> List.append ([ one .. (n / two) ] |> List.filter (fun x -> modulo n x = zero)) [ n ]
 
 
     /// Get all divisors of a BigInt
@@ -271,39 +272,37 @@ module BigRational =
     /// Get all the divisors of a BigRational
     let divisorsOfBigR =
         let modulo =
-            fun (n : BigRational) (x : BigRational) ->
-                n.Numerator % x.Numerator
-                |> BigRational.FromBigInt
+            fun (n: BigRational) (x: BigRational) -> n.Numerator % x.Numerator |> BigRational.FromBigInt
+
         getDivisors modulo 0N 1N 2N
 
     /// Generic function to check whether a `divisor`
     /// is a divisor of a `dividend`, i.e. the number being
     /// divided
-    let inline isDivisor zero dividend divisor =
-        dividend % divisor = zero
+    let inline isDivisor zero dividend divisor = dividend % divisor = zero
 
 
     /// Check whether a divisor divides a dividend
-    let isDivisorOfBigR  (dividend:BigRational) (divisor:BigRational) =
+    let isDivisorOfBigR (dividend: BigRational) (divisor: BigRational) =
         isDivisor 0I dividend.Numerator divisor.Numerator
 
 
     /// Check whether a divisor divides a dividend
-    let isDivisorOfBigInt (dividend:bigint) (divisor:bigint) =
-        isDivisor 0I dividend divisor
+    let isDivisorOfBigInt (dividend: bigint) (divisor: bigint) = isDivisor 0I dividend divisor
 
 
     /// Reduce a ratio where `num` is the
     /// numerator and `denom` is the denominator
     let reduceRatio num denom =
-        let n   = num / (gcd num denom)
+        let n = num / (gcd num denom)
         let denom = denom / (gcd n denom)
         (n, denom)
 
 
     /// Split a rational number in a
     /// numerator and denominator
-    let numDenom (v:BigRational) = (v.Numerator |> BigRational.FromBigInt, v.Denominator |> BigRational.FromBigInt)
+    let numDenom (v: BigRational) =
+        (v.Numerator |> BigRational.FromBigInt, v.Denominator |> BigRational.FromBigInt)
 
 
     /// Calculate a rational factor ratio for a given input value based on conditions.
@@ -324,34 +323,31 @@ module BigRational =
         let toBigR = BigRational.FromBigInt
 
         match r with
-        | Some n, false,  Some d, false ->
-            (n, d)
+        | Some n, false, Some d, false -> (n, d)
         | Some n, true, Some d, true ->
             let r = (vn * d) / (vd * n)
             ((r.Numerator |> toBigR) * n), ((r.Denominator |> toBigR) * d)
-        | None   , _ ,   Some d, false when (vd |> isDivisorOfBigR d) ->
-            (vn * (d / vd), d)
-        | None   , _ ,   Some d, true ->
-            ((d / (gcd d vd)) * vn, (d / (gcd d vd)) * vd)
-        | Some n, false,  None, _  when (vn |> isDivisorOfBigR n) ->
-            (n, (n / vn) * vd)
-        | Some n, true, None, _ ->
-            ((n / (gcd n vn)) * vn, (n / (gcd n vn)) * vd)
-        | None, _ , None, _ ->
-            (vn, vd)
-        | _  -> (0N, 0N)
-        |> fun (n, d) ->
-            if d <> 0N && n / d = v then Some (n, d)
-            else None
+        | None, _, Some d, false when (vd |> isDivisorOfBigR d) -> (vn * (d / vd), d)
+        | None, _, Some d, true -> ((d / (gcd d vd)) * vn, (d / (gcd d vd)) * vd)
+        | Some n, false, None, _ when (vn |> isDivisorOfBigR n) -> (n, (n / vn) * vd)
+        | Some n, true, None, _ -> ((n / (gcd n vn)) * vn, (n / (gcd n vn)) * vd)
+        | None, _, None, _ -> (vn, vd)
+        | _ -> (0N, 0N)
+        |> fun (n, d) -> if d <> 0N && n / d = v then Some(n, d) else None
 
 
     /// Calculate a rational factor ratio for a given input value based on conditions.
     let valueToBigIntFactorRatio v r =
         let n, nv, d, dv = r
-        let toBigR x = match x with |Some i -> i |> BigRational.FromBigInt |> Some |None -> None
+
+        let toBigR x =
+            match x with
+            | Some i -> i |> BigRational.FromBigInt |> Some
+            | None -> None
+
         match (n |> toBigR, nv, d |> toBigR, dv) |> valueToFactorRatio v with
         | None -> None
-        | Some (n, d) -> Some (n.Numerator, d.Numerator)
+        | Some(n, d) -> Some(n.Numerator, d.Numerator)
 
 
     /// ToDo: doesn't return `NoOp` but fails,
@@ -363,9 +359,9 @@ module BigRational =
     /// the operation is neither.
     let (|Mul|Div|Add|Sub|) op =
         match op with
-        | _ when op |> opIsMult  -> Mul
-        | _ when op |> opIsDiv   -> Div
-        | _ when op |> opIsAdd   -> Add
+        | _ when op |> opIsMult -> Mul
+        | _ when op |> opIsDiv -> Div
+        | _ when op |> opIsAdd -> Add
         | _ when op |> opIsSubtr -> Sub
         | _ -> failwith "Operator is not supported"
 
@@ -373,9 +369,10 @@ module BigRational =
     let calcCartesian op (vs1: BigRational[]) (vs2: BigRational[]) : BigRational[] =
         let n = vs1.Length
         let m = vs2.Length
-        
+
         match n, m with
-        | 0, _ | _, 0 -> [||]
+        | 0, _
+        | _, 0 -> [||]
         | 1, m ->
             let a = vs1[0]
             Array.init m (fun x -> op a vs2[x])
@@ -384,14 +381,18 @@ module BigRational =
             Array.init n (fun x -> op vs1[x] b0)
         | _ ->
             let res = Array.zeroCreate<_> (n * m)
-            if n = 0 || m = 0 then res else
-            for i = 0 to n - 1 do
-                let v1 = vs1[i]
-                let baseIdx = i * m
-                for j = 0 to m - 1 do
-                    res[baseIdx + j] <- op v1 vs2[j]
-            res
 
+            if n = 0 || m = 0 then
+                res
+            else
+                for i = 0 to n - 1 do
+                    let v1 = vs1[i]
+                    let baseIdx = i * m
+
+                    for j = 0 to m - 1 do
+                        res[baseIdx + j] <- op v1 vs2[j]
+
+                res
 
 
     /// Calculates the nearest multiple of the given `multiple` based on whether it's required
@@ -403,14 +404,21 @@ module BigRational =
     ///   - value: The value for which the nearest multiple needs to be calculated.
     ///
     /// - Returns: The calculated nearest multiple value.
-    let toMultipleOf isMinOrMax multiple value  =
-        if multiple = 0N then value
+    let toMultipleOf isMinOrMax multiple value =
+        if multiple = 0N then
+            value
         else
             let m = (value / multiple) |> BigRational.ToBigInt |> BigRational.FromBigInt
+
             if isMinOrMax then
-                if m * multiple < value then (m + 1N) * multiple else m * multiple
+                if m * multiple < value then
+                    (m + 1N) * multiple
+                else
+                    m * multiple
+            else if m * multiple > value then
+                (m - 1N) * multiple
             else
-                if m * multiple > value then (m - 1N) * multiple else m * multiple
+                m * multiple
 
 
     /// <summary>
@@ -454,12 +462,15 @@ module BigRational =
             let ad = if isMax then (-) else (+)
 
             let m =
-                if isMax then minOrMax |> toMaxMultipleOf i
-                else minOrMax |> toMinMultipleOf i
+                if isMax then
+                    minOrMax |> toMaxMultipleOf i
+                else
+                    minOrMax |> toMinMultipleOf i
 
             if (isIncl |> not) && (m |> ec <| minOrMax) then
                 (m |> ad <| i)
-            else m
+            else
+                m
         )
         |> Seq.minBy (fun x -> if isMax then -x else x)
 
@@ -527,11 +538,13 @@ module BigRational =
     /// </example>
     let minIncrMaxToSeq min incr max : BigRational seq =
         incr
-        |> Seq.fold (fun acc i ->
-            let min = min |> toMinMultipleOf i
-            let max = max |> toMaxMultipleOf i
-            seq {min..i..max} |> Seq.append acc
-        ) Seq.empty
+        |> Seq.fold
+            (fun acc i ->
+                let min = min |> toMinMultipleOf i
+                let max = max |> toMaxMultipleOf i
+                seq { min..i..max } |> Seq.append acc
+            )
+            Seq.empty
         |> Seq.sort
         |> Seq.distinct
 
@@ -543,42 +556,60 @@ module BigRational =
 
         // Test valueToFactorRatio
         let testValueToFactorRatio () =
-            test <@
-                let v = 1N / 3N
-                let r : BigRational option * bool * BigRational option * bool= (None, false, None, false)
-                match valueToFactorRatio v r with
-                | None -> false
-                | Some (n, d) -> n = 1N && d = 3N
-            @>
+            test
+                <@
+                    let v = 1N / 3N
 
-            test <@
-                let v = 1N / 3N
-                let r = (Some 1N, false, Some 3N, false)
-                match valueToFactorRatio v r with
-                | None -> false
-                | Some (n, d) -> n = 1N && d = 3N
-            @>
+                    let r: BigRational option * bool * BigRational option * bool =
+                        (None, false, None, false)
 
-            test <@
-                let v = 2N
-                let r : BigRational option * bool * BigRational option * bool= (None, false, Some 2N, false)
-                match valueToFactorRatio v r with
-                | None -> false
-                | Some (n, d) -> n = 4N && d = 2N
-            @>
+                    match valueToFactorRatio v r with
+                    | None -> false
+                    | Some(n, d) -> n = 1N && d = 3N
+                @>
 
-            test <@
-                let v = 1N/2N
-                let r : BigRational option * bool * BigRational option * bool= (None, false, Some 2N, false)
-                match valueToFactorRatio v r with
-                | None -> false
-                | Some (n, d) -> n = 1N && d = 2N
-            @>
+            test
+                <@
+                    let v = 1N / 3N
+                    let r = (Some 1N, false, Some 3N, false)
 
-            test <@
-                let v = 3N/10N
-                let r : BigRational option * bool * BigRational option * bool= (None, false, Some 2N, false)
-                match valueToFactorRatio v r with
-                | None -> true
-                | Some _ -> false
-            @>
+                    match valueToFactorRatio v r with
+                    | None -> false
+                    | Some(n, d) -> n = 1N && d = 3N
+                @>
+
+            test
+                <@
+                    let v = 2N
+
+                    let r: BigRational option * bool * BigRational option * bool =
+                        (None, false, Some 2N, false)
+
+                    match valueToFactorRatio v r with
+                    | None -> false
+                    | Some(n, d) -> n = 4N && d = 2N
+                @>
+
+            test
+                <@
+                    let v = 1N / 2N
+
+                    let r: BigRational option * bool * BigRational option * bool =
+                        (None, false, Some 2N, false)
+
+                    match valueToFactorRatio v r with
+                    | None -> false
+                    | Some(n, d) -> n = 1N && d = 2N
+                @>
+
+            test
+                <@
+                    let v = 3N / 10N
+
+                    let r: BigRational option * bool * BigRational option * bool =
+                        (None, false, Some 2N, false)
+
+                    match valueToFactorRatio v r with
+                    | None -> true
+                    | Some _ -> false
+                @>

@@ -1,8 +1,8 @@
 #I __SOURCE_DIRECTORY__
 
-let stopWatch = System.Diagnostics.Stopwatch ()
+let stopWatch = System.Diagnostics.Stopwatch()
 
-stopWatch.Start ()
+stopWatch.Start()
 
 fsi.AddPrinter<System.DateTime> _.ToShortDateString()
 

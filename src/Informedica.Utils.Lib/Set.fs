@@ -12,13 +12,7 @@ module Set =
     /// only the non-multiple elements.
     let removeBigRationalMultiples xs =
         xs
-        |> Set.fold (fun acc x1 ->
-            acc
-            |> Set.filter (fun x2 ->
-                x1 = x2 ||
-                x2 |> BigRational.isMultiple x1 |> not
-            )
-        ) xs
+        |> Set.fold (fun acc x1 -> acc |> Set.filter (fun x2 -> x1 = x2 || x2 |> BigRational.isMultiple x1 |> not)) xs
 
 
     let toString xs = xs |> Set.toList |> List.toString
@@ -33,6 +27,5 @@ module Set =
         // Test that the removeBigRationalMultiples function works as expected.
         let testRemoveBigRationalMultiples () =
             let xs = set [ 2N .. 1N .. 12N ]
-            let ys = set [2N; 3N; 5N; 7N; 11N]
+            let ys = set [ 2N; 3N; 5N; 7N; 11N ]
             test <@ removeBigRationalMultiples xs = ys @>
-

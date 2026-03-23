@@ -7,9 +7,7 @@ module Logging =
 
 
     /// Log a solver event with a specific level
-    let logMessage level (logger: Logger) (msg: Message) =
-        msg
-        |> Logging.logWith level logger
+    let logMessage level (logger: Logger) (msg: Message) = msg |> Logging.logWith level logger
 
 
     /// Log an informative solver event
@@ -21,11 +19,8 @@ module Logging =
 
 
     /// Log a solver exception as an error
-    let logError (logger: Logger) (msg: Message) =
-        msg
-        |> Logging.logError logger
+    let logError (logger: Logger) (msg: Message) = msg |> Logging.logError logger
 
 
     /// Ignore logger for backward compatibility
     let noOp = Logging.noOp
-

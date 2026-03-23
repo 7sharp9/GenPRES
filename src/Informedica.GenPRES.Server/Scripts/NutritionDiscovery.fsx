@@ -1,4 +1,3 @@
-
 #I __SOURCE_DIRECTORY__
 
 #load "load.fsx"
@@ -25,10 +24,7 @@ let doseRules = provider.DoseRules
 
 // List all unique indications
 let indications =
-    doseRules
-    |> Array.map _.Indication
-    |> Array.distinct
-    |> Array.sort
+    doseRules |> Array.map _.Indication |> Array.distinct |> Array.sort
 
 
 printfn "\n=== All Indications ==="
@@ -36,11 +32,7 @@ indications |> Array.iter (printfn "  %s")
 
 
 // List all unique generics
-let generics =
-    doseRules
-    |> Array.map _.Generic
-    |> Array.distinct
-    |> Array.sort
+let generics = doseRules |> Array.map _.Generic |> Array.distinct |> Array.sort
 
 
 printfn "\n=== All Generics ==="
@@ -51,14 +43,14 @@ generics |> Array.iter (printfn "  %s")
 let nutritionIndications =
     indications
     |> Array.filter (fun i ->
-        i.Contains("Parenter", StringComparison.OrdinalIgnoreCase) ||
-        i.Contains("Enter", StringComparison.OrdinalIgnoreCase) ||
-        i.Contains("Voeding", StringComparison.OrdinalIgnoreCase) ||
-        i.Contains("Nutrition", StringComparison.OrdinalIgnoreCase) ||
-        i.Contains("suppletie", StringComparison.OrdinalIgnoreCase) ||
-        i.Contains("lipid", StringComparison.OrdinalIgnoreCase) ||
-        i.Contains("glucose", StringComparison.OrdinalIgnoreCase) ||
-        i.Contains("elektrolyt", StringComparison.OrdinalIgnoreCase)
+        i.Contains("Parenter", StringComparison.OrdinalIgnoreCase)
+        || i.Contains("Enter", StringComparison.OrdinalIgnoreCase)
+        || i.Contains("Voeding", StringComparison.OrdinalIgnoreCase)
+        || i.Contains("Nutrition", StringComparison.OrdinalIgnoreCase)
+        || i.Contains("suppletie", StringComparison.OrdinalIgnoreCase)
+        || i.Contains("lipid", StringComparison.OrdinalIgnoreCase)
+        || i.Contains("glucose", StringComparison.OrdinalIgnoreCase)
+        || i.Contains("elektrolyt", StringComparison.OrdinalIgnoreCase)
     )
 
 
@@ -74,5 +66,6 @@ for ind in nutritionIndications do
         |> Array.map _.Generic
         |> Array.distinct
         |> Array.sort
+
     printfn $"\n=== Generics for '%s{ind}' ==="
     gens |> Array.iter (printfn "  %s")

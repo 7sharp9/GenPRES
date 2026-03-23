@@ -1,7 +1,6 @@
 namespace Informedica.GenOrder.Lib
 
 
-
 module Medication =
 
     open System
@@ -23,8 +22,7 @@ module Medication =
             match u with
             | Weight _ -> true
             | BSA _ -> true
-            | CombiUnit (ul, _, ur) ->
-                isAdjustUnitType ul || isAdjustUnitType ur
+            | CombiUnit(ul, _, ur) -> isAdjustUnitType ul || isAdjustUnitType ur
             | _ -> false
 
 
@@ -32,8 +30,7 @@ module Medication =
         let rec private isTimeUnitType (u: Unit) =
             match u with
             | Time _ -> true
-            | CombiUnit (ul, _, ur) ->
-                isTimeUnitType ul || isTimeUnitType ur
+            | CombiUnit(ul, _, ur) -> isTimeUnitType ul || isTimeUnitType ur
             | _ -> false
 
 
@@ -41,11 +38,10 @@ module Medication =
         /// by checking if the right side of a Per operation contains Weight or BSA
         let rec hasAdjustUnit (u: Unit) =
             match u with
-            | CombiUnit (ul, OpPer, ur) ->
+            | CombiUnit(ul, OpPer, ur) ->
                 // Check if denominator (right side) contains adjust unit
                 isAdjustUnitType ur || hasAdjustUnit ul
-            | CombiUnit (ul, _, ur) ->
-                hasAdjustUnit ul || hasAdjustUnit ur
+            | CombiUnit(ul, _, ur) -> hasAdjustUnit ul || hasAdjustUnit ur
             | _ -> false
 
 
@@ -53,55 +49,71 @@ module Medication =
         /// by checking if the right side of a Per operation contains Time
         let rec hasTimeUnit (u: Unit) =
             match u with
-            | CombiUnit (ul, OpPer, ur) ->
+            | CombiUnit(ul, OpPer, ur) ->
                 // Check if denominator (right side) contains time unit
                 isTimeUnitType ur || hasTimeUnit ul
-            | CombiUnit (ul, _, ur) ->
-                hasTimeUnit ul || hasTimeUnit ur
+            | CombiUnit(ul, _, ur) -> hasTimeUnit ul || hasTimeUnit ur
             | _ -> false
 
 
         /// Validate that unit matches Quantity field pattern: no adjust, no time
         let validateQuantityUnit (u: Unit) =
-            if hasAdjustUnit u then Error "Quantity cannot have adjust unit"
-            elif hasTimeUnit u then Error "Quantity cannot have time unit"
-            else Ok ()
+            if hasAdjustUnit u then
+                Error "Quantity cannot have adjust unit"
+            elif hasTimeUnit u then
+                Error "Quantity cannot have time unit"
+            else
+                Ok()
 
 
         /// Validate that unit matches QuantityAdjust field pattern: has adjust, no time
         let validateQuantityAdjustUnit (u: Unit) =
-            if not (hasAdjustUnit u) then Error "QuantityAdjust must have adjust unit (kg/m2)"
-            elif hasTimeUnit u then Error "QuantityAdjust cannot have time unit"
-            else Ok ()
+            if not (hasAdjustUnit u) then
+                Error "QuantityAdjust must have adjust unit (kg/m2)"
+            elif hasTimeUnit u then
+                Error "QuantityAdjust cannot have time unit"
+            else
+                Ok()
 
 
         /// Validate that unit matches PerTime field pattern: no adjust, has time
         let validatePerTimeUnit (u: Unit) =
-            if hasAdjustUnit u then Error "PerTime cannot have adjust unit"
-            elif not (hasTimeUnit u) then Error "PerTime must have time unit"
-            else Ok ()
+            if hasAdjustUnit u then
+                Error "PerTime cannot have adjust unit"
+            elif not (hasTimeUnit u) then
+                Error "PerTime must have time unit"
+            else
+                Ok()
 
 
         /// Validate that unit matches PerTimeAdjust field pattern: has adjust and time
         let validatePerTimeAdjustUnit (u: Unit) =
-            if not (hasAdjustUnit u) then Error "PerTimeAdjust must have adjust unit (kg/m2)"
-            elif not (hasTimeUnit u) then Error "PerTimeAdjust must have time unit"
-            else Ok ()
+            if not (hasAdjustUnit u) then
+                Error "PerTimeAdjust must have adjust unit (kg/m2)"
+            elif not (hasTimeUnit u) then
+                Error "PerTimeAdjust must have time unit"
+            else
+                Ok()
 
 
         /// Validate that unit matches Rate field pattern: no adjust, has time
         let validateRateUnit (u: Unit) =
-            if hasAdjustUnit u then Error "Rate cannot have adjust unit"
-            elif not (hasTimeUnit u) then Error "Rate must have time unit"
-            else Ok ()
+            if hasAdjustUnit u then
+                Error "Rate cannot have adjust unit"
+            elif not (hasTimeUnit u) then
+                Error "Rate must have time unit"
+            else
+                Ok()
 
 
         /// Validate that unit matches RateAdjust field pattern: has adjust and time
         let validateRateAdjustUnit (u: Unit) =
-            if not (hasAdjustUnit u) then Error "RateAdjust must have adjust unit (kg/m2)"
-            elif not (hasTimeUnit u) then Error "RateAdjust must have time unit"
-            else Ok ()
-
+            if not (hasAdjustUnit u) then
+                Error "RateAdjust must have adjust unit (kg/m2)"
+            elif not (hasTimeUnit u) then
+                Error "RateAdjust must have time unit"
+            else
+                Ok()
 
 
     /// Parser module to parse Medication text back to Medication record
@@ -113,19 +125,23 @@ module Medication =
         let parseLine (line: string) =
             // Try tabs first (preferred), then fall back to spaces (groups of 4)
             let tabIndent = line |> Seq.takeWhile ((=) '\t') |> Seq.length
+
             let indent =
-                if tabIndent > 0 then tabIndent
+                if tabIndent > 0 then
+                    tabIndent
                 else
                     // Count leading spaces and convert to indent level (4 spaces = 1 indent)
                     let spaceCount = line |> Seq.takeWhile ((=) ' ') |> Seq.length
                     spaceCount / 4
+
             let content = line.TrimStart([| '\t'; ' ' |])
+
             match content.IndexOf(':') with
             | -1 -> None
             | i ->
-                let key = content[..i-1].Trim()
-                let value = content[i+1..].Trim()
-                Some (indent, key, value)
+                let key = content[.. i - 1].Trim()
+                let value = content[i + 1 ..].Trim()
+                Some(indent, key, value)
 
 
         /// Parse OrderType from string
@@ -143,38 +159,38 @@ module Medication =
 
         /// Parse BigRational option from string (e.g., "2" or "1,5")
         let parseBigRationalOpt (s: string) =
-            if s |> String.IsNullOrWhiteSpace then None
+            if s |> String.IsNullOrWhiteSpace then
+                None
             else
                 // Handle Dutch decimal format (comma)
-                s.Replace(",", ".")
-                |> Double.tryParse
-                |> Option.bind BigRational.fromFloat
+                s.Replace(",", ".") |> Double.tryParse |> Option.bind BigRational.fromFloat
 
 
         /// Parse Dutch decimal value (comma as decimal separator, space as thousands separator)
         let parseDutchDecimal (s: string) : BigRational option =
             let cleaned =
-                s.Trim()
-                 .Replace(" ", "")  // Remove space thousands separator
-                 .Replace(",", ".") // Convert Dutch decimal to standard
-            cleaned
-            |> Double.tryParse
-            |> Option.bind BigRational.fromFloat
+                s
+                    .Trim()
+                    .Replace(" ", "") // Remove space thousands separator
+                    .Replace(",", ".") // Convert Dutch decimal to standard
+
+            cleaned |> Double.tryParse |> Option.bind BigRational.fromFloat
 
 
         /// Parse ValueUnit from Dutch format string
         /// Handles: "3;4 x/dag", "1, 10 mg/mL", "1 000 mg", "0,5 mL", "1 stuk"
         /// Note: comma-space "," is value separator, comma without space is Dutch decimal
         let parseValueUnit (s: string) : Result<ValueUnit, string> =
-            if s |> String.IsNullOrWhiteSpace then Error "Empty ValueUnit string"
+            if s |> String.IsNullOrWhiteSpace then
+                Error "Empty ValueUnit string"
             else
-                s
-                |> ValueUnit.fromString
+                s |> ValueUnit.fromString
 
 
         /// Parse ValueUnit option (returns Ok None for empty string)
-        let  parseValueUnitOpt (s: string) : Result<ValueUnit option, string> =
-            if s |> String.IsNullOrWhiteSpace then Ok None
+        let parseValueUnitOpt (s: string) : Result<ValueUnit option, string> =
+            if s |> String.IsNullOrWhiteSpace then
+                Ok None
             else
                 parseValueUnit s |> Result.map Some
 
@@ -182,7 +198,7 @@ module Medication =
         /// Parse MinMax from formatted string
         /// Handles: "" (empty), "10 mg" (exact), "10 - 20 mg" (range),
         ///          "min 10 mg" (min only), "max 10 mg" (max only)
-        let parseMinMax  = MinMax.parseMinMax
+        let parseMinMax = MinMax.parseMinMax
 
 
         /// Parse MinMax that may have /dosis suffix stripped
@@ -194,10 +210,8 @@ module Medication =
         /// Get the unit from a MinMax if available
         let getMinMaxUnit (mm: MinMax) : Unit option =
             match mm.Min, mm.Max with
-            | Some lim, _ ->
-                lim |> Limit.getValueUnit |> ValueUnit.getUnit |> Some
-            | _, Some lim ->
-                lim |> Limit.getValueUnit |> ValueUnit.getUnit |> Some
+            | Some lim, _ -> lim |> Limit.getValueUnit |> ValueUnit.getUnit |> Some
+            | _, Some lim -> lim |> Limit.getValueUnit |> ValueUnit.getUnit |> Some
             | None, None -> None
 
 
@@ -206,8 +220,10 @@ module Medication =
             (validator: Unit -> Result<unit, string>)
             (s: string)
             (perDose: bool)
-            : Result<MinMax, string> =
+            : Result<MinMax, string>
+            =
             let s = if perDose then s.Replace("/dosis", "").Trim() else s
+
             match parseMinMax s with
             | Error e -> Error e
             | Ok mm when mm = MinMax.empty -> Ok mm
@@ -217,14 +233,11 @@ module Medication =
                 | Some unit ->
                     match validator unit with
                     | Error e -> Error e
-                    | Ok () -> Ok mm
+                    | Ok() -> Ok mm
 
 
         /// Parse a MinMax value without validation (for labeled fields where we trust the label)
-        let parseMinMaxNoValidation
-            (s: string)
-            (perDose: bool)
-            : Result<MinMax, string> =
+        let parseMinMaxNoValidation (s: string) (perDose: bool) : Result<MinMax, string> =
             let s = if perDose then s.Replace("/dosis", "").Trim() else s
             parseMinMax s
 
@@ -234,25 +247,28 @@ module Medication =
         /// e.g., "paracetamol, [qty-adj] 10 - 20 mg/kg/dosis"
         /// Note: Cannot split naively by comma because Dutch decimals use comma (e.g., "5,4")
         let parseDoseLimitOpt target (s: string) : Result<DoseLimit option, string> =
-            if s |> String.IsNullOrWhiteSpace then Ok None
+            if s |> String.IsNullOrWhiteSpace then
+                Ok None
             else
                 // All known field labels
-                let allLabels = [
-                    DoseLimit.FieldLabels.DoseUnit
-                    DoseLimit.FieldLabels.Quantity
-                    DoseLimit.FieldLabels.QuantityAdjust
-                    DoseLimit.FieldLabels.PerTime
-                    DoseLimit.FieldLabels.PerTimeAdjust
-                    DoseLimit.FieldLabels.Rate
-                    DoseLimit.FieldLabels.RateAdjust
-                ]
+                let allLabels =
+                    [
+                        DoseLimit.FieldLabels.DoseUnit
+                        DoseLimit.FieldLabels.Quantity
+                        DoseLimit.FieldLabels.QuantityAdjust
+                        DoseLimit.FieldLabels.PerTime
+                        DoseLimit.FieldLabels.PerTimeAdjust
+                        DoseLimit.FieldLabels.Rate
+                        DoseLimit.FieldLabels.RateAdjust
+                    ]
 
                 // Find the position of the first field label to separate target from constraints
                 let firstLabelPos =
                     allLabels
                     |> List.choose (fun label ->
                         let idx = s.IndexOf(label)
-                        if idx >= 0 then Some idx else None)
+                        if idx >= 0 then Some idx else None
+                    )
                     |> List.sort
                     |> List.tryHead
 
@@ -262,24 +278,26 @@ module Medication =
                     | Some pos when pos > 0 ->
                         let targetStr = s.Substring(0, pos).Trim().TrimEnd(',').Trim()
                         let constraintsStr = s.Substring(pos)
-                        if targetStr |> String.isNullOrWhiteSpace &&
-                           constraintsStr |> String.isNullOrWhiteSpace then
+
+                        if
+                            targetStr |> String.isNullOrWhiteSpace
+                            && constraintsStr |> String.isNullOrWhiteSpace
+                        then
                             NoLimitTarget, constraintsStr
                         else
                             target targetStr, constraintsStr
-                    | Some 0 ->
-                        NoLimitTarget, s
+                    | Some 0 -> NoLimitTarget, s
                     | None ->
                         // No labels found - try legacy parsing
                         // Split by ", " followed by a digit or min/max
                         let splitRegex = Text.RegularExpressions.Regex(", (?=\d|min |max |\[)")
                         let parts = splitRegex.Split(s) |> Array.map _.Trim() |> Array.toList
+
                         match parts with
                         | [] -> NoLimitTarget, ""
                         | first :: rest when not (first |> Seq.exists Char.IsDigit) ->
                             SubstanceLimitTarget first, rest |> String.concat ", "
-                        | _ ->
-                            NoLimitTarget, s
+                        | _ -> NoLimitTarget, s
                     | _ -> $"{firstLabelPos} not valid" |> failwith
 
                 // Split constraints by field labels using regex
@@ -293,75 +311,85 @@ module Medication =
 
                 // Field label parsers - when we have explicit labels, we trust them
                 // and don't apply validation (validation is only for heuristic fallback)
-                let fieldParsers : (string * (string -> Result<Informedica.GenCore.Lib.Ranges.MinMax, string>) * (DoseLimit -> Informedica.GenCore.Lib.Ranges.MinMax -> DoseLimit)) list = [
-                    DoseLimit.FieldLabels.Quantity,
+                let fieldParsers
+                    : (string *
+                      (string -> Result<Informedica.GenCore.Lib.Ranges.MinMax, string>) *
+                      (DoseLimit -> Informedica.GenCore.Lib.Ranges.MinMax -> DoseLimit)) list =
+                    [
+                        DoseLimit.FieldLabels.Quantity,
                         (fun s -> parseMinMaxNoValidation s true),
                         (fun (dl: DoseLimit) mm -> { dl with Quantity = mm })
 
-                    DoseLimit.FieldLabels.QuantityAdjust,
+                        DoseLimit.FieldLabels.QuantityAdjust,
                         (fun s -> parseMinMaxNoValidation s true),
                         (fun (dl: DoseLimit) mm -> { dl with QuantityAdjust = mm })
 
-                    DoseLimit.FieldLabels.PerTime,
+                        DoseLimit.FieldLabels.PerTime,
                         (fun s -> parseMinMaxNoValidation s false),
                         (fun (dl: DoseLimit) mm -> { dl with PerTime = mm })
 
-                    DoseLimit.FieldLabels.PerTimeAdjust,
+                        DoseLimit.FieldLabels.PerTimeAdjust,
                         (fun s -> parseMinMaxNoValidation s false),
                         (fun (dl: DoseLimit) mm -> { dl with PerTimeAdjust = mm })
 
-                    DoseLimit.FieldLabels.Rate,
+                        DoseLimit.FieldLabels.Rate,
                         (fun s -> parseMinMaxNoValidation s false),
                         (fun (dl: DoseLimit) mm -> { dl with Rate = mm })
 
-                    DoseLimit.FieldLabels.RateAdjust,
+                        DoseLimit.FieldLabels.RateAdjust,
                         (fun s -> parseMinMaxNoValidation s false),
                         (fun (dl: DoseLimit) mm -> { dl with RateAdjust = mm })
-                ]
+                    ]
 
                 // Process regex matches for labeled fields
                 for m in matches do
-                    let labelContent = m.Groups[1].Value  // e.g., "qty-adj"
+                    let labelContent = m.Groups[1].Value // e.g., "qty-adj"
                     let valueStr = m.Groups[2].Value.Trim().TrimEnd(',').Trim()
                     let fullLabel = $"[{labelContent}]"
 
                     // Skip empty values - they represent default/unset fields
                     if valueStr |> String.IsNullOrWhiteSpace then
-                        ()  // Skip this field
+                        () // Skip this field
                     elif fullLabel = DoseLimit.FieldLabels.DoseUnit then
                         let dun = valueStr |> Units.fromString
+
                         match dun with
                         | Some un -> dl <- { dl with DoseUnit = un }
-                        | None -> errors <- $"Unknown dose unit: {valueStr}"::errors
+                        | None -> errors <- $"Unknown dose unit: {valueStr}" :: errors
                     else
                         let labelMatch =
-                            fieldParsers
-                            |> List.tryFind (fun (label, _, _) -> label = fullLabel)
+                            fieldParsers |> List.tryFind (fun (label, _, _) -> label = fullLabel)
 
                         match labelMatch with
-                        | Some (label, parser, setter) ->
+                        | Some(label, parser, setter) ->
                             match parser valueStr with
                             | Ok mm -> dl <- setter dl mm
                             | Error e -> errors <- $"{label}: {e}" :: errors
-                        | None ->
-                            errors <- $"Unknown field label: {fullLabel}" :: errors
+                        | None -> errors <- $"Unknown field label: {fullLabel}" :: errors
 
                 // If no labeled matches and we have constraintsStr, return error requiring labels
                 if matches.Count = 0 && not (constraintsStr |> String.IsNullOrWhiteSpace) then
-                    errors <- "DoseLimit fields must use labels like [qty], [qty-adj], [per-time], etc. Unlabeled input is not supported." :: errors
+                    errors <-
+                        "DoseLimit fields must use labels like [qty], [qty-adj], [per-time], etc. Unlabeled input is not supported."
+                        :: errors
 
                 // Return result
-                if errors.IsEmpty then Ok (Some dl)
-                else Error (errors |> String.concat "; ")
+                if errors.IsEmpty then
+                    Ok(Some dl)
+                else
+                    Error(errors |> String.concat "; ")
 
 
         /// Parse SolutionLimit from formatted string using labeled fields
         /// Labels: [qty] for Quantity, [qty-adj] for QuantityAdj, [conc] for Concentration
         let parseSolutionLimitOpt (s: string) : Result<SolutionLimit option, string> =
-            if s |> String.IsNullOrWhiteSpace then Ok None
+            if s |> String.IsNullOrWhiteSpace then
+                Ok None
             else
                 // Match labeled fields: [label] value
-                let labeledFieldRegex = System.Text.RegularExpressions.Regex(@"\[([^\]]+)\]\s*([^[]*)")
+                let labeledFieldRegex =
+                    System.Text.RegularExpressions.Regex(@"\[([^\]]+)\]\s*([^[]*)")
+
                 let matches = labeledFieldRegex.Matches(s)
 
                 let mutable sl = SolutionLimit.limit
@@ -376,7 +404,7 @@ module Medication =
                         | "qts" ->
                             match parseValueUnitOpt valueStr with
                             | Ok vuOpt -> sl <- { sl with Quantities = vuOpt }
-                            | Error e -> errors <- $"[qts]: {e}"::errors
+                            | Error e -> errors <- $"[qts]: {e}" :: errors
                         | "qty" ->
                             match parseMinMax valueStr with
                             | Ok mm -> sl <- { sl with Quantity = mm }
@@ -389,31 +417,30 @@ module Medication =
                             match parseMinMax valueStr with
                             | Ok mm -> sl <- { sl with Concentration = mm }
                             | Error e -> errors <- $"[conc]: {e}" :: errors
-                        | _ ->
-                            errors <- $"Unknown SolutionLimit label: [{label}]" :: errors
+                        | _ -> errors <- $"Unknown SolutionLimit label: [{label}]" :: errors
 
                 // If no labeled matches and we have input, return error requiring labels
                 if matches.Count = 0 then
-                    errors <- "SolutionLimit fields must use labels like [qty], [qty-adj], [conc]. Unlabeled input is not supported." :: errors
+                    errors <-
+                        "SolutionLimit fields must use labels like [qty], [qty-adj], [conc]. Unlabeled input is not supported."
+                        :: errors
 
                 if errors.IsEmpty then
-                    if sl = SolutionLimit.limit then Ok None
-                    else Ok (Some sl)
-                else Error (errors |> String.concat "; ")
+                    if sl = SolutionLimit.limit then Ok None else Ok(Some sl)
+                else
+                    Error(errors |> String.concat "; ")
 
 
         /// Parse SubstanceItem from field map
         let parseSubstanceItem (fields: Map<string, string>) : Result<SubstanceItem, string list> =
             let mutable errors = []
 
-            let name =
-                fields
-                |> Map.tryFind "Name"
-                |> Option.defaultValue ""
+            let name = fields |> Map.tryFind "Name" |> Option.defaultValue ""
 
             let quantities =
                 match fields |> Map.tryFind "Quantities" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseValueUnitOpt s with
                     | Ok vu -> vu
@@ -423,7 +450,8 @@ module Medication =
 
             let concentrations =
                 match fields |> Map.tryFind "Concentrations" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseValueUnitOpt s with
                     | Ok vu -> vu
@@ -433,7 +461,8 @@ module Medication =
 
             let dose =
                 match fields |> Map.tryFind "Dose" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseDoseLimitOpt SubstanceLimitTarget s with
                     | Ok dl -> dl
@@ -443,7 +472,8 @@ module Medication =
 
             let solution =
                 match fields |> Map.tryFind "Solution" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseSolutionLimitOpt s with
                     | Ok sl -> sl
@@ -452,33 +482,34 @@ module Medication =
                         None
 
             if errors.IsEmpty then
-                Ok {
-                    Name = name
-                    Quantities = quantities
-                    Concentrations = concentrations
-                    Dose = dose
-                    Solution = solution
-                }
-            else Error errors
+                Ok
+                    {
+                        Name = name
+                        Quantities = quantities
+                        Concentrations = concentrations
+                        Dose = dose
+                        Solution = solution
+                    }
+            else
+                Error errors
 
 
         /// Parse ProductComponent from field map and nested substances
-        let parseProductComponent (fields: Map<string, string>) (substances: SubstanceItem list) : Result<ProductComponent, string list> =
+        let parseProductComponent
+            (fields: Map<string, string>)
+            (substances: SubstanceItem list)
+            : Result<ProductComponent, string list>
+            =
             let mutable errors = []
 
-            let name =
-                fields
-                |> Map.tryFind "Name"
-                |> Option.defaultValue ""
+            let name = fields |> Map.tryFind "Name" |> Option.defaultValue ""
 
-            let form =
-                fields
-                |> Map.tryFind "Form"
-                |> Option.defaultValue ""
+            let form = fields |> Map.tryFind "Form" |> Option.defaultValue ""
 
             let quantities =
                 match fields |> Map.tryFind "Quantities" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseValueUnitOpt s with
                     | Ok vu -> vu
@@ -486,14 +517,12 @@ module Medication =
                         errors <- e :: errors
                         None
 
-            let divisible =
-                fields
-                |> Map.tryFind "Divisible"
-                |> Option.bind parseBigRationalOpt
+            let divisible = fields |> Map.tryFind "Divisible" |> Option.bind parseBigRationalOpt
 
             let dose =
                 match fields |> Map.tryFind "Dose" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseDoseLimitOpt ComponentLimitTarget s with
                     | Ok dl -> dl
@@ -503,7 +532,8 @@ module Medication =
 
             let solution =
                 match fields |> Map.tryFind "Solution" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseSolutionLimitOpt s with
                     | Ok sl -> sl
@@ -512,16 +542,18 @@ module Medication =
                         None
 
             if errors.IsEmpty then
-                Ok {
-                    Name = name
-                    Form = form
-                    Quantities = quantities
-                    Divisible = divisible
-                    Dose = dose
-                    Solution = solution
-                    Substances = substances
-                }
-            else Error errors
+                Ok
+                    {
+                        Name = name
+                        Form = form
+                        Quantities = quantities
+                        Divisible = divisible
+                        Dose = dose
+                        Solution = solution
+                        Substances = substances
+                    }
+            else
+                Error errors
 
 
         /// Main parsing function
@@ -538,23 +570,28 @@ module Medication =
             let mutable currentSubstances = []
             let mutable currentSubstanceFields = Map.empty
 
-            let mutable parseErrors : string list = []
+            let mutable parseErrors: string list = []
 
             let finishSubstance () =
                 if not currentSubstanceFields.IsEmpty then
                     match parseSubstanceItem currentSubstanceFields with
                     | Ok si -> currentSubstances <- si :: currentSubstances
                     | Error errs ->
-                        for e in errs do parseErrors <- e :: parseErrors
+                        for e in errs do
+                            parseErrors <- e :: parseErrors
+
                     currentSubstanceFields <- Map.empty
 
             let finishComponent () =
                 finishSubstance ()
+
                 if not currentComponentFields.IsEmpty then
                     match parseProductComponent currentComponentFields (currentSubstances |> List.rev) with
                     | Ok pc -> components <- pc :: components
                     | Error errs ->
-                        for e in errs do parseErrors <- e :: parseErrors
+                        for e in errs do
+                            parseErrors <- e :: parseErrors
+
                     currentComponentFields <- Map.empty
                     currentSubstances <- []
 
@@ -569,6 +606,7 @@ module Medication =
                     if key = "Name" && currentComponentFields.ContainsKey "Name" then
                         // Starting a new component
                         finishComponent ()
+
                     if key = "Substances" then
                         () // Marker for substances section
                     else
@@ -577,6 +615,7 @@ module Medication =
                     if key = "Name" && currentSubstanceFields.ContainsKey "Name" then
                         // Starting a new substance
                         finishSubstance ()
+
                     currentSubstanceFields <- currentSubstanceFields |> Map.add key value
                 | _ -> ()
 
@@ -586,20 +625,11 @@ module Medication =
             // Parse top-level fields
             let mutable errors = []
 
-            let id =
-                topFields
-                |> Map.tryFind "Id"
-                |> Option.defaultValue ""
+            let id = topFields |> Map.tryFind "Id" |> Option.defaultValue ""
 
-            let name =
-                topFields
-                |> Map.tryFind "Name"
-                |> Option.defaultValue ""
+            let name = topFields |> Map.tryFind "Name" |> Option.defaultValue ""
 
-            let route =
-                topFields
-                |> Map.tryFind "Route"
-                |> Option.defaultValue ""
+            let route = topFields |> Map.tryFind "Route" |> Option.defaultValue ""
 
             let orderType =
                 match topFields |> Map.tryFind "OrderType" with
@@ -613,7 +643,8 @@ module Medication =
 
             let quantity =
                 match topFields |> Map.tryFind "Quantity" with
-                | None | Some "" -> MinMax.empty
+                | None
+                | Some "" -> MinMax.empty
                 | Some s ->
                     match parseMinMax s with
                     | Ok mm -> mm
@@ -623,7 +654,8 @@ module Medication =
 
             let quantities =
                 match topFields |> Map.tryFind "Quantities" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseValueUnitOpt s with
                     | Ok vu -> vu
@@ -633,7 +665,8 @@ module Medication =
 
             let adjust =
                 match topFields |> Map.tryFind "Adjust" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseValueUnitOpt s with
                     | Ok vu -> vu
@@ -643,7 +676,8 @@ module Medication =
 
             let frequencies =
                 match topFields |> Map.tryFind "Frequencies" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseValueUnitOpt s with
                     | Ok vu -> vu
@@ -653,7 +687,8 @@ module Medication =
 
             let time =
                 match topFields |> Map.tryFind "Time" with
-                | None | Some "" -> MinMax.empty
+                | None
+                | Some "" -> MinMax.empty
                 | Some s ->
                     match parseMinMax s with
                     | Ok mm -> mm
@@ -663,7 +698,8 @@ module Medication =
 
             let dose =
                 match topFields |> Map.tryFind "Dose" with
-                | None | Some "" -> None
+                | None
+                | Some "" -> None
                 | Some s ->
                     match parseDoseLimitOpt (fun _ -> OrderableLimitTarget) s with
                     | Ok dl -> dl
@@ -671,14 +707,12 @@ module Medication =
                         errors <- e :: errors
                         None
 
-            let div =
-                topFields
-                |> Map.tryFind "Div"
-                |> Option.bind parseBigRationalOpt
+            let div = topFields |> Map.tryFind "Div" |> Option.bind parseBigRationalOpt
 
             let doseCount =
                 match topFields |> Map.tryFind "DoseCount" with
-                | None | Some "" -> MinMax.empty
+                | None
+                | Some "" -> MinMax.empty
                 | Some s ->
                     match parseMinMax s with
                     | Ok mm -> mm
@@ -690,7 +724,8 @@ module Medication =
             let allErrors = errors @ parseErrors
 
             if allErrors.IsEmpty then
-                Ok {
+                Ok
+                    {
                         Id = id
                         Name = name
                         Components = components |> List.rev
@@ -705,13 +740,15 @@ module Medication =
                         DoseCount = doseCount
                         Adjust = adjust
                     }
-            else Error allErrors
+            else
+                Error allErrors
 
 
     module Limit = Limit
 
 
-    let private tryHead m = Array.map m >> Array.tryHead >> Option.defaultValue ""
+    let private tryHead m =
+        Array.map m >> Array.tryHead >> Option.defaultValue ""
 
 
     let valueUnitOptToString =
@@ -719,15 +756,11 @@ module Medication =
         >> Option.defaultValue ""
 
 
-    let minMaxToString (minMax : MinMax) =
-        if minMax = MinMax.empty then ""
+    let minMaxToString (minMax: MinMax) =
+        if minMax = MinMax.empty then
+            ""
         else
-            minMax
-            |> Utils.MinMax.toString
-                "min "
-                "min "
-                "max "
-                "max "
+            minMax |> Utils.MinMax.toString "min " "min " "max " "max "
 
 
     let limitOptToString =
@@ -737,8 +770,7 @@ module Medication =
             >> List.filter (String.isNullOrWhiteSpace >> not)
             >> String.concat ", "
 
-        Option.map toStr
-        >> Option.defaultValue ""
+        Option.map toStr >> Option.defaultValue ""
 
 
     let solutionLimitOptToString =
@@ -748,8 +780,7 @@ module Medication =
             >> List.filter (String.isNullOrWhiteSpace >> not)
             >> String.concat ", "
 
-        Option.map toStr
-        >> Option.defaultValue ""
+        Option.map toStr >> Option.defaultValue ""
 
 
     /// <summary>
@@ -761,20 +792,18 @@ module Medication =
     /// <param name="calcNormDose">Whether this is a norm dose so a 20% range has to be calculated</param>
     /// <param name="minMax">The MinMax record containing constraints.</param>
     /// <param name="dto">The Variable dto to apply constraints to.</param>
-    let setMinMaxConstraints
-        calcNormDose
-        (minMax : MinMax)
-        (dto: Informedica.GenSolver.Lib.Variable.Dto.Dto) =
+    let setMinMaxConstraints calcNormDose (minMax: MinMax) (dto: Informedica.GenSolver.Lib.Variable.Dto.Dto) =
 
         let vuToDto = Option.bind (ValueUnit.Dto.toDto false ValueUnit.Dto.english)
 
         let limToVu = Option.map Limit.getValueUnit
 
-        let times0_90 = 90N/100N |> ValueUnit.singleWithUnit Units.Count.times
-        let times1_10 = 11N/10N |> ValueUnit.singleWithUnit Units.Count.times
+        let times0_90 = 90N / 100N |> ValueUnit.singleWithUnit Units.Count.times
+        let times1_10 = 11N / 10N |> ValueUnit.singleWithUnit Units.Count.times
 
         let isNormDose =
-            if not calcNormDose then false
+            if not calcNormDose then
+                false
             else
                 match minMax.Min, minMax.Max with
                 | Some minLimit, Some maxLimit -> minLimit |> Limit.eq maxLimit
@@ -783,17 +812,13 @@ module Medication =
         let min =
             minMax.Min
             |> limToVu
-            |> Option.map (fun vu ->
-                if isNormDose then vu * times0_90 else vu
-            )
+            |> Option.map (fun vu -> if isNormDose then vu * times0_90 else vu)
             |> vuToDto
 
         let max =
             minMax.Max
             |> limToVu
-            |> Option.map (fun vu ->
-                if isNormDose then vu * times1_10 else vu
-            )
+            |> Option.map (fun vu -> if isNormDose then vu * times1_10 else vu)
             |> vuToDto
 
         match min with
@@ -801,6 +826,7 @@ module Medication =
         | Some _ ->
             dto.MinIncl <- min.IsSome
             dto.MinOpt <- min
+
         match max with
         | None -> ()
         | Some _ ->
@@ -817,11 +843,10 @@ module Medication =
     /// If the unit is null or an empty string, the function returns None.
     /// </remarks>
     let createValueUnitDto u brs =
-        if u = NoUnit then None
+        if u = NoUnit then
+            None
         else
-            brs
-            |> ValueUnit.withUnit u
-            |> ValueUnit.Dto.toDto false ValueUnit.Dto.english
+            brs |> ValueUnit.withUnit u |> ValueUnit.Dto.toDto false ValueUnit.Dto.english
 
     /// <summary>
     /// Create a single value unit dto from a string and a big rational.
@@ -831,8 +856,7 @@ module Medication =
     /// <remarks>
     /// If the unit is null or an empty string, the function returns None.
     /// </remarks>
-    let createSingleValueUnitDto u br =
-        createValueUnitDto u [| br |]
+    let createSingleValueUnitDto u br = createValueUnitDto u [| br |]
 
 
     module SubstanceItem =
@@ -883,16 +907,7 @@ module Medication =
                 Substances = []
             }
 
-        let create
-            nme
-            frm
-            qts
-            div
-            dos
-            sol
-            sbs
-            : ProductComponent
-            =
+        let create nme frm qts div dos sol sbs : ProductComponent =
             {
                 Name = nme
                 Form = frm
@@ -903,7 +918,7 @@ module Medication =
                 Substances = sbs
             }
 
-        let toString (prodCmp : ProductComponent) =
+        let toString (prodCmp: ProductComponent) =
             [
                 "Name", prodCmp.Name
                 "Form", prodCmp.Form
@@ -912,8 +927,7 @@ module Medication =
                 "Dose", prodCmp.Dose |> limitOptToString
                 "Solution", prodCmp.Solution |> solutionLimitOptToString
                 "Substances", ""
-            ]
-            ,
+            ],
             prodCmp.Substances |> List.map SubstanceItem.toString
 
 
@@ -939,19 +953,21 @@ module Medication =
 
     let toString (med: Medication) =
         let emptyStr = ""
-        let optToStr f opt = opt |> Option.map f |> Option.defaultValue emptyStr
+
+        let optToStr f opt =
+            opt |> Option.map f |> Option.defaultValue emptyStr
+
         let mmToStr =
             MinMax.toString
-                    ValueUnit.toStringDecimalEngShortWithoutGroup
-                    ValueUnit.toStringDecimalEngShortWithoutGroup
-                    "min "
-                    "min "
-                    "max "
-                    "max "
+                ValueUnit.toStringDecimalEngShortWithoutGroup
+                ValueUnit.toStringDecimalEngShortWithoutGroup
+                "min "
+                "min "
+                "max "
+                "max "
         // Convert SolutionLimit to labeled string format
         let slToStr = SolutionLimit.toString >> String.concat " "
-        let vuToStr =
-            optToStr ValueUnit.toStringDecimalEngShortWithoutGroup
+        let vuToStr = optToStr ValueUnit.toStringDecimalEngShortWithoutGroup
 
         [
             $"Id: %s{med.Id}"
@@ -976,6 +992,7 @@ module Medication =
                 $"\tDose: %s{cmp.Dose |> limitOptToString}"
                 $"\tSolution: %s{cmp.Solution |> optToStr slToStr}"
                 $"\tSubstances:"
+
                 for sub in cmp.Substances do
                     emptyStr
                     $"\t\tName: %s{sub.Name}"
@@ -1007,24 +1024,20 @@ module Medication =
     /// </summary>
     /// <param name="solutionRule">The SolutionRule for the ProductComponent</param>
     /// <param name="limits">The ComponentLimits for the ProductComponent</param>
-    let createComponents
-        (solutionRule: SolutionRule option)
-        (limits : ComponentLimit []) =
+    let createComponents (solutionRule: SolutionRule option) (limits: ComponentLimit[]) =
 
         let filterByUnitGroup (context: string) (vus: ValueUnit[]) =
-            if vus.Length <= 1 then vus
+            if vus.Length <= 1 then
+                vus
             else
-                let grouped =
+                let grouped = vus |> Array.groupBy (ValueUnit.getGroup)
+
+                if grouped.Length <= 1 then
                     vus
-                    |> Array.groupBy (ValueUnit.getGroup)
-
-                if grouped.Length <= 1 then vus
                 else
-                    let maxLen =
-                        grouped |> Array.map (snd >> Array.length) |> Array.max
+                    let maxLen = grouped |> Array.map (snd >> Array.length) |> Array.max
 
-                    let winners =
-                        grouped |> Array.filter (fun (_, xs) -> xs.Length = maxLen)
+                    let winners = grouped |> Array.filter (fun (_, xs) -> xs.Length = maxLen)
 
                     if winners.Length > 1 then
                         writeWarningMessage
@@ -1033,8 +1046,7 @@ module Medication =
                     let _, kept = winners[0]
                     let filtered = vus.Length - kept.Length
 
-                    writeWarningMessage
-                        $"{context}: filtered {filtered} value(s) with incompatible unit group"
+                    writeWarningMessage $"{context}: filtered {filtered} value(s) with incompatible unit group"
 
                     kept
 
@@ -1044,18 +1056,20 @@ module Medication =
                 lim.Products
                 |> tryHead _.Form
                 |> fun s ->
-                    if s |> String.isNullOrWhiteSpace then "oplosvloeistof"
-                    else s
+                    if s |> String.isNullOrWhiteSpace then
+                        "oplosvloeistof"
+                    else
+                        s
 
             {
                 Name =
-                    if lim.Name |> String.isNullOrWhiteSpace then "oplosvloeistof"
-                    else lim.Name
+                    if lim.Name |> String.isNullOrWhiteSpace then
+                        "oplosvloeistof"
+                    else
+                        lim.Name
                 Form = shape
                 Quantities =
-                    let oneMl =
-                        1N
-                        |> ValueUnit.singleWithUnit Units.Volume.milliLiter
+                    let oneMl = 1N |> ValueUnit.singleWithUnit Units.Volume.milliLiter
 
                     let qts =
                         lim.Products
@@ -1065,24 +1079,13 @@ module Medication =
 
                     let isVol =
                         qts
-                        |> Option.map (fun vu ->
-                            vu
-                            |> ValueUnit.eqsGroup oneMl
-                        )
+                        |> Option.map (fun vu -> vu |> ValueUnit.eqsGroup oneMl)
                         |> Option.defaultValue false
 
-                    let hasReconst =
-                        lim.Products
-                        |> Array.forall _.RequiresReconstitution
+                    let hasReconst = lim.Products |> Array.forall _.RequiresReconstitution
 
-                    if isVol && hasReconst |> not then
-                        Some oneMl
-                    else
-                        qts
-                Divisible =
-                    lim.Products
-                    |> Array.choose _.Divisible
-                    |> Array.tryHead
+                    if isVol && hasReconst |> not then Some oneMl else qts
+                Divisible = lim.Products |> Array.choose _.Divisible |> Array.tryHead
                 Solution = None
                 Dose = lim.Limit
                 Substances =
@@ -1094,19 +1097,17 @@ module Medication =
                             lim.SubstanceLimits
                             |> Array.tryFind (fun l ->
                                 match l.DoseLimitTarget with
-                                | SubstanceLimitTarget s ->
-                                    s |> String.equalsCapInsens n
+                                | SubstanceLimitTarget s -> s |> String.equalsCapInsens n
                                 | _ -> false
                             )
 
                         {
                             Name = n
                             Quantities =
-                                let prods =
-                                    lim.Products
-                                    |> Array.filter _.RequiresReconstitution
+                                let prods = lim.Products |> Array.filter _.RequiresReconstitution
 
-                                if prods |> Array.isEmpty then None
+                                if prods |> Array.isEmpty then
+                                    None
                                 else
                                     xs
                                     |> Array.choose (fun (s, p) ->
@@ -1145,19 +1146,19 @@ module Medication =
     /// </summary>
     /// <param name="sls">The SolutionLimits to set</param>
     /// <param name="items">The SubstanceItems to set the SolutionLimits for</param>
-    let setSolutionLimit (sls : SolutionLimit[]) (items : SubstanceItem list) =
+    let setSolutionLimit (sls: SolutionLimit[]) (items: SubstanceItem list) =
         items
         |> List.map (fun item ->
-            match sls |> Array.tryFind (fun sl ->
-                match sl.SolutionLimitTarget with
-                | SubstanceLimitTarget s -> s |> String.equalsCapInsens item.Name
-                | _ -> false
-            ) with
+            match
+                sls
+                |> Array.tryFind (fun sl ->
+                    match sl.SolutionLimitTarget with
+                    | SubstanceLimitTarget s -> s |> String.equalsCapInsens item.Name
+                    | _ -> false
+                )
+            with
             | None -> item
-            | Some sl ->
-                { item with
-                    Solution = Some sl
-                }
+            | Some sl -> { item with Solution = Some sl }
         )
 
 
@@ -1171,12 +1172,10 @@ module Medication =
                     { DoseLimit.limit with
                         Rate = sr.DripRate
                         DoseUnit = Units.Volume.milliLiter
-                    } |> Some
+                    }
+                    |> Some
                 Quantity = sr.Volume
-                Quantities =
-                    if sr.Volumes.IsNone then med.Quantities
-                    else
-                        sr.Volumes
+                Quantities = if sr.Volumes.IsNone then med.Quantities else sr.Volumes
                 Div = sr.Div
                 DoseCount =
                     // Change percentage to count!
@@ -1190,38 +1189,35 @@ module Medication =
                         |> List.map (fun pc ->
                             { pc with
                                 Form = pc.Form
-                                Substances =
-                                    pc.Substances
-                                    |> setSolutionLimit sr.SolutionLimits
+                                Substances = pc.Substances |> setSolutionLimit sr.SolutionLimits
                             }
                         )
 
                     sr.Diluents
                     |> Array.tryHead
                     |> function
-                    | Some p ->
-                        [|
-                            {
-                                Name = p.Generic
-                                GPKs = [| p.GPK |]
-                                Limit = None
-                                Products = [| p |]
-                                SubstanceLimits = [||]
-                            }
-                        |]
-                        |> createComponents None
-                        |> List.append ps
-                    | None ->
-                        writeWarningMessage "No diluents available"
-                        ps
+                        | Some p ->
+                            [|
+                                {
+                                    Name = p.Generic
+                                    GPKs = [| p.GPK |]
+                                    Limit = None
+                                    Products = [| p |]
+                                    SubstanceLimits = [||]
+                                }
+                            |]
+                            |> createComponents None
+                            |> List.append ps
+                        | None ->
+                            writeWarningMessage "No diluents available"
+                            ps
                     |> List.map (fun pc ->
                         { pc with
                             Solution =
                                 sr.SolutionLimits
                                 |> Array.tryFind (fun sl ->
                                     match sl.SolutionLimitTarget with
-                                    | ComponentLimitTarget c ->
-                                        c |> String.equalsCapInsens pc.Name
+                                    | ComponentLimitTarget c -> c |> String.equalsCapInsens pc.Name
                                     | _ -> false
                                 )
                                 |> Option.map (fun sol ->
@@ -1230,13 +1226,12 @@ module Medication =
                                             match pat.Weight with
                                             | None -> sol.Quantity
                                             | Some w ->
-                                                match sol.Quantity |> MinMax.isEmpty, sol.QuantityAdj |> MinMax.isEmpty with
-                                                | true, false -> sol.QuantityAdj |> MinMax.apply (( * ) w)
+                                                match
+                                                    sol.Quantity |> MinMax.isEmpty, sol.QuantityAdj |> MinMax.isEmpty
+                                                with
+                                                | true, false -> sol.QuantityAdj |> MinMax.apply ((*) w)
                                                 | true, true ->
-                                                    [
-                                                        sol.Quantity
-                                                        sol.QuantityAdj |> MinMax.apply (( * ) w)
-                                                    ]
+                                                    [ sol.Quantity; sol.QuantityAdj |> MinMax.apply ((*) w) ]
                                                     |> MinMax.foldMinimize true true
                                                 | _ -> sol.Quantity
                                     }
@@ -1247,19 +1242,18 @@ module Medication =
 
 
     /// Create a Medication Order from patient information and dose rules
-    let create (pat : Patient) au dose (dr : DoseRule) (sr: SolutionRule option) =
+    let create (pat: Patient) au dose (dr: DoseRule) (sr: SolutionRule option) =
         { template with
             Id = Guid.NewGuid().ToString()
             Name = dr.Generic |> String.toLower
-            Components =
-                dr.ComponentLimits
-                |> createComponents sr
+            Components = dr.ComponentLimits |> createComponents sr
             Quantities = None
             Frequencies = dr.Frequencies
             Time = dr.AdministrationTime
             Route = dr.Route
             DoseCount =
-                if sr.IsSome then MinMax.empty // Note: dose count will be set in the addSolution
+                if sr.IsSome then
+                    MinMax.empty // Note: dose count will be set in the addSolution
                 else
                     // No solution rule, set it to 1
                     let u = Units.Count.times |> Some
@@ -1277,8 +1271,9 @@ module Medication =
             Adjust =
                 if au |> ValueUnit.Group.eqsGroup Units.Weight.kiloGram then
                     pat.Weight
-                else pat |> Patient.calcBSA
-            //AdjustUnit = Some au
+                else
+                    pat |> Patient.calcBSA
+        //AdjustUnit = Some au
         }
         |> addSolution pat sr
 
@@ -1288,26 +1283,23 @@ module Medication =
     /// </summary>
     /// <param name="logger">The logger instance for logging medication creation events</param>
     /// <param name="pr">The PrescriptionRule to use</param>
-    let fromRule logger (pr : PrescriptionRule) =
-        let au =
-            pr.DoseRule.AdjustUnit
-            |> Option.defaultValue Units.Weight.kiloGram
+    let fromRule logger (pr: PrescriptionRule) =
+        let au = pr.DoseRule.AdjustUnit |> Option.defaultValue Units.Weight.kiloGram
 
         let dose = pr.DoseRule.FormLimit
 
         let create = create pr.Patient au dose pr.DoseRule
 
         let meds =
-            if pr.SolutionRules |> Array.isEmpty then [| create  None |]
+            if pr.SolutionRules |> Array.isEmpty then
+                [| create None |]
             else
-                pr.SolutionRules
-                |> Array.map Some
-                |> Array.map create
+                pr.SolutionRules |> Array.map Some |> Array.map create
 
         meds
         |> Array.iter (fun med ->
             med
-            |>toString
+            |> toString
             |> List.map (sprintf "%s")
             |> String.concat "\n"
             |> Events.MedicationCreated
@@ -1323,7 +1315,7 @@ module Medication =
         let limToDto = Option.map Limit.getValueUnit >> vuToDto
 
         /// Create the base Order DTO based on order type
-        let createBaseOrderDto (med : Medication) =
+        let createBaseOrderDto (med: Medication) =
             match med.OrderType with
             | AnyOrder -> failwith "Not implemented for a medication order, the order type cannot be 'Any'"
             | ProcessOrder -> failwith "Not implemented for a mediction order, the order type cannot be 'Process'"
@@ -1334,17 +1326,14 @@ module Medication =
             | TimedOrder -> Order.Dto.timed med.Id med.Name med.Route []
 
 
-        let getOrderableUnit (med : Medication) =
+        let getOrderableUnit (med: Medication) =
             med.Components
             |> List.tryHead
-            |> Option.bind (fun p ->
-                p.Quantities
-                |> Option.map ValueUnit.getUnit
-            )
+            |> Option.bind (fun p -> p.Quantities |> Option.map ValueUnit.getUnit)
 
 
         /// Calculate divisibility increment for a component
-        let calculateDivisibility (pc: ProductComponent option)  (med: Medication) =
+        let calculateDivisibility (pc: ProductComponent option) (med: Medication) =
             let ou = med |> getOrderableUnit
             let pu = pc |> Option.bind (_.Quantities >> Option.map ValueUnit.getUnit)
 
@@ -1354,27 +1343,28 @@ module Medication =
                 let incrs =
                     med.Components
                     |> List.choose (fun pc ->
-                        if pc.Quantities |> Option.map ValueUnit.getUnit = pu ||
-                           pu.IsNone then
+                        if pc.Quantities |> Option.map ValueUnit.getUnit = pu || pu.IsNone then
                             pc.Divisible |> Option.map (fun d -> 1N / d)
-                        else None
+                        else
+                            None
                     )
 
-                if incrs |> List.isEmpty then None
+                if incrs |> List.isEmpty then
+                    None
                 else
                     let u = pu |> Option.defaultValue ou
-                    incrs
-                    |> List.max
-                    |> createSingleValueUnitDto u
+                    incrs |> List.max |> createSingleValueUnitDto u
             | _ -> None
 
         /// Apply solution constraints to an item
-        let setItemSolutionConstraints (itmDto : Order.Orderable.Item.Dto.Dto) (sl : SolutionLimit) =
+        let setItemSolutionConstraints (itmDto: Order.Orderable.Item.Dto.Dto) (sl: SolutionLimit) =
             itmDto.OrderableQuantity.Constraints |> setMinMaxConstraints false sl.Quantity
-            itmDto.OrderableConcentration.Constraints |> setMinMaxConstraints true sl.Concentration
+
+            itmDto.OrderableConcentration.Constraints
+            |> setMinMaxConstraints true sl.Concentration
 
         /// Set specific constraints for timed orders
-        let setTimedOrderConstraints (med: Medication) (orbDto : Order.Orderable.Dto.Dto) =
+        let setTimedOrderConstraints (med: Medication) (orbDto: Order.Orderable.Dto.Dto) =
             // Assume timed order always solution
             if orbDto.Dose.Quantity.Constraints.ValsOpt.IsNone then
                 orbDto.Dose.Quantity.Constraints.IncrOpt <- med |> calculateDivisibility None
@@ -1383,7 +1373,7 @@ module Medication =
                 orbDto.OrderableQuantity.Constraints.IncrOpt <- med |> calculateDivisibility None
 
         /// Set basic item-level constraints
-        let setItemQtyConcConstraints (itmDto : Order.Orderable.Item.Dto.Dto) (med : Medication) (si : SubstanceItem) =
+        let setItemQtyConcConstraints (itmDto: Order.Orderable.Item.Dto.Dto) (med: Medication) (si: SubstanceItem) =
             itmDto.ComponentConcentration.Constraints.ValsOpt <- si.Concentrations |> vuToDto
             itmDto.ComponentQuantity.Constraints.ValsOpt <- si.Quantities |> vuToDto
 
@@ -1395,34 +1385,43 @@ module Medication =
             si.Solution |> Option.iter (setItemSolutionConstraints itmDto)
 
         /// Set item dose constraints based on order type
-        let setItemDoseConstraints (itmDto : Order.Orderable.Item.Dto.Dto) (med : Medication) (si : SubstanceItem) =
-            let setDoseRate (dl : DoseLimit) =
+        let setItemDoseConstraints (itmDto: Order.Orderable.Item.Dto.Dto) (med: Medication) (si: SubstanceItem) =
+            let setDoseRate (dl: DoseLimit) =
                 itmDto.Dose.Rate.Constraints |> setMinMaxConstraints false dl.Rate
                 itmDto.Dose.RateAdjust.Constraints |> setMinMaxConstraints true dl.RateAdjust
 
-            let setDoseQty (dl : DoseLimit) =
+            let setDoseQty (dl: DoseLimit) =
                 let zero = 0N |> createSingleValueUnitDto dl.DoseUnit
 
-                if dl.Quantity |> MinMax.isEmpty then itmDto.Dose.Quantity.Constraints.MinOpt <- zero
+                if dl.Quantity |> MinMax.isEmpty then
+                    itmDto.Dose.Quantity.Constraints.MinOpt <- zero
                 else
                     itmDto.Dose.Quantity.Constraints |> setMinMaxConstraints false dl.Quantity
 
-                itmDto.Dose.QuantityAdjust.Constraints |> setMinMaxConstraints true dl.QuantityAdjust
+                itmDto.Dose.QuantityAdjust.Constraints
+                |> setMinMaxConstraints true dl.QuantityAdjust
+
                 itmDto.Dose.PerTime.Constraints |> setMinMaxConstraints false dl.PerTime
-                itmDto.Dose.PerTimeAdjust.Constraints |> setMinMaxConstraints true dl.PerTimeAdjust
+
+                itmDto.Dose.PerTimeAdjust.Constraints
+                |> setMinMaxConstraints true dl.PerTimeAdjust
 
             match med.OrderType with
-            | AnyOrder | ProcessOrder -> ()
+            | AnyOrder
+            | ProcessOrder -> ()
             | ContinuousOrder -> si.Dose |> Option.iter setDoseRate
-            | OnceOrder | DiscontinuousOrder -> si.Dose |> Option.iter setDoseQty
-            | OnceTimedOrder | TimedOrder ->
-                si.Dose |> Option.iter (fun dl ->
+            | OnceOrder
+            | DiscontinuousOrder -> si.Dose |> Option.iter setDoseQty
+            | OnceTimedOrder
+            | TimedOrder ->
+                si.Dose
+                |> Option.iter (fun dl ->
                     setDoseRate dl
                     setDoseQty dl
                 )
 
         /// Create a single item DTO with all its constraints
-        let createSingleItemDto (med : Medication) (pc : ProductComponent) (si : SubstanceItem) =
+        let createSingleItemDto (med: Medication) (pc: ProductComponent) (si: SubstanceItem) =
             let itmDto = Order.Orderable.Item.Dto.dto med.Id med.Name pc.Name si.Name
 
             // Set basic item constraints
@@ -1434,18 +1433,20 @@ module Medication =
             itmDto
 
         /// Create item DTOs for a component
-        let createItemDtos (med : Medication) (p : ProductComponent) =
+        let createItemDtos (med: Medication) (p: ProductComponent) =
             [ for s in p.Substances -> createSingleItemDto med p s ]
 
         /// Set basic component-level constraints
-        let setComponentQtyConcConstraints (med : Medication) (pc : ProductComponent) (cmpDto : Order.Orderable.Component.Dto.Dto) =
+        let setComponentQtyConcConstraints
+            (med: Medication)
+            (pc: ProductComponent)
+            (cmpDto: Order.Orderable.Component.Dto.Dto)
+            =
             let incr = med |> calculateDivisibility (Some pc)
 
             cmpDto.OrderableConcentration.Constraints.MaxOpt <-
-                Units.Count.times
-                |> ValueUnit.singleWithValue 1N
-                |> Some
-                |> vuToDto
+                Units.Count.times |> ValueUnit.singleWithValue 1N |> Some |> vuToDto
+
             cmpDto.OrderableConcentration.Constraints.MaxIncl <- med.Components |> List.length = 1
 
             cmpDto.ComponentQuantity.Constraints.ValsOpt <- pc.Quantities |> vuToDto
@@ -1459,26 +1460,28 @@ module Medication =
 
             // Handle single component case
             if med.Components |> List.length = 1 then
-                cmpDto.OrderableConcentration.Constraints.ValsOpt <-
-                    1N |> createSingleValueUnitDto Units.Count.times
+                cmpDto.OrderableConcentration.Constraints.ValsOpt <- 1N |> createSingleValueUnitDto Units.Count.times
                 cmpDto.Dose.Quantity.Constraints.IncrOpt <- incr
 
         /// Set component dose constraints based on order type
-        let setComponentDoseConstraints (cmpDto : Order.Orderable.Component.Dto.Dto) (med : Medication) (pc : ProductComponent) =
+        let setComponentDoseConstraints
+            (cmpDto: Order.Orderable.Component.Dto.Dto)
+            (med: Medication)
+            (pc: ProductComponent)
+            =
             let zero =
                 pc.Quantities
                 |> Option.map ValueUnit.getUnit
-                |> Option.bind (fun u ->
-                    0N |> createSingleValueUnitDto u
-                )
+                |> Option.bind (fun u -> 0N |> createSingleValueUnitDto u)
 
-            let setDoseRate (dl : DoseLimit) =
+            let setDoseRate (dl: DoseLimit) =
                 if dl.Rate |> MinMax.isEmpty |> not then
                     cmpDto.Dose.Rate.Constraints |> setMinMaxConstraints false dl.Rate
+
                 if dl.RateAdjust |> MinMax.isEmpty |> not then
                     cmpDto.Dose.RateAdjust.Constraints |> setMinMaxConstraints true dl.RateAdjust
 
-            let setDoseQty (dl : DoseLimit) =
+            let setDoseQty (dl: DoseLimit) =
                 if dl.Quantity |> MinMax.isEmpty |> not then
                     cmpDto.Dose.Quantity.Constraints |> setMinMaxConstraints false dl.Quantity
                 else
@@ -1488,24 +1491,32 @@ module Medication =
                     cmpDto.Dose.Quantity.Constraints.MinOpt <- zero
 
                 if dl.QuantityAdjust |> MinMax.isEmpty |> not then
-                    cmpDto.Dose.QuantityAdjust.Constraints |> setMinMaxConstraints true dl.QuantityAdjust
+                    cmpDto.Dose.QuantityAdjust.Constraints
+                    |> setMinMaxConstraints true dl.QuantityAdjust
+
                 if dl.PerTime |> MinMax.isEmpty |> not then
                     cmpDto.Dose.PerTime.Constraints |> setMinMaxConstraints false dl.PerTime
+
                 if dl.PerTimeAdjust |> MinMax.isEmpty |> not then
-                    cmpDto.Dose.PerTimeAdjust.Constraints |> setMinMaxConstraints true dl.PerTimeAdjust
+                    cmpDto.Dose.PerTimeAdjust.Constraints
+                    |> setMinMaxConstraints true dl.PerTimeAdjust
 
             match med.OrderType with
-            | AnyOrder | ProcessOrder -> ()
+            | AnyOrder
+            | ProcessOrder -> ()
             | ContinuousOrder -> pc.Dose |> Option.iter setDoseRate
-            | OnceOrder | DiscontinuousOrder -> pc.Dose |> Option.iter setDoseQty
-            | OnceTimedOrder | TimedOrder ->
-                pc.Dose |> Option.iter (fun dl ->
+            | OnceOrder
+            | DiscontinuousOrder -> pc.Dose |> Option.iter setDoseQty
+            | OnceTimedOrder
+            | TimedOrder ->
+                pc.Dose
+                |> Option.iter (fun dl ->
                     setDoseRate dl
                     setDoseQty dl
                 )
 
         /// Create a single component DTO with all its constraints and items
-        let createSingleComponentDto (med : Medication) (pc : ProductComponent) =
+        let createSingleComponentDto (med: Medication) (pc: ProductComponent) =
             let cmpDto = Order.Orderable.Component.Dto.dto med.Id med.Name pc.Name pc.Form
 
             // Set basic component constraints
@@ -1520,42 +1531,39 @@ module Medication =
             cmpDto
 
         /// Create component DTOs from medication order template components
-        let createComponentDtos (med : Medication) =
-            [ for pc in med.Components -> createSingleComponentDto med pc ]
+        let createComponentDtos (med: Medication) =
+            [
+                for pc in med.Components -> createSingleComponentDto med pc
+            ]
 
         /// Set basic orderable-level constraints
-        let setOrderableConstraints (orbDto : Order.Orderable.Dto.Dto) (med : Medication) =
+        let setOrderableConstraints (orbDto: Order.Orderable.Dto.Dto) (med: Medication) =
             let zero =
                 med.Components
                 |> List.tryHead
                 |> Option.bind (fun p ->
                     p.Quantities
                     |> Option.map ValueUnit.getUnit
-                    |> Option.bind (fun u ->
-                        0N |> createSingleValueUnitDto u
-                    )
+                    |> Option.bind (fun u -> 0N |> createSingleValueUnitDto u)
                 )
 
             orbDto.DoseCount.Constraints |> setMinMaxConstraints false med.DoseCount
 
             orbDto.OrderableQuantity.Constraints |> setMinMaxConstraints false med.Quantity
+
             match med.Quantities with
             | None ->
                 orbDto.OrderableQuantity.Constraints.MinOpt <- zero
                 orbDto.OrderableQuantity.Constraints.MinIncl <- false
 
-            | Some _ ->
-                orbDto.OrderableQuantity.Constraints.ValsOpt <- med.Quantities |> vuToDto
+            | Some _ -> orbDto.OrderableQuantity.Constraints.ValsOpt <- med.Quantities |> vuToDto
 
         /// Set dose-constraints on orderable based on order-type
-        let setOrderableDoseConstraints (orbDto : Order.Orderable.Dto.Dto) (med : Medication) =
+        let setOrderableDoseConstraints (orbDto: Order.Orderable.Dto.Dto) (med: Medication) =
             let orderableUnit =
                 med.Components
                 |> List.tryHead
-                |> Option.bind (fun p ->
-                    p.Quantities
-                    |> Option.map ValueUnit.getUnit
-                )
+                |> Option.bind (fun p -> p.Quantities |> Option.map ValueUnit.getUnit)
 
             let rateUnit = orderableUnit |> Option.map (Units.per Units.Time.hour)
 
@@ -1563,15 +1571,15 @@ module Medication =
                 med.Frequencies
                 |> Option.map (ValueUnit.getUnit >> ValueUnit.getUnits)
                 |> function
-                | Some [ _; tu ] -> Some tu
-                | _ -> None
+                    | Some [ _; tu ] -> Some tu
+                    | _ -> None
 
             let incr = med |> calculateDivisibility None
 
             // orderable quantity increment defaults to smallest product component increment (based on component divisibility)
             orbDto.OrderableQuantity.Constraints.IncrOpt <- incr
 
-            let setOrbDoseRate (dl : DoseLimit option) =
+            let setOrbDoseRate (dl: DoseLimit option) =
 
                 match rateUnit with
                 | None -> ()
@@ -1585,7 +1593,7 @@ module Medication =
                     orbDto.Dose.Rate.Constraints |> setMinMaxConstraints false dl.Rate
                     orbDto.Dose.RateAdjust.Constraints |> setMinMaxConstraints false dl.RateAdjust
 
-            let setOrbDoseQty isOnce (dl : DoseLimit option) =
+            let setOrbDoseQty isOnce (dl: DoseLimit option) =
                 // set a default increment based on the smallest product component increment
                 orbDto.Dose.Quantity.Constraints.IncrOpt <- incr
 
@@ -1593,28 +1601,27 @@ module Medication =
                 | None ->
                     match orderableUnit with
                     | Some u ->
-                        orbDto.Dose.Quantity.Constraints.MinOpt <-
-                            0N |> createSingleValueUnitDto u
+                        orbDto.Dose.Quantity.Constraints.MinOpt <- 0N |> createSingleValueUnitDto u
                         orbDto.Dose.Quantity.Constraints.MinIncl <- false
                     | None -> ()
 
                     match orderableUnit, freqTimeUnit with
                     | Some u, Some tu ->
-                        orbDto.Dose.PerTime.Constraints.MinOpt <-
-                            0N |> createSingleValueUnitDto (u |> Units.per tu)
+                        orbDto.Dose.PerTime.Constraints.MinOpt <- 0N |> createSingleValueUnitDto (u |> Units.per tu)
                         orbDto.Dose.PerTime.Constraints.MinIncl <- false
                     | _ -> ()
 
                 | Some dl ->
                     orbDto.Dose.Quantity.Constraints |> setMinMaxConstraints false dl.Quantity
-                    orbDto.Dose.QuantityAdjust.Constraints |> setMinMaxConstraints true dl.QuantityAdjust
+
+                    orbDto.Dose.QuantityAdjust.Constraints
+                    |> setMinMaxConstraints true dl.QuantityAdjust
 
                     // make sure that orderable dose quantity has constraints with a unit
                     if dl.Quantity |> MinMax.isEmpty then
                         match orderableUnit with
                         | Some u ->
-                            orbDto.Dose.Quantity.Constraints.MinOpt <-
-                                0N |> createSingleValueUnitDto u
+                            orbDto.Dose.Quantity.Constraints.MinOpt <- 0N |> createSingleValueUnitDto u
                             orbDto.Dose.Quantity.Constraints.MinIncl <- false
                         | None -> ()
 
@@ -1626,29 +1633,29 @@ module Medication =
                             | Some u, Some tu ->
                                 orbDto.Dose.PerTime.Constraints.MinOpt <-
                                     0N |> createSingleValueUnitDto (u |> Units.per tu)
+
                                 orbDto.Dose.PerTime.Constraints.MinIncl <- false
                             | _ -> ()
 
-                        orbDto.Dose.PerTimeAdjust.Constraints |> setMinMaxConstraints true dl.PerTimeAdjust
+                        orbDto.Dose.PerTimeAdjust.Constraints
+                        |> setMinMaxConstraints true dl.PerTimeAdjust
 
             match med.OrderType with
-            | AnyOrder | ProcessOrder -> ()
-            | ContinuousOrder ->
-                med.Dose |> setOrbDoseRate
-            | OnceOrder ->
-                med.Dose |> setOrbDoseQty true
+            | AnyOrder
+            | ProcessOrder -> ()
+            | ContinuousOrder -> med.Dose |> setOrbDoseRate
+            | OnceOrder -> med.Dose |> setOrbDoseQty true
             | OnceTimedOrder ->
                 med.Dose |> setOrbDoseRate
                 med.Dose |> setOrbDoseQty true
-            | DiscontinuousOrder ->
-                med.Dose |> setOrbDoseQty false
+            | DiscontinuousOrder -> med.Dose |> setOrbDoseQty false
             | TimedOrder ->
                 orbDto |> setTimedOrderConstraints med
                 med.Dose |> setOrbDoseRate
                 med.Dose |> setOrbDoseQty false
 
         /// Create and configure the Orderable DTO with all constraints
-        let createOrderableDto (med : Medication) =
+        let createOrderableDto (med: Medication) =
             let orbDto = Order.Orderable.Dto.dto med.Id med.Name
 
             // Set basic orderable constraints
@@ -1663,8 +1670,9 @@ module Medication =
             orbDto
 
         /// Set prescription-level constraints (frequency and time)
-        let setPrescriptionConstraints (dto : Order.Dto.Dto) (med : Medication) =
+        let setPrescriptionConstraints (dto: Order.Dto.Dto) (med: Medication) =
             dto.Schedule.Frequency.Constraints.ValsOpt <- med.Frequencies |> vuToDto
+
             match med.Frequencies with
             | None -> ()
             | Some fu -> // frequency increment always defaults to 1
@@ -1676,11 +1684,12 @@ module Medication =
             // fix: do not overwrite non zero min
             if med.Time.Min.IsSome then
                 dto.Schedule.Time.Constraints.MinOpt <- med.Time.Min |> limToDto
+
             dto.Schedule.Time.Constraints.MaxIncl <- med.Time.Max.IsSome
             dto.Schedule.Time.Constraints.MaxOpt <- med.Time.Max |> limToDto
 
         /// Set patient adjustment constraints (weight/BSA based)
-        let setAdjustmentConstraints (dto : Order.Dto.Dto) (med : Medication) =
+        let setAdjustmentConstraints (dto: Order.Dto.Dto) (med: Medication) =
             match med.Adjust with
             | None -> ()
             | Some vu ->
@@ -1688,7 +1697,7 @@ module Medication =
 
                 // Handle weight-based adjustment
                 if adjustUnit |> ValueUnit.Group.eqsGroup Units.Weight.kiloGram then
-                    dto.Adjust.Constraints.MinOpt <- 200N/1000N |> createSingleValueUnitDto adjustUnit
+                    dto.Adjust.Constraints.MinOpt <- 200N / 1000N |> createSingleValueUnitDto adjustUnit
                     dto.Adjust.Constraints.MaxOpt <- 150N |> createSingleValueUnitDto adjustUnit
 
             // TODO: add constraints for BSA
@@ -1699,7 +1708,7 @@ module Medication =
     /// Convert a Medication order to an Order DTO for the solver system
     /// </summary>
     /// <param name="med">The Medication order to convert</param>
-    let toOrderDto (med : Medication) =
+    let toOrderDto (med: Medication) =
         // Create the base DTO structure
         let dto = OrderDtoHelpers.createBaseOrderDto med
 

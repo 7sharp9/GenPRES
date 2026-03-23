@@ -31,32 +31,29 @@ module Mapping =
             data
             |> Array.tryHead
             |> function
-            | None -> Array.empty
-            | Some cs ->
-                let getStr c r = Csv.getStringColumn cs r c
+                | None -> Array.empty
+                | Some cs ->
+                    let getStr c r = Csv.getStringColumn cs r c
 
-                data
-                |> Array.skip 1
-                |> Array.map (fun r ->
-                    {|
-                        zindexlong = r |> getStr "ZIndexUnitLong"
-                        zindexshort = r |>  getStr "ZIndexUnitShort"
-                        mvunit = r |> getStr "MetaVisionUnit"
-                        unit = r |> getStr "Unit"
-                        group = r |> getStr "Group"
-                    |}
-                )
-                |> Array.map (fun r ->
-                    {
-                        ZIndexLong = r.zindexlong
-                        ZIndexShort = r.zindexshort
-                        MetaVision = r.mvunit
-                        Unit =
-                            $"{r.unit}[{r.group}]"
-                            |> Units.fromString
-                            |> Option.defaultValue NoUnit
-                    }
-                )
+                    data
+                    |> Array.skip 1
+                    |> Array.map (fun r ->
+                        {|
+                            zindexlong = r |> getStr "ZIndexUnitLong"
+                            zindexshort = r |> getStr "ZIndexUnitShort"
+                            mvunit = r |> getStr "MetaVisionUnit"
+                            unit = r |> getStr "Unit"
+                            group = r |> getStr "Group"
+                        |}
+                    )
+                    |> Array.map (fun r ->
+                        {
+                            ZIndexLong = r.zindexlong
+                            ZIndexShort = r.zindexshort
+                            MetaVision = r.mvunit
+                            Unit = $"{r.unit}[{r.group}]" |> Units.fromString |> Option.defaultValue NoUnit
+                        }
+                    )
 
 
     /// <summary>
@@ -75,58 +72,48 @@ module Mapping =
             data
             |> Array.tryHead
             |> function
-            | None -> Array.empty
-            | Some cs ->
-                let getStr c r = Csv.getStringColumn cs r c
-                let getInt c r = Csv.getInt32OptionColumn cs r c
+                | None -> Array.empty
+                | Some cs ->
+                    let getStr c r = Csv.getStringColumn cs r c
+                    let getInt c r = Csv.getInt32OptionColumn cs r c
 
-                data
-                |> Array.skip 1
-                |> Array.map (fun r ->
-                    {|
-                        zindex = r |> getStr "ZIndex"
-                        zindexfreq = r |> getInt "ZIndexFreq"
-                        zindexUnit = r |> getStr "ZIndexUnit"
-                        mv1 = r |>  getStr "MetaVision1"
-                        mv2 = r |> getStr "MetaVision2"
-                        freq = r |> getInt "Freq"
-                        n = r |> getInt "n"
-                        time = r |> getStr "Unit"
-                    |}
-                )
-                |> Array.filter (fun r -> r.freq |> Option.isSome)
-                |> Array.map (fun r ->
-                    {
-                        ZIndex = r.zindex
-                        ZIndexFreq =
-                            r.zindexfreq
-                            |> Option.defaultValue 1
-                            |> BigRational.fromInt
-                        ZIndexUnit = r.zindexUnit
-                        MetaVision1 = r.mv1
-                        MetaVision2 = r.mv2
-                        Frequency =
-                            r.freq
-                            |> Option.defaultValue 1
-                            |> BigRational.fromInt
+                    data
+                    |> Array.skip 1
+                    |> Array.map (fun r ->
+                        {|
+                            zindex = r |> getStr "ZIndex"
+                            zindexfreq = r |> getInt "ZIndexFreq"
+                            zindexUnit = r |> getStr "ZIndexUnit"
+                            mv1 = r |> getStr "MetaVision1"
+                            mv2 = r |> getStr "MetaVision2"
+                            freq = r |> getInt "Freq"
+                            n = r |> getInt "n"
+                            time = r |> getStr "Unit"
+                        |}
+                    )
+                    |> Array.filter (fun r -> r.freq |> Option.isSome)
+                    |> Array.map (fun r ->
+                        {
+                            ZIndex = r.zindex
+                            ZIndexFreq = r.zindexfreq |> Option.defaultValue 1 |> BigRational.fromInt
+                            ZIndexUnit = r.zindexUnit
+                            MetaVision1 = r.mv1
+                            MetaVision2 = r.mv2
+                            Frequency = r.freq |> Option.defaultValue 1 |> BigRational.fromInt
 
-                        Unit =
-                            let n =
-                                r.n
-                                |> Option.defaultValue 1
-                                |> BigRational.fromInt
+                            Unit =
+                                let n = r.n |> Option.defaultValue 1 |> BigRational.fromInt
 
-                            let tu =
-                                timeUnits
-                                |> List.tryFind (fst >> String.equalsCapInsens r.time)
-                                |> function
-                                | None   -> n |> Units.Count.nTimes
-                                | Some u -> n |> (u |> snd)
+                                let tu =
+                                    timeUnits
+                                    |> List.tryFind (fst >> String.equalsCapInsens r.time)
+                                    |> function
+                                        | None -> n |> Units.Count.nTimes
+                                        | Some u -> n |> (u |> snd)
 
-                            Units.Count.times
-                            |> Units.per tu
-                    }
-                )
+                                Units.Count.times |> Units.per tu
+                        }
+                    )
 
 
     /// <summary>
@@ -156,9 +143,9 @@ module Mapping =
     let stringToUnit s =
         getUnitMapping ()
         |> Array.tryFind (fun m ->
-            m.ZIndexLong |> String.equalsCapInsens s ||
-            m.ZIndexShort |> String.equalsCapInsens s ||
-            m.MetaVision |> String.equalsCapInsens s
+            m.ZIndexLong |> String.equalsCapInsens s
+            || m.ZIndexShort |> String.equalsCapInsens s
+            || m.MetaVision |> String.equalsCapInsens s
         )
         |> Option.map _.Unit
         |> Option.defaultValue NoUnit
@@ -172,7 +159,4 @@ module Mapping =
     /// <param name="un">The frequency unit</param>
     let mapFrequency freq un =
         getFrequencyMapping ()
-        |> Array.tryFind(fun f ->
-            f.ZIndexFreq |> BigRational.toFloat = freq &&
-            f.ZIndexUnit = un
-        )
+        |> Array.tryFind (fun f -> f.ZIndexFreq |> BigRational.toFloat = freq && f.ZIndexUnit = un)

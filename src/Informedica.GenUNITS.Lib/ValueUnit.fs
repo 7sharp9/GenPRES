@@ -8,7 +8,6 @@ open Informedica.Utils.Lib
 open Informedica.Utils.Lib.BCL
 
 
-
 type Unit =
     | NoUnit
     // special case to enable efficient min max calculations where
@@ -28,6 +27,7 @@ type Unit =
     | Height of HeightUnit
     | BSA of BSAUnit
     | Energy of EnergyUnit
+
 and CountUnit = Times of BigRational
 
 and MassUnit =
@@ -90,7 +90,7 @@ and Operator =
     | OpMinus
 
 
-type ValueUnit = ValueUnit of BigRational [] * Unit
+type ValueUnit = ValueUnit of BigRational[] * Unit
 
 
 module Group =
@@ -127,9 +127,7 @@ module Parser =
     /// <example>
     /// setUnitValue (KiloGram 1N |> Mass) 2N = (KiloGram 2N |> Mass)
     /// </example>
-    let setUnitValue u v =
-        u
-        |> apply (fun _ -> v)
+    let setUnitValue u v = u |> apply (fun _ -> v)
 
 
     /// <summary>
@@ -169,9 +167,7 @@ module Parser =
     /// <example>
     /// Example: "1.2" |> run pBigRat -> Success: 6/5
     /// </example>
-    let pBigRat =
-        pnumber
-        |>> (BigRational.fromFloat >> Option.defaultValue 0N)
+    let pBigRat = pnumber |>> (BigRational.fromFloat >> Option.defaultValue 0N)
 
 
     /// <summary>
@@ -184,11 +180,12 @@ module Parser =
     /// Example: "kg[Mass]" |> run (pUnitGroup "kg" "mass") -> Success: "kg" <br/>
     /// Example: "stuk" will not match "s" (seconds) due to word boundary check
     /// </example>
-    let pUnitGroup (u : string) g =
+    let pUnitGroup (u: string) g =
         let pu =
             pstringCI u
             >>. (notFollowedBy (satisfy (fun c -> System.Char.IsLetterOrDigit c)))
             >>% u
+
         let pg = $"[%s{g}]" |> pstringCI
         (pu .>> ws .>> (opt pg))
 
@@ -203,18 +200,54 @@ module Parser =
         UnitDetails.units
         |> List.collect (fun ud ->
             [
-                {| unit = ud.Abbreviation.Eng; grp = ud.Group; f = setUnitValue ud.Unit |}
-                {| unit = ud.Abbreviation.Dut; grp = ud.Group; f = setUnitValue ud.Unit |}
-                {| unit = ud.Abbreviation.EngPlural; grp = ud.Group; f = setUnitValue ud.Unit |}
-                {| unit = ud.Abbreviation.DutchPlural; grp = ud.Group; f = setUnitValue ud.Unit |}
-                {| unit = ud.Name.Eng; grp = ud.Group; f = setUnitValue ud.Unit |}
-                {| unit = ud.Name.Dut; grp = ud.Group; f = setUnitValue ud.Unit |}
-                {| unit = ud.Name.EngPlural; grp = ud.Group; f = setUnitValue ud.Unit |}
-                {| unit = ud.Name.DutchPlural; grp = ud.Group; f = setUnitValue ud.Unit |}
+                {|
+                    unit = ud.Abbreviation.Eng
+                    grp = ud.Group
+                    f = setUnitValue ud.Unit
+                |}
+                {|
+                    unit = ud.Abbreviation.Dut
+                    grp = ud.Group
+                    f = setUnitValue ud.Unit
+                |}
+                {|
+                    unit = ud.Abbreviation.EngPlural
+                    grp = ud.Group
+                    f = setUnitValue ud.Unit
+                |}
+                {|
+                    unit = ud.Abbreviation.DutchPlural
+                    grp = ud.Group
+                    f = setUnitValue ud.Unit
+                |}
+                {|
+                    unit = ud.Name.Eng
+                    grp = ud.Group
+                    f = setUnitValue ud.Unit
+                |}
+                {|
+                    unit = ud.Name.Dut
+                    grp = ud.Group
+                    f = setUnitValue ud.Unit
+                |}
+                {|
+                    unit = ud.Name.EngPlural
+                    grp = ud.Group
+                    f = setUnitValue ud.Unit
+                |}
+                {|
+                    unit = ud.Name.DutchPlural
+                    grp = ud.Group
+                    f = setUnitValue ud.Unit
+                |}
                 yield!
                     ud.Synonyms
                     |> List.map (fun s ->
-                        {| unit = s; grp = ud.Group; f = setUnitValue ud.Unit |}
+                        {|
+                            unit = s
+                            grp = ud.Group
+                            f = setUnitValue ud.Unit
+                        |}
                     )
             ]
         )
@@ -222,24 +255,18 @@ module Parser =
         |> List.map (fun r -> {| r with unit = r.unit |> String.replace "nan" "nnn" |})
         |> List.distinctBy (fun r -> r.unit, r.grp)
         |> List.filter (fun r ->
-            (r.unit = "kg" && r.grp = Group.MassGroup ||
-            r.unit = "kilogram" && r.grp = Group.MassGroup)
+            (r.unit = "kg" && r.grp = Group.MassGroup
+             || r.unit = "kilogram" && r.grp = Group.MassGroup)
             |> not
         )
-        |> List.sortByDescending (fun r -> r.unit |> String.length,  r.unit)
+        |> List.sortByDescending (fun r -> r.unit |> String.length, r.unit)
         //|> List.map (fun r -> printfn $"{r}"; r)
         |> List.map (fun r ->
             let g = $"{r.grp |> ValueUnit.Group.toString}"
 
             attempt (
-                opt pfloat
-                .>> ws
-                .>>. (pUnitGroup r.unit g >>% r.f)
-                |>> (fun (f, u) ->
-                    f
-                    |> Option.bind BigRational.fromFloat
-                    |> Option.defaultValue 1N |> u
-                )
+                opt pfloat .>> ws .>>. (pUnitGroup r.unit g >>% r.f)
+                |>> (fun (f, u) -> f |> Option.bind BigRational.fromFloat |> Option.defaultValue 1N |> u)
             )
         )
         |> choice
@@ -258,15 +285,14 @@ module Parser =
     /// </example>
     let pGeneralUnit =
         let pName = many1Chars (noneOf "[ \t\r\n*/")
+
         attempt (
-            opt pfloat
-            .>> ws
-            .>>. (pName .>> ws .>> opt (pstringCI "[General]"))
+            opt pfloat .>> ws .>>. (pName .>> ws .>> opt (pstringCI "[General]"))
             |>> (fun (mult, name) ->
                 mult
                 |> Option.bind BigRational.fromFloat
                 |> Option.defaultValue 1N
-                |> fun v -> General (name, v)
+                |> fun v -> General(name, v)
             )
         )
 
@@ -283,17 +309,16 @@ module Parser =
     /// </example>
     let parseUnit =
 
-        let opp  = OperatorPrecedenceParser<Unit, unit, unit>()
+        let opp = OperatorPrecedenceParser<Unit, unit, unit>()
         let expr = opp.ExpressionParser
 
-        opp.TermParser <-
-            pUnit <|> pGeneralUnit <|> between (str_ws "(") (str_ws ")") expr
+        opp.TermParser <- pUnit <|> pGeneralUnit <|> between (str_ws "(") (str_ws ")") expr
 
         let ( *! ) u1 u2 = (u1, OpTimes, u2) |> CombiUnit
-        let ( /! ) u1 u2 = (u1, OpPer, u2) |> CombiUnit
+        let (/!) u1 u2 = (u1, OpPer, u2) |> CombiUnit
 
-        opp.AddOperator (InfixOperator("*", ws, 1, Associativity.Left, ( *! )))
-        opp.AddOperator (InfixOperator("/", ws, 1, Associativity.Left, ( /! )))
+        opp.AddOperator(InfixOperator("*", ws, 1, Associativity.Left, ( *! )))
+        opp.AddOperator(InfixOperator("/", ws, 1, Associativity.Left, (/!)))
 
         ws >>. expr .>> eof
 
@@ -313,19 +338,14 @@ module Parser =
         // need to change nan to xxx to avoid getting a float 'nan'
         let s = s |> String.replace "nan" "nnn"
 
-        let pBigRatList =
-            sepBy pBigRat (ws >>. pstring ";" .>> ws)
+        let pBigRatList = sepBy pBigRat (ws >>. pstring ";" .>> ws)
 
-        let pValue =
-            between (pstring "[") (pstring "]") pBigRatList
-            <|> pBigRatList
+        let pValue = between (pstring "[") (pstring "]") pBigRatList <|> pBigRatList
 
         let p =
             pValue .>>. parseUnit
-            |>> fun (brs, u) ->
-               brs
-               |> List.toArray
-               |> ValueUnit.create u
+            |>> fun (brs, u) -> brs |> List.toArray |> ValueUnit.create u
+
         s |> run p
 
 
@@ -349,7 +369,7 @@ module Units =
             Eng: string
             EngPlural: string
             Dut: string
-            DutchPlural : string
+            DutchPlural: string
         }
 
 
@@ -386,7 +406,6 @@ module Units =
             Name: Language
             Synonyms: string list
         }
-
 
 
     module UnitDetails =
@@ -458,10 +477,18 @@ module Units =
         /// </example>
         let createGeneral n v =
             if n |> String.isNullOrWhiteSpace then
-                "The name for a general unit cannot be an empty string"
-                |> failwith
+                "The name for a general unit cannot be an empty string" |> failwith
+
             let un = (n, v) |> General
-            let ab = { Eng = n; EngPlural = n; Dut = n; DutchPlural = n }
+
+            let ab =
+                {
+                    Eng = n
+                    EngPlural = n
+                    Dut = n
+                    DutchPlural = n
+                }
+
             let nm = ab
 
             create un (Group.GeneralGroup n) ab nm []
@@ -1045,11 +1072,7 @@ module Units =
                             EngPlural = "milliIU"
                             DutchPlural = "milliIE"
                         }
-                    Synonyms =
-                        [
-                            "milli-internationale eenheid"
-                            "mie"
-                        ]
+                    Synonyms = [ "milli-internationale eenheid"; "mie" ]
                 }
 
                 {
@@ -1129,7 +1152,7 @@ module Units =
                             EngPlural = "calories"
                             DutchPlural = "calorieen"
                         }
-                    Synonyms = [ ]
+                    Synonyms = []
                 }
 
                 {
@@ -1149,25 +1172,22 @@ module Units =
                             EngPlural = "kilocalories"
                             DutchPlural = "kilocalorieen"
                         }
-                    Synonyms = [ ]
+                    Synonyms = []
                 }
             ]
-            |> List.map (fun ud ->
-                { ud with
-                    Group = ud.Unit |> ValueUnit.Group.unitToGroup
-                }
-            )
-
+            |> List.map (fun ud -> { ud with Group = ud.Unit |> ValueUnit.Group.unitToGroup })
 
 
     module General =
 
         /// create a general unit
         let toGeneral = General
+
         /// create a general unit with unit value = 1
         let general n =
             if n |> String.isNullOrWhiteSpace then
                 failwith "the name of a General Unit cannot be an empty string"
+
             (n, 1N) |> toGeneral
 
 
@@ -1175,7 +1195,8 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] Times = "x"
+            [<Literal>]
+            let Times = "x"
 
         /// Create a Count unit
         let toCount = Count
@@ -1190,15 +1211,20 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] KiloGram = "kg"
+            [<Literal>]
+            let KiloGram = "kg"
 
-            let [<Literal>] Gram = "g"
+            [<Literal>]
+            let Gram = "g"
 
-            let [<Literal>] MilliGram = "mg"
+            [<Literal>]
+            let MilliGram = "mg"
 
-            let [<Literal>] MicroGram = "microg"
+            [<Literal>]
+            let MicroGram = "microg"
 
-            let [<Literal>] NanoGram = "nanog"
+            [<Literal>]
+            let NanoGram = "nanog"
 
 
         /// Create a Mass unit
@@ -1231,11 +1257,14 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] Meter = "m"
+            [<Literal>]
+            let Meter = "m"
 
-            let [<Literal>] CentiMeter = "cm"
+            [<Literal>]
+            let CentiMeter = "cm"
 
-            let [<Literal>] MilliMeter = "mm"
+            [<Literal>]
+            let MilliMeter = "mm"
 
         /// Create a Distance unit
         let toDistance = Distance
@@ -1259,9 +1288,11 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] KiloGram = "kg"
+            [<Literal>]
+            let KiloGram = "kg"
 
-            let [<Literal>] Gram = "g"
+            [<Literal>]
+            let Gram = "g"
 
 
         /// Create a Weight unit
@@ -1282,15 +1313,20 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] Liter = "l"
+            [<Literal>]
+            let Liter = "l"
 
-            let [<Literal>] DeciLiter = "dl"
+            [<Literal>]
+            let DeciLiter = "dl"
 
-            let [<Literal>] MilliLiter = "ml"
+            [<Literal>]
+            let MilliLiter = "ml"
 
-            let [<Literal>] MicroLiter = "microL"
+            [<Literal>]
+            let MicroLiter = "microL"
 
-            let [<Literal>] Droplet = "droplet"
+            [<Literal>]
+            let Droplet = "droplet"
 
 
         /// Create a Volume unit
@@ -1319,11 +1355,11 @@ module Units =
         let droplet = 1N |> nDroplet
         /// Default is 20 drops per mL, however this can vary
         let dropletWithDropsPerMl m = (1N, m) |> Droplet |> Volume
+
         /// Set the multiplier of a droplet unit
         let dropletSetDropsPerMl m dr =
             match dr with
-            | Volume (Droplet (n, _)) ->
-                (n, m) |> Droplet |> Volume
+            | Volume(Droplet(n, _)) -> (n, m) |> Droplet |> Volume
             | _ -> dr
 
 
@@ -1332,19 +1368,26 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] Year = "yr"
+            [<Literal>]
+            let Year = "yr"
 
-            let [<Literal>] Month = "mo"
+            [<Literal>]
+            let Month = "mo"
 
-            let [<Literal>] Week = "week"
+            [<Literal>]
+            let Week = "week"
 
-            let [<Literal>] Day = "day"
+            [<Literal>]
+            let Day = "day"
 
-            let [<Literal>] Hour = "hr"
+            [<Literal>]
+            let Hour = "hr"
 
-            let [<Literal>] Minute = "min"
+            [<Literal>]
+            let Minute = "min"
 
-            let [<Literal>] Second = "sec"
+            [<Literal>]
+            let Second = "sec"
 
 
         /// Create a Time unit
@@ -1385,11 +1428,14 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] Mole = "mol"
+            [<Literal>]
+            let Mole = "mol"
 
-            let [<Literal>] MilliMole = "mmol"
+            [<Literal>]
+            let MilliMole = "mmol"
 
-            let [<Literal>] MicroMole = "micromol"
+            [<Literal>]
+            let MicroMole = "micromol"
 
 
         /// Create a Molar unit
@@ -1414,11 +1460,14 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] MIU = "MIU"
+            [<Literal>]
+            let MIU = "MIU"
 
-            let [<Literal>] IU = "IU"
+            [<Literal>]
+            let IU = "IU"
 
-            let [<Literal>] MilliIU = "milliIU"
+            [<Literal>]
+            let MilliIU = "milliIU"
 
 
         /// Create a InterNational unit
@@ -1443,9 +1492,11 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] Meter = "m"
+            [<Literal>]
+            let Meter = "m"
 
-            let [<Literal>] CentiMeter = "cm"
+            [<Literal>]
+            let CentiMeter = "cm"
 
 
         /// Create a Height unit
@@ -1466,7 +1517,8 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] M2 = "m2"
+            [<Literal>]
+            let M2 = "m2"
 
 
         /// Create a BSA unit
@@ -1483,9 +1535,11 @@ module Units =
 
         module Constants =
 
-            let [<Literal>] Calorie = "cal"
+            [<Literal>]
+            let Calorie = "cal"
 
-            let [<Literal>] KiloCalorie = "kCal"
+            [<Literal>]
+            let KiloCalorie = "kCal"
 
 
         let toEnergy = Energy
@@ -1498,7 +1552,6 @@ module Units =
         let nKiloCalorie n = n |> KiloCalorie |> toEnergy
 
         let kiloCalorie = 1N |> nKiloCalorie
-
 
 
     /// <summary>
@@ -1514,7 +1567,7 @@ module Units =
         function
         | NoUnit -> (1N, NoUnit)
         | ZeroUnit -> (0N, ZeroUnit)
-        | General (n, v) -> (v, ((n, 1N) |> General))
+        | General(n, v) -> (v, ((n, 1N) |> General))
         | Count g ->
             match g with
             | Times n -> (n, Count.times)
@@ -1536,7 +1589,7 @@ module Units =
             | DeciLiter n -> (n, Volume.deciLiter)
             | MilliLiter n -> (n, Volume.milliLiter)
             | MicroLiter n -> (n, Volume.microLiter)
-            | Droplet (n, m) -> (n, Volume.dropletWithDropsPerMl m)
+            | Droplet(n, m) -> (n, Volume.dropletWithDropsPerMl m)
         | Time g ->
             match g with
             | Year n -> (n, Time.year)
@@ -1571,9 +1624,7 @@ module Units =
             match e with
             | Calorie n -> (n, Energy.calorie)
             | KiloCalorie n -> (n, Energy.kiloCalorie)
-        | CombiUnit (u1, op, u2) ->
-            failwith
-            <| $"Cannot map combined unit %A{(u1, op, u2) |> CombiUnit}"
+        | CombiUnit(u1, op, u2) -> failwith <| $"Cannot map combined unit %A{(u1, op, u2) |> CombiUnit}"
 
 
     /// Try find unit details in the list of units
@@ -1589,9 +1640,7 @@ module Units =
     /// Example: stringWithGroup "mg" = "mg[Mass]"
     let stringWithGroup u =
         UnitDetails.units
-        |> List.filter (fun ud ->
-            ud.Group <> Group.WeightGroup
-        )
+        |> List.filter (fun ud -> ud.Group <> Group.WeightGroup)
         |> List.tryFind (fun ud ->
             [
                 ud.Abbreviation.Dut
@@ -1600,21 +1649,17 @@ module Units =
                 ud.Name.Eng
             ]
             |> List.append ud.Synonyms
-            |> List.exists(String.equalsCapInsens (u |> String.replaceNumbers ""))
+            |> List.exists (String.equalsCapInsens (u |> String.replaceNumbers ""))
         )
         |> function
-        | Some ud ->
-            ud.Group
-            |> ValueUnit.Group.toString
-        | None -> "General"
+            | Some ud -> ud.Group |> ValueUnit.Group.toString
+            | None -> "General"
         |> sprintf "%s[%s]" u
 
 
     let groupIsGeneralOrNone s =
         let xs = (String.regex "[^\[\]]+(?=\])").Matches(s)
-        xs
-        |> Seq.map _.Value
-        |> Seq.forall (String.equalsCapInsens "general")
+        xs |> Seq.map _.Value |> Seq.forall (String.equalsCapInsens "general")
 
 
     /// <summary>
@@ -1627,43 +1672,38 @@ module Units =
     /// fromString "36 hours" = Some (Time (Hour 36N))
     /// </example>
     let fromString s =
-        if s |> String.isNullOrWhiteSpace then None
+        if s |> String.isNullOrWhiteSpace then
+            None
         else
             s
             |> String.split "/"
             |> function
-            | us when us |> List.length >= 1 && (us |> List.length <= 3) ->
-                us
-                |> List.map (fun s ->
-                    // need to replace nan as this otherwise will be a float
-                    let s =
-                        s
-                        |> String.replace "nan" "nnn"
+                | us when us |> List.length >= 1 && (us |> List.length <= 3) ->
+                    us
+                    |> List.map (fun s ->
+                        // need to replace nan as this otherwise will be a float
+                        let s = s |> String.replace "nan" "nnn"
 
-                    match s |> run Parser.parseUnit with
-                    | Success (u, _, _) -> Some u
-                    | Failure _ ->
-                        if s |> String.isNullOrWhiteSpace then None
+                        match s |> run Parser.parseUnit with
+                        | Success(u, _, _) -> Some u
+                        | Failure _ ->
+                            if s |> String.isNullOrWhiteSpace then
+                                None
+                            else
+                                if s |> groupIsGeneralOrNone |> not then
+                                    failwith $"invalid unit group {s}"
+
+                                s |> String.removeBrackets |> Units.General.general |> Some
+                    )
+                    |> fun us ->
+                        if us |> List.forall Option.isSome then
+                            us |> List.map Option.get |> List.reduce (fun u1 u2 -> u1 |> per u2) |> Some
                         else
-                            if s |> groupIsGeneralOrNone |> not then
-                                failwith $"invalid unit group {s}"
-                            s
-                            |> String.removeBrackets
-                            |> Units.General.general
-                            |> Some
-                )
-                |> fun us ->
-                    if us |> List.forall Option.isSome then
-                        us
-                        |> List.map Option.get
-                        |> List.reduce (fun u1 u2 -> u1 |> per u2)
-                        |> Some
-                    else
-                        printfn $"cannot parse {s}"
-                        None
-            | _ ->
-                printfn $"cannot parse {s}"
-                None
+                            printfn $"cannot parse {s}"
+                            None
+                | _ ->
+                    printfn $"cannot parse {s}"
+                    None
 
 
     /// <summary>
@@ -1684,25 +1724,23 @@ module Units =
             match uw with
             | Some w -> $"%s{w}{u}{w}"
             | None -> u
+
         let wrapValue n =
             let n =
                 match loc with
-                | Dutch ->
-                    n
-                    |> BigRational.toDecimal
-                    |> Decimal.toStringNumberNLWithoutTrailingZeros
-                | English ->
-                    n
-                    |> BigRational.toDecimal
-                    |> string
+                | Dutch -> n |> BigRational.toDecimal |> Decimal.toStringNumberNLWithoutTrailingZeros
+                | English -> n |> BigRational.toDecimal |> string
 
             match vw with
             | Some w -> $"%s{w}{n}{w}"
             | None -> n
 
         let gtost u g =
-            u +
-            if hasGroup then "[" + (g |> ValueUnit.Group.toString) + "]" else ""
+            u
+            + if hasGroup then
+                  "[" + (g |> ValueUnit.Group.toString) + "]"
+              else
+                  ""
             |> wrapUnit
 
         let rec str u =
@@ -1710,19 +1748,17 @@ module Units =
             | NoUnit
             | ZeroUnit -> ""
 
-            | CombiUnit (ul, op, ur) ->
+            | CombiUnit(ul, op, ur) ->
                 let uls = str ul
                 let urs = str ur
 
                 uls + (op |> ValueUnit.opToStr) + urs
 
-            | General (n, v) ->
-                let ustr =
-                    if hasGroup then n + "[General]"
-                    else n
+            | General(n, v) ->
+                let ustr = if hasGroup then n + "[General]" else n
 
                 if v > 1N then
-                    $"{v  |> wrapValue} {ustr |> wrapUnit}"
+                    $"{v |> wrapValue} {ustr |> wrapUnit}"
                 else
                     ustr |> wrapUnit
 
@@ -1736,23 +1772,29 @@ module Units =
                         match verb with
                         | Short ->
                             udt.Group
-                            |> gtost (if n > 1N then udt.Abbreviation.EngPlural else udt.Abbreviation.Eng)
-                        | Long ->
-                            udt.Group
-                            |> gtost (if n > 1N then udt.Name.EngPlural else udt.Name.Eng)
+                            |> gtost (
+                                if n > 1N then
+                                    udt.Abbreviation.EngPlural
+                                else
+                                    udt.Abbreviation.Eng
+                            )
+                        | Long -> udt.Group |> gtost (if n > 1N then udt.Name.EngPlural else udt.Name.Eng)
                     | Dutch ->
                         match verb with
                         | Short ->
                             udt.Group
-                            |> gtost (if n > 1N then udt.Abbreviation.DutchPlural else udt.Abbreviation.Dut)
-                        | Long ->
-                            udt.Group
-                            |> gtost (if n > 1N then udt.Name.DutchPlural else udt.Name.Dut)
+                            |> gtost (
+                                if n > 1N then
+                                    udt.Abbreviation.DutchPlural
+                                else
+                                    udt.Abbreviation.Dut
+                            )
+                        | Long -> udt.Group |> gtost (if n > 1N then udt.Name.DutchPlural else udt.Name.Dut)
                 | None -> ""
                 |> function
-                | s when s |> String.isNullOrWhiteSpace -> ""
-                | s when n = 1N -> s
-                | s -> $"{n |> wrapValue} {s}"
+                    | s when s |> String.isNullOrWhiteSpace -> ""
+                    | s when n = 1N -> s
+                    | s -> $"{n |> wrapValue} {s}"
 
         str u
 
@@ -1763,8 +1805,7 @@ module Units =
     /// <example>
     /// toStringDutchShort (Time (Minute 1N)) = "min[Time]"
     /// </example>
-    let toStringDutchShort =
-        toString None None true Dutch Short
+    let toStringDutchShort = toString None None true Dutch Short
 
 
     /// <summary>
@@ -1791,8 +1832,7 @@ module Units =
     /// <example>
     /// toStringEngShort (Time (Day 1N)) = "day[Time]"
     /// </example>
-    let toStringEngShort =
-        toString None None true English Short
+    let toStringEngShort = toString None None true English Short
 
     /// <summary>
     /// Turn a unit to an english short string without group annotation
@@ -1800,8 +1840,7 @@ module Units =
     /// <example>
     /// toStringEngShort (Time (Day 1N)) = "day"
     /// </example>
-    let toStringEngShortWithoutGroup =
-        toString None None false English Short
+    let toStringEngShortWithoutGroup = toString None None false English Short
 
     /// <summary>
     /// Turn a unit to an english long string with group annotation
@@ -1810,7 +1849,6 @@ module Units =
     /// toStringEngLong (Time (Day 1N)) = "day[Time]"
     /// </example>
     let toStringEngLong = toString None None true English Long
-
 
 
     //----------------------------------------------------------------------------
@@ -1834,7 +1872,7 @@ module Units =
             match u with
             | NoUnit
             | ZeroUnit -> u
-            | General (s, n) -> (s, n |> f) |> General
+            | General(s, n) -> (s, n |> f) |> General
             | Count g ->
                 match g with
                 | Times n -> n |> f |> Times |> Count
@@ -1858,7 +1896,7 @@ module Units =
                 | DeciLiter n -> n |> f |> DeciLiter
                 | MilliLiter n -> n |> f |> MilliLiter
                 | MicroLiter n -> n |> f |> MicroLiter
-                | Droplet (n, m) -> n |> f |> fun n -> Droplet (n, m)
+                | Droplet(n, m) -> n |> f |> (fun n -> Droplet(n, m))
                 |> Volume
             | Time g ->
                 match g with
@@ -1900,7 +1938,7 @@ module Units =
                 | Calorie n -> n |> f |> Calorie
                 | KiloCalorie n -> n |> f |> KiloCalorie
                 |> Energy
-            | CombiUnit (u1, op, u2) -> (app u1, op, app u2) |> CombiUnit
+            | CombiUnit(u1, op, u2) -> (app u1, op, app u2) |> CombiUnit
 
         app u
 
@@ -1925,7 +1963,7 @@ module Units =
             match u with
             | NoUnit
             | ZeroUnit -> None
-            | General (_, n) -> n |> Some
+            | General(_, n) -> n |> Some
             | Count g ->
                 match g with
                 | Times n -> n |> Some
@@ -1947,7 +1985,7 @@ module Units =
                 | DeciLiter n -> n |> Some
                 | MilliLiter n -> n |> Some
                 | MicroLiter n -> n |> Some
-                | Droplet (n, _) -> n |> Some
+                | Droplet(n, _) -> n |> Some
             | Time g ->
                 match g with
                 | Year n -> n |> Some
@@ -1987,7 +2025,6 @@ module Units =
         app u
 
 
-
     /// <summary>
     /// Check whether unit u1 equals unit u2
     /// irrespective of the unit value
@@ -2002,8 +2039,7 @@ module Units =
         | ZeroUnit, ZeroUnit -> true
         | ZeroUnit, _
         | _, ZeroUnit -> false
-        | General (n1, v1), General (n2, v2) ->
-            n1 = n2 && v1 = v2
+        | General(n1, v1), General(n2, v2) -> n1 = n2 && v1 = v2
         | General _, _
         | _, General _ -> false
         | Count g1, Count g2 ->
@@ -2093,26 +2129,16 @@ module Units =
             | _ -> false
         | Energy _, _
         | _, Energy _ -> false
-        | CombiUnit (ul1, op1, ur1), CombiUnit (ul2, op2, ur2) ->
-            op1 = op2 && eqsUnit ul1 ul2 && eqsUnit ur1 ur2
-
+        | CombiUnit(ul1, op1, ur1), CombiUnit(ul2, op2, ur2) -> op1 = op2 && eqsUnit ul1 ul2 && eqsUnit ur1 ur2
 
 
     let hasGroup u1 u2 =
         match u1, u2 with
-        | CombiUnit (u1L, _, u1R), CombiUnit (u2L, _, u2R) ->
-            hasGroup u1L u2L ||
-            hasGroup u1L u2R ||
-            hasGroup u1R u2L ||
-            hasGroup u1R u2R
-        | CombiUnit (u1L, _, u1R), u2 ->
-            hasGroup u1L u2 ||
-            hasGroup u1R u2
-        | u1, CombiUnit (u2L, _, u2R) ->
-            hasGroup u1 u2L ||
-            hasGroup u1 u2R
-        | u1, u2 ->
-            (u1 |> ValueUnit.Group.unitToGroup) = (u2 |> ValueUnit.Group.unitToGroup)
+        | CombiUnit(u1L, _, u1R), CombiUnit(u2L, _, u2R) ->
+            hasGroup u1L u2L || hasGroup u1L u2R || hasGroup u1R u2L || hasGroup u1R u2R
+        | CombiUnit(u1L, _, u1R), u2 -> hasGroup u1L u2 || hasGroup u1R u2
+        | u1, CombiUnit(u2L, _, u2R) -> hasGroup u1 u2L || hasGroup u1 u2R
+        | u1, u2 -> (u1 |> ValueUnit.Group.unitToGroup) = (u2 |> ValueUnit.Group.unitToGroup)
 
 
 module ValueUnit =
@@ -2126,9 +2152,9 @@ module ValueUnit =
     /// Transforms an operator to a string
     let opToStr op =
         match op with
-        | OpPer   -> "/"
+        | OpPer -> "/"
         | OpTimes -> "*"
-        | OpPlus  -> "+"
+        | OpPlus -> "+"
         | OpMinus -> "-"
 
 
@@ -2149,32 +2175,44 @@ module ValueUnit =
         module Constants =
 
 
-            let [<Literal>] General = "General"
+            [<Literal>]
+            let General = "General"
 
-            let [<Literal>] NoGroup = "NoGroup"
+            [<Literal>]
+            let NoGroup = "NoGroup"
 
-            let [<Literal>] Count = "Count"
+            [<Literal>]
+            let Count = "Count"
 
-            let [<Literal>] Mass = "Mass"
+            [<Literal>]
+            let Mass = "Mass"
 
-            let [<Literal>] Distance = "Distance"
+            [<Literal>]
+            let Distance = "Distance"
 
-            let [<Literal>] Volume = "Volume"
+            [<Literal>]
+            let Volume = "Volume"
 
-            let [<Literal>] Time = "Time"
+            [<Literal>]
+            let Time = "Time"
 
-            let [<Literal>] Molar = "Molar"
+            [<Literal>]
+            let Molar = "Molar"
 
-            let [<Literal>] InterNatUnit = "InterNatUnit"
+            [<Literal>]
+            let InterNatUnit = "InterNatUnit"
 
-            let [<Literal>] Weight = "Weight"
+            [<Literal>]
+            let Weight = "Weight"
 
-            let [<Literal>] Height = "Height"
+            [<Literal>]
+            let Height = "Height"
 
-            let [<Literal>] BSA = "BSA"
+            [<Literal>]
+            let BSA = "BSA"
 
-            let [<Literal>] Energy = "Energy"
-
+            [<Literal>]
+            let Energy = "Energy"
 
 
         /// Get the corresponding group for a unit
@@ -2184,7 +2222,7 @@ module ValueUnit =
                 match u with
                 | NoUnit
                 | ZeroUnit -> Group.NoGroup
-                | General (n, _) -> Group.GeneralGroup n
+                | General(n, _) -> Group.GeneralGroup n
                 | Count _ -> Group.CountGroup
                 | Mass _ -> Group.MassGroup
                 | Distance _ -> Group.DistanceGroup
@@ -2196,7 +2234,7 @@ module ValueUnit =
                 | Height _ -> Group.HeightGroup
                 | BSA _ -> Group.BSAGroup
                 | Energy _ -> Group.EnergyGroup
-                | CombiUnit (ul, op, ur) -> (get ul, op, get ur) |> Group.CombiGroup
+                | CombiUnit(ul, op, ur) -> (get ul, op, get ur) |> Group.CombiGroup
 
             get u
 
@@ -2227,7 +2265,7 @@ module ValueUnit =
                 | Group.HeightGroup
                 | Group.EnergyGroup
                 | Group.BSAGroup -> g = g2
-                | Group.CombiGroup (gl, _, gr) -> cont gl || cont gr
+                | Group.CombiGroup(gl, _, gr) -> cont gl || cont gr
 
             cont g1
 
@@ -2235,7 +2273,7 @@ module ValueUnit =
         /// Get a list of the groups in a group g
         let rec getGroups g =
             match g with
-            | Group.CombiGroup (gl, _, gr) -> gl |> getGroups |> List.prepend (gr |> getGroups)
+            | Group.CombiGroup(gl, _, gr) -> gl |> getGroups |> List.prepend (gr |> getGroups)
             | _ -> [ g ]
 
 
@@ -2244,11 +2282,11 @@ module ValueUnit =
         // and is false when we are in the denominator
         let rec internal numDenom isNum g =
             match g with
-            | Group.CombiGroup (gl, OpTimes, gr) ->
+            | Group.CombiGroup(gl, OpTimes, gr) ->
                 let lns, lds = gl |> numDenom isNum
                 let rns, rds = gr |> numDenom isNum
                 lns @ rns, lds @ rds
-            | Group.CombiGroup (gl, OpPer, gr) ->
+            | Group.CombiGroup(gl, OpPer, gr) ->
                 if isNum then
                     let lns, lds = gl |> numDenom true
                     let rns, rds = gr |> numDenom false
@@ -2257,11 +2295,7 @@ module ValueUnit =
                     let lns, lds = gr |> numDenom true
                     let rns, rds = gl |> numDenom false
                     lns @ rns, lds @ rds
-            | _ ->
-                if isNum then
-                    (g |> getGroups, [])
-                else
-                    ([], g |> getGroups)
+            | _ -> if isNum then (g |> getGroups, []) else ([], g |> getGroups)
 
 
         /// <summary>
@@ -2287,13 +2321,11 @@ module ValueUnit =
             | NoUnit, ZeroUnit
             | _, _ when u1 = u2 -> true
             | _ ->
-                let g1Num, g1Den=
-                    u1 |> unitToGroup |> numDenom true
-                let g2Num, g2Den =
-                    u2 |> unitToGroup |> numDenom true
+                let g1Num, g1Den = u1 |> unitToGroup |> numDenom true
+                let g2Num, g2Den = u2 |> unitToGroup |> numDenom true
 
-                g1Num |> List.sort = (g2Num |> List.sort) &&
-                g1Den |> List.sort = (g2Den |> List.sort)
+                g1Num |> List.sort = (g2Num |> List.sort)
+                && g1Den |> List.sort = (g2Den |> List.sort)
 
 
         /// Returns group g as a string
@@ -2314,7 +2346,7 @@ module ValueUnit =
                 | Group.HeightGroup -> "Height"
                 | Group.BSAGroup -> "BSA"
                 | Group.EnergyGroup -> "Energy"
-                | Group.CombiGroup (gl, op, gr) ->
+                | Group.CombiGroup(gl, op, gr) ->
                     let gls = str gl s
                     let grs = str gr s
 
@@ -2340,7 +2372,7 @@ module ValueUnit =
                 | Group.HeightGroup -> "Lengte"
                 | Group.BSAGroup -> "BSA"
                 | Group.EnergyGroup -> "Energie"
-                | Group.CombiGroup (gl, op, gr) ->
+                | Group.CombiGroup(gl, op, gr) ->
                     let gls = str gl s
                     let grs = str gr s
 
@@ -2388,16 +2420,8 @@ module ValueUnit =
                     1N |> Minute |> Time
                     1N |> Second |> Time
                 ]
-            | Group.MolarGroup ->
-                [
-                    1N |> Mole |> Molar
-                    1N |> MilliMole |> Molar
-                ]
-            | Group.InterNatUnitGroup ->
-                [
-                    1N |> MIU |> International
-                    1N |> IU |> International
-                ]
+            | Group.MolarGroup -> [ 1N |> Mole |> Molar; 1N |> MilliMole |> Molar ]
+            | Group.InterNatUnitGroup -> [ 1N |> MIU |> International; 1N |> IU |> International ]
             | Group.WeightGroup ->
                 [
                     1N |> WeightKiloGram |> Weight
@@ -2409,11 +2433,7 @@ module ValueUnit =
                     1N |> HeightCentiMeter |> Height
                 ]
             | Group.BSAGroup -> [ 1N |> M2 |> BSA ]
-            | Group.EnergyGroup ->
-                [
-                    1N |> Calorie |> Energy
-                    1N |> KiloCalorie |> Energy
-                ]
+            | Group.EnergyGroup -> [ 1N |> Calorie |> Energy; 1N |> KiloCalorie |> Energy ]
             | Group.CombiGroup _ -> []
 
 
@@ -2435,7 +2455,7 @@ module ValueUnit =
         let getUnits g =
             let rec get g =
                 match g with
-                | Group.CombiGroup (gl, op, gr) ->
+                | Group.CombiGroup(gl, op, gr) ->
                     [
                         for ul in gl |> get do
                             for ur in gr |> get do
@@ -2458,7 +2478,7 @@ module ValueUnit =
             let toList g =
                 let rec parse g acc =
                     match g with
-                    | Group.CombiGroup (gl, op, gr) ->
+                    | Group.CombiGroup(gl, op, gr) ->
                         let gll = parse gl acc
                         let grl = parse gr acc
 
@@ -2466,7 +2486,6 @@ module ValueUnit =
                     | _ -> (g |> GroupItem) :: acc
 
                 parse g []
-
 
 
     module Multipliers =
@@ -2507,7 +2526,7 @@ module ValueUnit =
                 match u with
                 | NoUnit
                 | ZeroUnit -> one
-                | General (_, n) -> n * one
+                | General(_, n) -> n * one
                 | Count g ->
                     match g with
                     | Times n -> n * one
@@ -2529,7 +2548,7 @@ module ValueUnit =
                     | DeciLiter n -> n * deci
                     | MilliLiter n -> n * milli
                     | MicroLiter n -> n * micro
-                    | Droplet (n, m) -> n * (milli / m)
+                    | Droplet(n, m) -> n * (milli / m)
                 | Time g ->
                     match g with
                     | Year n -> n * year
@@ -2564,7 +2583,7 @@ module ValueUnit =
                     match e with
                     | Calorie n -> n * one
                     | KiloCalorie n -> n * kilo
-                | CombiUnit (u1, op, u2) ->
+                | CombiUnit(u1, op, u2) ->
                     let m1 = get u1 m
                     let m2 = get u2 m
 
@@ -2593,9 +2612,7 @@ module ValueUnit =
         match u with
         | NoUnit when v = [| 0N |] -> ([| 0N |], ZeroUnit) |> ValueUnit
         | ZeroUnit -> ([| 0N |], ZeroUnit) |> ValueUnit
-        | _ ->
-            (v, u)
-            |> ValueUnit
+        | _ -> (v, u) |> ValueUnit
 
 
     /// An empty ValueUnit that has no value
@@ -2669,10 +2686,7 @@ module ValueUnit =
     let generalSingleValueUnit v n s = generalValueUnit [| v |] n s
 
 
-    let setUnit u vu =
-        vu
-        |> getValue
-        |> withUnit u
+    let setUnit u vu = vu |> getValue |> withUnit u
 
 
     //----------------------------------------------------------------------------
@@ -2711,8 +2725,7 @@ module ValueUnit =
             match op with
             | OpPer ->
                 match u1, u2 with
-                | _ when u1 |> Group.eqsGroup ZeroUnit ||
-                         u2 |> Group.eqsGroup ZeroUnit -> ZeroUnit
+                | _ when u1 |> Group.eqsGroup ZeroUnit || u2 |> Group.eqsGroup ZeroUnit -> ZeroUnit
                 // this is not enough when u2 is combiunit but
                 // contains u1!
                 | _ when u1 |> Group.eqsGroup u2 ->
@@ -2734,10 +2747,7 @@ module ValueUnit =
                 match u1, u2 with
                 | _ when u1 |> Group.eqsGroup ZeroUnit -> ZeroUnit
                 | _ when u2 |> Group.eqsGroup ZeroUnit -> ZeroUnit
-                | _ when
-                    u1 |> Group.eqsGroup count
-                    && u2 |> Group.eqsGroup count
-                    ->
+                | _ when u1 |> Group.eqsGroup count && u2 |> Group.eqsGroup count ->
                     let n1 = u1 |> Units.getUnitValue
                     let n2 = u2 |> Units.getUnitValue
 
@@ -2786,8 +2796,7 @@ module ValueUnit =
                     match n1, n2 with
                     | Some x1, Some x2 -> u1 |> Units.setUnitValue (x1 + x2)
                     | _ -> u1
-                | _ ->
-                    failwith <| $"Cannot combine units {u1} and {u2} with operator {op}"
+                | _ -> failwith <| $"Cannot combine units {u1} and {u2} with operator {op}"
 
 
     /// <summary>
@@ -2851,19 +2860,19 @@ module ValueUnit =
     /// Get the value and the unit of a ValueUnit as a tuple.
     /// Example: get (ValueUnit ([|1N; 2N; 3N|], Mass (KiloGram 1N))) =
     /// ([|1N; 2N; 3N|], Mass (KiloGram 1N))
-    let get (ValueUnit (v, u)) = v, u
+    let get (ValueUnit(v, u)) = v, u
 
 
     /// Get the value of a ValueUnit.
     /// Example: getValue (ValueUnit ([|1N; 2N; 3N|], Mass (KiloGram 1N))) =
     /// [|1N; 2N; 3N|]
-    let getValue (ValueUnit (v, _)) = v
+    let getValue (ValueUnit(v, _)) = v
 
 
     /// Just sets a value without calculation.
     /// Example: ValueUnit ([|1N|], Mass (KiloGram 1N)) |> setValue [| 1N; 2N; 3N |] =
     /// ValueUnit ([|1N; 2N; 3N|], Mass (KiloGram 1N))
-    let setValue v (ValueUnit (_, u)) = v |> create u
+    let setValue v (ValueUnit(_, u)) = v |> create u
 
 
     /// Sets a single value to a ValueUnit.
@@ -2873,7 +2882,7 @@ module ValueUnit =
 
 
     /// Get the unit of a ValueUnit
-    let getUnit (ValueUnit (_, u)) = u
+    let getUnit (ValueUnit(_, u)) = u
 
 
     /// Get the full unit group of a ValueUnit.
@@ -2906,8 +2915,7 @@ module ValueUnit =
 
     /// Check whether the unit is a count unit, i.e.
     /// belongs to the Count group
-    let isCountUnit =
-        Group.eqsGroup (1N |> Times |> Count)
+    let isCountUnit = Group.eqsGroup (1N |> Times |> Count)
 
 
     /// Checks whether a ValueUnit has an
@@ -2922,8 +2930,7 @@ module ValueUnit =
 
 
     /// Check whether a ValueUnit is a single value
-    let isSingleValue =
-        getValue >> Array.length >> ((=) 1)
+    let isSingleValue = getValue >> Array.length >> ((=) 1)
 
 
     /// Checks whether vu1 is of the
@@ -2938,11 +2945,7 @@ module ValueUnit =
     let hasUnit u2 u1 =
         let rec has u =
             match u with
-            | CombiUnit (lu, _, ru) ->
-                if lu = u2 || ru = u2 then
-                    true
-                else
-                    has lu || (has ru)
+            | CombiUnit(lu, _, ru) -> if lu = u2 || ru = u2 then true else has lu || (has ru)
             | _ -> u = u2
 
         has u1
@@ -2965,15 +2968,16 @@ module ValueUnit =
     /// base value of unit u.
     /// For example u = mg v = 1 -> 1/1000
     let valueToBase u v =
-        v
-        |> Multipliers.toBase (u |> Multipliers.getMultiplier)
+        v |> Multipliers.toBase (u |> Multipliers.getMultiplier)
 
     /// Get the value of a ValueUnit as
     /// a base value.
     /// For example ValueUnit(1000, mg) -> 1
     let toBaseValue vu =
         let v, u = vu |> get
-        if u |> Multipliers.getMultiplier = 1N then v
+
+        if u |> Multipliers.getMultiplier = 1N then
+            v
         else
             v |> Array.map (valueToBase u)
 
@@ -2982,15 +2986,16 @@ module ValueUnit =
     /// unit value of unit u.
     /// For example u = mg v = 1 -> 1000
     let valueToUnit u v =
-        v
-        |> Multipliers.toUnit (u |> Multipliers.getMultiplier)
+        v |> Multipliers.toUnit (u |> Multipliers.getMultiplier)
 
 
     /// Get the value of a ValueUnit as
     /// a unit value ValueUnit(1, mg) -> 1000
     let toUnitValue vu =
         let v, u = vu |> get
-        if u |> Multipliers.getMultiplier = 1N then v
+
+        if u |> Multipliers.getMultiplier = 1N then
+            v
         else
             v |> Array.map (valueToUnit u)
 
@@ -2999,7 +3004,9 @@ module ValueUnit =
     /// For example ValueUnit(1000, mg) -> ValueUnit(1, mg)
     let toBase vu =
         let v, u = vu |> get
-        if u |> Multipliers.getMultiplier = 1N then vu
+
+        if u |> Multipliers.getMultiplier = 1N then
+            vu
         else
             v |> Array.map (valueToBase u) |> create u
 
@@ -3008,7 +3015,9 @@ module ValueUnit =
     /// For example ValueUnit(1, mg) -> ValueUnit(1000, mg)
     let toUnit vu =
         let v, u = vu |> get
-        if u |> Multipliers.getMultiplier = 1N then vu
+
+        if u |> Multipliers.getMultiplier = 1N then
+            vu
         else
             v |> Array.map (valueToUnit u) |> create u
 
@@ -3018,27 +3027,23 @@ module ValueUnit =
     /// logic for calculation of min and max values. If a ValueUnit
     /// has a Value then all negative or zero values are removed.
     let setZeroOrPositive vu =
-        if vu |> getUnit = NoUnit then ZeroUnit |> zero
+        if vu |> getUnit = NoUnit then
+            ZeroUnit |> zero
         else
             let vu = vu |> filter (fun br -> br > 0N)
 
-            if vu |> isEmpty |> not then
-                vu
-            else
-                vu |> setValue [| 0N |]
+            if vu |> isEmpty |> not then vu else vu |> setValue [| 0N |]
 
 
     /// Get the indices of the values in vu1 that are also in vu2
     let getIndices vu1 vu2 =
-        let vals1, vals2 =
-            vu1 |> getBaseValue
-            , vu2 |> getBaseValue
+        let vals1, vals2 = vu1 |> getBaseValue, vu2 |> getBaseValue
 
         let pred x = vals2 |> Array.exists ((=) x)
         vals1 |> Array.indices pred
 
 
-    let pickIndices indices vu=
+    let pickIndices indices vu =
         let vals = vu |> getValue
 
         indices
@@ -3085,13 +3090,11 @@ module ValueUnit =
     //----------------------------------------------------------------------------
 
 
-
     /// Get a list of the units in a unit u
     let rec getUnits u =
         match u with
-        | CombiUnit (ul, _, ur) -> ul |> getUnits |> List.prepend (ur |> getUnits)
+        | CombiUnit(ul, _, ur) -> ul |> getUnits |> List.prepend (ur |> getUnits)
         | _ -> [ u ]
-
 
 
     // separate numerators from denominators
@@ -3099,11 +3102,11 @@ module ValueUnit =
     // and is false when we are in the denominator
     let rec internal numDenom isNum u =
         match u with
-        | CombiUnit (ul, OpTimes, ur) ->
+        | CombiUnit(ul, OpTimes, ur) ->
             let lns, lds = ul |> numDenom isNum
             let rns, rds = ur |> numDenom isNum
             lns @ rns, lds @ rds
-        | CombiUnit (ul, OpPer, ur) ->
+        | CombiUnit(ul, OpPer, ur) ->
             if isNum then
                 let lns, lds = ul |> numDenom true
                 let rns, rds = ur |> numDenom false
@@ -3112,11 +3115,7 @@ module ValueUnit =
                 let lns, lds = ur |> numDenom true
                 let rns, rds = ul |> numDenom false
                 lns @ rns, lds @ rds
-        | _ ->
-            if isNum then
-                (u |> getUnits, [])
-            else
-                ([], u |> getUnits)
+        | _ -> if isNum then (u |> getUnits, []) else ([], u |> getUnits)
 
 
     // Build a unit from a list of numerators and denominators.
@@ -3137,19 +3136,13 @@ module ValueUnit =
             | _ ->
                 let d = ds |> List.rev |> List.reduce times
 
-                if u = NoUnit then
-                    Count(Times 1N) |> per d
-                else
-                    u |> per d
+                if u = NoUnit then Count(Times 1N) |> per d else u |> per d
                 |> fun u -> (isCount, u)
         | h :: tail ->
             if ds |> List.exists (Group.eqsGroup h) then
                 build tail (ds |> List.removeFirst (Group.eqsGroup h)) (true, u)
             else
-                let isCount =
-                    isCount
-                    || (u |> Group.eqsGroup count)
-                    || (h |> Group.eqsGroup count)
+                let isCount = isCount || (u |> Group.eqsGroup count) || (h |> Group.eqsGroup count)
 
                 if u = NoUnit then h else u |> times h
                 |> fun u -> build tail ds (isCount, u)
@@ -3164,7 +3157,8 @@ module ValueUnit =
     /// The simplified unit
     /// </returns>
     let simplifyUnit u =
-        if u = NoUnit then u
+        if u = NoUnit then
+            u
         else
             let ns, ds = u |> numDenom true
 
@@ -3172,11 +3166,13 @@ module ValueUnit =
             |> build ns ds
             |> fun (_, newU) ->
                 // nothing changed so just return original
-                if u = newU then u
+                if u = newU then
+                    u
                 else
                     match newU with
                     | CombiUnit(u1, OpPer, CombiUnit(u2, OpTimes, u3)) ->
-                        if u2 |> Group.eqsGroup u3 then newU
+                        if u2 |> Group.eqsGroup u3 then
+                            newU
                         else
                             CombiUnit(CombiUnit(u1, OpPer, u2), OpPer, u3)
                     | _ -> newU
@@ -3205,6 +3201,7 @@ module ValueUnit =
             vu
         else
             let u = simplifyUnit u
+
             v
             |> create u
             // calculate to the new combiunit
@@ -3238,16 +3235,15 @@ module ValueUnit =
     /// </example>
     let calc b op vu1 vu2 =
 
-        let (ValueUnit (_, u1)) = vu1
-        let (ValueUnit (_, u2)) = vu2
+        let (ValueUnit(_, u1)) = vu1
+        let (ValueUnit(_, u2)) = vu2
         // calculate value in base
         let v =
             let vs1 = vu1 |> toBaseValue
             let vs2 = vu2 |> toBaseValue
-            BigRational.calcCartesian op vs1 vs2
-            |> Array.distinct
+            BigRational.calcCartesian op vs1 vs2 |> Array.distinct
 
-            (*
+        (*
             Array.allPairs vs1 vs2
             |> Array.map (fun (v1, v2) -> v1 |> op <| v2)
             |> Array.distinct
@@ -3266,9 +3262,7 @@ module ValueUnit =
                 | ZeroUnit, u
                 | u, ZeroUnit -> u
                 // Otherwise fail
-                | _ ->
-                    failwith
-                    <| $"cannot add or subtract different units %A{u1} %A{u2}"
+                | _ -> failwith <| $"cannot add or subtract different units %A{u1} %A{u2}"
             |> fun u -> if b then simplifyUnit u else u
         // recreate valueunit with base value and combined unit
         v
@@ -3301,16 +3295,17 @@ module ValueUnit =
     /// </example>
     let cmp cp vu1 vu2 =
         // TODO need better eqsGroup like mg/kg/day = (mg/kg)/day = (mg/kg*day) <> mg/(kg/day) = mg*day/kg
-        if (vu1 |> hasZeroUnit |> not && vu2 |> hasZeroUnit |> not) &&
-           (vu1 |> hasNoUnit |> not && vu2 |> hasNoUnit |> not) &&
-           (vu1 |> eqsGroup vu2 |> not) then
+        if
+            (vu1 |> hasZeroUnit |> not && vu2 |> hasZeroUnit |> not)
+            && (vu1 |> hasNoUnit |> not && vu2 |> hasNoUnit |> not)
+            && (vu1 |> eqsGroup vu2 |> not)
+        then
             failwith $"cannot compare {vu1} with {vu2}"
         //else
         let vs1 = vu1 |> toBaseValue
         let vs2 = vu2 |> toBaseValue
 
-        Array.allPairs vs1 vs2
-        |> Array.forall (fun (v1, v2) -> v1 |> cp <| v2)
+        Array.allPairs vs1 vs2 |> Array.forall (fun (v1, v2) -> v1 |> cp <| v2)
 
 
     /// <summary>
@@ -3321,16 +3316,16 @@ module ValueUnit =
     /// <param name="vu2">The second ValueUnit</param>
     let eqs vu1 vu2 =
         // TODO need better eqsGroup like mg/kg/day = (mg/kg)/day = (mg/kg*day) <> mg/(kg/day) = mg*day/kg
-        if (vu1 |> hasZeroUnit |> not && vu2 |> hasZeroUnit |> not) &&
-           (vu1 |> hasNoUnit |> not && vu2 |> hasNoUnit |> not) &&
-           (vu1 |> eqsGroup vu2 |> not) then
+        if
+            (vu1 |> hasZeroUnit |> not && vu2 |> hasZeroUnit |> not)
+            && (vu1 |> hasNoUnit |> not && vu2 |> hasNoUnit |> not)
+            && (vu1 |> eqsGroup vu2 |> not)
+        then
             failwith $"cannot compare {vu1} with {vu2}"
 
-        let vs1 =
-            vu1 |> toBaseValue |> Array.distinct |> Array.sort
+        let vs1 = vu1 |> toBaseValue |> Array.distinct |> Array.sort
 
-        let vs2 =
-            vu2 |> toBaseValue |> Array.distinct |> Array.sort
+        let vs2 = vu2 |> toBaseValue |> Array.distinct |> Array.sort
 
         vs1 = vs2
 
@@ -3363,8 +3358,7 @@ module ValueUnit =
     /// Filter the values in a ValueUnit using a predicate function pred.
     /// </summary>
     /// <param name="fPred">The predicate function to use</param>
-    let filterValues fPred =
-        applyArrayFunction Array.filter fPred
+    let filterValues fPred = applyArrayFunction Array.filter fPred
 
 
     /// <summary>
@@ -3428,11 +3422,7 @@ module ValueUnit =
         if u = oldU || u = NoUnit || u = ZeroUnit then
             vu
         else
-            vu
-            |> toBaseValue
-            |> create u
-            |> toUnitValue
-            |> create u
+            vu |> toBaseValue |> create u |> toUnitValue |> create u
 
 
     /// <summary>
@@ -3447,52 +3437,47 @@ module ValueUnit =
 
 
     /// Check if Value is zero
-    let isZero =
-        getValue >> Array.forall ((=) 0N)
+    let isZero = getValue >> Array.forall ((=) 0N)
 
     /// Check if Value is > 0
-    let gtZero =
-        getValue >> Array.forall ((<) 0N)
+    let gtZero = getValue >> Array.forall ((<) 0N)
 
     /// Check if Value >= 0
-    let gteZero =
-        getValue >> Array.forall ((<=) 0N)
+    let gteZero = getValue >> Array.forall ((<=) 0N)
 
     /// Check if Value < 0
-    let stZero =
-        getValue >> Array.forall ((>) 0N)
+    let stZero = getValue >> Array.forall ((>) 0N)
 
     /// Check if Value <= 0
-    let steZero =
-        getValue >> Array.forall ((>=) 0N)
+    let steZero = getValue >> Array.forall ((>=) 0N)
 
 
     /// Get the smallest value of a ValueUnit.
     /// Returns None if the ValueUnit is empty.
     let minValue vu =
-        if vu |> isEmpty then None
+        if vu |> isEmpty then
+            None
         else
-            vu
-            |> applyToValue (Array.min >> Array.singleton)
-            |> Some
+            vu |> applyToValue (Array.min >> Array.singleton) |> Some
 
 
     /// Get the largest value of a ValueUnit.
     /// Returns None if the ValueUnit is empty.
     let maxValue vu =
-        if vu |> isEmpty then None
+        if vu |> isEmpty then
+            None
         else
-            vu
-            |> applyToValue (Array.max >> Array.singleton)
-            |> Some
+            vu |> applyToValue (Array.max >> Array.singleton) |> Some
 
 
     let medianValue vu =
-        if vu |> isEmpty then None
+        if vu |> isEmpty then
+            None
         else
             vu
             |> applyToValue (fun xs ->
                 let i = (xs |> Array.length) / 2
+
                 xs
                 |> Array.sort
                 |> Array.tryItem i
@@ -3509,8 +3494,7 @@ module ValueUnit =
         vu
         |> toBase
         |> applyToValue (fun vs ->
-            let incr =
-                incr |> getBaseValue |> Set.ofArray
+            let incr = incr |> getBaseValue |> Set.ofArray
 
             vs |> Array.map (f incr) //|> Array.map snd
         )
@@ -3598,8 +3582,7 @@ module ValueUnit =
     /// denominator (ValueUnit ([|1N/2N; 2N/3N; 3N/5N|], Mass (KiloGram 1N)))
     /// </code>
     /// </example>
-    let denominator =
-        getValue >> (Array.map BigRational.denominator)
+    let denominator = getValue >> (Array.map BigRational.denominator)
 
 
     /// <summary>
@@ -3611,8 +3594,7 @@ module ValueUnit =
     /// numerator (ValueUnit ([|1N/2N; 2N/3N; 3N/5N|], Mass (KiloGram 1N)))
     /// </code>
     /// </example>
-    let numerator =
-        getValue >> (Array.map BigRational.numerator)
+    let numerator = getValue >> (Array.map BigRational.numerator)
 
 
     /// <summary>
@@ -3630,9 +3612,7 @@ module ValueUnit =
     /// </code>
     /// </example>
     let filter pred =
-        toBase
-        >> applyToValue (Array.filter pred)
-        >> toUnit
+        toBase >> applyToValue (Array.filter pred) >> toUnit
 
 
     /// <summary>
@@ -3645,9 +3625,7 @@ module ValueUnit =
     /// </code>
     /// </example>
     let removeBigRationalMultiples =
-        toBase
-        >> applyToValue Array.removeBigRationalMultiples
-        >> toUnit
+        toBase >> applyToValue Array.removeBigRationalMultiples >> toUnit
 
 
     /// <summary>
@@ -3755,24 +3733,25 @@ module ValueUnit =
 
 
     let setNearestValue vu1 vu2 =
-        if vu1 |> valueCount <> 1 then vu2
+        if vu1 |> valueCount <> 1 then
+            vu2
+        else if vu1 >? vu2 || vu1 <? vu2 then
+            vu2
         else
-            if vu1 >? vu2 || vu1 <? vu2 then vu2
-            else
-                let vu1 = vu1 |> getBaseValue |> Array.head
-                let vs2 = vu2 |> getBaseValue
-                // find the nearest value in vs2 to vu1
-                vs2
-                |> Array.map (fun v -> (v, v - vu1 |> BigRational.Abs))
-                |> Array.minBy snd
-                |> fun (v, _) ->
-                    setSingleValue v vu2
-                    |> toUnit
+            let vu1 = vu1 |> getBaseValue |> Array.head
+            let vs2 = vu2 |> getBaseValue
+            // find the nearest value in vs2 to vu1
+            vs2
+            |> Array.map (fun v -> (v, v - vu1 |> BigRational.Abs))
+            |> Array.minBy snd
+            |> fun (v, _) -> setSingleValue v vu2 |> toUnit
 
 
     let pickNearestHigherElseLower (target: ValueUnit) (candidates: ValueUnit) =
-        if candidates |> ValueUnit.isEmpty then candidates
-        elif candidates |> ValueUnit.eqsGroup target |> not then candidates
+        if candidates |> ValueUnit.isEmpty then
+            candidates
+        elif candidates |> ValueUnit.eqsGroup target |> not then
+            candidates
         else
             candidates
             |> ValueUnit.toBase
@@ -3780,9 +3759,7 @@ module ValueUnit =
                 target
                 |> ValueUnit.getBaseValue
                 |> Array.tryExactlyOne
-                |> Option.map (fun br ->
-                    [| brs1 |> Array.pickNearestHigherElseLower br |]
-                )
+                |> Option.map (fun br -> [| brs1 |> Array.pickNearestHigherElseLower br |])
                 |> Option.defaultValue brs1
             ) // set selected base value
             |> ValueUnit.toUnit
@@ -3807,36 +3784,11 @@ module ValueUnit =
         let o = 1N |> Times |> Count |> one
 
         match cp with
-        | _ when
-            (z |> cp <| z)
-            && not (z |> cp <| o)
-            && not (o |> cp <| z)
-            ->
-            "="
-        | _ when
-            (z |> cp <| z)
-            && (z |> cp <| o)
-            && not (o |> cp <| z)
-            ->
-            "<="
-        | _ when
-            (z |> cp <| z)
-            && not (z |> cp <| o)
-            && (o |> cp <| z)
-            ->
-            ">="
-        | _ when
-            not (z |> cp <| z)
-            && (z |> cp <| o)
-            && not (o |> cp <| z)
-            ->
-            "<"
-        | _ when
-            not (z |> cp <| z)
-            && not (z |> cp <| o)
-            && (o |> cp <| z)
-            ->
-            ">"
+        | _ when (z |> cp <| z) && not (z |> cp <| o) && not (o |> cp <| z) -> "="
+        | _ when (z |> cp <| z) && (z |> cp <| o) && not (o |> cp <| z) -> "<="
+        | _ when (z |> cp <| z) && not (z |> cp <| o) && (o |> cp <| z) -> ">="
+        | _ when not (z |> cp <| z) && (z |> cp <| o) && not (o |> cp <| z) -> "<"
+        | _ when not (z |> cp <| z) && not (z |> cp <| o) && (o |> cp <| z) -> ">"
         | _ -> "unknown comparison"
 
 
@@ -3851,8 +3803,7 @@ module ValueUnit =
     /// </code>
     /// </example>
     let unitToReadableDutchString u =
-        u
-        |> Units.toString None None false Units.Dutch Units.Short
+        u |> Units.toString None None false Units.Dutch Units.Short
 
     /// <summary>
     /// Get the user readable string version of a unit in Dutch short format
@@ -3867,10 +3818,7 @@ module ValueUnit =
     /// </code>
     /// </example>
     let unitToReadableDutchStringWithWrappers vw uw u =
-        u
-        |> Units.toString (Some vw) (Some uw) false Units.Dutch Units.Short
-
-
+        u |> Units.toString (Some vw) (Some uw) false Units.Dutch Units.Short
 
 
     /// <summary>
@@ -3906,26 +3854,22 @@ module ValueUnit =
     /// <summary>
     /// Get the user readable string version in Dutch with verbosity short and group annotation
     /// </summary>
-    let toStringDutchShort =
-        toString true BigRational.toString Units.Dutch Units.Short
+    let toStringDutchShort = toString true BigRational.toString Units.Dutch Units.Short
 
     /// <summary>
     /// Get the user readable string version in Dutch with verbosity long and group annotation
     /// </summary>
-    let toStringDutchLong =
-        toString true BigRational.toString Units.Dutch Units.Long
+    let toStringDutchLong = toString true BigRational.toString Units.Dutch Units.Long
 
     /// <summary>
     /// Get the user readable string version in English with verbosity short and group annotation
     /// </summary>
-    let toStringEngShort =
-        toString true BigRational.toString Units.English Units.Short
+    let toStringEngShort = toString true BigRational.toString Units.English Units.Short
 
     /// <summary>
     /// Get the user readable string version in English with verbosity long and group annotation
     /// </summary>
-    let toStringEngLong =
-        toString true BigRational.toString Units.English Units.Long
+    let toStringEngLong = toString true BigRational.toString Units.English Units.Long
 
     /// <summary>
     /// Get the user readable string version in Dutch with verbosity short,
@@ -4004,8 +3948,8 @@ module ValueUnit =
     /// </example>
     let fromString s =
         match s |> Parser.parse with
-        | FParsec.CharParsers.Success (s, _, _) -> s |> Result.Ok
-        | FParsec.CharParsers.Failure (s, err, _) -> $"{s} with error: {err}" |> Result.Error
+        | FParsec.CharParsers.Success(s, _, _) -> s |> Result.Ok
+        | FParsec.CharParsers.Failure(s, err, _) -> $"{s} with error: {err}" |> Result.Error
 
 
     module Operators =
@@ -4034,7 +3978,7 @@ module ValueUnit =
 
 
         type Dto() =
-            member val Value : BigRational [] = [||] with get, set
+            member val Value: BigRational[] = [||] with get, set
             member val Unit = "" with get, set
             member val Group = "" with get, set
             member val Short = true with get, set
@@ -4054,10 +3998,7 @@ module ValueUnit =
 
         let toDto short lang vu =
             let isLang s l =
-                l
-                |> String.trim
-                |> String.toLower
-                |> fun l -> s |> String.startsWith l
+                l |> String.trim |> String.toLower |> (fun l -> s |> String.startsWith l)
 
             let l =
                 match lang with
@@ -4068,19 +4009,13 @@ module ValueUnit =
             match l with
             | None -> None
             | Some l ->
-                let s =
-                    if short then
-                        Units.Short
-                    else
-                        Units.Long
+                let s = if short then Units.Short else Units.Long
 
                 let v, u = vu |> ValueUnit.get
 
-                let g =
-                    u |> Group.unitToGroup |> Group.toString
+                let g = u |> Group.unitToGroup |> Group.toString
 
-                let u =
-                    u |> Units.toString None None false l s //|> String.removeBrackets
+                let u = u |> Units.toString None None false l s //|> String.removeBrackets
 
                 let dto = dto ()
                 dto.Value <- v
@@ -4099,46 +4034,33 @@ module ValueUnit =
         let toDtoEnglishLong vu = vu |> toDto false english |> Option.get
 
 
-        let fromDto (dto: Dto ) =
+        let fromDto (dto: Dto) =
             let v = dto.Value
 
-            if dto.Json |> String.notEmpty then dto.Json |> Json.deSerialize<Unit> |> Some
+            if dto.Json |> String.notEmpty then
+                dto.Json |> Json.deSerialize<Unit> |> Some
+            else if dto.Group |> String.isNullOrWhiteSpace then
+                dto.Unit |> Units.fromString
             else
-                if dto.Group |> String.isNullOrWhiteSpace then
-                    dto.Unit
-                    |> Units.fromString
+                // TODO only works for "per" combiunits
+                let us = dto.Unit |> String.split "/"
+                let gs = dto.Group |> String.split "/"
+
+                if us |> List.length <> (gs |> List.length) then
+                    printfn $"warning: {us} not the same length as {gs}!"
+                    printfn $"unit: {dto.Unit} group {dto.Group}!"
+
+                    $"{dto.Unit}[{dto.Group}]" |> Units.fromString
                 else
-                    // TODO only works for "per" combiunits
-                    let us = dto.Unit |> String.split "/"
-                    let gs = dto.Group |> String.split "/"
-
-                    if us |> List.length <> (gs |> List.length) then
-                        printfn $"warning: {us} not the same length as {gs}!"
-                        printfn $"unit: {dto.Unit} group {dto.Group}!"
-
-                        $"{dto.Unit}[{dto.Group}]"
-                        |> Units.fromString
-                    else
-                        List.zip us gs
-                        |> List.choose (fun (u, g) ->
-                            $"{u}[{g}]"
-                            |> Units.fromString
-                        )
-                        |> function
-                            | [] -> None
-                            | [u] -> u |> Some
-                            | u::rest ->
-                                rest
-                                |> List.fold(fun acc u ->
-                                    CombiUnit (acc, OpPer, u)
-                                ) u
-                                |> Some
+                    List.zip us gs
+                    |> List.choose (fun (u, g) -> $"{u}[{g}]" |> Units.fromString)
+                    |> function
+                        | [] -> None
+                        | [ u ] -> u |> Some
+                        | u :: rest -> rest |> List.fold (fun acc u -> CombiUnit(acc, OpPer, u)) u |> Some
             |> function
-            | None -> None
-            | Some u ->
-                v
-                |> withUnit u
-                |> Some
+                | None -> None
+                | Some u -> v |> withUnit u |> Some
 
 
 type ValueUnit with
@@ -4178,83 +4100,89 @@ module Tests =
     // Test numDenom
     let testNumDenom () =
         // kg
-        let u = Mass (KiloGram 1N)
+        let u = Mass(KiloGram 1N)
         // calc kg = num [kg], denom []
         let act = u |> ValueUnit.numDenom true
-        let exp = ([Mass (KiloGram 1N)], [])
+        let exp = ([ Mass(KiloGram 1N) ], [])
 
         test <@ act = exp @>
 
         // 1/kg
-        let u = Count (Times 1N) |> per (Mass (KiloGram 1N))
+        let u = Count(Times 1N) |> per (Mass(KiloGram 1N))
         // calc 1/kg = num [times], denom [kg]
         let act = u |> ValueUnit.numDenom true
-        let exp = ([Count (Times 1N)], [Mass (KiloGram 1N)])
+        let exp = ([ Count(Times 1N) ], [ Mass(KiloGram 1N) ])
         test <@ act = exp @>
 
         // 1/(kg*m)
-        let u = Count (Times 1N) |> per (Mass (KiloGram 1N) |> times (Distance (Meter 1N)))
+        let u = Count(Times 1N) |> per (Mass(KiloGram 1N) |> times (Distance(Meter 1N)))
         // calc 1/1/(kg*m) = num [kg; m], denom [times]
         let act = u |> ValueUnit.numDenom false
-        let exp = ([Mass (KiloGram 1N); Distance (Meter 1N)], [Count (Times 1N)])
+        let exp = ([ Mass(KiloGram 1N); Distance(Meter 1N) ], [ Count(Times 1N) ])
         test <@ act = exp @>
 
         // kg*m/L
-        let u = Mass (KiloGram 1N) |> per (Volume (Liter 1N)) |> times (Distance (Meter 1N))
+        let u = Mass(KiloGram 1N) |> per (Volume(Liter 1N)) |> times (Distance(Meter 1N))
         // calc kg*m/L = num [[kg;m], denom [L]
         let act = u |> ValueUnit.numDenom true
-        let exp = ([Mass (KiloGram 1N); Distance (Meter 1N)], [Volume (Liter 1N)])
+        let exp = ([ Mass(KiloGram 1N); Distance(Meter 1N) ], [ Volume(Liter 1N) ])
         test <@ act = exp @>
 
         // kg*m/L
-        let u = Mass (KiloGram 1N) |> per (Volume (Liter 1N)) |> times (Distance (Meter 1N))
+        let u = Mass(KiloGram 1N) |> per (Volume(Liter 1N)) |> times (Distance(Meter 1N))
         // calc 1/(kg*m/L) = num[L], denom [kg;m]
         let act = u |> ValueUnit.numDenom false
-        let exp = ([Volume (Liter 1N)], [Mass (KiloGram 1N); Distance (Meter 1N)])
-        test <@ act = exp  @>
+        let exp = ([ Volume(Liter 1N) ], [ Mass(KiloGram 1N); Distance(Meter 1N) ])
+        test <@ act = exp @>
 
         // (kg*m)/(m*L)
-        let u = Mass (KiloGram 1N) |> times (Distance (Meter 1N)) |> per (Volume (Liter 1N) |> times (Distance (Meter 1N)))
+        let u =
+            Mass(KiloGram 1N)
+            |> times (Distance(Meter 1N))
+            |> per (Volume(Liter 1N) |> times (Distance(Meter 1N)))
         // calc (kg*m)/(m*L) = num [kg;m], denom [L;m]
         let act = u |> ValueUnit.numDenom true
-        let exp = ([Mass (KiloGram 1N); Distance (Meter 1N)], [ Volume (Liter 1N); Distance (Meter 1N)])
+
+        let exp =
+            ([ Mass(KiloGram 1N); Distance(Meter 1N) ], [ Volume(Liter 1N); Distance(Meter 1N) ])
+
         test <@ act = exp @>
 
 
         // (kg*m)/(m*L)
-        let u = Mass (KiloGram 1N) |> times (Distance (Meter 1N)) |> per (Volume (Liter 1N) |> times (Distance (Meter 1N)))
+        let u =
+            Mass(KiloGram 1N)
+            |> times (Distance(Meter 1N))
+            |> per (Volume(Liter 1N) |> times (Distance(Meter 1N)))
         // calc 1/(kg*m)/(m*L) = num [L;m], denom [kg;m]
         let act = u |> ValueUnit.numDenom false
-        let exp = ([ Volume (Liter 1N); Distance (Meter 1N)], [Mass (KiloGram 1N); Distance (Meter 1N)])
+
+        let exp =
+            ([ Volume(Liter 1N); Distance(Meter 1N) ], [ Mass(KiloGram 1N); Distance(Meter 1N) ])
+
         test <@ act = exp @>
 
 
     // Test the 'build' function
     let testBuild () =
         // [] [] -> (false, NoUnit)
-        let act =
-            (false, NoUnit)
-            |> ValueUnit.build [] []
+        let act = (false, NoUnit) |> ValueUnit.build [] []
         let exp = (false, NoUnit)
         test <@ act = exp @>
 
         // [kg] [] -> (false, kg)
-        let act =
-            (false, NoUnit)
-            |> ValueUnit.build [Mass (KiloGram 1N)] []
-        let exp = (false, Mass (KiloGram 1N))
+        let act = (false, NoUnit) |> ValueUnit.build [ Mass(KiloGram 1N) ] []
+        let exp = (false, Mass(KiloGram 1N))
         test <@ act = exp @>
 
         // [] [kg] -> (false, 1/kg)
-        let act =
-            (false, NoUnit)
-            |> ValueUnit.build [] [Mass (KiloGram 1N)]
-        let exp = (false, Count (Times 1N) |> per (Mass (KiloGram 1N)))
+        let act = (false, NoUnit) |> ValueUnit.build [] [ Mass(KiloGram 1N) ]
+        let exp = (false, Count(Times 1N) |> per (Mass(KiloGram 1N)))
         test <@ act = exp @>
 
         // [kg] [kg] -> (true, 1)
         let act =
-            (false, NoUnit)
-            |> ValueUnit.build [Mass (KiloGram 1N)] [Mass (KiloGram 1N)]
-        let exp = (true, Count (Times 1N))
+            (false, NoUnit) |> ValueUnit.build [ Mass(KiloGram 1N) ] [ Mass(KiloGram 1N) ]
+
+        let exp = (true, Count(Times 1N))
         test <@ act = exp @>

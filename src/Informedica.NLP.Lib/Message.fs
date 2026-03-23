@@ -1,7 +1,6 @@
 namespace Informedica.OpenAI.Lib
 
 
-
 module Roles =
 
 
@@ -15,14 +14,14 @@ module Roles =
     let assistant = "assistant"
 
 
-
 module Conversation =
 
-    let print (conversation : Conversation) =
+    let print (conversation: Conversation) =
         for qAndA in conversation.Messages do
             match qAndA.Answer with
             | Some answer ->
-                printfn $"""
+                printfn
+                    $"""
 ## Question:
 {qAndA.Question.Content.Trim()}
 
@@ -30,7 +29,8 @@ module Conversation =
 {answer.Content.Trim()}
 """
             | _ ->
-                printfn $"""
+                printfn
+                    $"""
 ## System:
 {qAndA.Question.Content.Trim()}
 """
@@ -56,26 +56,29 @@ module Message =
     let userWithValidator validator = create validator Roles.user
 
 
-    let print (msg : Message) =
+    let print (msg: Message) =
         match msg.Role with
         | Roles.user ->
-            printfn $"""
+            printfn
+                $"""
 ## Question:
 {msg.Content.Trim()}
 """
         | Roles.assistant ->
-            printfn $"""
+            printfn
+                $"""
 ## Answer:
 {msg.Content.Trim()}
 """
         | Roles.system ->
-            printfn $"""
+            printfn
+                $"""
 ## System:
 {msg.Content.Trim()}
 """
         | _ ->
-            printfn $"""
+            printfn
+                $"""
 ## Unknown role:
 {msg.Content.Trim()}
 """
-

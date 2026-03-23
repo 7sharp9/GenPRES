@@ -16,17 +16,17 @@ module Types =
 
     type UnitMapping =
         {
-            Long : string
-            Short : string
-            MV : string
-            Group : string
+            Long: string
+            Short: string
+            MV: string
+            Group: string
         }
 
 
     type RouteMapping =
         {
-            Long : string
-            Short : string
+            Long: string
+            Short: string
         }
 
 
@@ -35,29 +35,29 @@ module Types =
     type FormRoute =
         {
             // The Route
-            Route : string
+            Route: string
             // The pharmaceutical form
-            Form : string
+            Form: string
             // The Unit of the form
-            Unit : Unit
+            Unit: Unit
             // The Dose Unit to use for Dose Limits
-            DoseUnit : Unit
+            DoseUnit: Unit
             // The minimum Dose quantity
-            MinDoseQty : ValueUnit option
+            MinDoseQty: ValueUnit option
             // The maximum Dose quantity
-            MaxDoseQty : ValueUnit option
+            MaxDoseQty: ValueUnit option
             // The minimum Adjusted Dose quantity
-            MinDoseQtyPerKg : ValueUnit option
+            MinDoseQtyPerKg: ValueUnit option
             // The maximum Adjusted Dose quantity
-            MaxDoseQtyPerKg : ValueUnit option
+            MaxDoseQtyPerKg: ValueUnit option
             // The divisibility of a pharmaceutical form
             Divisibility: BigRational option
             // Whether a Dose runs over a Time
-            Timed : bool
+            Timed: bool
             // Whether the pharmaceutical form needs to be reconstituted
-            Reconstitute : bool
+            Reconstitute: bool
             // Whether the pharmaceutical form is a solution
-            IsSolution : bool
+            IsSolution: bool
         }
 
 
@@ -72,7 +72,10 @@ module Types =
 
 
     /// Possible Genders.
-    type Gender = Male | Female | AnyGender
+    type Gender =
+        | Male
+        | Female
+        | AnyGender
 
 
     type RenalFunction =
@@ -100,19 +103,19 @@ module Types =
     type Reconstitution =
         {
             // The GPK of the reconstitution
-            GPK : string
+            GPK: string
             // The route for the reconstitution
-            Route : string
+            Route: string
             // The location for the reconstitution rule
-            Location : string option
+            Location: string option
             // The department for the reconstitution
-            Department : string option
+            Department: string option
             // The volume of the reconstitution
-            DiluentVolume : ValueUnit
+            DiluentVolume: ValueUnit
             // An optional expansion volume of the reconstitution
-            ExpansionVolume : ValueUnit option
+            ExpansionVolume: ValueUnit option
             // The Diluents for the reconstitution
-            Diluents : string []
+            Diluents: string[]
         }
 
 
@@ -120,56 +123,56 @@ module Types =
     type Substance =
         {
             // The name of the Substance
-            Name : string
+            Name: string
             // The Quantity of the Substance
-            Concentration : ValueUnit option
+            Concentration: ValueUnit option
             // The indivisible Quantity of the Substance
-            MolarConcentration : ValueUnit option
+            MolarConcentration: ValueUnit option
         }
 
     /// A Product type.
     type Product =
         {
             // The GPK id of the Product
-            GPK : string
+            GPK: string
             // The ATC code of the Product
-            ATC : string
+            ATC: string
             // The ATC main group of the Product
-            MainGroup : string
+            MainGroup: string
             // The ATC subgroup of the Product
-            SubGroup : string
+            SubGroup: string
             // The Generic name of the Product
-            Generic : string
+            Generic: string
             // Use Generic Substance Name
-            UseGenericName : bool
+            UseGenericName: bool
             // Use pharmaceutical form
-            UseForm : bool
+            UseForm: bool
             // Use Brand
-            UseBrand : bool
+            UseBrand: bool
             // A tall-man representation of the Generic name of the Product
-            TallMan : string
+            TallMan: string
             // Synonyms for the Product
-            Synonyms : string array
+            Synonyms: string array
             // The full product name of the Product
-            Product : string
+            Product: string
             // The label of the Product
-            Label : string
+            Label: string
             // The pharmaceutical form of the Product
-            Form : string
+            Form: string
             // The possible Routes of administration of the Product
-            Routes : string []
+            Routes: string[]
             // The possible quantities of the Pharmacological Form of the Product
-            FormQuantities : ValueUnit
+            FormQuantities: ValueUnit
             // The uid of the pharmaceutical form of the Product
-            FormUnit : Unit
+            FormUnit: Unit
             // Whether the pharmaceutical form of the Product requires reconstitution
-            RequiresReconstitution : bool
+            RequiresReconstitution: bool
             // The possible reconstitution rules for the Product
-            Reconstitution : Reconstitution []
+            Reconstitution: Reconstitution[]
             // The division factor of the Product
-            Divisible : BigRational option
+            Divisible: BigRational option
             // The Substances in the Product
-            Substances : Substance array
+            Substances: Substance array
         }
 
 
@@ -186,9 +189,9 @@ module Types =
             /// The generic name
             Generic: string
             /// The TallMan alternative name
-            TallMan : string
+            TallMan: string
             /// The Divisibility of the product
-            Divisible : int option
+            Divisible: int option
             /// Use generic name
             UseGenName: bool
             /// Use form
@@ -236,7 +239,12 @@ module Types =
             /// Is additive
             IsAdditive: bool
         }
-    and ProductType = | MedicationProduct | ParenteralProduct | EnteralProduct | NoProduct
+
+    and ProductType =
+        | MedicationProduct
+        | ParenteralProduct
+        | EnteralProduct
+        | NoProduct
 
 
     type ComponentItem =
@@ -258,38 +266,38 @@ module Types =
     /// A DoseLimit for a pharmaceutical form or Substance.
     type DoseLimit =
         {
-            DoseLimitTarget : LimitTarget
+            DoseLimitTarget: LimitTarget
             // The unit to adjust dosing with
-            AdjustUnit : Unit option
+            AdjustUnit: Unit option
             // The unit to dose with
             DoseUnit: Unit
             // A MinMax Dose Quantity for the DoseLimit
-            Quantity : MinMax
+            Quantity: MinMax
             // A MinMax Quantity Adjust for the DoseLimit
-            QuantityAdjust : MinMax
+            QuantityAdjust: MinMax
             // An optional Dose Per Time for the DoseLimit
-            PerTime : MinMax
+            PerTime: MinMax
             // A MinMax Per Time Adjust for the DoseLimit
-            PerTimeAdjust : MinMax
+            PerTimeAdjust: MinMax
             // A MinMax Rate for the DoseLimit
-            Rate : MinMax
+            Rate: MinMax
             // A MinMax Rate Adjust for the DoseLimit
-            RateAdjust : MinMax
+            RateAdjust: MinMax
         }
 
 
     /// A PatientCategory to which a Rule applies.
     type PatientCategory =
         {
-            Location : string option
-            Department : string option
-            Gender : Gender
-            Age : MinMax
-            Weight : MinMax
-            BSA : MinMax
-            GestAge : MinMax
-            PMAge : MinMax
-            Access : AccessDevice
+            Location: string option
+            Department: string option
+            Gender: Gender
+            Age: MinMax
+            Weight: MinMax
+            BSA: MinMax
+            GestAge: MinMax
+            PMAge: MinMax
+            Access: AccessDevice
         }
 
 
@@ -297,57 +305,57 @@ module Types =
     type Patient =
         {
             // The Location of the Patient
-            Location : string option
+            Location: string option
             // The Department of the Patient
-            Department : string option
+            Department: string option
             // A list of Diagnoses of the Patient
-            Diagnoses : string []
+            Diagnoses: string[]
             // The Gender of the Patient
-            Gender : Gender
+            Gender: Gender
             // The Age in days of the Patient
-            Age : ValueUnit option
+            Age: ValueUnit option
             // The Weight in grams of the Patient
-            Weight : ValueUnit option
+            Weight: ValueUnit option
             // The Height in cm of the Patient
-            Height : ValueUnit option
+            Height: ValueUnit option
             // The Gestational Age in days of the Patient
-            GestAge : ValueUnit option
+            GestAge: ValueUnit option
             // The Post Menstrual Age in days of the Patient
-            PMAge : ValueUnit option
+            PMAge: ValueUnit option
             // The administration access devices of the Patient
-            Access : AccessDevice list
+            Access: AccessDevice list
             // The Renal Function of the Patient
-            RenalFunction : RenalFunction option
+            RenalFunction: RenalFunction option
         }
-        static member Gender_ =
-            (fun (p : Patient) -> p.Gender), (fun g (p : Patient) -> { p with Gender = g})
 
-        static member Age_ =
-            (fun (p : Patient) -> p.Age), (fun a (p : Patient) -> { p with Age = a})
+        static member Gender_ =
+            (fun (p: Patient) -> p.Gender), (fun g (p: Patient) -> { p with Gender = g })
+
+        static member Age_ = (fun (p: Patient) -> p.Age), (fun a (p: Patient) -> { p with Age = a })
 
         static member Weight_ =
-            (fun (p : Patient) -> p.Weight), (fun w (p : Patient) -> { p with Weight = w})
+            (fun (p: Patient) -> p.Weight), (fun w (p: Patient) -> { p with Weight = w })
 
         static member Height_ =
-            (fun (p : Patient) -> p.Height), (fun b (p : Patient) -> { p with Height = b})
+            (fun (p: Patient) -> p.Height), (fun b (p: Patient) -> { p with Height = b })
 
         static member GestAge_ =
-            (fun (p : Patient) -> p.GestAge), (fun a (p : Patient) -> { p with GestAge = a})
+            (fun (p: Patient) -> p.GestAge), (fun a (p: Patient) -> { p with GestAge = a })
 
         static member PMAge_ =
-            (fun (p : Patient) -> p.PMAge), (fun a (p : Patient) -> { p with PMAge = a})
+            (fun (p: Patient) -> p.PMAge), (fun a (p: Patient) -> { p with PMAge = a })
 
         static member Department_ =
-            (fun (p : Patient) -> p.Department), (fun d (p : Patient) -> { p with Department = d})
+            (fun (p: Patient) -> p.Department), (fun d (p: Patient) -> { p with Department = d })
 
         static member Access_ =
-            (fun (p : Patient) -> p.Access), (fun a (p : Patient) -> { p with Access = a})
+            (fun (p: Patient) -> p.Access), (fun a (p: Patient) -> { p with Access = a })
 
         static member RenalFunction_ =
-            (fun (p : Patient) -> p.RenalFunction), (fun r (p : Patient) -> { p with RenalFunction = r})
+            (fun (p: Patient) -> p.RenalFunction), (fun r (p: Patient) -> { p with RenalFunction = r })
 
         static member Location_ =
-            (fun (p : Patient) -> p.Location), (fun l (p : Patient) -> { p with Location = l})
+            (fun (p: Patient) -> p.Location), (fun l (p: Patient) -> { p with Location = l })
 
 
     type DoseRuleData =
@@ -402,7 +410,7 @@ module Types =
             Source: string
             Substance: string
             TimeUnit: string
-            Products : Product []
+            Products: Product[]
         }
 
 
@@ -496,12 +504,12 @@ module Types =
 
     type ComponentLimit =
         {
-            Name : string
+            Name: string
             // Specific GPKs
-            GPKs : string array
-            Limit : DoseLimit option
-            Products : Product []
-            SubstanceLimits : DoseLimit []
+            GPKs: string array
+            Limit: DoseLimit option
+            Products: Product[]
+            SubstanceLimits: DoseLimit[]
         }
 
 
@@ -509,40 +517,40 @@ module Types =
     /// for a specific PatientCategory, Indication, Generic, pharmaceutical form, Route and DoseType.
     type DoseRule =
         {
-            Source : string
+            Source: string
             // The Indication of the DoseRule
-            Indication : string
+            Indication: string
             // The Generic of the DoseRule
-            Generic : string
+            Generic: string
             // The pharmaceutical pharmaceutical form of the DoseRule
-            Form : string
+            Form: string
             // The brand of the doserule
-            Brand : string option
+            Brand: string option
             // The Route of administration of the DoseRule
-            Route : string
+            Route: string
             // The PatientCategory of the DoseRule
-            PatientCategory : PatientCategory
+            PatientCategory: PatientCategory
             // the original dose schedule text
-            ScheduleText : string
+            ScheduleText: string
             // The DoseType of the DoseRule
-            DoseType : DoseType
+            DoseType: DoseType
             // The unit to adjust dosing with
-            AdjustUnit : Unit option
+            AdjustUnit: Unit option
             // The possible Frequencies of the DoseRule
-            Frequencies : ValueUnit option
+            Frequencies: ValueUnit option
             // The MinMax Administration Time of the DoseRule
-            AdministrationTime : MinMax
+            AdministrationTime: MinMax
             // The MinMax Interval Time of the DoseRule
-            IntervalTime : MinMax
+            IntervalTime: MinMax
             // The MinMax Duration of the DoseRule
-            Duration : MinMax
+            Duration: MinMax
             // the limits based upon the pharmaceutical form and route
-            FormLimit : DoseLimit option
+            FormLimit: DoseLimit option
             // the limits for the component and substances
             // in the component
-            ComponentLimits : ComponentLimit []
+            ComponentLimits: ComponentLimit[]
             // an optional renal rule
-            RenalRule : string option
+            RenalRule: string option
         }
 
 
@@ -550,17 +558,17 @@ module Types =
     type SolutionLimit =
         {
             // The Substance for the SolutionLimit
-            SolutionLimitTarget : LimitTarget
+            SolutionLimitTarget: LimitTarget
             // The MinMax Quantity of the Substance for the SolutionLimit
-            Quantity : MinMax
+            Quantity: MinMax
             // The MinMax Quantity Adjust of the Substance for the SolutionLimit
-            QuantityAdj : MinMax
+            QuantityAdj: MinMax
             // A list of possible Quantities of the Substance for the SolutionLimit
-            Quantities : ValueUnit option
+            Quantities: ValueUnit option
             // The Minmax Concentration of the Substance for the SolutionLimit
-            Concentration : MinMax
+            Concentration: MinMax
             // The Products the SolutionRule applies to
-            Products : Product []
+            Products: Product[]
         }
 
 
@@ -569,85 +577,89 @@ module Types =
     type SolutionRule =
         {
             // The Generic of the SolutionRule
-            Generic : string
+            Generic: string
             // The pharmaceutical form of the SolutionRule
-            Form : string option
+            Form: string option
             // The Route of the SolutionRule
-            Route : string
+            Route: string
             // The DoseType of the SolutionRule
-            Indication : string option
+            Indication: string option
             // The dose type of the SolutionRule
-            DoseType : DoseType
+            DoseType: DoseType
             // The PatientCategory of the DoseRule
-            PatientCategory : PatientCategory
+            PatientCategory: PatientCategory
             // The MinMax Dose range of the SolutionRule
-            Dose : MinMax
+            Dose: MinMax
             // The possible Solutions to use
-            Diluents : Product []
+            Diluents: Product[]
             // An optional dividability option
-            Div : BigRational option
+            Div: BigRational option
             // The possible Volumes to use
-            Volumes : ValueUnit option
+            Volumes: ValueUnit option
             // A MinMax Volume range to use
-            Volume : MinMax
+            Volume: MinMax
             // A MinMax adjusted Volume range to use
-            VolumeAdjust : MinMax
+            VolumeAdjust: MinMax
             // A MinMax Drip Rate for the SolutionRule
-            DripRate : MinMax
+            DripRate: MinMax
             // The percentage to be used as a DoseQuantity
-            DosePerc : MinMax
+            DosePerc: MinMax
             // The SolutionLimits for the SolutionRule
-            SolutionLimits : SolutionLimit []
+            SolutionLimits: SolutionLimit[]
         }
 
 
     /// A DoseLimit for a pharmaceutical form or Substance.
     type RenalLimit =
         {
-            DoseLimitTarget : LimitTarget
-            DoseReduction : DoseReduction
-            Quantity : MinMax
+            DoseLimitTarget: LimitTarget
+            DoseReduction: DoseReduction
+            Quantity: MinMax
             // An optional Dose Quantity Adjust for the DoseLimit.
             // Note: if this is specified a min and max QuantityAdjust
             // will be assumed to be 10% minus and plus the normal value
-            NormQuantityAdjust : ValueUnit option
+            NormQuantityAdjust: ValueUnit option
             // A MinMax Quantity Adjust for the DoseLimit
-            QuantityAdjust : MinMax
+            QuantityAdjust: MinMax
             // An optional Dose Per Time for the DoseLimit
-            PerTime : MinMax
+            PerTime: MinMax
             // An optional Per Time Adjust for the DoseLimit
             // Note: if this is specified a min and max NormPerTimeAdjust
             // will be assumed to be 10% minus and plus the normal value
-            NormPerTimeAdjust : ValueUnit option
+            NormPerTimeAdjust: ValueUnit option
             // A MinMax Per Time Adjust for the DoseLimit
-            PerTimeAdjust : MinMax
+            PerTimeAdjust: MinMax
             // A MinMax Rate for the DoseLimit
-            Rate : MinMax
+            Rate: MinMax
             // A MinMax Rate Adjust for the DoseLimit
-            RateAdjust : MinMax
+            RateAdjust: MinMax
         }
-    and DoseReduction = | Absolute | Relative | NoReduction
+
+    and DoseReduction =
+        | Absolute
+        | Relative
+        | NoReduction
 
 
     type RenalRule =
         {
             // The Generic of the RenalRule
-            Generic : string
+            Generic: string
             // The Route of administration of the RenalRule
-            Route : string
-            Indication : string
+            Route: string
+            Indication: string
             // The source of the RenalRule
-            Source : string
-            Age : MinMax
-            RenalFunction : RenalFunction
+            Source: string
+            Age: MinMax
+            RenalFunction: RenalFunction
             // The DoseType of the RenalRule
-            DoseType : DoseType
+            DoseType: DoseType
             // The possible Frequencies of the RenalRule
-            Frequencies : ValueUnit option
+            Frequencies: ValueUnit option
             // The MinMax Interval Time of the RenalRule
-            IntervalTime : MinMax
+            IntervalTime: MinMax
             // The list of associated RenalLimits of the RenalRule.
-            RenalLimits : RenalLimit array
+            RenalLimits: RenalLimit array
         }
 
 
@@ -664,50 +676,50 @@ module Types =
     type DoseFilter =
         {
             // the Indication to filter on
-            Indication : string option
+            Indication: string option
             // the Generic to filter on
-            Generic : string option
+            Generic: string option
             // the pharmaceutical form to filter on
-            Form : string option
+            Form: string option
             // the Route to filter on
-            Route : string option
+            Route: string option
             // the DoseType to filter on
-            DoseType : DoseType option
+            DoseType: DoseType option
             // the diluent to use
-            Diluent : string option
+            Diluent: string option
             // the components to use
             Components: string list
             // the patient to filter on
-            Patient : Patient
+            Patient: Patient
         }
 
     type SolutionFilter =
         {
             // The Generic of the SolutionRule
-            Generic : string
+            Generic: string
             // The pharmaceutical form of the SolutionRule
-            Form : string option
+            Form: string option
             // The Route of the SolutionRule
-            Route : string option
+            Route: string option
             // The DoseType of the SolutionRule
-            Indication : string option
-            DoseType : DoseType option
+            Indication: string option
+            DoseType: DoseType option
             // the patient
-            Patient : Patient
+            Patient: Patient
             // the diluent to dilute the component
-            Diluent : string option
+            Diluent: string option
             // The MinMax Dose range of the SolutionRule
-            Dose : ValueUnit option
+            Dose: ValueUnit option
         }
 
     /// A PrescriptionRule for a specific Patient
     /// with a DoseRule and a list of SolutionRules.
     type PrescriptionRule =
         {
-            Patient : Patient
-            DoseRule : DoseRule
-            SolutionRules : SolutionRule []
-            RenalRules : RenalRule []
+            Patient: Patient
+            DoseRule: DoseRule
+            SolutionRules: SolutionRule[]
+            RenalRules: RenalRule[]
         }
 
 
@@ -721,5 +733,5 @@ module Types =
         | Info of string
         | Warning of string
         | ErrorMsg of (string * exn option)
-        interface IMessage
 
+        interface IMessage

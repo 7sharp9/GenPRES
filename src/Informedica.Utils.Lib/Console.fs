@@ -6,47 +6,49 @@ module ConsoleWriter =
 
     open System
 
-    type Colors = {
-        StandardFrontColor: ConsoleColor
-        StandardBackColor: ConsoleColor
-        QuestionFrontColor: ConsoleColor
-        QuestionBackColor: ConsoleColor
-        InfoFrontColor: ConsoleColor
-        InfoBackColor: ConsoleColor
-        InfoMessageFrontColor: ConsoleColor
-        InfoMessageBackColor: ConsoleColor
-        ErrorFrontColor: ConsoleColor
-        ErrorBackColor: ConsoleColor
-        ErrorMessageFrontColor: ConsoleColor
-        ErrorMessageBackColor: ConsoleColor
-        WarningFrontColor: ConsoleColor
-        WarningBackColor: ConsoleColor
-        WarningMessageFrontColor: ConsoleColor
-        WarningMessageBackColor: ConsoleColor
-    }
+    type Colors =
+        {
+            StandardFrontColor: ConsoleColor
+            StandardBackColor: ConsoleColor
+            QuestionFrontColor: ConsoleColor
+            QuestionBackColor: ConsoleColor
+            InfoFrontColor: ConsoleColor
+            InfoBackColor: ConsoleColor
+            InfoMessageFrontColor: ConsoleColor
+            InfoMessageBackColor: ConsoleColor
+            ErrorFrontColor: ConsoleColor
+            ErrorBackColor: ConsoleColor
+            ErrorMessageFrontColor: ConsoleColor
+            ErrorMessageBackColor: ConsoleColor
+            WarningFrontColor: ConsoleColor
+            WarningBackColor: ConsoleColor
+            WarningMessageFrontColor: ConsoleColor
+            WarningMessageBackColor: ConsoleColor
+        }
 
 
-    let colors = {
-        StandardFrontColor = ConsoleColor.White
-        StandardBackColor = ConsoleColor.Black
-        QuestionFrontColor = ConsoleColor.Black
-        QuestionBackColor = ConsoleColor.White
-        InfoFrontColor = ConsoleColor.Black
-        InfoBackColor = ConsoleColor.Green
-        InfoMessageFrontColor = ConsoleColor.Green
-        InfoMessageBackColor = ConsoleColor.Black
-        ErrorFrontColor = ConsoleColor.Black
-        ErrorBackColor = ConsoleColor.Red
-        ErrorMessageFrontColor = ConsoleColor.Red
-        ErrorMessageBackColor = ConsoleColor.Black
-        WarningFrontColor = ConsoleColor.Black
-        WarningBackColor = ConsoleColor.Yellow
-        WarningMessageFrontColor = ConsoleColor.Yellow
-        WarningMessageBackColor = ConsoleColor.Black
-    }
+    let colors =
+        {
+            StandardFrontColor = ConsoleColor.White
+            StandardBackColor = ConsoleColor.Black
+            QuestionFrontColor = ConsoleColor.Black
+            QuestionBackColor = ConsoleColor.White
+            InfoFrontColor = ConsoleColor.Black
+            InfoBackColor = ConsoleColor.Green
+            InfoMessageFrontColor = ConsoleColor.Green
+            InfoMessageBackColor = ConsoleColor.Black
+            ErrorFrontColor = ConsoleColor.Black
+            ErrorBackColor = ConsoleColor.Red
+            ErrorMessageFrontColor = ConsoleColor.Red
+            ErrorMessageBackColor = ConsoleColor.Black
+            WarningFrontColor = ConsoleColor.Black
+            WarningBackColor = ConsoleColor.Yellow
+            WarningMessageFrontColor = ConsoleColor.Yellow
+            WarningMessageBackColor = ConsoleColor.Black
+        }
 
 
-    let private lockObj = obj()
+    let private lockObj = obj ()
 
     let private applyLock f = lock lockObj f
 
@@ -57,22 +59,26 @@ module ConsoleWriter =
         Console.BackgroundColor <- backgroundColor
 
 
-
-    let writeColoredText symbol (text: string) (frontColor: ConsoleColor) (backgroundColor: ConsoleColor) (writeLine: bool) (writeCurrentTime: bool) =
+    let writeColoredText
+        symbol
+        (text: string)
+        (frontColor: ConsoleColor)
+        (backgroundColor: ConsoleColor)
+        (writeLine: bool)
+        (writeCurrentTime: bool)
+        =
         fun () ->
             Console.ResetColor()
 
             if writeCurrentTime then
-                let clock =
-                    Constants.HTMLCodeSymbols.TryFind "clock"
-                    |> Option.defaultValue ""
+                let clock = Constants.HTMLCodeSymbols.TryFind "clock" |> Option.defaultValue ""
 
                 Console.ForegroundColor <- colors.StandardFrontColor
                 Console.BackgroundColor <- colors.StandardBackColor
                 Console.Out.Write($"{clock}  {DateTime.Now} : ")
 
             match symbol with
-            | None   -> ()
+            | None -> ()
             | Some s ->
                 Console.ForegroundColor <- colors.StandardFrontColor
                 Console.BackgroundColor <- colors.StandardBackColor
@@ -86,7 +92,7 @@ module ConsoleWriter =
             else
                 Console.Out.Write(text)
 
-            Console.ResetColor ()
+            Console.ResetColor()
 
             Console.Out.Flush()
 
@@ -130,7 +136,8 @@ module ConsoleWriter =
 
     let writeDebugMessage (text: string) (_: bool) (writeTime: bool) =
         // TODO: make this parameterized on env variable or boolean
-        if Env.getItem "GENPRES_DEBUG" |> Option.defaultValue "" <> "1" then ()
+        if Env.getItem "GENPRES_DEBUG" |> Option.defaultValue "" <> "1" then
+            ()
         else
             let debug = Constants.HTMLCodeSymbols.TryFind "debug"
 
@@ -139,19 +146,28 @@ module ConsoleWriter =
             writeColoredText None text colors.StandardFrontColor colors.StandardBackColor true false
 
 
-    let writeColoredTextWithStandardBackColor (text: string) (frontColor: ConsoleColor) (writeLine: bool) (writeCurrentTime: bool) =
+    let writeColoredTextWithStandardBackColor
+        (text: string)
+        (frontColor: ConsoleColor)
+        (writeLine: bool)
+        (writeCurrentTime: bool)
+        =
         writeColoredText None text frontColor colors.StandardBackColor writeLine writeCurrentTime
 
 
     module Flip =
 
-        let writeErrorMessage writeLine writeTime text = writeErrorMessage text writeLine writeTime
+        let writeErrorMessage writeLine writeTime text =
+            writeErrorMessage text writeLine writeTime
 
-        let writeWarningMessage writeLine writeTime text = writeWarningMessage text writeLine writeTime
+        let writeWarningMessage writeLine writeTime text =
+            writeWarningMessage text writeLine writeTime
 
-        let writeDebugMessage writeLine writeTime text = writeDebugMessage text writeLine writeTime
+        let writeDebugMessage writeLine writeTime text =
+            writeDebugMessage text writeLine writeTime
 
-        let writeInfoMessage writeLine writeTime text = writeInfoMessage text writeLine writeTime
+        let writeInfoMessage writeLine writeTime text =
+            writeInfoMessage text writeLine writeTime
 
 
     module NewLineTime =

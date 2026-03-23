@@ -27,11 +27,12 @@ module AgentAdapters =
 
     [<RequireQualifiedAccess>]
     type FormularyResponse =
-        | Formulary of Result<Formulary, string []>
-        | Parenteralia of Result<Parenteralia, string []>
+        | Formulary of Result<Formulary, string[]>
+        | Parenteralia of Result<Parenteralia, string[]>
 
 
-    let private formularyCommandToString = function
+    let private formularyCommandToString =
+        function
         | FormularyCommand.GetFormulary _ -> "GetFormulary"
         | FormularyCommand.GetParenteralia _ -> "GetParenteralia"
 
@@ -39,12 +40,10 @@ module AgentAdapters =
     let private processFormularyCommand
         (provider: Resources.IResourceProvider)
         (cmd: FormularyCommand)
-        : FormularyResponse =
+        : FormularyResponse
+        =
         match cmd with
-        | FormularyCommand.GetFormulary form ->
-            form
-            |> FormularyService.get provider
-            |> FormularyResponse.Formulary
+        | FormularyCommand.GetFormulary form -> form |> FormularyService.get provider |> FormularyResponse.Formulary
 
         | FormularyCommand.GetParenteralia par ->
             par
@@ -54,7 +53,7 @@ module AgentAdapters =
 
 
     let private createFormularyAgent provider =
-        Agent.createReply<FormularyCommand, FormularyResponse>(fun cmd ->
+        Agent.createReply<FormularyCommand, FormularyResponse> (fun cmd ->
             try
                 writeDebugMessage $"[FormularyAgent] <- {cmd |> formularyCommandToString}"
                 let response = processFormularyCommand provider cmd
@@ -62,20 +61,21 @@ module AgentAdapters =
                 response
             with ex ->
                 writeErrorMessage $"[FormularyAgent] error in {cmd |> formularyCommandToString}: {ex}"
+
                 match cmd with
-                | FormularyCommand.GetFormulary _ ->
-                    FormularyResponse.Formulary (Error [| ex.Message |])
-                | FormularyCommand.GetParenteralia _ ->
-                    FormularyResponse.Parenteralia (Error [| ex.Message |])
+                | FormularyCommand.GetFormulary _ -> FormularyResponse.Formulary(Error [| ex.Message |])
+                | FormularyCommand.GetParenteralia _ -> FormularyResponse.Parenteralia(Error [| ex.Message |])
         )
 
 
-    let private extractFormulary = function
+    let private extractFormulary =
+        function
         | FormularyResponse.Formulary r -> r
         | other -> Error [| $"Unexpected response: {other}" |]
 
 
-    let private extractParenteralia = function
+    let private extractParenteralia =
+        function
         | FormularyResponse.Parenteralia r -> r
         | other -> Error [| $"Unexpected response: {other}" |]
 
@@ -85,16 +85,15 @@ module AgentAdapters =
     // ---------------------------------------------------------------
 
     [<RequireQualifiedAccess>]
-    type OrderCtxCommand =
-        | Evaluate of OrderContextCommand * OrderContext
+    type OrderCtxCommand = Evaluate of OrderContextCommand * OrderContext
 
 
     [<RequireQualifiedAccess>]
-    type OrderCtxResponse =
-        | OrderContext of Result<OrderContext, string []>
+    type OrderCtxResponse = OrderContext of Result<OrderContext, string[]>
 
 
-    let private orderCtxCommandToString = function
+    let private orderCtxCommandToString =
+        function
         | OrderCtxCommand.Evaluate _ -> "EvaluateOrderContext"
 
 
@@ -103,22 +102,24 @@ module AgentAdapters =
         (logger: Informedica.Logging.Lib.Logger)
         (provider: Resources.IResourceProvider)
         (cmd: OrderCtxCommand)
-        : OrderCtxResponse =
+        : OrderCtxResponse
+        =
         let setComponent name =
             match logAgent with
             | Some a -> a |> Logging.setComponentName (Some name) |> Async.RunSynchronously
             | None -> ()
 
         match cmd with
-        | OrderCtxCommand.Evaluate (ctxCmd, ctx) ->
+        | OrderCtxCommand.Evaluate(ctxCmd, ctx) ->
             setComponent "OrderContext"
+
             ctx
             |> OrderContextService.evaluate logger provider ctxCmd
             |> OrderCtxResponse.OrderContext
 
 
     let private createOrderCtxAgent logAgent logger provider =
-        Agent.createReply<OrderCtxCommand, OrderCtxResponse>(fun cmd ->
+        Agent.createReply<OrderCtxCommand, OrderCtxResponse> (fun cmd ->
             try
                 writeDebugMessage $"[OrderCtxAgent] <- {cmd |> orderCtxCommandToString}"
                 let response = processOrderCtxCommand logAgent logger provider cmd
@@ -126,11 +127,12 @@ module AgentAdapters =
                 response
             with ex ->
                 writeErrorMessage $"[OrderCtxAgent] error in {cmd |> orderCtxCommandToString}: {ex}"
-                OrderCtxResponse.OrderContext (Error [| ex.Message |])
+                OrderCtxResponse.OrderContext(Error [| ex.Message |])
         )
 
 
-    let private extractOrderContext = function
+    let private extractOrderContext =
+        function
         | OrderCtxResponse.OrderContext r -> r
 
 
@@ -145,11 +147,11 @@ module AgentAdapters =
 
 
     [<RequireQualifiedAccess>]
-    type OrderPlanResponse =
-        | OrderPlan of Result<OrderPlan, string []>
+    type OrderPlanResponse = OrderPlan of Result<OrderPlan, string[]>
 
 
-    let private orderPlanCommandToString = function
+    let private orderPlanCommandToString =
+        function
         | OrderPlanCommand.Update _ -> "UpdateOrderPlan"
         | OrderPlanCommand.Filter _ -> "FilterOrderPlan"
 
@@ -158,7 +160,8 @@ module AgentAdapters =
         logAgent
         (orderCtxPort: OrderContextPort)
         (cmd: OrderPlanCommand)
-        : Async<OrderPlanResponse> =
+        : Async<OrderPlanResponse>
+        =
         async {
             let setComponent name =
                 match logAgent with
@@ -166,26 +169,18 @@ module AgentAdapters =
                 | None -> ()
 
             match cmd with
-            | OrderPlanCommand.Update (tp, cmdOpt) ->
+            | OrderPlanCommand.Update(tp, cmdOpt) ->
                 setComponent "TreatmentPlan"
                 let! updated = OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
-                return
-                    updated
-                    |> OrderPlanService.calculateTotals
-                    |> Ok
-                    |> OrderPlanResponse.OrderPlan
+                return updated |> OrderPlanService.calculateTotals |> Ok |> OrderPlanResponse.OrderPlan
 
             | OrderPlanCommand.Filter tp ->
-                return
-                    tp
-                    |> OrderPlanService.calculateTotals
-                    |> Ok
-                    |> OrderPlanResponse.OrderPlan
+                return tp |> OrderPlanService.calculateTotals |> Ok |> OrderPlanResponse.OrderPlan
         }
 
 
     let private createOrderPlanAgent logAgent orderCtxPort =
-        Agent.createReplyAsync<OrderPlanCommand, OrderPlanResponse>(fun cmd ->
+        Agent.createReplyAsync<OrderPlanCommand, OrderPlanResponse> (fun cmd ->
             async {
                 try
                     writeDebugMessage $"[OrderPlanAgent] <- {cmd |> orderPlanCommandToString}"
@@ -194,12 +189,13 @@ module AgentAdapters =
                     return response
                 with ex ->
                     writeErrorMessage $"[OrderPlanAgent] error in {cmd |> orderPlanCommandToString}: {ex}"
-                    return OrderPlanResponse.OrderPlan (Error [| ex.Message |])
+                    return OrderPlanResponse.OrderPlan(Error [| ex.Message |])
             }
         )
 
 
-    let private extractOrderPlan = function
+    let private extractOrderPlan =
+        function
         | OrderPlanResponse.OrderPlan r -> r
 
 
@@ -218,11 +214,11 @@ module AgentAdapters =
 
 
     [<RequireQualifiedAccess>]
-    type NutritionResponse =
-        | NutritionPlan of Result<NutritionPlan, string []>
+    type NutritionResponse = NutritionPlan of Result<NutritionPlan, string[]>
 
 
-    let private nutritionCommandToString = function
+    let private nutritionCommandToString =
+        function
         | NutritionCommand.Init _ -> "InitNutritionPlan"
         | NutritionCommand.Add _ -> "AddNutritionContext"
         | NutritionCommand.Remove _ -> "RemoveNutritionContext"
@@ -236,7 +232,8 @@ module AgentAdapters =
         (provider: Resources.IResourceProvider)
         (orderCtxPort: OrderContextPort)
         (cmd: NutritionCommand)
-        : Async<NutritionResponse> =
+        : Async<NutritionResponse>
+        =
         async {
             match cmd with
             | NutritionCommand.Init patient ->
@@ -244,31 +241,31 @@ module AgentAdapters =
                     NutritionPlanService.initNutritionPlan logger provider patient
                     |> NutritionResponse.NutritionPlan
 
-            | NutritionCommand.Add (plan, category) ->
+            | NutritionCommand.Add(plan, category) ->
                 let! result = NutritionPlanService.addNutritionContext orderCtxPort (plan, category)
                 return result |> NutritionResponse.NutritionPlan
 
-            | NutritionCommand.Remove (plan, id) ->
+            | NutritionCommand.Remove(plan, id) ->
                 return
                     NutritionPlanService.removeNutritionContext (plan, id)
                     |> NutritionResponse.NutritionPlan
 
-            | NutritionCommand.UpdateOrderContext (plan, label, ctx) ->
+            | NutritionCommand.UpdateOrderContext(plan, label, ctx) ->
                 let! result = NutritionPlanService.updateNutritionOrderContext orderCtxPort (plan, label, ctx)
                 return result |> NutritionResponse.NutritionPlan
 
-            | NutritionCommand.SelectOrderScenario (plan, label, ctx) ->
+            | NutritionCommand.SelectOrderScenario(plan, label, ctx) ->
                 let! result = NutritionPlanService.selectNutritionOrderScenario orderCtxPort (plan, label, ctx)
                 return result |> NutritionResponse.NutritionPlan
 
-            | NutritionCommand.Navigate (plan, label, ctxCmd, ctx) ->
+            | NutritionCommand.Navigate(plan, label, ctxCmd, ctx) ->
                 let! result = NutritionPlanService.navigateNutritionOrderContext orderCtxPort (plan, label, ctxCmd, ctx)
                 return result |> NutritionResponse.NutritionPlan
         }
 
 
     let private createNutritionAgent logger provider orderCtxPort =
-        Agent.createReplyAsync<NutritionCommand, NutritionResponse>(fun cmd ->
+        Agent.createReplyAsync<NutritionCommand, NutritionResponse> (fun cmd ->
             async {
                 try
                     writeDebugMessage $"[NutritionAgent] <- {cmd |> nutritionCommandToString}"
@@ -277,12 +274,13 @@ module AgentAdapters =
                     return response
                 with ex ->
                     writeErrorMessage $"[NutritionAgent] error in {cmd |> nutritionCommandToString}: {ex}"
-                    return NutritionResponse.NutritionPlan (Error [| ex.Message |])
+                    return NutritionResponse.NutritionPlan(Error [| ex.Message |])
             }
         )
 
 
-    let private extractNutritionPlan = function
+    let private extractNutritionPlan =
+        function
         | NutritionResponse.NutritionPlan r -> r
 
 
@@ -322,10 +320,11 @@ module AgentAdapters =
 
         // Build the OrderContext port backed by its agent, so OrderPlan
         // and Nutrition agents can route inter-component calls through it.
-        let orderCtxPort : OrderContextPort =
+        let orderCtxPort: OrderContextPort =
             {
-                evaluate = fun ctxCmd ctx ->
-                    postAsync orderCtxAgent (OrderCtxCommand.Evaluate (ctxCmd, ctx)) extractOrderContext
+                evaluate =
+                    fun ctxCmd ctx ->
+                        postAsync orderCtxAgent (OrderCtxCommand.Evaluate(ctxCmd, ctx)) extractOrderContext
             }
 
         let orderPlanAgent = createOrderPlanAgent logAgent orderCtxPort
@@ -334,43 +333,57 @@ module AgentAdapters =
         {
             formulary =
                 {
-                    getFormulary = fun form ->
-                        postAsync formularyAgent (FormularyCommand.GetFormulary form) extractFormulary
-                    getParenteralia = fun par ->
-                        postAsync formularyAgent (FormularyCommand.GetParenteralia par) extractParenteralia
+                    getFormulary =
+                        fun form -> postAsync formularyAgent (FormularyCommand.GetFormulary form) extractFormulary
+                    getParenteralia =
+                        fun par -> postAsync formularyAgent (FormularyCommand.GetParenteralia par) extractParenteralia
                 }
 
             orderContext = orderCtxPort
 
             orderPlan =
                 {
-                    updateOrderPlan = fun tp cmdOpt ->
-                        postAsync orderPlanAgent (OrderPlanCommand.Update (tp, cmdOpt)) extractOrderPlan
-                    filterOrderPlan = fun tp ->
-                        postAsync orderPlanAgent (OrderPlanCommand.Filter tp) extractOrderPlan
+                    updateOrderPlan =
+                        fun tp cmdOpt -> postAsync orderPlanAgent (OrderPlanCommand.Update(tp, cmdOpt)) extractOrderPlan
+                    filterOrderPlan = fun tp -> postAsync orderPlanAgent (OrderPlanCommand.Filter tp) extractOrderPlan
                 }
 
             nutritionPlan =
                 {
-                    initNutritionPlan = fun patient ->
-                        postAsync nutritionAgent (NutritionCommand.Init patient) extractNutritionPlan
-                    addNutritionContext = fun (plan, category) ->
-                        postAsync nutritionAgent (NutritionCommand.Add (plan, category)) extractNutritionPlan
-                    removeNutritionContext = fun (plan, id) ->
-                        postAsync nutritionAgent (NutritionCommand.Remove (plan, id)) extractNutritionPlan
-                    updateNutritionOrderContext = fun (plan, label, ctx) ->
-                        postAsync nutritionAgent (NutritionCommand.UpdateOrderContext (plan, label, ctx)) extractNutritionPlan
-                    selectNutritionOrderScenario = fun (plan, label, ctx) ->
-                        postAsync nutritionAgent (NutritionCommand.SelectOrderScenario (plan, label, ctx)) extractNutritionPlan
-                    navigateNutritionOrderContext = fun (plan, label, ctxCmd, ctx) ->
-                        postAsync nutritionAgent (NutritionCommand.Navigate (plan, label, ctxCmd, ctx)) extractNutritionPlan
+                    initNutritionPlan =
+                        fun patient -> postAsync nutritionAgent (NutritionCommand.Init patient) extractNutritionPlan
+                    addNutritionContext =
+                        fun (plan, category) ->
+                            postAsync nutritionAgent (NutritionCommand.Add(plan, category)) extractNutritionPlan
+                    removeNutritionContext =
+                        fun (plan, id) ->
+                            postAsync nutritionAgent (NutritionCommand.Remove(plan, id)) extractNutritionPlan
+                    updateNutritionOrderContext =
+                        fun (plan, label, ctx) ->
+                            postAsync
+                                nutritionAgent
+                                (NutritionCommand.UpdateOrderContext(plan, label, ctx))
+                                extractNutritionPlan
+                    selectNutritionOrderScenario =
+                        fun (plan, label, ctx) ->
+                            postAsync
+                                nutritionAgent
+                                (NutritionCommand.SelectOrderScenario(plan, label, ctx))
+                                extractNutritionPlan
+                    navigateNutritionOrderContext =
+                        fun (plan, label, ctxCmd, ctx) ->
+                            postAsync
+                                nutritionAgent
+                                (NutritionCommand.Navigate(plan, label, ctxCmd, ctx))
+                                extractNutritionPlan
                 }
 
-            requireLoaded = fun () ->
-                let info = provider.GetResourceInfo()
-                if info.IsLoaded then None
-                else
-                    info.Messages
-                    |> Array.map (fun msg -> FormLogging.formatMessage msg)
-                    |> Some
+            requireLoaded =
+                fun () ->
+                    let info = provider.GetResourceInfo()
+
+                    if info.IsLoaded then
+                        None
+                    else
+                        info.Messages |> Array.map (fun msg -> FormLogging.formatMessage msg) |> Some
         }

@@ -1,7 +1,6 @@
 namespace Informedica.GenForm.Lib
 
 
-
 module Utils =
 
     open System
@@ -30,7 +29,8 @@ module Utils =
     module GenFormResult =
 
 
-        let createError source exn : Result<_, Message list> = [ Message.createExnMsg source exn ] |> Error
+        let createError source exn : Result<_, Message list> =
+            [ Message.createExnMsg source exn ] |> Error
 
 
         let mapErrorSource s r : Result<_, Message list> =
@@ -48,17 +48,15 @@ module Utils =
 
         let foldResults (results: Result<'T array, Message list> array) : Result<'T array, Message list> =
             results
-            |> Array.fold (fun acc result ->
-                match acc, result with
-                | Ok accValues, Ok values ->
-                    Ok (Array.append accValues values)
-                | Ok _, Error msgs ->
-                    Error msgs
-                | Error accMsgs, Ok _ ->
-                    Error accMsgs
-                | Error accMsgs, Error msgs ->
-                    Error (accMsgs @ msgs)
-            ) (Ok [||])
+            |> Array.fold
+                (fun acc result ->
+                    match acc, result with
+                    | Ok accValues, Ok values -> Ok(Array.append accValues values)
+                    | Ok _, Error msgs -> Error msgs
+                    | Error accMsgs, Ok _ -> Error accMsgs
+                    | Error accMsgs, Error msgs -> Error(accMsgs @ msgs)
+                )
+                (Ok [||])
 
 
     module Web =
@@ -70,9 +68,7 @@ module Utils =
         /// <param name="sheet">The specific sheet</param>
         /// <returns>The data as a table of string array array</returns>
         let getDataFromSheet urlId sheet =
-            fun () ->
-                Web.GoogleSheets.getCsvDataFromSheetSync urlId sheet
-                |> Result.defaultValue [||]
+            fun () -> Web.GoogleSheets.getCsvDataFromSheetSync urlId sheet |> Result.defaultValue [||]
             |> StopWatch.clockFunc $"loaded {sheet} from web sheet"
 
 
@@ -117,9 +113,7 @@ module Utils =
         /// </code>
         /// </example>
         let tupleBrOpt brs1 brs2 =
-            brs1 |> Array.tryHead,
-            brs2 |> Array.tryHead
-
+            brs1 |> Array.tryHead, brs2 |> Array.tryHead
 
 
     module Calculations =
@@ -138,6 +132,7 @@ module Utils =
                 |> Option.defaultValue 0N
                 |> BigRational.toDecimal
                 |> Conversions.kgFromDecimal
+
             let h =
                 height
                 |> ValueUnit.convertTo Units.Height.centiMeter
@@ -151,7 +146,6 @@ module Utils =
             |> decimal
             |> BigRational.fromDecimal
             |> ValueUnit.singleWithUnit Units.BSA.m2
-
 
 
     module Units =
@@ -169,7 +163,8 @@ module Utils =
         let bsaM2 = Units.BSA.m2
 
         let timeUnit s =
-            if s |> String.isNullOrWhiteSpace then None
+            if s |> String.isNullOrWhiteSpace then
+                None
             else
                 // TODO need better fix than this
                 if s = "keer" || s = "x" then
@@ -179,7 +174,8 @@ module Utils =
                 |> Units.fromString
 
         let freqUnit s =
-            if s |> String.isNullOrWhiteSpace then None
+            if s |> String.isNullOrWhiteSpace then
+                None
             else
                 $"times[Count]/{s}[Time]" |> Units.fromString
 
@@ -191,7 +187,6 @@ module Utils =
 
 
         let mL = Units.Volume.milliLiter
-
 
 
     module ValueUnit =
@@ -206,28 +201,21 @@ module Utils =
 
         let withOptSingleAndOptUnit u v =
             match v, u with
-            | Some v, Some u ->
-                v
-                |> ValueUnit.singleWithUnit u
-                |> Some
+            | Some v, Some u -> v |> ValueUnit.singleWithUnit u |> Some
             | _ -> None
 
 
         let withArrayAndOptUnit u v =
-            if v |> Array.isEmpty then None
+            if v |> Array.isEmpty then
+                None
             else
                 match u with
-                | Some u ->
-                    v
-                    |> ValueUnit.withUnit u
-                    |> Some
+                | Some u -> v |> ValueUnit.withUnit u |> Some
                 | _ -> None
 
 
         let toString prec vu =
-            ValueUnit.toStringDecimalDutchShortWithPrec prec vu
-            |> String.replace ";" ", "
-
+            ValueUnit.toStringDecimalDutchShortWithPrec prec vu |> String.replace ";" ", "
 
 
     module MinMax =
@@ -240,32 +228,33 @@ module Utils =
             | None -> MinMax.empty
             | Some u ->
                 {
-                    Min =
-                        min
-                        |> Option.map (ValueUnit.singleWithUnit u)
-                        |> Option.map minIncl
-                    Max =
-                        max
-                        |> Option.map (ValueUnit.singleWithUnit u)
-                        |> Option.map maxIncl
+                    Min = min |> Option.map (ValueUnit.singleWithUnit u) |> Option.map minIncl
+                    Max = max |> Option.map (ValueUnit.singleWithUnit u) |> Option.map maxIncl
                 }
 
 
         let inRange minMax vu =
-            if minMax = MinMax.empty &&
-               vu |> Option.isNone then true
+            if minMax = MinMax.empty && vu |> Option.isNone then
+                true
             else
                 vu
-                |> Option.map (fun v ->
-                    minMax |> MinMax.inRange v
-                )
+                |> Option.map (fun v -> minMax |> MinMax.inRange v)
                 |> Option.defaultValue false
 
 
         /// Turn a `MinMax` to a string with
         /// `mins` and `maxs` as annotations
         /// for resp. the min and max value.
-        let toString minInclStr minExclStr maxInclStr maxExclStr { Min = min; Max = max } =
+        let toString
+            minInclStr
+            minExclStr
+            maxInclStr
+            maxExclStr
+            {
+                Min = min
+                Max = max
+            }
+            =
             let vuToStr vu =
                 let milliGram = Units.Mass.milliGram
 
@@ -305,4 +294,7 @@ module Utils =
                 minExclStr
                 maxInclStr
                 maxExclStr
-                { Min = min; Max = max }
+                {
+                    Min = min
+                    Max = max
+                }

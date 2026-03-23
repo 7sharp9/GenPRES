@@ -1,4 +1,3 @@
-
 open System
 
 Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
@@ -18,4 +17,3 @@ let tryGetEnv key =
     match Environment.GetEnvironmentVariable key with
     | x when String.IsNullOrWhiteSpace x -> None
     | x -> Some x
-

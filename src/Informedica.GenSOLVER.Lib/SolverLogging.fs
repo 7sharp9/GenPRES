@@ -22,9 +22,10 @@ module SolverLogging =
                 |> Equation.toVars
                 |> List.tryHead
                 |> function
-                | Some v -> Some v.Name
-                | None -> None
+                    | Some v -> Some v.Name
+                    | None -> None
             )
+
         $"""{eqs |> List.map Equation.toStringShort |> String.concat "\n"}"""
 
 
@@ -32,131 +33,117 @@ module SolverLogging =
         $"""{vars |> List.map Variable.toStringShort |> String.concat ", "}"""
 
 
-    let rec printException = function
-    | Exceptions.ValueRangeEmptyValueSet s ->
-        $"ValueRange cannot have an empty value set: {s}"
+    let rec printException =
+        function
+        | Exceptions.ValueRangeEmptyValueSet s -> $"ValueRange cannot have an empty value set: {s}"
 
-    | Exceptions.EquationEmptyVariableList ->
-        "An equation should at least contain one variable"
+        | Exceptions.EquationEmptyVariableList -> "An equation should at least contain one variable"
 
-    | Exceptions.SolverInvalidEquations eqs ->
-        $"The following equations are invalid:\n {eqs |> eqsToStr} "
+        | Exceptions.SolverInvalidEquations eqs -> $"The following equations are invalid:\n {eqs |> eqsToStr} "
 
-    | Exceptions.ValueRangeMinLargerThanMax (min, max) ->
-        $"{min} is larger than {max}"
+        | Exceptions.ValueRangeMinLargerThanMax(min, max) -> $"{min} is larger than {max}"
 
-    | Exceptions.ValueRangeMinOverFlow min ->
-        $"Min overflow: {min}"
+        | Exceptions.ValueRangeMinOverFlow min -> $"Min overflow: {min}"
 
-    | Exceptions.ValueRangeMaxOverFlow max ->
-        $"Max overflow: {max}"
+        | Exceptions.ValueRangeMaxOverFlow max -> $"Max overflow: {max}"
 
-    | Exceptions.ValueRangeNotAValidOperator ->
-        "The value range operator was invalid or unknown"
+        | Exceptions.ValueRangeNotAValidOperator -> "The value range operator was invalid or unknown"
 
-    | Exceptions.EquationDuplicateVariables vars ->
-        $"""The list of variables for the equation contains duplicates
+        | Exceptions.EquationDuplicateVariables vars ->
+            $"""The list of variables for the equation contains duplicates
 {vars |> List.map (Variable.getName >> Name.toString) |> String.concat ", "}
 """
 
-    | Exceptions.NameLongerThan1000 s ->
-        $"This name contains more than 1000 chars: {s}"
+        | Exceptions.NameLongerThan1000 s -> $"This name contains more than 1000 chars: {s}"
 
-    | Exceptions.NameNullOrWhiteSpaceException ->
-        "A name cannot be a blank string"
+        | Exceptions.NameNullOrWhiteSpaceException -> "A name cannot be a blank string"
 
-    | Exceptions.VariableCannotSetValueRange (var, vlr) ->
-        $"This variable:\n{var |> Variable.toString true}\ncannot be set with this range:{vlr |> ValueRange.toString true}\n"
+        | Exceptions.VariableCannotSetValueRange(var, vlr) ->
+            $"This variable:\n{var |> Variable.toString true}\ncannot be set with this range:{vlr |> ValueRange.toString true}\n"
 
-    | Exceptions.SolverTooManyLoops (n, eqs) ->
-        $"""Looped (total {n}) more than {Constants.MAX_LOOP_COUNT} times the equation list count ({eqs |> List.length})
+        | Exceptions.SolverTooManyLoops(n, eqs) ->
+            $"""Looped (total {n}) more than {Constants.MAX_LOOP_COUNT} times the equation list count ({eqs |> List.length})
 {eqs |> eqsToStr}
 """
 
-    | Exceptions.SolverErrored (n, msgs, eqs) ->
-        $"=== Solver Errored Solving ({n} loops) ===\n{eqs |> eqsToStr}"
-        |> fun s ->
-            msgs
-            |> List.map (fun msg ->
-                match msg with
-                | Exceptions.SolverErrored _ -> s
-                | _ ->
-                        $"Error: {msg |> printException}"
-            )
-            |> String.concat "\n"
-            |> fun es -> $"{s}\n{es}"
+        | Exceptions.SolverErrored(n, msgs, eqs) ->
+            $"=== Solver Errored Solving ({n} loops) ===\n{eqs |> eqsToStr}"
+            |> fun s ->
+                msgs
+                |> List.map (fun msg ->
+                    match msg with
+                    | Exceptions.SolverErrored _ -> s
+                    | _ -> $"Error: {msg |> printException}"
+                )
+                |> String.concat "\n"
+                |> fun es -> $"{s}\n{es}"
 
-    | Exceptions.ValueRangeEmptyIncrement -> "Increment can not be an empty set"
+        | Exceptions.ValueRangeEmptyIncrement -> "Increment can not be an empty set"
 
-    | Exceptions.ValueSetOverflow c ->
-        $"Trying to calculate with {c} values, which is higher than the max calc count {Constants.MAX_CALC_COUNT}"
+        | Exceptions.ValueSetOverflow c ->
+            $"Trying to calculate with {c} values, which is higher than the max calc count {Constants.MAX_CALC_COUNT}"
 
-    | Exceptions.ConstraintVariableNotFound (c, eqs) ->
-        $"""=== Constraint Variable not found ===
+        | Exceptions.ConstraintVariableNotFound(c, eqs) ->
+            $"""=== Constraint Variable not found ===
         {c
-        |> sprintf "Constraint %A cannot be set"
-        |> fun s ->
-           eqs
-           |> List.map (Equation.toString true)
-           |> String.concat "\n"
-           |> sprintf "%s\In equations:\%s" s
-        }
+         |> sprintf "Constraint %A cannot be set"
+         |> fun s ->
+             eqs
+             |> List.map (Equation.toString true)
+             |> String.concat "\n"
+             |> sprintf "%s\In equations:\%s" s}
         """
-    | _ -> "not a recognized msg"
+        | _ -> "not a recognized msg"
 
 
-    let printSolverEvent = function
-        | EquationStartedSolving (minmax,eq) ->
+    let printSolverEvent =
+        function
+        | EquationStartedSolving(minmax, eq) ->
             let s = if minmax then "Min/Max" else "Values"
             $"=== Start solving Equation {s} ===\n{eq |> Equation.toStringShort}"
 
-        | EquationStartCalculation (op1, op2, y, xs) ->
+        | EquationStartCalculation(op1, op2, y, xs) ->
             $"start calculating: {Equation.calculationToString false op1 op2 y xs}"
 
-        | EquationFinishedCalculation (xs, changed) ->
-            if not changed then "NO CHANGES"
+        | EquationFinishedCalculation(xs, changed) ->
+            if not changed then
+                "NO CHANGES"
             else
                 $"Changed: {xs |> varsToStr}"
 
-        | EquationFinishedSolving (eq, b) ->
+        | EquationFinishedSolving(eq, b) ->
             $"""=== Equation Finished Solving ===
 {eq |> Equation.toStringShort}
 {b |> Equation.SolveResult.toString}
 """
 
-        | EquationCouldNotBeSolved eq ->
-            $"=== Cannot solve Equation ===\n{eq |> Equation.toString false}"
+        | EquationCouldNotBeSolved eq -> $"=== Cannot solve Equation ===\n{eq |> Equation.toString false}"
 
-        | SolverStartSolving (minmax, eqs) ->
+        | SolverStartSolving(minmax, eqs) ->
             let minmax = if minmax then " Only MinIncrMax" else ""
             $"=== Solver Start Solving{minmax}===\n{eqs |> eqsToStr}"
 
-        | SolverLoopedQue (n, eqs) ->
+        | SolverLoopedQue(n, eqs) ->
             let eqsStr () =
                 eqs
-                |> List.map (fun (n, eq)  ->
-                    $"{n} - {eq |> Equation.toStringShort}"
-                )
+                |> List.map (fun (n, eq) -> $"{n} - {eq |> Equation.toStringShort}")
                 |> String.concat "\n"
+
             [
                 $"solver looped que {n} times with {eqs |> List.length} equations"
-                // uncomment tot get the full ordered que list
-                //$"=== Solver Que===\n{eqsStr ()}"
+            // uncomment tot get the full ordered que list
+            //$"=== Solver Que===\n{eqsStr ()}"
             ]
             |> String.concat "\n"
 
-        | SolverFinishedSolving eqs ->
-            $"=== Solver Finished Solving ===\n{eqs |> eqsToStr}"
+        | SolverFinishedSolving eqs -> $"=== Solver Finished Solving ===\n{eqs |> eqsToStr}"
 
         | ConstraintSortOrder cs ->
             let s =
                 cs
-                |> List.map (fun (i, c) ->
-                    c
-                    |> Constraint.toString
-                    |> sprintf "%i: %s" i
-                )
+                |> List.map (fun (i, c) -> c |> Constraint.toString |> sprintf "%i: %s" i)
                 |> String.concat "\n"
+
             $"=== Constraint sort order ===\n{s}"
 
         | ConstraintApplied c -> $"Constraint {c |> Constraint.toString} applied"
@@ -176,9 +163,8 @@ module SolverLogging =
 
     /// Create a solver-specific logger using the general logging framework
     let createLogger (baseLogger: Logger option) =
-        let formatter = MessageFormatter.create [
-            typeof<SolverMessage>, formatSolverMessage
-        ]
+        let formatter =
+            MessageFormatter.create [ typeof<SolverMessage>, formatSolverMessage ]
 
         match baseLogger with
         | Some logger -> logger
@@ -187,50 +173,46 @@ module SolverLogging =
 
     /// Create a file-based solver logger
     let createFileLogger (path: string) =
-        let formatter = MessageFormatter.create [
-            typeof<SolverMessage>, formatSolverMessage
-        ]
+        let formatter =
+            MessageFormatter.create [ typeof<SolverMessage>, formatSolverMessage ]
+
         Logging.createFile path formatter
 
 
     /// Create an agent-based solver logger
     let createAgentLogger () =
-        let formatter = MessageFormatter.create [
-            typeof<SolverMessage>, formatSolverMessage
-        ]
+        let formatter =
+            MessageFormatter.create [ typeof<SolverMessage>, formatSolverMessage ]
+
         AgentLogging.createWithFormatter formatter
 
 
     /// Convenience functions for logging solver events
     let logSolverEvent (logger: Logger) (event: Events.Event) =
-        event
-        |> SolverEventMessage
-        |> Logging.logDebug logger
+        event |> SolverEventMessage |> Logging.logDebug logger
 
 
     let logSolverWarning (logger: Logger) (event: Events.Event) =
-        event
-        |> SolverEventMessage
-        |> Logging.logWarning logger
+        event |> SolverEventMessage |> Logging.logWarning logger
 
 
     let logSolverException (logger: Logger) (ex: Exceptions.Message) =
-        ex
-        |> ExceptionMessage
-        |> Logging.logError logger
+        ex |> ExceptionMessage |> Logging.logError logger
 
 
     /// Backward compatibility - create a logger that matches the old interface
     let create (f: string -> unit) =
-        let formatter = MessageFormatter.create [
-            typeof<SolverMessage>, formatSolverMessage
-        ]
+        let formatter =
+            MessageFormatter.create [ typeof<SolverMessage>, formatSolverMessage ]
 
         {
-            Log = fun event ->
-                event.Message
-                |> formatter
-                |> fun s -> if not (String.IsNullOrEmpty s) then f s
+            Log =
+                fun event ->
+                    event.Message
+                    |> formatter
+                    |> fun s ->
+                        if not (String.IsNullOrEmpty s) then
+                            f s
         }
 
     /// Ignore logger for backward compatibility

@@ -38,7 +38,7 @@ module Filters =
         getPrescriptionRules logger provider >> PrescriptionRule.forms
 
 
-    let getFrequencies logger  (provider: IResourceProvider) =
+    let getFrequencies logger (provider: IResourceProvider) =
         getPrescriptionRules logger provider >> PrescriptionRule.frequencies
 
 
@@ -67,7 +67,9 @@ module Filters =
 
 
     let filterDiluents (logger: Logger) (provider: IResourceProvider) =
-        filterPrescriptionRules logger provider >> PrescriptionRule.diluents >> Array.map _.Generic
+        filterPrescriptionRules logger provider
+        >> PrescriptionRule.diluents
+        >> Array.map _.Generic
 
 
 module OrderScenario =
@@ -77,13 +79,14 @@ module OrderScenario =
     open Informedica.GenOrder.Lib
 
 
-    let replace(tb : TextBlock) =
+    let replace (tb: TextBlock) =
         match tb with
         | Valid s
         | Caution s
         | Warning s
         | Alert s ->
-            if s |> String.isNullOrWhiteSpace then tb
+            if s |> String.isNullOrWhiteSpace then
+                tb
             else
                 let s =
                     s
@@ -91,6 +94,7 @@ module OrderScenario =
                     |> String.replace "]" ""
                     |> String.replace "<" ""
                     |> String.replace ">" ""
+
                 match tb with
                 | Valid _ -> s |> Valid
                 | Caution _ -> s |> Caution
@@ -98,8 +102,7 @@ module OrderScenario =
                 | Alert _ -> s |> Alert
 
 
-    let create no nm ind frm rte dst dil cmp itm dils cmps itms ord adj ren rrl ids : OrderScenario
-        =
+    let create no nm ind frm rte dst dil cmp itm dils cmps itms ord adj ren rrl ids : OrderScenario =
         {
             No = no
             Name = nm
@@ -124,10 +127,9 @@ module OrderScenario =
         }
 
 
-    let setOrderTableFormat (sc : OrderScenario) =
+    let setOrderTableFormat (sc: OrderScenario) =
         let prs, prp, adm =
-            sc.Order
-            |> Order.Print.printOrderToTableFormat sc.UseAdjust true sc.Items
+            sc.Order |> Order.Print.printOrderToTableFormat sc.UseAdjust true sc.Items
 
         { sc with
             Prescription = prs |> Array.map (Array.map replace)
@@ -137,9 +139,7 @@ module OrderScenario =
 
 
     let fromRule no pr ord =
-        let cmps =
-            pr.DoseRule.ComponentLimits
-            |> Array.map _.Name
+        let cmps = pr.DoseRule.ComponentLimits |> Array.map _.Name
 
         let itms =
             pr.DoseRule.ComponentLimits
@@ -154,10 +154,10 @@ module OrderScenario =
         let useAdjust = pr.DoseRule |> DoseRule.useAdjust
 
         let dils =
-                pr.SolutionRules
-                |> Array.collect _.Diluents
-                |> Array.map _.Generic
-                |> Array.distinct
+            pr.SolutionRules
+            |> Array.collect _.Diluents
+            |> Array.map _.Generic
+            |> Array.distinct
 
         let dil =
             // look if the order has a diluent
@@ -244,7 +244,8 @@ module OrderContext =
     module Command =
 
 
-        let get = function
+        let get =
+            function
             | UpdateOrderContext ctx -> ctx
             | SelectOrderScenario ctx -> ctx
             | UpdateOrderScenario ctx -> ctx
@@ -257,26 +258,26 @@ module OrderContext =
             | SetMaxScheduleFrequencyProperty ctx -> ctx
             | SetMedianScheduleFrequencyProperty ctx -> ctx
             // DoseQuantity property commands
-            | DecreaseOrderableDoseQuantityProperty (ctx, _, _) -> ctx
-            | IncreaseOrderableDoseQuantityProperty (ctx, _, _) -> ctx
+            | DecreaseOrderableDoseQuantityProperty(ctx, _, _) -> ctx
+            | IncreaseOrderableDoseQuantityProperty(ctx, _, _) -> ctx
             | SetMinOrderableDoseQuantityProperty ctx -> ctx
             | SetMaxOrderableDoseQuantityProperty ctx -> ctx
             | SetMedianOrderableDoseQuantityProperty ctx -> ctx
             // DoseRate property commands
-            | DecreaseOrderableDoseRateProperty (ctx, _, _) -> ctx
-            | IncreaseOrderableDoseRateProperty (ctx, _, _) -> ctx
+            | DecreaseOrderableDoseRateProperty(ctx, _, _) -> ctx
+            | IncreaseOrderableDoseRateProperty(ctx, _, _) -> ctx
             | SetMinOrderableDoseRateProperty ctx -> ctx
             | SetMaxOrderableDoseRateProperty ctx -> ctx
             | SetMedianOrderableDoseRateProperty ctx -> ctx
             // Component Quantity property commands
-            | DecreaseComponentQuantityProperty (ctx, _, _, _) -> ctx
-            | IncreaseComponentQuantityProperty (ctx, _, _, _) -> ctx
-            | SetMinComponentQuantityProperty (ctx, _) -> ctx
-            | SetMaxComponentQuantityProperty (ctx, _) -> ctx
-            | SetMedianComponentQuantityProperty (ctx, _) -> ctx
+            | DecreaseComponentQuantityProperty(ctx, _, _, _) -> ctx
+            | IncreaseComponentQuantityProperty(ctx, _, _, _) -> ctx
+            | SetMinComponentQuantityProperty(ctx, _) -> ctx
+            | SetMaxComponentQuantityProperty(ctx, _) -> ctx
+            | SetMedianComponentQuantityProperty(ctx, _) -> ctx
 
 
-        let toString (cmd : Command) =
+        let toString (cmd: Command) =
             match cmd with
             | UpdateOrderContext _ -> "UpdateOrderContext"
             | SelectOrderScenario _ -> "SelectOrderScenario"
@@ -288,21 +289,27 @@ module OrderContext =
             | SetMinScheduleFrequencyProperty _ -> "SetMinScheduleFrequencyProperty"
             | SetMaxScheduleFrequencyProperty _ -> "SetMaxScheduleFrequencyProperty"
             | SetMedianScheduleFrequencyProperty _ -> "SetMedianScheduleFrequencyProperty"
-            | DecreaseOrderableDoseQuantityProperty (_, ntimes, useCalc) -> $"DecreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
-            | IncreaseOrderableDoseQuantityProperty (_, ntimes, useCalc) -> $"IncreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
+            | DecreaseOrderableDoseQuantityProperty(_, ntimes, useCalc) ->
+                $"DecreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
+            | IncreaseOrderableDoseQuantityProperty(_, ntimes, useCalc) ->
+                $"IncreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
             | SetMinOrderableDoseQuantityProperty _ -> "SetMinOrderableDoseQuantityProperty"
             | SetMaxOrderableDoseQuantityProperty _ -> "SetMaxOrderableDoseQuantityProperty"
             | SetMedianOrderableDoseQuantityProperty _ -> "SetMedianOrderableDoseQuantityProperty"
-            | DecreaseOrderableDoseRateProperty (_, ntimes, useCalc) -> $"DecreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
-            | IncreaseOrderableDoseRateProperty (_, ntimes, useCalc) -> $"IncreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
+            | DecreaseOrderableDoseRateProperty(_, ntimes, useCalc) ->
+                $"DecreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
+            | IncreaseOrderableDoseRateProperty(_, ntimes, useCalc) ->
+                $"IncreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
             | SetMinOrderableDoseRateProperty _ -> "SetMinOrderableDoseRateProperty"
             | SetMaxOrderableDoseRateProperty _ -> "SetMaxOrderableDoseRateProperty"
             | SetMedianOrderableDoseRateProperty _ -> "SetMedianOrderableDoseRateProperty"
-            | DecreaseComponentQuantityProperty (_, cmp, ntimes, useCalc) -> $"DecreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
-            | IncreaseComponentQuantityProperty (_, cmp, ntimes, useCalc) -> $"IncreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
-            | SetMinComponentQuantityProperty (_, cmp) -> $"SetMinComponentQuantityProperty cmp={cmp}"
-            | SetMaxComponentQuantityProperty (_, cmp) -> $"SetMaxComponentQuantityProperty cmp={cmp}"
-            | SetMedianComponentQuantityProperty (_, cmp) -> $"SetMedianComponentQuantityProperty cmp={cmp}"
+            | DecreaseComponentQuantityProperty(_, cmp, ntimes, useCalc) ->
+                $"DecreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
+            | IncreaseComponentQuantityProperty(_, cmp, ntimes, useCalc) ->
+                $"IncreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
+            | SetMinComponentQuantityProperty(_, cmp) -> $"SetMinComponentQuantityProperty cmp={cmp}"
+            | SetMaxComponentQuantityProperty(_, cmp) -> $"SetMaxComponentQuantityProperty cmp={cmp}"
+            | SetMedianComponentQuantityProperty(_, cmp) -> $"SetMedianComponentQuantityProperty cmp={cmp}"
 
 
     module Helpers =
@@ -336,15 +343,10 @@ module OrderContext =
                                             [|
                                                 cl.SubstanceLimits
                                                 |> Array.map (_.DoseLimitTarget >> LimitTarget.substanceTargetToString)
-                                                |> Product.create
-                                                    pr.DoseRule.Generic
-                                                    pr.DoseRule.Route
+                                                |> Product.create pr.DoseRule.Generic pr.DoseRule.Route
                                             |]
                                         else
-                                            cl.Products
-                                            |> Array.map (fun p ->
-                                                { p with Divisible = None }
-                                            )
+                                            cl.Products |> Array.map (fun p -> { p with Divisible = None })
                                 }
                             )
                     }
@@ -364,34 +366,35 @@ module OrderContext =
             |> CalcMinMax
             |> OrderProcessor.processPipeline logger
             |> function
-            | Ok ord ->
-                // Set dose units from substance limits
-                let ord =
-                    pr.DoseRule.ComponentLimits
-                    |> Array.collect _.SubstanceLimits
-                    |> Array.filter DoseLimit.isSubstanceLimit
-                    |> Array.fold (fun acc dl ->
-                        let sn =
-                            dl.DoseLimitTarget
-                            |> LimitTarget.substanceTargetToString
-                        acc
-                        |> Order.setDoseUnit sn dl.DoseUnit
-                    ) ord
+                | Ok ord ->
+                    // Set dose units from substance limits
+                    let ord =
+                        pr.DoseRule.ComponentLimits
+                        |> Array.collect _.SubstanceLimits
+                        |> Array.filter DoseLimit.isSubstanceLimit
+                        |> Array.fold
+                            (fun acc dl ->
+                                let sn = dl.DoseLimitTarget |> LimitTarget.substanceTargetToString
+                                acc |> Order.setDoseUnit sn dl.DoseUnit
+                            )
+                            ord
 
-                // Extract component items for product filtering
-                let compItems =
-                    [
-                        for cmp in ord.Orderable.Components do
+                    // Extract component items for product filtering
+                    let compItems =
+                        [
+                            for cmp in ord.Orderable.Components do
                                 let cmpQty =
                                     cmp.ComponentQuantity
                                     |> OrderVariable.Quantity.toOrdVar
                                     |> OrderVariable.getValSetValueUnit
+
                                 if cmpQty.IsSome then
                                     for itm in cmp.Items do
                                         let itmQty =
                                             itm.ComponentConcentration
                                             |> OrderVariable.Concentration.toOrdVar
                                             |> OrderVariable.getValSetValueUnit
+
                                         if itmQty.IsSome then
                                             {
                                                 ComponentName = cmp.Name |> Name.toString
@@ -399,15 +402,12 @@ module OrderContext =
                                                 ItemName = itm.Name |> Name.toString
                                                 ItemConcentration = itmQty.Value
                                             }
-                    ]
+                        ]
 
-                let pr =
-                    pr
-                    |> PrescriptionRule.filterProducts compItems
+                    let pr = pr |> PrescriptionRule.filterProducts compItems
 
-                Ok (ord, pr)
-            | Error (ord, m) ->
-                Error (ord, pr, m)
+                    Ok(ord, pr)
+                | Error(ord, m) -> Error(ord, pr, m)
 
         (*
         /// <summary>
@@ -447,7 +447,8 @@ module OrderContext =
                     |> Array.map (fun ord -> ord, pr)
                 )
 
-            if ords |> Array.isEmpty then [||]
+            if ords |> Array.isEmpty then
+                [||]
             else
                 // Evaluate all orders in parallel using Array.Parallel for better performance
                 ords
@@ -458,33 +459,23 @@ module OrderContext =
         let processEvaluationResults prs =
             prs
             |> Array.mapi (fun i r -> i, r)
-            |> Array.choose (function
-                | i, Ok (ord, pr) ->
-                    OrderScenario.fromRule i pr ord
-                    |> Some
-                | _, Error (ord, ctx, errs) ->
+            |> Array.choose (
+                function
+                | i, Ok(ord, pr) -> OrderScenario.fromRule i pr ord |> Some
+                | _, Error(ord, ctx, errs) ->
                     // TODO: this never gets written!!
-                    errs
-                    |> List.map string
-                    |> String.concat "\n"
-                    |> writeErrorMessage
+                    errs |> List.map string |> String.concat "\n" |> writeErrorMessage
 
-                    ord
-                    |> Order.toString
-                    |> String.concat "\n"
-                    |> writeWarningMessage
+                    ord |> Order.toString |> String.concat "\n" |> writeWarningMessage
 
-                    ctx
-                    |> sprintf "%A"
-                    |> writeWarningMessage
+                    ctx |> sprintf "%A" |> writeWarningMessage
 
                     None
             )
 
 
         let printOrder ord =
-            ord
-            |> Order.printTable Format.Minimal
+            ord |> Order.printTable Format.Minimal
 
             ord
 
@@ -496,13 +487,9 @@ module OrderContext =
     module Prescription = Order.Schedule
 
 
-    let create logger provider (pat : Patient) =
+    let create logger provider (pat: Patient) =
         let pat =
-            { pat with
-                Weight =
-                    pat.Weight
-                    |> Option.map (ValueUnit.convertTo Units.Weight.kiloGram)
-            }
+            { pat with Weight = pat.Weight |> Option.map (ValueUnit.convertTo Units.Weight.kiloGram) }
 
         let prs = pat |> getPrescriptionRules logger provider
 
@@ -511,7 +498,7 @@ module OrderContext =
                 Indications = prs |> PrescriptionRule.indications
                 Generics = prs |> PrescriptionRule.generics
                 Routes = prs |> PrescriptionRule.routes
-                Forms= prs |> PrescriptionRule.forms
+                Forms = prs |> PrescriptionRule.forms
                 DoseTypes = prs |> PrescriptionRule.doseTypes
                 Diluents = [||]
                 Components = [||]
@@ -537,20 +524,34 @@ module OrderContext =
         | Some w, Some h, d when d |> Option.isSome ->
 
             let ind =
-                if ctx.Filter.Indication.IsSome then ctx.Filter.Indication
-                else ctx.Filter.Indications |> Array.someIfOne
+                if ctx.Filter.Indication.IsSome then
+                    ctx.Filter.Indication
+                else
+                    ctx.Filter.Indications |> Array.someIfOne
+
             let gen =
-                if ctx.Filter.Generic.IsSome then ctx.Filter.Generic
-                else ctx.Filter.Generics |> Array.someIfOne
+                if ctx.Filter.Generic.IsSome then
+                    ctx.Filter.Generic
+                else
+                    ctx.Filter.Generics |> Array.someIfOne
+
             let rte =
-                if ctx.Filter.Route.IsSome then ctx.Filter.Route
-                else ctx.Filter.Routes |> Array.someIfOne
+                if ctx.Filter.Route.IsSome then
+                    ctx.Filter.Route
+                else
+                    ctx.Filter.Routes |> Array.someIfOne
+
             let frm =
-                if ctx.Filter.Form.IsSome then ctx.Filter.Form
-                else ctx.Filter.Forms |> Array.someIfOne
+                if ctx.Filter.Form.IsSome then
+                    ctx.Filter.Form
+                else
+                    ctx.Filter.Forms |> Array.someIfOne
+
             let dst =
-                if ctx.Filter.DoseType.IsSome then ctx.Filter.DoseType
-                else ctx.Filter.DoseTypes |> Array.someIfOne
+                if ctx.Filter.DoseType.IsSome then
+                    ctx.Filter.DoseType
+                else
+                    ctx.Filter.DoseTypes |> Array.someIfOne
 
             let doseFilter =
                 {
@@ -561,19 +562,20 @@ module OrderContext =
                     DoseType = dst
                     Diluent = ctx.Filter.Diluent
                     Components = ctx.Filter.SelectedComponents |> Array.toList //TODO probably go for lists
-                    Patient = {
-                        Location = ctx.Patient.Location
-                        Department = d
-                        Age = ctx.Patient.Age
-                        GestAge = ctx.Patient.GestAge
-                        PMAge = ctx.Patient.PMAge
-                        Weight = Some w
-                        Height = Some h
-                        Diagnoses = [||]
-                        Gender = ctx.Patient.Gender
-                        Access = ctx.Patient.Access
-                        RenalFunction = ctx.Patient.RenalFunction
-                    }
+                    Patient =
+                        {
+                            Location = ctx.Patient.Location
+                            Department = d
+                            Age = ctx.Patient.Age
+                            GestAge = ctx.Patient.GestAge
+                            PMAge = ctx.Patient.PMAge
+                            Weight = Some w
+                            Height = Some h
+                            Diagnoses = [||]
+                            Gender = ctx.Patient.Gender
+                            Access = ctx.Patient.Access
+                            RenalFunction = ctx.Patient.RenalFunction
+                        }
                 }
 
             let inds = doseFilter |> filterIndications logger provider
@@ -604,8 +606,8 @@ module OrderContext =
                     }
             },
             match ind, gen, rte, frm, dst with
-            | Some _, Some _, Some _, _,      Some _
-            | Some _, Some _, _,      Some _, Some _ ->
+            | Some _, Some _, Some _, _, Some _
+            | Some _, Some _, _, Some _, Some _ ->
 
                 { doseFilter with
                     Indication = ind
@@ -616,10 +618,7 @@ module OrderContext =
                 }
                 |> Api.filterPrescriptionRules provider
             | _ -> Ok [||]
-        | _ ->
-            ctx.Patient |> create logger provider
-            , Ok [||]
-
+        | _ -> ctx.Patient |> create logger provider, Ok [||]
 
 
     let setFilter filter ctx = { ctx with Filter = filter }
@@ -627,53 +626,42 @@ module OrderContext =
 
     let setFilterItem item ctx =
         let tryItem n xs =
-            xs
-            |> Array.tryItem n
-            |> Option.map Array.singleton
-            |> Option.defaultValue xs
-        {
-            ctx with
-                OrderContext.Filter.Indications =
-                    match item with
-                    | FilterItem.Indication n ->
-                        ctx.Filter.Indications |> tryItem n
-                    | _ -> ctx.Filter.Indications
-                OrderContext.Filter.Generics =
-                    match item with
-                    | FilterItem.Generic n ->
-                        ctx.Filter.Generics |> tryItem n
-                    | _ -> ctx.Filter.Generics
-                OrderContext.Filter.Routes =
-                    match item with
-                    | FilterItem.Route n ->
-                        ctx.Filter.Routes |> tryItem n
-                    | _ -> ctx.Filter.Routes
-                OrderContext.Filter.Forms =
-                    match item with
-                    | FilterItem.Form n ->
-                        ctx.Filter.Forms |> tryItem n
-                    | _ -> ctx.Filter.Forms
-                OrderContext.Filter.DoseTypes =
-                    match item with
-                    | FilterItem.DoseType n ->
-                        ctx.Filter.DoseTypes |> tryItem n
-                    | _ -> ctx.Filter.DoseTypes
-                OrderContext.Filter.Diluents =
-                    match item with
-                    | FilterItem.Diluent n ->
-                        ctx.Filter.Diluents |> tryItem n
-                    | _ -> ctx.Filter.Diluents
-                OrderContext.Filter.SelectedComponents =
-                    match item with
-                    | FilterItem.Component ns ->
-                        [|
-                            for i in ns do
-                                yield!
-                                    ctx.Filter.SelectedComponents
-                                    |> tryItem i
-                        |]
+            xs |> Array.tryItem n |> Option.map Array.singleton |> Option.defaultValue xs
 
-                    | _ -> ctx.Filter.SelectedComponents
+        { ctx with
+            OrderContext.Filter.Indications =
+                match item with
+                | FilterItem.Indication n -> ctx.Filter.Indications |> tryItem n
+                | _ -> ctx.Filter.Indications
+            OrderContext.Filter.Generics =
+                match item with
+                | FilterItem.Generic n -> ctx.Filter.Generics |> tryItem n
+                | _ -> ctx.Filter.Generics
+            OrderContext.Filter.Routes =
+                match item with
+                | FilterItem.Route n -> ctx.Filter.Routes |> tryItem n
+                | _ -> ctx.Filter.Routes
+            OrderContext.Filter.Forms =
+                match item with
+                | FilterItem.Form n -> ctx.Filter.Forms |> tryItem n
+                | _ -> ctx.Filter.Forms
+            OrderContext.Filter.DoseTypes =
+                match item with
+                | FilterItem.DoseType n -> ctx.Filter.DoseTypes |> tryItem n
+                | _ -> ctx.Filter.DoseTypes
+            OrderContext.Filter.Diluents =
+                match item with
+                | FilterItem.Diluent n -> ctx.Filter.Diluents |> tryItem n
+                | _ -> ctx.Filter.Diluents
+            OrderContext.Filter.SelectedComponents =
+                match item with
+                | FilterItem.Component ns ->
+                    [|
+                        for i in ns do
+                            yield! ctx.Filter.SelectedComponents |> tryItem i
+                    |]
+
+                | _ -> ctx.Filter.SelectedComponents
         }
 
 
@@ -717,37 +705,37 @@ module OrderContext =
         |> Option.map (fun sc ->
             let ord = sc.Order
 
-            if ctx.Filter.SelectedComponents |> Array.isEmpty ||
-               ctx.Filter.Components |> Array.isEmpty then false
+            if
+                ctx.Filter.SelectedComponents |> Array.isEmpty
+                || ctx.Filter.Components |> Array.isEmpty
+            then
+                false
+            else if ord.Orderable.Components |> List.length = 0 then
+                false
             else
-                if ord.Orderable.Components |> List.length = 0 then false
-                else
-                    // check if there is a component that is used
-                    // not in selected components
-                    ord.Orderable.Components
-                    |> List.skip 1
-                    |> List.map (_.Name >> Name.toString)
-                    |> List.sort
-                    |> (=) (ctx.Filter.SelectedComponents |> Array.sort |> Array.toList)
-                    |> not
+                // check if there is a component that is used
+                // not in selected components
+                ord.Orderable.Components
+                |> List.skip 1
+                |> List.map (_.Name >> Name.toString)
+                |> List.sort
+                |> (=) (ctx.Filter.SelectedComponents |> Array.sort |> Array.toList)
+                |> not
         )
         |> Option.defaultValue false
 
 
     let toString stage (ctx: OrderContext) =
         let printArray xs =
-            if ctx.Filter.Generic.IsNone ||
-               ctx.Filter.Route.IsNone ||
-               xs |> Array.length > 10
-                then $"{xs |> Array.length}"
+            if ctx.Filter.Generic.IsNone || ctx.Filter.Route.IsNone || xs |> Array.length > 10 then
+                $"{xs |> Array.length}"
             else
-                xs
-                |> String.concat ", "
+                xs |> String.concat ", "
 
         let scenarios =
             match ctx.Scenarios |> Array.tryExactlyOne with
             | Some sc ->
-                    $"""
+                $"""
 
 Scenario Diluent: {sc.Diluent |> Option.defaultValue ""}
 Scenario Component: {sc.Component |> Option.defaultValue ""}
@@ -781,27 +769,32 @@ Scenarios: {scenarios}
 """
 
 
-    let filterScenariosByPreparation (scs : OrderScenario []) =
+    let filterScenariosByPreparation (scs: OrderScenario[]) =
         if scs |> Array.length <= 1 then
-                scs
+            scs
         else
             // filter out prescriptions without preparation when not needed
             let grouped = scs |> Array.groupBy _.DoseType
+
             [|
                 for _, scs in grouped do
-                    if scs |> Array.length <= 1 then scs
+                    if scs |> Array.length <= 1 then
+                        scs
+                    else if
+                        scs
+                        |> Array.filter (fun sc ->
+                            sc.Preparation
+                            |> Array.exists (Array.exists Order.Print.textBlockIsEmpty >> not)
+                        )
+                        |> Array.length = 0
+                    then
+                        scs
                     else
-                        if scs
-                           |> Array.filter (fun sc ->
-                               sc.Preparation
-                               |> Array.exists (Array.exists Order.Print.textBlockIsEmpty >> not))
-                           |> Array.length = 0 then scs
-                        else
-                            scs
-                            |> Array.filter (fun sc ->
-                               sc.Preparation
-                               |> Array.exists (Array.exists Order.Print.textBlockIsEmpty >> not)
-                            )
+                        scs
+                        |> Array.filter (fun sc ->
+                            sc.Preparation
+                            |> Array.exists (Array.exists Order.Print.textBlockIsEmpty >> not)
+                        )
 
             |]
             |> Array.collect id
@@ -819,27 +812,26 @@ Scenarios: {scenarios}
                         // set mechanism once, so when a scenario has only
                         // one diluent, the others are still available
                         Diluents =
-                            if ctx.Filter.Diluents |> Array.isEmpty then sc.Diluents
-                            else ctx.Filter.Diluents
+                            if ctx.Filter.Diluents |> Array.isEmpty then
+                                sc.Diluents
+                            else
+                                ctx.Filter.Diluents
                         // set mechanism once, so when a scenario has only
                         // selected components, the others are still available
                         Components =
                             if ctx.Filter.Components |> Array.isEmpty then
-                                sc.Components
-                                |> Array.skip 1
-                            else ctx.Filter.Components
+                                sc.Components |> Array.skip 1
+                            else
+                                ctx.Filter.Components
                     }
             }
-
 
 
     let applyToOrderScenario scenarioF (ctx: OrderContext) =
         match ctx.Scenarios |> Array.tryExactlyOne with
         | None -> ctx
         | Some _ ->
-            { ctx with
-                Scenarios = ctx.Scenarios |> Array.map scenarioF
-            }
+            { ctx with Scenarios = ctx.Scenarios |> Array.map scenarioF }
             |> updateFilterIfOneScenario
 
 
@@ -873,7 +865,8 @@ Scenarios: {scenarios}
             | Ok prs -> prs
             | Error _ -> [||]
 
-        if prs |> Array.isEmpty then ctx
+        if prs |> Array.isEmpty then
+            ctx
         else
             { ctx with
                 Scenarios =
@@ -882,14 +875,11 @@ Scenarios: {scenarios}
                     prs
                     |> evaluateRules logger
                     |> function
-                    | [||] ->
-                        // no valid results so evaluate again
-                        // with changed product divisibility
-                        prs
-                        |> Array.map changeRuleProductsDivisible
-                        |> evaluateRules logger
-                    | results ->
-                        results
+                        | [||] ->
+                            // no valid results so evaluate again
+                            // with changed product divisibility
+                            prs |> Array.map changeRuleProductsDivisible |> evaluateRules logger
+                        | results -> results
                     |> processEvaluationResults
                     |> filterScenariosByPreparation
             }
@@ -900,8 +890,7 @@ Scenarios: {scenarios}
     let reloadResources logger provider ctx =
         Api.reloadCache logger provider
 
-        ctx
-        |> getScenarios logger provider
+        ctx |> getScenarios logger provider
 
 
     let evaluate logger provider cmd =
@@ -910,7 +899,7 @@ Scenarios: {scenarios}
             match ctx.Scenarios |> Array.tryExactlyOne with
             | Some _ ->
                 ctx
-                |> processScenarioOrder logger (fun o -> ChangeProperty (o, propCmd))
+                |> processScenarioOrder logger (fun o -> ChangeProperty(o, propCmd))
                 |> wrapResult
                 |> Ok
             | None ->
@@ -918,52 +907,83 @@ Scenarios: {scenarios}
                 wrapResult ctx |> Ok
 
         match cmd with
-        | UpdateOrderContext ctx -> ctx |> getScenarios logger provider    |> Result.map UpdateOrderContext
-        | ReloadResources ctx    -> ctx |> reloadResources logger provider |> Result.map ReloadResources
+        | UpdateOrderContext ctx -> ctx |> getScenarios logger provider |> Result.map UpdateOrderContext
+        | ReloadResources ctx -> ctx |> reloadResources logger provider |> Result.map ReloadResources
         // TODO: need to implement validation
-        | SelectOrderScenario ctx -> ctx |> processScenarioOrder logger CalcValues   |> SelectOrderScenario  |> Ok
-        | UpdateOrderScenario ctx -> ctx |> processScenarioOrder logger SolveOrder   |> UpdateOrderScenario  |> Ok
-        | ResetOrderScenario ctx  -> ctx |> processScenarioOrder logger ReCalcValues |> ResetOrderScenario   |> Ok
+        | SelectOrderScenario ctx -> ctx |> processScenarioOrder logger CalcValues |> SelectOrderScenario |> Ok
+        | UpdateOrderScenario ctx -> ctx |> processScenarioOrder logger SolveOrder |> UpdateOrderScenario |> Ok
+        | ResetOrderScenario ctx -> ctx |> processScenarioOrder logger ReCalcValues |> ResetOrderScenario |> Ok
         // Frequency property commands
-        | DecreaseScheduleFrequencyProperty ctx -> processPropertyCmd ctx DecreaseScheduleFrequency
-                                                       DecreaseScheduleFrequencyProperty
-        | IncreaseScheduleFrequencyProperty ctx -> processPropertyCmd ctx IncreaseScheduleFrequency
-                                                       IncreaseScheduleFrequencyProperty
-        | SetMinScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMinScheduleFrequency
-                                                     SetMinScheduleFrequencyProperty
-        | SetMaxScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMaxScheduleFrequency
-                                                     SetMaxScheduleFrequencyProperty
-        | SetMedianScheduleFrequencyProperty ctx -> processPropertyCmd ctx SetMedianScheduleFrequency
-                                                        SetMedianScheduleFrequencyProperty
+        | DecreaseScheduleFrequencyProperty ctx ->
+            processPropertyCmd ctx DecreaseScheduleFrequency DecreaseScheduleFrequencyProperty
+        | IncreaseScheduleFrequencyProperty ctx ->
+            processPropertyCmd ctx IncreaseScheduleFrequency IncreaseScheduleFrequencyProperty
+        | SetMinScheduleFrequencyProperty ctx ->
+            processPropertyCmd ctx SetMinScheduleFrequency SetMinScheduleFrequencyProperty
+        | SetMaxScheduleFrequencyProperty ctx ->
+            processPropertyCmd ctx SetMaxScheduleFrequency SetMaxScheduleFrequencyProperty
+        | SetMedianScheduleFrequencyProperty ctx ->
+            processPropertyCmd ctx SetMedianScheduleFrequency SetMedianScheduleFrequencyProperty
         // Dose Quantity property commands
-        | DecreaseOrderableDoseQuantityProperty (ctx, ntimes, useCalc) -> processPropertyCmd ctx (DecreaseOrderableDoseQuantity
-                                                                                             (ntimes, useCalc)) (fun ctx -> DecreaseOrderableDoseQuantityProperty (ctx, ntimes, useCalc))
-        | IncreaseOrderableDoseQuantityProperty (ctx, ntimes, useCalc) -> processPropertyCmd ctx (IncreaseOrderableDoseQuantity
-                                                                                             (ntimes, useCalc)) (fun ctx -> IncreaseOrderableDoseQuantityProperty (ctx, ntimes, useCalc))
-        | SetMinOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMinOrderableDoseQuantity
-                                                         SetMinOrderableDoseQuantityProperty
-        | SetMaxOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMaxOrderableDoseQuantity
-                                                         SetMaxOrderableDoseQuantityProperty
-        | SetMedianOrderableDoseQuantityProperty ctx -> processPropertyCmd ctx SetMedianOrderableDoseQuantity
-                                                            SetMedianOrderableDoseQuantityProperty
+        | DecreaseOrderableDoseQuantityProperty(ctx, ntimes, useCalc) ->
+            processPropertyCmd
+                ctx
+                (DecreaseOrderableDoseQuantity(ntimes, useCalc))
+                (fun ctx -> DecreaseOrderableDoseQuantityProperty(ctx, ntimes, useCalc))
+        | IncreaseOrderableDoseQuantityProperty(ctx, ntimes, useCalc) ->
+            processPropertyCmd
+                ctx
+                (IncreaseOrderableDoseQuantity(ntimes, useCalc))
+                (fun ctx -> IncreaseOrderableDoseQuantityProperty(ctx, ntimes, useCalc))
+        | SetMinOrderableDoseQuantityProperty ctx ->
+            processPropertyCmd ctx SetMinOrderableDoseQuantity SetMinOrderableDoseQuantityProperty
+        | SetMaxOrderableDoseQuantityProperty ctx ->
+            processPropertyCmd ctx SetMaxOrderableDoseQuantity SetMaxOrderableDoseQuantityProperty
+        | SetMedianOrderableDoseQuantityProperty ctx ->
+            processPropertyCmd ctx SetMedianOrderableDoseQuantity SetMedianOrderableDoseQuantityProperty
         // Dose Rate property commands
-        | DecreaseOrderableDoseRateProperty (ctx, ntimes, useCalc) -> processPropertyCmd ctx (DecreaseOrderableDoseRate (ntimes, useCalc)) (fun ctx -> DecreaseOrderableDoseRateProperty (ctx, ntimes, useCalc))
-        | IncreaseOrderableDoseRateProperty (ctx, ntimes, useCalc) -> processPropertyCmd ctx (IncreaseOrderableDoseRate (ntimes, useCalc)) (fun ctx -> IncreaseOrderableDoseRateProperty (ctx, ntimes, useCalc))
-        | SetMinOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMinOrderableDoseRate
-                                                     SetMinOrderableDoseRateProperty
-        | SetMaxOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMaxOrderableDoseRate
-                                                     SetMaxOrderableDoseRateProperty
-        | SetMedianOrderableDoseRateProperty ctx -> processPropertyCmd ctx SetMedianOrderableDoseRate
-                                                        SetMedianOrderableDoseRateProperty
+        | DecreaseOrderableDoseRateProperty(ctx, ntimes, useCalc) ->
+            processPropertyCmd
+                ctx
+                (DecreaseOrderableDoseRate(ntimes, useCalc))
+                (fun ctx -> DecreaseOrderableDoseRateProperty(ctx, ntimes, useCalc))
+        | IncreaseOrderableDoseRateProperty(ctx, ntimes, useCalc) ->
+            processPropertyCmd
+                ctx
+                (IncreaseOrderableDoseRate(ntimes, useCalc))
+                (fun ctx -> IncreaseOrderableDoseRateProperty(ctx, ntimes, useCalc))
+        | SetMinOrderableDoseRateProperty ctx ->
+            processPropertyCmd ctx SetMinOrderableDoseRate SetMinOrderableDoseRateProperty
+        | SetMaxOrderableDoseRateProperty ctx ->
+            processPropertyCmd ctx SetMaxOrderableDoseRate SetMaxOrderableDoseRateProperty
+        | SetMedianOrderableDoseRateProperty ctx ->
+            processPropertyCmd ctx SetMedianOrderableDoseRate SetMedianOrderableDoseRateProperty
         // Component Quantity property commands
-        | DecreaseComponentQuantityProperty (ctx, cmp, ntimes, useCalc) -> processPropertyCmd ctx (
-                                                                      DecreaseComponentOrderableQuantity (cmp, ntimes, useCalc)) (fun ctx -> DecreaseComponentQuantityProperty (ctx, cmp, ntimes, useCalc))
-        | IncreaseComponentQuantityProperty (ctx, cmp, ntimes, useCalc) -> processPropertyCmd ctx (
-                                                                      IncreaseComponentOrderableQuantity (cmp, ntimes, useCalc)) (fun ctx -> IncreaseComponentQuantityProperty (ctx, cmp, ntimes, useCalc))
-        | SetMinComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMinComponentOrderableQuantity cmp) (fun ctx -> SetMinComponentQuantityProperty (ctx, cmp))
-        | SetMaxComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMaxComponentOrderableQuantity cmp) (fun ctx -> SetMaxComponentQuantityProperty (ctx, cmp))
-        | SetMedianComponentQuantityProperty (ctx, cmp) -> processPropertyCmd ctx (SetMedianComponentOrderableQuantity
-                                                                                       cmp) (fun ctx -> SetMedianComponentQuantityProperty (ctx, cmp))
+        | DecreaseComponentQuantityProperty(ctx, cmp, ntimes, useCalc) ->
+            processPropertyCmd
+                ctx
+                (DecreaseComponentOrderableQuantity(cmp, ntimes, useCalc))
+                (fun ctx -> DecreaseComponentQuantityProperty(ctx, cmp, ntimes, useCalc))
+        | IncreaseComponentQuantityProperty(ctx, cmp, ntimes, useCalc) ->
+            processPropertyCmd
+                ctx
+                (IncreaseComponentOrderableQuantity(cmp, ntimes, useCalc))
+                (fun ctx -> IncreaseComponentQuantityProperty(ctx, cmp, ntimes, useCalc))
+        | SetMinComponentQuantityProperty(ctx, cmp) ->
+            processPropertyCmd
+                ctx
+                (SetMinComponentOrderableQuantity cmp)
+                (fun ctx -> SetMinComponentQuantityProperty(ctx, cmp))
+        | SetMaxComponentQuantityProperty(ctx, cmp) ->
+            processPropertyCmd
+                ctx
+                (SetMaxComponentOrderableQuantity cmp)
+                (fun ctx -> SetMaxComponentQuantityProperty(ctx, cmp))
+        | SetMedianComponentQuantityProperty(ctx, cmp) ->
+            processPropertyCmd
+                ctx
+                (SetMedianComponentOrderableQuantity cmp)
+                (fun ctx -> SetMedianComponentQuantityProperty(ctx, cmp))
 
 
     let logOrderContext (logger: Logger) msg cmd =
@@ -1004,9 +1024,7 @@ Scenarios: {scenarios}
         log $"Components change: {ctx |> checkComponentChange}"
         log $"Diluent change: {ctx |> checkDiluentChange}\n"
 
-        ctx
-        |> toString $"Order Context"
-        |> log
+        ctx |> toString $"Order Context" |> log
 
         (*
         ctx.Scenarios
@@ -1027,8 +1045,7 @@ module Formulary =
 
 
     let getDoseRules provider filter =
-        Api.getDoseRules provider
-        |> Api.filterDoseRules provider filter
+        Api.getDoseRules provider |> Api.filterDoseRules provider filter
 
 
     let getSolutionRules provider generic form route =
@@ -1036,15 +1053,14 @@ module Formulary =
         |> Array.filter (fun sr ->
             generic
             |> Option.map (String.equalsCapInsens sr.Generic)
-            |> Option.defaultValue true &&
-            sr.Form
-            |> Option.map (fun s ->
-                if form |> Option.isNone then true
-                else
-                    form.Value
-                    |> String.equalsCapInsens s
-            ) |> Option.defaultValue true &&
-            route
-            |> Option.map ((=) sr.Route)
             |> Option.defaultValue true
+            && sr.Form
+               |> Option.map (fun s ->
+                   if form |> Option.isNone then
+                       true
+                   else
+                       form.Value |> String.equalsCapInsens s
+               )
+               |> Option.defaultValue true
+            && route |> Option.map ((=) sr.Route) |> Option.defaultValue true
         )

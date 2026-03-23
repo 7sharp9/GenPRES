@@ -25,7 +25,7 @@ module Api =
         let notEmpty = String.IsNullOrWhiteSpace >> not
         let prodEqs, sumEqs = eqs |> List.partition (String.contains "*")
         let createProdEqs = List.map (EQD.createProd >> EQD.fromDto)
-        let createSumEqs  = List.map (EQD.createSum  >> EQD.fromDto)
+        let createSumEqs = List.map (EQD.createSum >> EQD.fromDto)
 
         let parse eqs op =
             eqs
@@ -52,14 +52,8 @@ module Api =
         eqs
         |> List.collect (Equation.findName n)
         |> function
-        | [] -> None
-        | var::_ ->
-            var
-            |> Variable.setValueRange (
-                p
-                |> Property.toValueRange
-            )
-            |> Some
+            | [] -> None
+            | var :: _ -> var |> Variable.setValueRange (p |> Property.toValueRange) |> Some
 
 
     /// <summary>
@@ -86,10 +80,8 @@ module Api =
         eqs
         |> setVariableValues n p
         |> function
-        | None -> eqs |> Ok
-        | Some var ->
-            eqs
-            |> Solver.solveVariable onlyMinIncrMax log sortQue var
+            | None -> eqs |> Ok
+            | Some var -> eqs |> Solver.solveVariable onlyMinIncrMax log sortQue var
 
 
     /// <summary>
@@ -97,8 +89,7 @@ module Api =
     /// </summary>
     /// <param name="eqs">The list of Equations</param>
     let nonZeroNegative eqs =
-        eqs
-        |> List.map Equation.nonZeroOrNegative
+        eqs |> List.map Equation.nonZeroOrNegative
 
 
     /// <summary>
@@ -112,13 +103,7 @@ module Api =
         let apply = Constraint.apply log
 
         cs
-        |> List.fold (fun acc c ->
-            acc
-            |> apply c
-            |> fun var ->
-                acc
-                |> List.map (Equation.replace var)
-        ) eqs
+        |> List.fold (fun acc c -> acc |> apply c |> (fun var -> acc |> List.map (Equation.replace var))) eqs
 
 
     /// <summary>

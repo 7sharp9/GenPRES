@@ -1,7 +1,6 @@
 namespace Informedica.GenForm.Lib
 
 
-
 module PrescriptionRule =
 
 
@@ -12,8 +11,9 @@ module PrescriptionRule =
     open Utils
 
 
-    let adjustDoseLimitToPatient (freq : ValueUnit option) (pat : Patient) (dl : DoseLimit) =
-        if dl.AdjustUnit |> Option.isNone then dl
+    let adjustDoseLimitToPatient (freq: ValueUnit option) (pat: Patient) (dl: DoseLimit) =
+        if dl.AdjustUnit |> Option.isNone then
+            dl
         else
             let adj =
                 if dl.AdjustUnit.Value |> Units.eqsUnit Units.Weight.kiloGram then
@@ -22,11 +22,14 @@ module PrescriptionRule =
                     pat |> Patient.calcBSA
                 |> Option.get
             // recalculate the max dose per administration
-            match dl.Quantity.Max |> Option.map Limit.getValueUnit,
-                  dl.QuantityAdjust.Min |> Option.map Limit.getValueUnit with
+            match
+                dl.Quantity.Max |> Option.map Limit.getValueUnit, dl.QuantityAdjust.Min |> Option.map Limit.getValueUnit
+            with
             | Some max, Some min ->
                 let min = min * adj
-                if min <? max then dl
+
+                if min <? max then
+                    dl
                 else
                     { dl with
                         QuantityAdjust = MinMax.empty
@@ -35,24 +38,30 @@ module PrescriptionRule =
             | _ -> dl
             // recalculate the max dose per administration with the freq
             |> fun dl ->
-                match dl.Quantity.Max |> Option.map Limit.getValueUnit,
-                      freq,
-                      dl.PerTimeAdjust.Min |> Option.map Limit.getValueUnit with
+                match
+                    dl.Quantity.Max |> Option.map Limit.getValueUnit,
+                    freq,
+                    dl.PerTimeAdjust.Min |> Option.map Limit.getValueUnit
+                with
                 | Some max, Some freq, Some min ->
                     let norm = adj * min / freq
-                    if norm <? max then dl
+
+                    if norm <? max then
+                        dl
                     else
-                        { dl with
-                            Quantity.Min = dl.Quantity.Max
-                        }
+                        { dl with Quantity.Min = dl.Quantity.Max }
                 | _ -> dl
             // recalculate the max dose per time
             |> fun dl ->
-                match dl.PerTime.Max |> Option.map Limit.getValueUnit,
-                      dl.PerTimeAdjust.Min |> Option.map Limit.getValueUnit with
+                match
+                    dl.PerTime.Max |> Option.map Limit.getValueUnit,
+                    dl.PerTimeAdjust.Min |> Option.map Limit.getValueUnit
+                with
                 | Some max, Some min ->
                     let min = min * adj
-                    if min <? max then dl
+
+                    if min <? max then
+                        dl
                     else
                         { dl with
                             PerTimeAdjust = MinMax.empty
@@ -61,11 +70,14 @@ module PrescriptionRule =
                 | _ -> dl
             // recalculate the max dose rate
             |> fun dl ->
-                match dl.Rate.Max |> Option.map Limit.getValueUnit,
-                      dl.RateAdjust.Min |> Option.map Limit.getValueUnit with
+                match
+                    dl.Rate.Max |> Option.map Limit.getValueUnit, dl.RateAdjust.Min |> Option.map Limit.getValueUnit
+                with
                 | Some max, Some min ->
                     let min = min * adj
-                    if min <? max then dl
+
+                    if min <? max then
+                        dl
                     else
                         { dl with
                             RateAdjust = MinMax.empty
@@ -80,24 +92,20 @@ module PrescriptionRule =
         | Some w ->
             { sr with
                 Volume =
-                    if sr.VolumeAdjust |> MinMax.isEmpty then sr.Volume
+                    if sr.VolumeAdjust |> MinMax.isEmpty then
+                        sr.Volume
                     else
-                        [
-                            sr.VolumeAdjust |> MinMax.apply  (( * ) w)
-                            sr.Volume
-                        ]
+                        [ sr.VolumeAdjust |> MinMax.apply ((*) w); sr.Volume ]
                         |> MinMax.foldMinimize true true
                 SolutionLimits =
                     sr.SolutionLimits
                     |> Array.map (fun sl ->
-                        if sl.QuantityAdj |> MinMax.isEmpty then sl
+                        if sl.QuantityAdj |> MinMax.isEmpty then
+                            sl
                         else
                             { sl with
                                 Quantity =
-                                    [
-                                        sl.QuantityAdj |> MinMax.apply (( * ) w)
-                                        sl.Quantity
-                                    ]
+                                    [ sl.QuantityAdj |> MinMax.apply ((*) w); sl.Quantity ]
                                     |> MinMax.foldMinimize true true
                             }
                     )
@@ -110,7 +118,9 @@ module PrescriptionRule =
         solutionRules
         renalRules
         routeMapping
-        (filter : DoseFilter) : Result<PrescriptionRule array, Message list> =
+        (filter: DoseFilter)
+        : Result<PrescriptionRule array, Message list>
+        =
 
         let warns = ResizeArray<string>()
         let pat = filter.Patient
@@ -119,11 +129,7 @@ module PrescriptionRule =
         |> DoseRule.filter routeMapping filter
         |> Array.map (fun dr ->
             let dr, newWarns =
-                dr
-                |> DoseRule.reconstitute
-                       routeMapping
-                       pat.Location
-                       pat.Department
+                dr |> DoseRule.reconstitute routeMapping pat.Location pat.Department
 
             warns.AddRange(newWarns)
 
@@ -164,64 +170,55 @@ module PrescriptionRule =
                                             |> Array.filter (fun sr_p ->
                                                 dr.ComponentLimits
                                                 |> Array.collect _.Products
-                                                |> Array.exists (fun dr_p ->
-                                                    sr_p.GPK = dr_p.GPK
-                                                )
+                                                |> Array.exists (fun dr_p -> sr_p.GPK = dr_p.GPK)
                                             )
 
                                     }
                                 )
                         }
                     )
-                RenalRules =
-                    renalRules
-                    |> RenalRule.filter routeMapping filter
+                RenalRules = renalRules |> RenalRule.filter routeMapping filter
             }
         )
         |> Array.filter (fun pr ->
             // filter out the dose rules that do not have a dose type
-            pr.DoseRule.DoseType <> DoseType.NoDoseType &&
+            pr.DoseRule.DoseType <> DoseType.NoDoseType
+            &&
             // also do filter out prescription rules for which
             // there are no products
-            pr.DoseRule.ComponentLimits
-            |> Array.collect _.Products
-            |> Array.length > 0
+            pr.DoseRule.ComponentLimits |> Array.collect _.Products |> Array.length > 0
         )
         // recalculate adjusted dose limits
         |> Array.map (fun pr ->
-            if filter.Patient.Weight |> Option.isNone ||
-               filter.Patient.Height |> Option.isNone then pr
+            if filter.Patient.Weight |> Option.isNone || filter.Patient.Height |> Option.isNone then
+                pr
             else
                 let freq =
                     pr.DoseRule.Frequencies
                     |> Option.map (fun vu ->
                         let u = vu |> ValueUnit.getUnit
-                        vu
-                        |> ValueUnit.getValue
-                        |> Array.min
-                        |> ValueUnit.singleWithUnit u
+                        vu |> ValueUnit.getValue |> Array.min |> ValueUnit.singleWithUnit u
                     )
+
                 { pr with
                     DoseRule =
                         { pr.DoseRule with
                             ComponentLimits =
                                 // component selection mechanism
-                                if filter.Components |> List.isEmpty then pr.DoseRule.ComponentLimits
+                                if filter.Components |> List.isEmpty then
+                                    pr.DoseRule.ComponentLimits
                                 else
                                     match pr.DoseRule.ComponentLimits |> Array.tryHead with
                                     | None -> [||]
                                     | Some dl ->
                                         pr.DoseRule.ComponentLimits
                                         |> Array.tail
-                                        |> Array.filter (fun dl ->
-                                            filter.Components
-                                            |> List.exists ((=) dl.Name)
-                                        )
+                                        |> Array.filter (fun dl -> filter.Components |> List.exists ((=) dl.Name))
                                         |> Array.append [| dl |]
 
                                 // applies to all targets?
                                 // |> Array.filter DoseRule.DoseLimit.isSubstanceLimit
-                                |> Array.map(fun dl ->
+                                |> Array.map (fun dl ->
                                     { dl with
                                         Limit = dl.Limit |> Option.map (adjustDoseLimitToPatient freq filter.Patient)
                                         SubstanceLimits =
@@ -230,29 +227,22 @@ module PrescriptionRule =
                                     }
                                 )
                         }
-                    SolutionRules =
-                        pr.SolutionRules
-                        |> Array.map (adjustSolutionRuleToPatient filter.Patient)
+                    SolutionRules = pr.SolutionRules |> Array.map (adjustSolutionRuleToPatient filter.Patient)
                 }
         )
         // Recalculate the dose rule according to a renal rules
         |> Array.collect (fun pr ->
-            if pr.RenalRules |> Array.isEmpty then [| pr |]
+            if pr.RenalRules |> Array.isEmpty then
+                [| pr |]
             else
                 pr.RenalRules
-                |> Array.map (fun rr ->
-                    { pr with
-                        DoseRule =
-                            pr.DoseRule
-                            |> RenalRule.adjustDoseRule rr
-                    }
-                )
+                |> Array.map (fun rr -> { pr with DoseRule = pr.DoseRule |> RenalRule.adjustDoseRule rr })
         )
         |> Ok
 
 
     /// Get all matching PrescriptionRules for a given Patient.
-    let getForPatient doseRules solutionRules renalRules routeMapping (pat : Patient) =
+    let getForPatient doseRules solutionRules renalRules routeMapping (pat: Patient) =
         Filter.doseFilter
         |> Filter.setPatient pat
         |> filter doseRules solutionRules renalRules routeMapping
@@ -260,11 +250,10 @@ module PrescriptionRule =
 
     /// Filter the Products in a PrescriptionRule to match
     /// the given FormQuantities and Substances.
-    let filterProducts
-        (cmpItems: ComponentItem list)
-        (pr : PrescriptionRule) =
+    let filterProducts (cmpItems: ComponentItem list) (pr: PrescriptionRule) =
         let eqs vu1 vu2 =
-            if vu1 |> ValueUnit.eqsGroup vu2 |> not then false
+            if vu1 |> ValueUnit.eqsGroup vu2 |> not then
+                false
             else
                 vu1 |> ValueUnit.eqs vu2
 
@@ -279,27 +268,26 @@ module PrescriptionRule =
                                     dl.Products
                                     |> Array.filter (fun p ->
                                         let cmpItems =
-                                            cmpItems
-                                            |> List.filter (fun itm -> itm.ComponentName = p.Generic)
+                                            cmpItems |> List.filter (fun itm -> itm.ComponentName = p.Generic)
 
                                         cmpItems
                                         |> List.map _.ComponentQuantity
                                         |> List.exists (ValueUnit.eqs p.FormQuantities)
-                                        &&
-                                        p.Substances
-                                        |> Array.forall (fun subst ->
-                                            cmpItems
-                                            |> List.exists(fun itm ->
-                                                if itm.ItemName |> String.equalsCapInsens subst.Name |> not then false
-                                                else
-                                                    (subst.Concentration
-                                                    |> Option.map (eqs itm.ItemConcentration)
-                                                    |> Option.defaultValue false ||
-                                                    subst.MolarConcentration
-                                                    |> Option.map (eqs itm.ItemConcentration)
-                                                    |> Option.defaultValue false)
-                                            )
-                                        )
+                                        && p.Substances
+                                           |> Array.forall (fun subst ->
+                                               cmpItems
+                                               |> List.exists (fun itm ->
+                                                   if itm.ItemName |> String.equalsCapInsens subst.Name |> not then
+                                                       false
+                                                   else
+                                                       (subst.Concentration
+                                                        |> Option.map (eqs itm.ItemConcentration)
+                                                        |> Option.defaultValue false
+                                                        || subst.MolarConcentration
+                                                           |> Option.map (eqs itm.ItemConcentration)
+                                                           |> Option.defaultValue false)
+                                               )
+                                           )
                                     )
                             }
                         )
@@ -308,7 +296,7 @@ module PrescriptionRule =
 
 
     /// Get the string representation of an array of PrescriptionRules.
-    let toMarkdown (prs : PrescriptionRule []) =
+    let toMarkdown (prs: PrescriptionRule[]) =
         [
             yield!
                 prs
@@ -324,7 +312,7 @@ module PrescriptionRule =
 
 
     /// Get the DoseRule of a PrescriptionRule.
-    let getDoseRule (pr : PrescriptionRule) = pr.DoseRule
+    let getDoseRule (pr: PrescriptionRule) = pr.DoseRule
 
 
     let getSolutionRules (pr: PrescriptionRule) = pr.SolutionRules
@@ -356,7 +344,7 @@ module PrescriptionRule =
     let doseTypes = getDoseRules >> DoseRule.doseTypes
 
 
-    let diluents (prs : PrescriptionRule []) =
+    let diluents (prs: PrescriptionRule[]) =
         prs
         |> Array.collect _.SolutionRules
         |> Array.collect _.Diluents

@@ -15,16 +15,18 @@ module FilePath =
     /// The data directory must contain a 'zindex' subfolder to be valid
     let private findDataDir startDir =
         let rec search dir =
-            if String.IsNullOrEmpty(dir) then None
+            if String.IsNullOrEmpty(dir) then
+                None
             else
                 let dataPath = Path.Combine(dir, "data")
                 let zindexPath = Path.Combine(dataPath, "zindex")
                 // Only accept data directories that contain the zindex subfolder
-                if Directory.Exists(dataPath) && Directory.Exists(zindexPath) then Some dataPath
+                if Directory.Exists(dataPath) && Directory.Exists(zindexPath) then
+                    Some dataPath
                 else
                     let parent = Directory.GetParent(dir)
-                    if parent <> null then search parent.FullName
-                    else None
+                    if parent <> null then search parent.FullName else None
+
         search startDir
 
 
@@ -42,14 +44,17 @@ module FilePath =
             let assemblyPath =
                 try
                     let location = Assembly.GetExecutingAssembly().Location
+
                     if not (String.IsNullOrEmpty(location)) then
                         Path.GetDirectoryName(location)
-                    else ""
-                with _ -> ""
+                    else
+                        ""
+                with _ ->
+                    ""
 
             match findDataDir assemblyPath with
             | Some p -> p
-            | None -> "./data"  // Last resort fallback
+            | None -> "./data" // Last resort fallback
 
 
     /// Get the base data path (internal for testing)
@@ -70,8 +75,10 @@ module FilePath =
 
     /// Get the path to the Substance cache file
     let substanceCache useDemo =
-        if not useDemo then data + "cache/substance.cache"
-        else data + "cache/substance.demo"
+        if not useDemo then
+            data + "cache/substance.cache"
+        else
+            data + "cache/substance.demo"
         |> fun s ->
             let s = s |> System.IO.Path.GetFullPath
             writeInfoMessage $"substance cache path: {s}"
@@ -80,8 +87,10 @@ module FilePath =
 
     /// Get the path to the Product cache file
     let productCache useDemo =
-        if not useDemo  then data + "cache/product.cache"
-        else data + "cache/product.demo"
+        if not useDemo then
+            data + "cache/product.cache"
+        else
+            data + "cache/product.demo"
         |> fun s ->
             let s = s |> System.IO.Path.GetFullPath
             writeInfoMessage $"product cache path: {s}"
@@ -90,8 +99,10 @@ module FilePath =
 
     /// Get the path to the Rule cache file
     let ruleCache useDemo =
-        if not useDemo  then data + "cache/rule.cache"
-        else data + "cache/rule.demo"
+        if not useDemo then
+            data + "cache/rule.cache"
+        else
+            data + "cache/rule.demo"
         |> fun s ->
             let s = s |> System.IO.Path.GetFullPath
             writeInfoMessage $"rule cache path: {s}"
@@ -100,20 +111,21 @@ module FilePath =
 
     /// Get the path to the Group cache file
     let groupCache useDemo =
-        if not useDemo  then data + "cache/group.cache"
-        else data + "cache/group.demo"
+        if not useDemo then
+            data + "cache/group.cache"
+        else
+            data + "cache/group.demo"
         |> fun s ->
             let s = s |> System.IO.Path.GetFullPath
             writeInfoMessage $"group cache path: {s}"
             s
 
 
-    let [<Literal>] GENPRES_PROD = "GENPRES_PROD"
+    [<Literal>]
+    let GENPRES_PROD = "GENPRES_PROD"
 
 
     /// Check whether the demo version of
     /// the cache files should be used.
     let useDemo () =
-        Env.getItem GENPRES_PROD
-        |> Option.map ((<>) "1")
-        |> Option.defaultValue true
+        Env.getItem GENPRES_PROD |> Option.map ((<>) "1") |> Option.defaultValue true

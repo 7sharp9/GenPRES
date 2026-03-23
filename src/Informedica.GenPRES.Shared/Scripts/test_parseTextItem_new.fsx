@@ -29,13 +29,30 @@ module OrderScenario =
             // Define delimiter configurations - easy to extend with new cases
             let delimiters =
                 [
-                    { Delimiter = "#"; Constructor = Bold; IsActive = function Bold _ -> true | _ -> false }
-                    { Delimiter = "|"; Constructor = Italic; IsActive = function Italic _ -> true | _ -> false }
+                    {
+                        Delimiter = "#"
+                        Constructor = Bold
+                        IsActive =
+                            function
+                            | Bold _ -> true
+                            | _ -> false
+                    }
+                    {
+                        Delimiter = "|"
+                        Constructor = Italic
+                        IsActive =
+                            function
+                            | Italic _ -> true
+                            | _ -> false
+                    }
                 ]
 
             /// Get the text content from a TextItem
-            let getText = function
-                | Normal s | Bold s | Italic s -> s
+            let getText =
+                function
+                | Normal s
+                | Bold s
+                | Italic s -> s
 
             /// Check if a delimiter is active for the current state
             let tryFindActiveDelimiter char currentItem =
@@ -44,8 +61,7 @@ module OrderScenario =
 
             /// Check if a character is any delimiter
             let tryFindDelimiter char =
-                delimiters
-                |> List.tryFind (fun d -> d.Delimiter = char)
+                delimiters |> List.tryFind (fun d -> d.Delimiter = char)
 
             /// Process each character through the state machine
             let processChar (currentItem, completedItems) char =
@@ -61,11 +77,13 @@ module OrderScenario =
                     | None ->
                         // Regular character: append to current item
                         let currentText = getText currentItem
+
                         let newItem =
                             match currentItem with
-                            | Normal _ -> Normal (currentText + char)
-                            | Bold _ -> Bold (currentText + char)
-                            | Italic _ -> Italic (currentText + char)
+                            | Normal _ -> Normal(currentText + char)
+                            | Bold _ -> Bold(currentText + char)
+                            | Italic _ -> Italic(currentText + char)
+
                         newItem, completedItems
 
             s
@@ -79,12 +97,19 @@ module OrderScenario =
 // Test cases
 let testCases =
     [
-        "#1# |ml|", [|Bold "1"; Italic "ml"|]
-        "Normal text", [|Normal "Normal text"|]
-        "#Bold text#", [|Bold "Bold text"|]
-        "|Italic text|", [|Italic "Italic text"|]
-        "Start #bold# middle |italic| end", [|Normal "Start "; Bold "bold"; Normal " middle "; Italic "italic"; Normal " end"|]
-        "#bold |and italic|#", [|Bold "bold "; Italic "and italic"|]
+        "#1# |ml|", [| Bold "1"; Italic "ml" |]
+        "Normal text", [| Normal "Normal text" |]
+        "#Bold text#", [| Bold "Bold text" |]
+        "|Italic text|", [| Italic "Italic text" |]
+        "Start #bold# middle |italic| end",
+        [|
+            Normal "Start "
+            Bold "bold"
+            Normal " middle "
+            Italic "italic"
+            Normal " end"
+        |]
+        "#bold |and italic|#", [| Bold "bold "; Italic "and italic" |]
         "", [||]
         "   ", [||]
     ]
@@ -96,19 +121,24 @@ testCases
     let result = OrderScenario.parseTextItem input
     let passed = result = expected
     let status = if passed then "✓ PASS" else "✗ FAIL"
-    
+
     printfn "Test %d: %s" (i + 1) status
     printfn "  Input:    %A" input
     printfn "  Expected: %A" expected
     printfn "  Got:      %A" result
+
     if not passed then
         printfn "  ❌ Mismatch!"
+
     printfn ""
 )
 
 printfn "\n=== Extension Example ==="
 printfn "To add a new TextItem case (e.g., Underline with '~'):"
 printfn "1. Add the case to TextItem type: | Underline of string"
-printfn "2. Add to delimiters list: { Delimiter = \"~\"; Constructor = Underline; IsActive = function Underline _ -> true | _ -> false }"
+
+printfn
+    "2. Add to delimiters list: { Delimiter = \"~\"; Constructor = Underline; IsActive = function Underline _ -> true | _ -> false }"
+
 printfn "3. Add Underline pattern to getText function: | Underline s -> s"
 printfn "4. Add Underline pattern to processChar's newItem match: | Underline _ -> Underline (currentText + char)"

@@ -1,5 +1,3 @@
-
-
 #r "nuget: Newtonsoft.Json"
 #r "nuget: NJsonSchema"
 
@@ -27,9 +25,8 @@ Ollama.options.top_p <- 0.95
 
 
 let extractDoseQuantities model text =
-        Texts.systemDoseQuantityExpert
-        |> init model
-        >>? $"""
+    Texts.systemDoseQuantityExpert |> init model
+    >>? $"""
 Use Schema: {{ name: string }}
 The text between the ''' describes dose quantities for a
 substance:
@@ -39,33 +36,33 @@ substance:
 For which substance?
 Reply in JSON.
 """
-        >>? """
+    >>? """
 Use Schema: {{ substanceUnit: string }}
 What is the unit used for the substance, the substance unit?
 
 Reply in JSON.
 """
-        >>? """
+    >>? """
 What is the unit to adjust the dose for?
 Give the answer as AdjustUnit : ?
 """
-        >>? """
+    >>? """
 What is the time unit for the dose frequency?
 Give the answer as TimeUnit : ?
 """
-        >>? """
+    >>? """
 What is the maximum dose per time in SubstanceUnit/TimeUnit?
 Give the answer as MaximumDosePerTime: ?
 """
-        >>? """
+    >>? """
 What is the dose, adjusted for weight in SubstanceUnit/AdjustUnit/TimeUnit?
 Give the answer as AdjustedDosePerTime: ?
 """
-        >>? """
+    >>? """
 What is the number of doses per TimeUnit?
 Give the answer as Frequency: ?
 """
-        >>? """
+    >>? """
 Schema
 Summarize the previous answers as:
 
@@ -83,9 +80,9 @@ Summarize the previous answers as:
 let testModel model =
 
     printfn $"\n\n# Running: {model}\n\n"
+
     for text in Texts.testTexts do
-        extractDoseQuantities model text
-        |> Conversation.print
+        extractDoseQuantities model text |> Conversation.print
 
 
 let testAll () =
@@ -102,13 +99,10 @@ let testAll () =
     |> List.iter testModel
 
 
-
 open Newtonsoft.Json
 
 
-type ProcessMessage<'ReturnType> =
-    ProcessMessage of (Message list -> 'ReturnType * Message list)
-
+type ProcessMessage<'ReturnType> = ProcessMessage of (Message list -> 'ReturnType * Message list)
 
 
 module ProcessMessage =
@@ -149,8 +143,7 @@ module ProcessMessage =
 
 
     let returnPM a =
-        fun msgs ->
-            a, msgs
+        fun msgs -> a, msgs
         |> ProcessMessage
 
 
@@ -170,12 +163,10 @@ let msgs = [ Texts.systemDoseQuantityExpert |> Message.system ]
 let createProcessSubstanceUnitMsg model msg : ProcessMessage<{| substanceUnit: string |}> =
     fun msgs ->
         msg
-        |> Ollama.validate2<{| substanceUnit : string |}>
-            model
-            msgs
+        |> Ollama.validate2<{| substanceUnit: string |}> model msgs
         |> Async.RunSynchronously
         |> function
-            | Ok (result, msgs) -> result, msgs
+            | Ok(result, msgs) -> result, msgs
             | Error _ -> {| substanceUnit = "" |}, msgs
 
     |> ProcessMessage
@@ -186,13 +177,13 @@ let substanceUnitMsg =
         fun s ->
             try
                 let un = JsonConvert.DeserializeObject<{| substanceUnit: string |}>(s)
+
                 match un.substanceUnit |> String.split "/" with
-                | [_] -> Ok s
+                | [ _ ] -> Ok s
                 | _ -> s |> Error
-            with
-            | e ->
-                e.ToString()
-                |> Error
+            with e ->
+                e.ToString() |> Error
+
     $"""
 Use Schema {"{| substanceUnit: string |}" |> Utils.anonymousTypeStringToJson}
 What is the substance unit in the text between '''
@@ -200,26 +191,20 @@ What is the substance unit in the text between '''
 '''{Texts.testTexts[0]}'''
 Respond in JSON
 """
-    |>
-    Message.userWithValidator validator
-
+    |> Message.userWithValidator validator
 
 
 let procMsgSubstUnit model =
-    createProcessSubstanceUnitMsg
-        model
-        substanceUnitMsg
+    createProcessSubstanceUnitMsg model substanceUnitMsg
 
 
 let createProcessAdjustUnitMsg model msg : ProcessMessage<{| adjustUnit: string |}> =
     fun msgs ->
         msg
-        |> Ollama.validate2<{| adjustUnit: string |}>
-            model
-            msgs
+        |> Ollama.validate2<{| adjustUnit: string |}> model msgs
         |> Async.RunSynchronously
         |> function
-            | Ok (result, msgs) -> result, msgs
+            | Ok(result, msgs) -> result, msgs
             | Error _ -> {| adjustUnit = "" |}, msgs
 
     |> ProcessMessage
@@ -230,13 +215,13 @@ let adjustUnitMsg =
         fun s ->
             try
                 let un = JsonConvert.DeserializeObject<{| adjustUnit: string |}>(s)
+
                 match un.adjustUnit |> String.split "/" with
-                | [_] -> Ok s
+                | [ _ ] -> Ok s
                 | _ -> s |> Error
-            with
-            | e ->
-                e.ToString()
-                |> Error
+            with e ->
+                e.ToString() |> Error
+
     $"""
 Use Schema {"{| adjustUnit: string |}" |> Utils.anonymousTypeStringToJson}
 What is the adjust unit in the text between '''
@@ -244,25 +229,20 @@ What is the adjust unit in the text between '''
 '''{Texts.testTexts[0]}'''
 Respond in JSON
 """
-    |>
-    Message.userWithValidator validator
+    |> Message.userWithValidator validator
 
 
 let procMsgAdjustUnit model =
-    createProcessAdjustUnitMsg
-        model
-        adjustUnitMsg
+    createProcessAdjustUnitMsg model adjustUnitMsg
 
 
 let createProcessTimeUnitMsg model msg : ProcessMessage<{| timeUnit: string |}> =
     fun msgs ->
         msg
-        |> Ollama.validate2<{| timeUnit : string |}>
-            model
-            msgs
+        |> Ollama.validate2<{| timeUnit: string |}> model msgs
         |> Async.RunSynchronously
         |> function
-            | Ok (result, msgs) -> result, msgs
+            | Ok(result, msgs) -> result, msgs
             | Error _ -> {| timeUnit = "" |}, msgs
 
     |> ProcessMessage
@@ -273,13 +253,13 @@ let timeUnitMsg =
         fun s ->
             try
                 let un = JsonConvert.DeserializeObject<{| timeUnit: string |}>(s)
+
                 match un.timeUnit |> String.split "/" with
-                | [_] -> Ok s
+                | [ _ ] -> Ok s
                 | _ -> s |> Error
-            with
-            | e ->
-                e.ToString()
-                |> Error
+            with e ->
+                e.ToString() |> Error
+
     $"""
 Use Schema {"{| timeUnit: string |}" |> Utils.anonymousTypeStringToJson}
 What is the time unit in the text between '''
@@ -287,34 +267,29 @@ What is the time unit in the text between '''
 '''{Texts.testTexts[0]}'''
 Respond in JSON
 """
-    |>
-    Message.userWithValidator validator
-
+    |> Message.userWithValidator validator
 
 
 let procMsgTimeUnit model =
-    createProcessTimeUnitMsg
-        model
-        timeUnitMsg
+    createProcessTimeUnitMsg model timeUnitMsg
 
 
 let createUnit
-    (substUnit: {| substanceUnit : string |})
-    (adjustUnit: {| adjustUnit : string |})
-    (timeUnit: {| timeUnit : string |})  =
-        {|
-            substUnit = substUnit.substanceUnit
-            adjustUnit = adjustUnit.adjustUnit
-            timeUnit = timeUnit.timeUnit
-        |}
-
+    (substUnit: {| substanceUnit: string |})
+    (adjustUnit: {| adjustUnit: string |})
+    (timeUnit: {| timeUnit: string |})
+    =
+    {|
+        substUnit = substUnit.substanceUnit
+        adjustUnit = adjustUnit.adjustUnit
+        timeUnit = timeUnit.timeUnit
+    |}
 
 
 open ProcessMessage.Operators
 
 
-createUnit
-<!> procMsgSubstUnit Ollama.Models.llama2
+createUnit <!> procMsgSubstUnit Ollama.Models.llama2
 <*> procMsgAdjustUnit Ollama.Models.llama2
 <*> procMsgTimeUnit Ollama.Models.llama2
 >! [ Texts.systemDoseQuantityExpert |> Message.system ]

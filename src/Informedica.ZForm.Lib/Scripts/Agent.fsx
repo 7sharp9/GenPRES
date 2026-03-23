@@ -31,18 +31,18 @@ open Informedica.Agents.Lib
 /// Configuration for a GStand dose-rule query
 type GStandQueryConfig =
     {
-        GPKs:            int list
-        IsRate:          bool
-        SubstanceUnit:   string option
-        TimeUnit:        string option
+        GPKs: int list
+        IsRate: bool
+        SubstanceUnit: string option
+        TimeUnit: string option
     }
 
     static member Default =
         {
-            GPKs          = []
-            IsRate        = false
+            GPKs = []
+            IsRate = false
             SubstanceUnit = None
-            TimeUnit      = None
+            TimeUnit = None
         }
 
 
@@ -50,19 +50,29 @@ type GStandQueryConfig =
 [<RequireQualifiedAccess>]
 type ZFormCommand =
     /// Get all dose rules for a generic / form / route combination
-    | GetDoseRules         of config: GStandQueryConfig * generic: string * form: string * route: string
+    | GetDoseRules of config: GStandQueryConfig * generic: string * form: string * route: string
     /// Get dose rules restricted to a specific patient category
-    | GetPatientDoseRules  of config: GStandQueryConfig * patient: RuleFinder.Patient * generic: string * form: string * route: string
+    | GetPatientDoseRules of
+        config: GStandQueryConfig *
+        patient: RuleFinder.Patient *
+        generic: string *
+        form: string *
+        route: string
     /// Get the per-substance dose breakdown for a patient
-    | GetSubstanceDoses    of config: GStandQueryConfig * patient: RuleFinder.Patient * generic: string * form: string * route: string
+    | GetSubstanceDoses of
+        config: GStandQueryConfig *
+        patient: RuleFinder.Patient *
+        generic: string *
+        form: string *
+        route: string
 
 
 /// Responses returned by the ZForm agent
 [<RequireQualifiedAccess>]
 type ZFormResponse =
-    | DoseRules        of DoseRule seq
-    | SubstanceDoses   of GStand.SubstanceDose seq
-    | Error            of string
+    | DoseRules of DoseRule seq
+    | SubstanceDoses of GStand.SubstanceDose seq
+    | Error of string
 
 
 // ============================================================
@@ -71,7 +81,7 @@ type ZFormResponse =
 // state carries only the GStand configuration defaults.
 // ============================================================
 
-type ZFormState = unit   // stateless — ZForm reads from ZIndex cache
+type ZFormState = unit // stateless — ZForm reads from ZIndex cache
 
 
 // ============================================================
@@ -80,36 +90,35 @@ type ZFormState = unit   // stateless — ZForm reads from ZIndex cache
 
 let inline toGStandConfig (cfg: GStandQueryConfig) : GStand.Config =
     {
-        GPKs          = cfg.GPKs
-        IsRate        = cfg.IsRate
+        GPKs = cfg.GPKs
+        IsRate = cfg.IsRate
         SubstanceUnit = cfg.SubstanceUnit
-        TimeUnit      = cfg.TimeUnit
+        TimeUnit = cfg.TimeUnit
     }
 
 
 let processCommand (_state: ZFormState) (cmd: ZFormCommand) : ZFormResponse * ZFormState =
     let response =
         match cmd with
-        | ZFormCommand.GetDoseRules (cfg, generic, form, route) ->
-            GStand.createDoseRules
-                (toGStandConfig cfg)
-                None None None None
-                generic form route
+        | ZFormCommand.GetDoseRules(cfg, generic, form, route) ->
+            GStand.createDoseRules (toGStandConfig cfg) None None None None generic form route
             |> ZFormResponse.DoseRules
 
-        | ZFormCommand.GetPatientDoseRules (cfg, patient, generic, form, route) ->
+        | ZFormCommand.GetPatientDoseRules(cfg, patient, generic, form, route) ->
             // RuleFinder returns ZIndex rules; GStand turns them into structured doses
             let rules =
                 {
-                    RuleFinder.Patient   = patient
-                    RuleFinder.Product   = RuleFinder.GenericFormRoute
-                        {
-                            Generic = generic
-                            Form    = form
-                            Route   = route
-                        }
+                    RuleFinder.Patient = patient
+                    RuleFinder.Product =
+                        RuleFinder.GenericFormRoute
+                            {
+                                Generic = generic
+                                Form = form
+                                Route = route
+                            }
                 }
                 |> RuleFinder.find (cfg.GPKs)
+
             GStand.getSubstanceDoses (toGStandConfig cfg) rules
             |> Seq.map (fun sd ->
                 // Wrap back into a DoseRule for a uniform response type
@@ -122,26 +131,31 @@ let processCommand (_state: ZFormState) (cmd: ZFormCommand) : ZFormResponse * ZF
                 (toGStandConfig cfg)
                 (Some patient.Age)
                 (Some patient.Weight)
-                None None
-                generic form route
+                None
+                None
+                generic
+                form
+                route
             |> ZFormResponse.DoseRules
 
-        | ZFormCommand.GetSubstanceDoses (cfg, patient, generic, form, route) ->
+        | ZFormCommand.GetSubstanceDoses(cfg, patient, generic, form, route) ->
             let rules =
                 {
-                    RuleFinder.Patient   = patient
-                    RuleFinder.Product   = RuleFinder.GenericFormRoute
-                        {
-                            Generic = generic
-                            Form    = form
-                            Route   = route
-                        }
+                    RuleFinder.Patient = patient
+                    RuleFinder.Product =
+                        RuleFinder.GenericFormRoute
+                            {
+                                Generic = generic
+                                Form = form
+                                Route = route
+                            }
                 }
                 |> RuleFinder.find (cfg.GPKs)
+
             GStand.getSubstanceDoses (toGStandConfig cfg) rules
             |> ZFormResponse.SubstanceDoses
 
-    response, ()   // state is unit, always unchanged
+    response, () // state is unit, always unchanged
 
 
 // ============================================================
@@ -150,18 +164,14 @@ let processCommand (_state: ZFormState) (cmd: ZFormCommand) : ZFormResponse * ZF
 
 /// Create and start a ZForm agent.
 let createZFormAgent () =
-    Agent.createStatefulReply<ZFormCommand, ZFormResponse, ZFormState>(
-        (),
-        processCommand
-    )
+    Agent.createStatefulReply<ZFormCommand, ZFormResponse, ZFormState> ((), processCommand)
 
 
 // ============================================================
 // Helper
 // ============================================================
 
-let ask (agent: Agent<ZFormCommand * AsyncReplyChannel<ZFormResponse>>) cmd =
-    agent |> Agent.postAndReply cmd
+let ask (agent: Agent<ZFormCommand * AsyncReplyChannel<ZFormResponse>>) cmd = agent |> Agent.postAndReply cmd
 
 
 // ============================================================
@@ -181,42 +191,41 @@ let cfg = GStandQueryConfig.Default
 // 1. Get dose rules for paracetamol suppository / rectal route
 printfn "1. Paracetamol suppository (rectaal) dose rules:"
 
-match agent |> ask (ZFormCommand.GetDoseRules (cfg, "paracetamol", "zetpil", "rectaal")) with
+match
+    agent
+    |> ask (ZFormCommand.GetDoseRules(cfg, "paracetamol", "zetpil", "rectaal"))
+with
 | ZFormResponse.DoseRules rules ->
     let ruleList = rules |> Seq.toArray
     printfn $"   Found {ruleList.Length} dose rule(s)"
+
     ruleList
     |> Array.truncate 2
-    |> Array.iter (fun dr ->
-        printfn $"   {DoseRule.toString false dr}"
-    )
-| ZFormResponse.Error msg ->
-    printfn $"   Error: {msg}"
-| _ ->
-    printfn "   Unexpected response"
+    |> Array.iter (fun dr -> printfn $"   {DoseRule.toString false dr}")
+| ZFormResponse.Error msg -> printfn $"   Error: {msg}"
+| _ -> printfn "   Unexpected response"
 
 
 // 2. Get substance doses for a specific patient
 printfn "\n2. Substance doses for a 10 kg, 4-year-old patient:"
 
-let patient : RuleFinder.Patient =
+let patient: RuleFinder.Patient =
     {
-        Age    = Some 4.   // years
-        Weight = Some 10.  // kg
-        BSA    = None
+        Age = Some 4. // years
+        Weight = Some 10. // kg
+        BSA = None
     }
 
-match agent |> ask (ZFormCommand.GetSubstanceDoses (cfg, patient, "paracetamol", "zetpil", "rectaal")) with
+match
+    agent
+    |> ask (ZFormCommand.GetSubstanceDoses(cfg, patient, "paracetamol", "zetpil", "rectaal"))
+with
 | ZFormResponse.SubstanceDoses doses ->
     let doseList = doses |> Seq.toArray
     printfn $"   Found {doseList.Length} substance dose(s)"
-    doseList
-    |> Array.truncate 3
-    |> Array.iter (fun sd -> printfn $"   {sd}")
-| ZFormResponse.Error msg ->
-    printfn $"   Error: {msg}"
-| _ ->
-    printfn "   Unexpected response"
+    doseList |> Array.truncate 3 |> Array.iter (fun sd -> printfn $"   {sd}")
+| ZFormResponse.Error msg -> printfn $"   Error: {msg}"
+| _ -> printfn "   Unexpected response"
 
 
 // 3. Dispose

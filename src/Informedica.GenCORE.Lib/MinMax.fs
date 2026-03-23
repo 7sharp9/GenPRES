@@ -4,7 +4,6 @@ namespace Informedica.GenCore.Lib.Ranges
 open Informedica.GenUnits.Lib
 
 
-
 /// Range with min, incr and/or max
 type MinMax =
     {
@@ -30,20 +29,17 @@ module Errors =
 
     let toString minToStr incrToStr maxToStr =
         function
-        | MinLargerThanMax (min, max) -> $"{min |> minToStr} > {max |> maxToStr}"
+        | MinLargerThanMax(min, max) -> $"{min |> minToStr} > {max |> maxToStr}"
         | NoValidLimitIncr incr -> incr |> incrToStr
         | DifferentUnitGroup mim ->
-            let minS, maxS =
-                mim.Min |> minToStr, mim.Max |> maxToStr
+            let minS, maxS = mim.Min |> minToStr, mim.Max |> maxToStr
 
             $"different unit groups in {minS}, {maxS}"
-
 
 
 module LimitIncr =
 
     let getIncr (LimitIncr incr) = incr
-
 
 
 module Limit =
@@ -77,16 +73,10 @@ module Limit =
         | Exclusive _ -> false
 
 
-    let zero =
-        1N
-        |> Times
-        |> Count
-        |> ValueUnit.zero
-        |> Inclusive
+    let zero = 1N |> Times |> Count |> ValueUnit.zero |> Inclusive
 
 
-    let one =
-        1N |> Times |> Count |> ValueUnit.one |> Inclusive
+    let one = 1N |> Times |> Count |> ValueUnit.one |> Inclusive
 
 
     let inline map fIncl fExcl lim =
@@ -100,7 +90,6 @@ module Limit =
 
     let inline apply fIncl fExcl =
         map (fIncl >> Inclusive) (fExcl >> Exclusive)
-
 
 
     let inline map2 fInclIncl fInclExcl fExclIncl fExclExcl lim1 lim2 =
@@ -329,42 +318,16 @@ module Limit =
         let o = one
 
         match cp with
-        | _ when
-            (z |> cp <| z)
-            && not (z |> cp <| o)
-            && not (o |> cp <| z)
-            ->
-            "="
-        | _ when
-            (z |> cp <| z)
-            && (z |> cp <| o)
-            && not (o |> cp <| z)
-            ->
-            "<="
-        | _ when
-            (z |> cp <| z)
-            && not (z |> cp <| o)
-            && (o |> cp <| z)
-            ->
-            ">="
-        | _ when
-            not (z |> cp <| z)
-            && (z |> cp <| o)
-            && not (o |> cp <| z)
-            ->
-            "<"
-        | _ when
-            not (z |> cp <| z)
-            && not (z |> cp <| o)
-            && (o |> cp <| z)
-            ->
-            ">"
+        | _ when (z |> cp <| z) && not (z |> cp <| o) && not (o |> cp <| z) -> "="
+        | _ when (z |> cp <| z) && (z |> cp <| o) && not (o |> cp <| z) -> "<="
+        | _ when (z |> cp <| z) && not (z |> cp <| o) && (o |> cp <| z) -> ">="
+        | _ when not (z |> cp <| z) && (z |> cp <| o) && not (o |> cp <| z) -> "<"
+        | _ when not (z |> cp <| z) && not (z |> cp <| o) && (o |> cp <| z) -> ">"
         | _ -> "unknown comparison"
 
 
     let toMultipleOf inclMultOf exclMultOf (LimitIncr incr) min =
-        let brs =
-            incr |> ValueUnit.toBaseValue |> Set.ofArray
+        let brs = incr |> ValueUnit.toBaseValue |> Set.ofArray
 
         let calc toMult vu =
             vu
@@ -389,25 +352,15 @@ module Limit =
     let calcLimitIncr (LimitIncr vu) =
         vu
         |> ValueUnit.filterValues (fun br -> br >= 0N)
-        |> ValueUnit.applyToValue (
-            Set.ofArray
-            >> Set.removeBigRationalMultiples
-            >> Set.toArray
-        )
+        |> ValueUnit.applyToValue (Set.ofArray >> Set.removeBigRationalMultiples >> Set.toArray)
         |> LimitIncr
 
 
     let validate (LimitIncr vu) =
         if vu |> ValueUnit.getValue |> Array.isEmpty then
-            vu
-            |> LimitIncr
-            |> Errors.NoValidLimitIncr
-            |> Error
+            vu |> LimitIncr |> Errors.NoValidLimitIncr |> Error
         else
             vu |> LimitIncr |> Ok
-
-
-
 
 
 /// Functions to handle a `MinMax` type.
@@ -443,7 +396,7 @@ module MinMax =
             | None, Some _
             | Some _, Some _ -> (min, max) |> Ok
             |> function
-                | Ok (Some min, Some max) ->
+                | Ok(Some min, Some max) ->
                     if min |> minGTmax max then
                         (min, max) |> Errors.MinLargerThanMax |> Error
                     else
@@ -455,13 +408,13 @@ module MinMax =
 
             match min, max with
             | None, None -> ""
-            | Some (minIncl, min), None ->
+            | Some(minIncl, min), None ->
                 let gte = if minIncl then gte else gt
                 $"{gte}%s{min |> brToStr}"
-            | None, Some (maxIncl, max) ->
+            | None, Some(maxIncl, max) ->
                 let ste = if maxIncl then ste else st
                 $"{ste}%s{max |> brToStr}"
-            | Some (_, min), Some (_, max) -> $"%s{min |> brToStr}{dotsM}%s{max |> brToStr}"
+            | Some(_, min), Some(_, max) -> $"%s{min |> brToStr}{dotsM}%s{max |> brToStr}"
 
 
         let toString brToStr min max =
@@ -488,43 +441,44 @@ module MinMax =
     let (>>=) l r = ValueUnit.convertTo r l
 
 
-    let create min max = { Min = min; Max = max }
+    let create min max =
+        {
+            Min = min
+            Max = max
+        }
 
 
     let apply f (mm: MinMax) =
         { mm with
-            Min =
-                mm.Min
-                |> Option.map (Limit.apply f f)
-            Max =
-                mm.Max
-                |> Option.map (Limit.apply f f)
+            Min = mm.Min |> Option.map (Limit.apply f f)
+            Max = mm.Max |> Option.map (Limit.apply f f)
         }
 
 
-    let validate { Min = min; Max = max } =
-        let getGroup =
-            Limit.getValueUnit >> ValueUnit.getGroup
+    let validate
+        {
+            Min = min
+            Max = max
+        }
+        =
+        let getGroup = Limit.getValueUnit >> ValueUnit.getGroup
 
-        let validate_ =
-            Calculator.validate
-                Limit.minGTmax
+        let validate_ = Calculator.validate Limit.minGTmax
 
-        [
-            min |> Option.map getGroup
-            max |> Option.map getGroup
-        ]
+        [ min |> Option.map getGroup; max |> Option.map getGroup ]
         |> List.choose id
         |> List.distinct
         |> List.length
         |> fun n ->
             if n > 1 then
-                { Min = min; Max = max }
+                {
+                    Min = min
+                    Max = max
+                }
                 |> Errors.DifferentUnitGroup
                 |> Error
             else
-                validate_ min max
-                |> Result.map (fun (min, max) -> create min max)
+                validate_ min max |> Result.map (fun (min, max) -> create min max)
 
 
     let empty = create None None
@@ -534,9 +488,7 @@ module MinMax =
 
 
     let createInclIncl min max =
-        create
-            (min |> Limit.inclusive |> Some)
-            (max |> Limit.inclusive |> Some)
+        create (min |> Limit.inclusive |> Some) (max |> Limit.inclusive |> Some)
 
 
     let createExact vu = createInclIncl vu vu
@@ -547,16 +499,8 @@ module MinMax =
     /// with multiplication and division
     let one u =
         {
-            Min =
-                1N
-                |> ValueUnit.createSingle u
-                |> Limit.inclusive
-                |> Some
-            Max =
-                1N
-                |> ValueUnit.createSingle u
-                |> Limit.inclusive
-                |> Some
+            Min = 1N |> ValueUnit.createSingle u |> Limit.inclusive |> Some
+            Max = 1N |> ValueUnit.createSingle u |> Limit.inclusive |> Some
         }
 
 
@@ -588,12 +532,7 @@ module MinMax =
                 mm |> setMin (Some min) |> setMax (Some max)
         | None, Some max -> mm |> setMin (Some min) |> setMax (Some max)
         | None, None -> mm |> setMin (Some min)
-        | Some m, None ->
-            if cond min m |> not then
-                mm
-            else
-                mm |> setMin (Some min)
-
+        | Some m, None -> if cond min m |> not then mm else mm |> setMin (Some min)
 
 
     /// Set the max value to `max` only
@@ -608,11 +547,7 @@ module MinMax =
                 mm |> setMin (Some min) |> setMax (Some max)
         | Some min, None -> mm |> setMin (Some min) |> setMax (Some max)
         | None, None -> mm |> setMax (Some max)
-        | None, Some m ->
-            if cond max m |> not then
-                mm
-            else
-                mm |> setMax (Some max)
+        | None, Some m -> if cond max m |> not then mm else mm |> setMax (Some max)
 
 
     /// Calculate the resulting `MinMax` value
@@ -626,27 +561,20 @@ module MinMax =
                 | None, None ->
                     match presMin, presMax with
                     | true, true -> acc
-                    | true, false ->
-                        empty
-                        |> setMin acc.Min
-                    | false, true ->
-                        empty
-                        |> setMax acc.Max
+                    | true, false -> empty |> setMin acc.Min
+                    | false, true -> empty |> setMax acc.Max
                     | false, false -> empty
                 | Some min, None ->
-                    if presMin then setMinCond minCond min acc
-                    else
+                    if presMin then
                         setMinCond minCond min acc
-                        |> setMax None
-                | None, Some max ->
-                    if presMax then setMaxCond maxCond max acc
                     else
+                        setMinCond minCond min acc |> setMax None
+                | None, Some max ->
+                    if presMax then
                         setMaxCond maxCond max acc
-                        |> setMin None
-                | Some min, Some max ->
-                    acc
-                    |> setMinCond minCond min
-                    |> setMaxCond maxCond max
+                    else
+                        setMaxCond maxCond max acc |> setMin None
+                | Some min, Some max -> acc |> setMinCond minCond min |> setMaxCond maxCond max
             )
             empty
 
@@ -654,19 +582,13 @@ module MinMax =
     /// Calculate the smallest range from
     /// a list of `MinMax` values.
     let foldMinimize presMin presMax =
-        foldCond
-            presMin presMax
-            (Limit.gt true true)
-            (Limit.st false false)
+        foldCond presMin presMax (Limit.gt true true) (Limit.st false false)
 
 
     /// Calculate the largest range from
     /// a list of `MinMax` values.
     let foldMaximize presMin presMax =
-        foldCond
-            presMin presMax
-            (Limit.st true true)
-            (Limit.gt false false)
+        foldCond presMin presMax (Limit.st true true) (Limit.gt false false)
 
 
     /// Check whether a value `v` is in
@@ -690,7 +612,7 @@ module MinMax =
             | Exclusive vuMin, Exclusive vuMax -> v >? vuMin && v <? vuMax
 
 
-    let intersect (mm1 : MinMax) (mm2 : MinMax) =
+    let intersect (mm1: MinMax) (mm2: MinMax) =
         let min =
             match mm1.Min, mm2.Min with
             | None, None -> None
@@ -699,6 +621,7 @@ module MinMax =
             | Some min1, Some min2 ->
                 if Limit.gt true true min1 min2 then min1 else min2
                 |> Some
+
         let max =
             match mm1.Max, mm2.Max with
             | None, None -> None
@@ -744,9 +667,7 @@ module MinMax =
     /// Convert the units of the `ValueUnit` values
     /// in a `MinMax` `mm` to unit `u`.
     let convertTo u (mm: MinMax) =
-        let convert =
-            Limit.apply (ValueUnit.convertTo u) (ValueUnit.convertTo u)
-            >> Some
+        let convert = Limit.apply (ValueUnit.convertTo u) (ValueUnit.convertTo u) >> Some
 
         {
             Min =
@@ -760,12 +681,10 @@ module MinMax =
         }
 
 
-
     /// Set the units of the `ValueUnit` values
     /// in a `MinMax` `mm` to unit `u`.
     let withUnit u (mm: MinMax) =
-        let f =
-            fun vu -> vu |> ValueUnit.getValue |> ValueUnit.create u
+        let f = fun vu -> vu |> ValueUnit.getValue |> ValueUnit.create u
 
         let convert = Limit.apply f f >> Some
 
@@ -816,11 +735,9 @@ module MinMax =
     module Optics =
 
 
-        let min_ =
-            (fun mm -> mm.Min), (fun v mm -> mm |> setMin (Some v))
+        let min_ = (fun mm -> mm.Min), (fun v mm -> mm |> setMin (Some v))
 
-        let max_ =
-            (fun mm -> mm.Max), (fun v mm -> mm |> setMax (Some v))
+        let max_ = (fun mm -> mm.Max), (fun v mm -> mm |> setMax (Some v))
 
 
         let getMin = Optic.get min_
@@ -1022,7 +939,18 @@ module MinMax =
     /// Turn a `MinMax` to a string with
     /// `mins` and `maxs` as annotations
     /// for resp. the min and max value.
-    let toString vuToStr valToStr minInclStr minExclStr maxInclStr maxExclStr { Min = min; Max = max } =
+    let toString
+        vuToStr
+        valToStr
+        minInclStr
+        minExclStr
+        maxInclStr
+        maxExclStr
+        {
+            Min = min
+            Max = max
+        }
+        =
 
         let minToString min =
             match min with
@@ -1036,13 +964,11 @@ module MinMax =
 
         match min, max with
         | None, None -> ""
-        | Some min_, Some max_ when Limit.eq min_ max_ ->
-            min_ |> Limit.getValueUnit |> vuToStr
+        | Some min_, Some max_ when Limit.eq min_ max_ -> min_ |> Limit.getValueUnit |> vuToStr
         | Some min_, Some max_ ->
             $"%s{min_ |> Limit.getValueUnit |> valToStr} - %s{max_ |> Limit.getValueUnit |> vuToStr}"
         | Some min_, None -> min_ |> minToString
         | None, Some max_ -> max_ |> maxToString
-
 
 
     /// Parse MinMax from formatted string
@@ -1050,30 +976,31 @@ module MinMax =
     ///          "min 10 mg" (min only), "max 10 mg" (max only)
     let parseMinMax (s: string) : Result<MinMax, string> =
 
-        if s |> String.IsNullOrWhiteSpace then Ok empty
+        if s |> String.IsNullOrWhiteSpace then
+            Ok empty
         else
             let s = s.Trim()
 
             // Check for "min X" pattern (min only)
             if s.StartsWith("min ") then
                 let rest = s[4..].Trim()
+
                 ValueUnit.fromString rest
-                |> Result.map (fun vu ->
-                    { empty with Min = vu |> Limit.inclusive |> Some }
-                )
+                |> Result.map (fun vu -> { empty with Min = vu |> Limit.inclusive |> Some })
 
             // Check for "max X" pattern (max only)
             elif s.StartsWith("max ") then
                 let rest = s[4..].Trim()
+
                 ValueUnit.fromString rest
-                |> Result.map (fun vu ->
-                    { empty with Max = vu |> Limit.inclusive |> Some }
-                )
+                |> Result.map (fun vu -> { empty with Max = vu |> Limit.inclusive |> Some })
 
             // Check for "X - Y" pattern (range)
             elif s.Contains(" - ") then
                 let parts = s.Split([| " - " |], StringSplitOptions.None)
-                if parts.Length <> 2 then Error $"Invalid MinMax range format: {s}"
+
+                if parts.Length <> 2 then
+                    Error $"Invalid MinMax range format: {s}"
                 else
                     let minPart = parts[0].Trim()
                     let maxPart = parts[1].Trim()
@@ -1088,7 +1015,7 @@ module MinMax =
                         match ValueUnit.fromString minPart with
                         | Ok minVu ->
                             // Min part successfully parsed with unit
-                            Ok (createInclIncl minVu maxVu)
+                            Ok(createInclIncl minVu maxVu)
                         | Error _ ->
                             // Min part has no unit, use the unit from max part
                             // Try to parse the min value and apply the same unit
@@ -1100,15 +1027,12 @@ module MinMax =
                             match minValue with
                             | Some minV ->
                                 let minVu = minV |> ValueUnit.singleWithUnit unit
-                                Ok (createInclIncl minVu maxVu)
-                            | None ->
-                                Error $"Cannot parse min value: {minPart}"
+                                Ok(createInclIncl minVu maxVu)
+                            | None -> Error $"Cannot parse min value: {minPart}"
 
             // Otherwise it's an exact value
             else
-                ValueUnit.fromString s
-                |> Result.map createExact
-
+                ValueUnit.fromString s |> Result.map createExact
 
 
 /// Extension methods for the `Limit` type
@@ -1118,7 +1042,6 @@ type Limit with
     static member (*)(v1, v2) = MinMax.calcLimit (*) v1 v2
 
     static member (/)(v1, v2) = MinMax.calcLimit (/) v1 v2
-
 
 
 /// Extension methods for the `MinMax` type

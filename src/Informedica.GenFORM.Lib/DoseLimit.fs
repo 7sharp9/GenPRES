@@ -11,25 +11,29 @@ module DoseLimit =
 
     /// Field labels for deterministic parsing
     module FieldLabels =
-        let [<Literal>] DoseUnit = "[dun]"
-        let [<Literal>] Quantity = "[qty]"
-        let [<Literal>] QuantityAdjust = "[qty-adj]"
-        let [<Literal>] PerTime = "[per-time]"
-        let [<Literal>] PerTimeAdjust = "[per-time-adj]"
-        let [<Literal>] Rate = "[rate]"
-        let [<Literal>] RateAdjust = "[rate-adj]"
+        [<Literal>]
+        let DoseUnit = "[dun]"
+
+        [<Literal>]
+        let Quantity = "[qty]"
+
+        [<Literal>]
+        let QuantityAdjust = "[qty-adj]"
+
+        [<Literal>]
+        let PerTime = "[per-time]"
+
+        [<Literal>]
+        let PerTimeAdjust = "[per-time-adj]"
+
+        [<Literal>]
+        let Rate = "[rate]"
+
+        [<Literal>]
+        let RateAdjust = "[rate-adj]"
 
 
-    let create
-        tar
-        aun
-        dun
-        qty
-        qta
-        ptm
-        pta
-        rte
-        rta : DoseLimit =
+    let create tar aun dun qty qta ptm pta rte rta : DoseLimit =
 
         {
             DoseLimitTarget = tar
@@ -67,7 +71,7 @@ module DoseLimit =
     /// If any of the adjust values is not None
     /// then an adjust is used.
     /// </remarks>
-    let useAdjust (dl : DoseLimit) =
+    let useAdjust (dl: DoseLimit) =
         [
             dl.QuantityAdjust = MinMax.empty
             dl.PerTimeAdjust = MinMax.empty
@@ -77,7 +81,7 @@ module DoseLimit =
         |> not
 
 
-    let hasNoLimits (dl : DoseLimit) =
+    let hasNoLimits (dl: DoseLimit) =
         { limit with
             DoseLimitTarget = dl.DoseLimitTarget
             AdjustUnit = dl.AdjustUnit
@@ -85,13 +89,16 @@ module DoseLimit =
         } = dl
 
 
-    let isSubstanceLimit (dl : DoseLimit) = dl.DoseLimitTarget |> LimitTarget.isSubstanceTarget
+    let isSubstanceLimit (dl: DoseLimit) =
+        dl.DoseLimitTarget |> LimitTarget.isSubstanceTarget
 
 
-    let isComponentLimit (dl : DoseLimit) = dl.DoseLimitTarget |> LimitTarget.isComponentTarget
+    let isComponentLimit (dl: DoseLimit) =
+        dl.DoseLimitTarget |> LimitTarget.isComponentTarget
 
 
-    let isShapeLimit (dl : DoseLimit) = dl.DoseLimitTarget |> LimitTarget.isOrderableTarget
+    let isShapeLimit (dl: DoseLimit) =
+        dl.DoseLimitTarget |> LimitTarget.isOrderableTarget
 
 
     let getNormDose minMax =
@@ -99,7 +106,8 @@ module DoseLimit =
         | Some minLimit, Some maxLimit ->
             if minLimit |> Limit.eq maxLimit then
                 minLimit |> Limit.getValueUnit |> Some
-            else None
+            else
+                None
         | _ -> None
 
 
@@ -119,43 +127,38 @@ module DoseLimit =
     /// - When min equals max (norm dose): returns single value instead of min/max pair
     /// - Final format: "{label} {formatted-value}{perDose}"
     /// </returns>
-    let printMinMaxDose label perDose (minMax : MinMax) =
+    let printMinMaxDose label perDose (minMax: MinMax) =
         let vuToStr, mmToStr =
             if label |> String.isNullOrWhiteSpace then
-                Utils.ValueUnit.toString 3
-                ,
-                Utils.MinMax.toString "min " "min " "max " "max "
+                Utils.ValueUnit.toString 3, Utils.MinMax.toString "min " "min " "max " "max "
             else
-                ValueUnit.toStringDecimalEngShortWithoutGroup
-                ,
+                ValueUnit.toStringDecimalEngShortWithoutGroup,
                 MinMax.toString
                     ValueUnit.toStringDecimalEngShortWithoutGroup
                     ValueUnit.toStringDecimalEngShortWithoutGroup
-                    "min " "min " "max " "max "
+                    "min "
+                    "min "
+                    "max "
+                    "max "
 
         let toStr mm =
-            if mm = MinMax.empty then ""
+            if mm = MinMax.empty then
+                ""
             else
-                mm
-                |> mmToStr
-                |> fun s ->
-                    $"{s}{perDose}"
+                mm |> mmToStr |> (fun s -> $"{s}{perDose}")
 
         if minMax |> isNormDose then
             minMax.Min
-            |> Option.map (fun minLim ->
-                minLim
-                |> Limit.getValueUnit
-                |> fun vu -> $"{vu |> vuToStr}{perDose}"
-            )
+            |> Option.map (fun minLim -> minLim |> Limit.getValueUnit |> (fun vu -> $"{vu |> vuToStr}{perDose}"))
             |> Option.defaultValue ""
 
-        else minMax |> toStr
+        else
+            minMax |> toStr
         |> fun s ->
-            if s |> String.isNullOrWhiteSpace then ""
+            if s |> String.isNullOrWhiteSpace then
+                ""
             else
-                $"{label} {s}"
-                |> String.trim
+                $"{label} {s}" |> String.trim
 
 
     let toString (dl: DoseLimit) =
@@ -163,6 +166,7 @@ module DoseLimit =
             let perDose = "/dosis"
             let emptyS = ""
             let dun = dl.DoseUnit |> Units.toStringEngShortWithoutGroup
+
             [
                 $"%s{dl.DoseLimitTarget |> LimitTarget.toString}"
                 if dun |> String.notEmpty then

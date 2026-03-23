@@ -33,12 +33,15 @@ module Proc =
 
 
         let print color (colored: string) (line: string) =
-            lock locker (fun () ->
-                let currentColor = Console.ForegroundColor
-                Console.ForegroundColor <- color
-                Console.Write colored
-                Console.ForegroundColor <- currentColor
-                Console.WriteLine line)
+            lock
+                locker
+                (fun () ->
+                    let currentColor = Console.ForegroundColor
+                    Console.ForegroundColor <- color
+                    Console.Write colored
+                    Console.ForegroundColor <- currentColor
+                    Console.WriteLine line
+                )
 
 
         let onStdout index name (line: string) =
@@ -92,7 +95,9 @@ let createProcess exe args dir =
         // Treat SIGINT (130) and SIGTERM (143) as graceful shutdown
         if exitCode <> 0 && exitCode <> 130 && exitCode <> 143 then
             failwithf "Process exit code '%d' <> 0. Command Line: %s %s" exitCode exe (args |> String.concat " ")
-        data)
+
+        data
+    )
 
 
 let dotnet args dir = createProcess "dotnet" args dir

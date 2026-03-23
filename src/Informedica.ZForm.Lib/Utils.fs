@@ -10,14 +10,16 @@ module MinMax =
 
 
     let private toString =
-        MinMax.toString
-            (ValueUnit.toStringDecimalDutchShortWithPrec 2)
-            (ValueUnit.toStringDecimalDutchShortWithPrec 2)
+        MinMax.toString (ValueUnit.toStringDecimalDutchShortWithPrec 2) (ValueUnit.toStringDecimalDutchShortWithPrec 2)
 
 
     /// Print a MinIncrMax value as an age string.
     let ageToString minIncrMax =
-        let { Min = min; Max = max } = minIncrMax
+        let {
+                Min = min
+                Max = max
+            } =
+            minIncrMax
 
         let oneWk = 1N |> ValueUnit.createSingle Units.Time.week
         let oneMo = 1N |> ValueUnit.createSingle Units.Time.month
@@ -30,21 +32,33 @@ module MinMax =
                 | _ when vu <? oneMo -> vu ==> Units.Time.week
                 | _ when vu <? oneYr -> vu ==> Units.Time.month
                 | _ -> vu ==> Units.Time.year
+
             Option.bind (Limit.apply c c >> Some)
 
-        { Min = min |> convert; Max = max |> convert } |> toString "van " "van " "tot " "tot "
+        {
+            Min = min |> convert
+            Max = max |> convert
+        }
+        |> toString "van " "van " "tot " "tot "
 
 
     /// Print a MinIncrMax value as a gestational age string.
     let gestAgeToString minIncrMax =
-        let { Min = min; Max = max } = minIncrMax
+        let {
+                Min = min
+                Max = max
+            } =
+            minIncrMax
 
         let convert =
             let c vu = vu ==> Units.Time.week
             Option.bind (Limit.apply c c >> Some)
 
-        { Min = min |> convert; Max = max |> convert } |> toString "van " "van " "tot " "tot "
-
+        {
+            Min = min |> convert
+            Max = max |> convert
+        }
+        |> toString "van " "van " "tot " "tot "
 
 
 module Web =

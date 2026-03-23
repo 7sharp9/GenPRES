@@ -1,5 +1,3 @@
-
-
 #load "load.fsx"
 
 
@@ -10,25 +8,15 @@ open Informedica.GenUnits.Lib
 open Informedica.GenOrder.Lib
 
 
-
 let path = Some $"{__SOURCE_DIRECTORY__}/log.txt"
 
 
-
-let ovar1 =
-    OrderVariable.createNew
-        (Name.fromString "ovar1")
-        Units.Count.times
+let ovar1 = OrderVariable.createNew (Name.fromString "ovar1") Units.Count.times
 
 
-let ovar2 =
-    OrderVariable.createNew
-        (Name.fromString "ovar2")
-        Units.Count.times
+let ovar2 = OrderVariable.createNew (Name.fromString "ovar2") Units.Count.times
 
-{ ovar2 with
-    OrderVariable.DefinedConstraints.Min = None
-}
+{ ovar2 with OrderVariable.DefinedConstraints.Min = None }
 |> OrderVariable.applyConstraints
 
 
@@ -56,5 +44,5 @@ dto1.Variable.ValsOpt.Value |> ValueUnit.Dto.fromDto
 dto1 |> OrderVariable.Dto.fromDto
 
 let ovar3 =
-    (dto1 |> OrderVariable.Dto.fromDto).Variable ^+
     (dto1 |> OrderVariable.Dto.fromDto).Variable
+    ^+ (dto1 |> OrderVariable.Dto.fromDto).Variable

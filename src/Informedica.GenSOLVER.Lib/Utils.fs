@@ -33,9 +33,7 @@ module Utils =
 
         /// Maximum quantity of a numerator or denominator to prevent
         /// infinite loops calculating a minimum or maximum.
-        let MAX_BIGINT =
-            999999999999999999999999999999999999999999999999I
-
+        let MAX_BIGINT = 999999999999999999999999999999999999999999999999I
 
 
     module ValueUnit =
@@ -95,22 +93,15 @@ module Utils =
                 |> String.replace "*" "/"
                 |> String.split "/"
                 |> function
-                | [u1;u2;u3] when u3 |> String.startsWith "kg" -> [u1;u3;u2]
-                | xs -> xs
+                    | [ u1; u2; u3 ] when u3 |> String.startsWith "kg" -> [ u1; u3; u2 ]
+                    | xs -> xs
                 |> List.choose Units.fromString
                 |> function
                     | [] -> vu |> getUnit
                     | [ u ] -> u
-                    | u::rest ->
-                        rest
-                        |> List.fold (fun acc u ->
-                            CombiUnit(acc, OpPer, u)
-                        ) u
+                    | u :: rest -> rest |> List.fold (fun acc u -> CombiUnit(acc, OpPer, u)) u
 
-            let vu =
-                vu
-                |> getValue
-                |> withUnit u
+            let vu = vu |> getValue |> withUnit u
 
             let v, u = vu |> get
 
@@ -123,7 +114,8 @@ module Utils =
                 |> sprintf "#%s#"
 
             let us =
-                if not isWithUnit then ""
+                if not isWithUnit then
+                    ""
                 else
                     let vw = "#"
                     let uw = "|"
@@ -135,20 +127,16 @@ module Utils =
         module Operators =
 
             /// Constant 0
-            let zero =
-                [| 0N |] |> create Units.Count.times
+            let zero = [| 0N |] |> create Units.Count.times
 
             /// Constant 1
-            let one =
-                [| 1N |] |> create Units.Count.times
+            let one = [| 1N |] |> create Units.Count.times
 
             /// Constant 2
-            let two =
-                [| 2N |] |> create Units.Count.times
+            let two = [| 2N |] |> create Units.Count.times
 
             /// Constant 3
-            let three =
-                [| 3N |] |> create Units.Count.times
+            let three = [| 3N |] |> create Units.Count.times
 
             /// Match an operator `op` to either multiplication, division, addition or subtraction
             /// by delegating detection to the BigRational active pattern.

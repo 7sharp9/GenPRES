@@ -10,37 +10,85 @@ module EquationMapping =
 
     module Literals =
 
-        let [<Literal>] qty = OrderVariable.Quantity.name
-        let [<Literal>] cnc = OrderVariable.Concentration.name
-        let [<Literal>] ptm = OrderVariable.PerTime.name
-        let [<Literal>] rte = OrderVariable.Rate.name
-        let [<Literal>] tot = OrderVariable.Total.name
-        let [<Literal>] qtyAdj = OrderVariable.QuantityAdjust.name
-        let [<Literal>] ptmAdj = OrderVariable.PerTimeAdjust.name
-        let [<Literal>] rteAdj = OrderVariable.RateAdjust.name
-        let [<Literal>] totAdj = OrderVariable.TotalAdjust.name
-        let [<Literal>] cnt = OrderVariable.Count.name
-        let [<Literal>] frq = OrderVariable.Frequency.name
-        let [<Literal>] tme = OrderVariable.Time.name
-        let [<Literal>] itm = "itm" //Orderable.Literals.item
-        let [<Literal>] cmp = "cmp" //Orderable.Literals.comp
-        let [<Literal>] orb = "orb" //Orderable.Literals.orderable
-        let [<Literal>] dos = "dos" //Orderable.Literals.dose
-        let [<Literal>] sch = "sch" // Schedule
-        let [<Literal>] ord = "ord" // Order
-        let [<Literal>] adj = "adj" // Adjust
+        [<Literal>]
+        let qty = OrderVariable.Quantity.name
 
-        let [<Literal>] discontinuous = 3
-        let [<Literal>] continuous = 4
-        let [<Literal>] timed = 5
-        let [<Literal>] once = 6
-        let [<Literal>] onceTimed = 7
+        [<Literal>]
+        let cnc = OrderVariable.Concentration.name
+
+        [<Literal>]
+        let ptm = OrderVariable.PerTime.name
+
+        [<Literal>]
+        let rte = OrderVariable.Rate.name
+
+        [<Literal>]
+        let tot = OrderVariable.Total.name
+
+        [<Literal>]
+        let qtyAdj = OrderVariable.QuantityAdjust.name
+
+        [<Literal>]
+        let ptmAdj = OrderVariable.PerTimeAdjust.name
+
+        [<Literal>]
+        let rteAdj = OrderVariable.RateAdjust.name
+
+        [<Literal>]
+        let totAdj = OrderVariable.TotalAdjust.name
+
+        [<Literal>]
+        let cnt = OrderVariable.Count.name
+
+        [<Literal>]
+        let frq = OrderVariable.Frequency.name
+
+        [<Literal>]
+        let tme = OrderVariable.Time.name
+
+        [<Literal>]
+        let itm = "itm" //Orderable.Literals.item
+
+        [<Literal>]
+        let cmp = "cmp" //Orderable.Literals.comp
+
+        [<Literal>]
+        let orb = "orb" //Orderable.Literals.orderable
+
+        [<Literal>]
+        let dos = "dos" //Orderable.Literals.dose
+
+        [<Literal>]
+        let sch = "sch" // Schedule
+
+        [<Literal>]
+        let ord = "ord" // Order
+
+        [<Literal>]
+        let adj = "adj" // Adjust
+
+        [<Literal>]
+        let discontinuous = 3
+
+        [<Literal>]
+        let continuous = 4
+
+        [<Literal>]
+        let timed = 5
+
+        [<Literal>]
+        let once = 6
+
+        [<Literal>]
+        let onceTimed = 7
 
 
     // Get the equations from a Google spreadsheet
     let private getEquations_ indx =
         let data = Web.getDataFromGenPres "Equations"
-        if data.Length <= 1 then []
+
+        if data.Length <= 1 then
+            []
         else
             data
             |> Array.skip 1
@@ -60,8 +108,7 @@ module EquationMapping =
     /// and 5 for timed equations.
     /// </remarks>
     let getEquations indx =
-        indx
-        |> Memoization.memoize getEquations_
+        indx |> Memoization.memoize getEquations_
 
 
     /// <summary>
@@ -72,87 +119,71 @@ module EquationMapping =
     /// <returns>
     /// A tuple of `SumMapping` and `ProductMapping`
     /// </returns>
-    let getEqsMapping (ord: Order) (eqs : string list) =
-        let sumEqs =
-            eqs
-            |> List.filter (String.contains "sum")
+    let getEqsMapping (ord: Order) (eqs: string list) =
+        let sumEqs = eqs |> List.filter (String.contains "sum")
 
-        let prodEqs =
-            eqs
-            |> List.filter (String.contains "sum" >> not)
+        let prodEqs = eqs |> List.filter (String.contains "sum" >> not)
 
-        let itmEqs =
-            prodEqs
-            |> List.filter (String.contains "[itm]")
+        let itmEqs = prodEqs |> List.filter (String.contains "[itm]")
 
         let cmpEqs =
             prodEqs
-            |> List.filter (fun e ->
-                itmEqs
-                |> List.exists ((=) e)
-                |> not &&
-                e.Contains("[cmp]")
-            )
+            |> List.filter (fun e -> itmEqs |> List.exists ((=) e) |> not && e.Contains("[cmp]"))
 
         let orbEqs =
             prodEqs
-            |> List.filter (fun e ->
-                itmEqs
-                |> List.exists ((=) e)
-                |> not &&
-                cmpEqs
-                |> List.exists((=) e)
-                |> not
-            )
+            |> List.filter (fun e -> itmEqs |> List.exists ((=) e) |> not && cmpEqs |> List.exists ((=) e) |> not)
 
-        let idN = [ord.Id |> Id.toString] |> Name.create
-        let orbN = [ord.Id |> Id.toString; ord.Orderable.Name |> Name.toString] |> Name.create
+        let idN = [ ord.Id |> Id.toString ] |> Name.create
+
+        let orbN =
+            [
+                ord.Id |> Id.toString
+                ord.Orderable.Name |> Name.toString
+            ]
+            |> Name.create
 
         ord.Orderable.Components
-        |> List.fold (fun acc c ->
-            let cmpN =
-                [
-                    yield! orbN |> Name.toStringList
-                    c.Name |> Name.toString
-                ]
-                |> Name.create
+        |> List.fold
+            (fun acc c ->
+                let cmpN =
+                    [
+                        yield! orbN |> Name.toStringList
+                        c.Name |> Name.toString
+                    ]
+                    |> Name.create
 
-            let itms =
-                c.Items
-                |> List.collect (fun i ->
-                    itmEqs
-                    |> List.map (fun s ->
-                        let itmN =
-                            [
-                                yield! cmpN |> Name.toStringList
-                                i.Name |> Name.toString
-                            ]
-                            |> Name.create
-                        s
-                        |> String.replace "[cmp]" $"{cmpN |> Name.toString}"
-                        |> String.replace "[itm]" $"{itmN |> Name.toString}"
+                let itms =
+                    c.Items
+                    |> List.collect (fun i ->
+                        itmEqs
+                        |> List.map (fun s ->
+                            let itmN =
+                                [
+                                    yield! cmpN |> Name.toStringList
+                                    i.Name |> Name.toString
+                                ]
+                                |> Name.create
+
+                            s
+                            |> String.replace "[cmp]" $"{cmpN |> Name.toString}"
+                            |> String.replace "[itm]" $"{itmN |> Name.toString}"
+                        )
                     )
-                )
 
-            let cmps =
-                cmpEqs
-                |> List.map (String.replace "[cmp]" $"{cmpN |> Name.toString}")
+                let cmps = cmpEqs |> List.map (String.replace "[cmp]" $"{cmpN |> Name.toString}")
 
-            acc
-            |> List.append cmps
-            |> List.append itms
-        ) []
+                acc |> List.append cmps |> List.append itms
+            )
+            []
         |> fun es ->
             let sumEqs =
                 sumEqs
                 |> List.map (fun e ->
-                    match e
-                          |> String.replace "sum(" ""
-                          |> String.replace ")" ""
-                          |> String.split " = " with
-                    | [lv; rv] ->
+                    match e |> String.replace "sum(" "" |> String.replace ")" "" |> String.split " = " with
+                    | [ lv; rv ] ->
                         ord.Orderable.Components
-                        |> List.map(fun c ->
+                        |> List.map (fun c ->
                             let cmpN =
                                 [
                                     yield! orbN |> Name.toStringList
@@ -160,8 +191,7 @@ module EquationMapping =
                                 ]
                                 |> Name.create
 
-                            rv
-                            |> String.replace "[cmp]" $"{cmpN |> Name.toString}"
+                            rv |> String.replace "[cmp]" $"{cmpN |> Name.toString}"
                         )
                         |> String.concat " + "
                         |> fun s -> $"{lv} = {s}"

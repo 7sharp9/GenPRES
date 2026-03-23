@@ -25,82 +25,67 @@ module Adapters =
 
     let private makeFormularyPort (provider: Resources.IResourceProvider) : FormularyPort =
         {
-            getFormulary = fun form ->
-                async {
-                    return
-                        form
-                        |> FormularyService.get provider
-                }
+            getFormulary = fun form -> async { return form |> FormularyService.get provider }
 
-            getParenteralia = fun par ->
-                async {
-                    return
-                        par
-                        |> ParenteraliaService.get provider
-                        |> Result.mapError Array.singleton
-                }
+            getParenteralia =
+                fun par -> async { return par |> ParenteraliaService.get provider |> Result.mapError Array.singleton }
         }
 
 
     let private makeOrderContextPort agent logger (provider: Resources.IResourceProvider) : OrderContextPort =
         {
-            evaluate = fun ctxCmd ctx ->
-                async {
-                    do! setComponentName "OrderContext" agent
+            evaluate =
+                fun ctxCmd ctx ->
+                    async {
+                        do! setComponentName "OrderContext" agent
 
-                    return
-                        ctx
-                        |> OrderContextService.evaluate logger provider ctxCmd
-                }
+                        return ctx |> OrderContextService.evaluate logger provider ctxCmd
+                    }
         }
 
 
     let private makeOrderPlanPort agent (orderCtxPort: OrderContextPort) : OrderPlanPort =
         {
-            updateOrderPlan = fun tp cmdOpt ->
-                async {
-                    do! setComponentName "TreatmentPlan" agent
+            updateOrderPlan =
+                fun tp cmdOpt ->
+                    async {
+                        do! setComponentName "TreatmentPlan" agent
 
-                    let! updated = OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
-                    return
-                        updated
-                        |> OrderPlanService.calculateTotals
-                        |> Ok
-                }
+                        let! updated = OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
+                        return updated |> OrderPlanService.calculateTotals |> Ok
+                    }
 
-            filterOrderPlan = fun tp ->
-                async {
-                    return
-                        tp
-                        |> OrderPlanService.calculateTotals
-                        |> Ok
-                }
+            filterOrderPlan = fun tp -> async { return tp |> OrderPlanService.calculateTotals |> Ok }
         }
 
 
-    let private makeNutritionPlanPort (orderCtxPort: OrderContextPort) logger (provider: Resources.IResourceProvider) : NutritionPlanPort =
+    let private makeNutritionPlanPort
+        (orderCtxPort: OrderContextPort)
+        logger
+        (provider: Resources.IResourceProvider)
+        : NutritionPlanPort
+        =
         {
-            initNutritionPlan = fun patient ->
-                async {
-                    return NutritionPlanService.initNutritionPlan logger provider patient
-                }
+            initNutritionPlan =
+                fun patient -> async { return NutritionPlanService.initNutritionPlan logger provider patient }
 
-            addNutritionContext = fun (plan, category) ->
-                NutritionPlanService.addNutritionContext orderCtxPort (plan, category)
+            addNutritionContext =
+                fun (plan, category) -> NutritionPlanService.addNutritionContext orderCtxPort (plan, category)
 
-            removeNutritionContext = fun (plan, id) ->
-                async {
-                    return NutritionPlanService.removeNutritionContext (plan, id)
-                }
+            removeNutritionContext =
+                fun (plan, id) -> async { return NutritionPlanService.removeNutritionContext (plan, id) }
 
-            updateNutritionOrderContext = fun (plan, label, ctx) ->
-                NutritionPlanService.updateNutritionOrderContext orderCtxPort (plan, label, ctx)
+            updateNutritionOrderContext =
+                fun (plan, label, ctx) ->
+                    NutritionPlanService.updateNutritionOrderContext orderCtxPort (plan, label, ctx)
 
-            selectNutritionOrderScenario = fun (plan, label, ctx) ->
-                NutritionPlanService.selectNutritionOrderScenario orderCtxPort (plan, label, ctx)
+            selectNutritionOrderScenario =
+                fun (plan, label, ctx) ->
+                    NutritionPlanService.selectNutritionOrderScenario orderCtxPort (plan, label, ctx)
 
-            navigateNutritionOrderContext = fun (plan, label, ctxCmd, ctx) ->
-                NutritionPlanService.navigateNutritionOrderContext orderCtxPort (plan, label, ctxCmd, ctx)
+            navigateNutritionOrderContext =
+                fun (plan, label, ctxCmd, ctx) ->
+                    NutritionPlanService.navigateNutritionOrderContext orderCtxPort (plan, label, ctxCmd, ctx)
         }
 
 
@@ -113,11 +98,12 @@ module Adapters =
             orderContext = orderCtxPort
             orderPlan = makeOrderPlanPort agent orderCtxPort
             nutritionPlan = makeNutritionPlanPort orderCtxPort logger provider
-            requireLoaded = fun () ->
-                let info = provider.GetResourceInfo()
-                if info.IsLoaded then None
-                else
-                    info.Messages
-                    |> Array.map (fun msg -> FormLogging.formatMessage msg)
-                    |> Some
+            requireLoaded =
+                fun () ->
+                    let info = provider.GetResourceInfo()
+
+                    if info.IsLoaded then
+                        None
+                    else
+                        info.Messages |> Array.map (fun msg -> FormLogging.formatMessage msg) |> Some
         }

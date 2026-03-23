@@ -27,8 +27,8 @@ module Substance =
     /// Write a Substance array to a cache file
     /// </summary>
     /// <param name="sbs"></param>
-    let cache (sbs : Substance []) =
-        let useDemo = FilePath.useDemo()
+    let cache (sbs: Substance[]) =
+        let useDemo = FilePath.useDemo ()
         Json.cache (FilePath.substanceCache useDemo) sbs
 
 
@@ -41,7 +41,7 @@ module Substance =
         |> Array.map (fun r ->
             let un =
                 match r.GNVOOR |> Int32.tryParse with
-                | Some i ->  Names.getThes i Names.GenericUnit Names.Fifty
+                | Some i -> Names.getThes i Names.GenericUnit Names.Fifty
                 | None -> r.GNVOOR
 
             create r.GNGNK r.GNNKPK r.GNGNAM r.GNMOLE r.GNMOLS r.GNFORM un r.GNSGEW
@@ -49,22 +49,21 @@ module Substance =
 
 
     let _get _ =
-        let useDemo = FilePath.useDemo()
+        let useDemo = FilePath.useDemo ()
 
         fun () ->
             if FilePath.substanceCache useDemo |> File.exists then
-                FilePath.substanceCache useDemo
-                |> Json.getCache
+                FilePath.substanceCache useDemo |> Json.getCache
             else
-                    let p = FilePath.substanceCache useDemo
-                    writeInfoMessage $"No {p}, creating Substance"
+                let p = FilePath.substanceCache useDemo
+                writeInfoMessage $"No {p}, creating Substance"
 
-                    let substs = parse ()
+                let substs = parse ()
 
-                    writeInfoMessage $"Created {substs |> Array.length} Substances"
+                writeInfoMessage $"Created {substs |> Array.length} Substances"
 
-                    substs |> Json.cache p
-                    substs
+                substs |> Json.cache p
+                substs
         |> StopWatch.clockFunc "Getting Substances"
 
 
@@ -74,8 +73,7 @@ module Substance =
     /// <remarks>
     /// This is a memoized function
     /// </remarks>
-    let get : unit -> Substance [] =
-        Memoization.memoize _get
+    let get: unit -> Substance[] = Memoization.memoize _get
 
 
     /// <summary>

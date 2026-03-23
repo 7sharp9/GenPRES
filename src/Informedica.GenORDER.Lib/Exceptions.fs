@@ -4,34 +4,26 @@ namespace Informedica.GenOrder.Lib
 module Exceptions =
 
 
-        /// Equation exception
-        exception OrderException of Exceptions.Message
+    /// Equation exception
+    exception OrderException of Exceptions.Message
 
 
-        /// Raise an `EquationException` with `Message` `m`.
-        let raiseExc log m o =
-            match log with
-            | Some log ->
-                printfn "logging error"
-                (m, o)
-                |> Exceptions.OrderCouldNotBeSolved
-                |> Logging.logError log
+    /// Raise an `EquationException` with `Message` `m`.
+    let raiseExc log m o =
+        match log with
+        | Some log ->
+            printfn "logging error"
+            (m, o) |> Exceptions.OrderCouldNotBeSolved |> Logging.logError log
 
-            | None -> ()
+        | None -> ()
 
-            (m, o)
-            |> Exceptions.OrderCouldNotBeSolved
-            |> OrderException
-            |> raise
+        (m, o) |> Exceptions.OrderCouldNotBeSolved |> OrderException |> raise
 
 
-        let toString (exn : exn) =
-            match exn with
-            | :? OrderException as m ->
-                match m.Data0 with
-                | Exceptions.OrderCouldNotBeSolved(m, o) ->
-                    $"{o} could not be resolved because: {m}"
-                | Exceptions.OrderCouldNotBeCreated exn ->
-                    $"Order could not be created:\n{exn}"
-            | _ ->
-                exn.ToString()
+    let toString (exn: exn) =
+        match exn with
+        | :? OrderException as m ->
+            match m.Data0 with
+            | Exceptions.OrderCouldNotBeSolved(m, o) -> $"{o} could not be resolved because: {m}"
+            | Exceptions.OrderCouldNotBeCreated exn -> $"Order could not be created:\n{exn}"
+        | _ -> exn.ToString()

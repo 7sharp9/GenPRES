@@ -23,7 +23,7 @@ module FileWriterAgent =
     // ---- Encoding helpers ----------------------------------------------------
 
 
-    let utf8NoBom : Encoding = UTF8Encoding(false)
+    let utf8NoBom: Encoding = UTF8Encoding(false)
 
 
     /// Try to detect BOM-based encoding. Fallback to UTF-8 (no BOM).
@@ -31,32 +31,35 @@ module FileWriterAgent =
         try
             if File.Exists path then
                 use fs =
-                    new FileStream(
-                        path, FileMode.Open, FileAccess.Read,
-                        FileShare.ReadWrite ||| FileShare.Delete
-                    )
+                    new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ||| FileShare.Delete)
+
                 if fs.Length >= 3L then
                     let b1 = fs.ReadByte()
                     let b2 = fs.ReadByte()
                     let b3 = fs.ReadByte()
+
                     match b1, b2, b3 with
                     // UTF-8 BOM
                     | 0xEF, 0xBB, 0xBF -> utf8NoBom
                     | _ ->
                         // maybe UTF-16?
                         fs.Position <- 0L
+
                         if fs.Length >= 2L then
                             let b1 = fs.ReadByte()
                             let b2 = fs.ReadByte()
+
                             match b1, b2 with
-                            | 0xFF, 0xFE -> Encoding.Unicode              // UTF-16 LE
-                            | 0xFE, 0xFF -> Encoding.BigEndianUnicode     // UTF-16 BE
-                            | _          -> utf8NoBom
-                        else utf8NoBom
+                            | 0xFF, 0xFE -> Encoding.Unicode // UTF-16 LE
+                            | 0xFE, 0xFF -> Encoding.BigEndianUnicode // UTF-16 BE
+                            | _ -> utf8NoBom
+                        else
+                            utf8NoBom
                 else
                     // short/empty file: pick UTF-8 (no BOM)
                     utf8NoBom
-            else utf8NoBom
+            else
+                utf8NoBom
         with _ ->
             // If detection fails, write UTF-8 (no BOM) to avoid BOM pollution
             utf8NoBom
@@ -67,15 +70,17 @@ module FileWriterAgent =
     let openWriter (path: string) =
         // For consistency, always write UTF-8 (no BOM)
         let enc = utf8NoBom
+
         let fs =
             new FileStream(
                 path,
-                FileMode.Append,              // create if missing, append otherwise
+                FileMode.Append, // create if missing, append otherwise
                 FileAccess.Write,
                 FileShare.ReadWrite ||| FileShare.Delete,
                 4096,
                 FileOptions.SequentialScan
             )
+
         let sw = new StreamWriter(fs, enc)
         sw.AutoFlush <- false
         sw
@@ -89,7 +94,8 @@ module FileWriterAgent =
             try
                 w.Flush()
                 w.Dispose()
-            with ex -> eprintfn $"Failed to dispose writer for: {path}\{ex.Message}"
+            with ex ->
+                eprintfn $"Failed to dispose writer for: {path}\{ex.Message}"
 
             st.Writers.Remove path |> ignore
         | _ -> ()
@@ -108,6 +114,7 @@ module FileWriterAgent =
     let writeLines (st: State) (path: string) (lines: string[]) =
         let rec go (reopened: bool) =
             let w = getWriter st path
+
             try
                 // Always write complete lines
                 for i in 0 .. lines.Length - 1 do
@@ -125,63 +132,77 @@ module FileWriterAgent =
                     // If file was deleted, FileMode.Append will create it again
                     let _ = getWriter st path
                     go true
+
         go false
 
 
     let create () : Agent<_> =
         Agent.Start(fun inbox ->
-            let rec loop (state: State) = async {
-                let! msg = inbox.Receive()
+            let rec loop (state: State) =
+                async {
+                    let! msg = inbox.Receive()
 
-                match msg with
-                | Append (path, lines) ->
-                    try writeLines state path lines
-                    with ex -> eprintfn $"FileWriterAgent: unexpected error: %s{ex.Message}"
-                    return! loop state
-                | Flush reply ->
-                    for w in state.Writers.Values do
-                        try w.Flush() with _ -> ()
-                    reply.Reply(())
-                    return! loop state
-                | Clear path ->
-                    try
-                        removeWriter state path
-                        use _ = new FileStream(
-                            path,
-                            FileMode.Create,
-                            FileAccess.Write,
-                            FileShare.ReadWrite ||| FileShare.Delete
-                        )
-                        ()
-                    with ex ->
-                        eprintfn $"FileWriterAgent: clear failed for {path}\n{ex.Message}"
-                    return! loop state
-                | Close path ->
-                    try
-                        removeWriter state path
-                    with ex ->
-                        eprintfn $"FileWriterAgent: close failed for {path}\n{ex.Message}"
-                    return! loop state
-                | Stop reply ->
-                    // final flush + dispose all writers
-                    for w in state.Writers.Values do
+                    match msg with
+                    | Append(path, lines) ->
                         try
-                            w.Flush()
-                            w.Dispose()
-                        with _ -> ()
-                    state.Writers.Clear()
-                    reply.Reply(())
-                    // exit
-            }
+                            writeLines state path lines
+                        with ex ->
+                            eprintfn $"FileWriterAgent: unexpected error: %s{ex.Message}"
+
+                        return! loop state
+                    | Flush reply ->
+                        for w in state.Writers.Values do
+                            try
+                                w.Flush()
+                            with _ ->
+                                ()
+
+                        reply.Reply(())
+                        return! loop state
+                    | Clear path ->
+                        try
+                            removeWriter state path
+
+                            use _ =
+                                new FileStream(
+                                    path,
+                                    FileMode.Create,
+                                    FileAccess.Write,
+                                    FileShare.ReadWrite ||| FileShare.Delete
+                                )
+
+                            ()
+                        with ex ->
+                            eprintfn $"FileWriterAgent: clear failed for {path}\n{ex.Message}"
+
+                        return! loop state
+                    | Close path ->
+                        try
+                            removeWriter state path
+                        with ex ->
+                            eprintfn $"FileWriterAgent: close failed for {path}\n{ex.Message}"
+
+                        return! loop state
+                    | Stop reply ->
+                        // final flush + dispose all writers
+                        for w in state.Writers.Values do
+                            try
+                                w.Flush()
+                                w.Dispose()
+                            with _ ->
+                                ()
+
+                        state.Writers.Clear()
+                        reply.Reply(())
+                // exit
+                }
 
             loop { Writers = Dictionary() }
         )
 
 
-    let append path lines (writer : Agent<_>) =
-        (path, lines)
-        |> Append
-        |> writer.Post
+    let append path lines (writer: Agent<_>) =
+        (path, lines) |> Append |> writer.Post
         writer
 
 
@@ -190,12 +211,12 @@ module FileWriterAgent =
         writer
 
 
-    let clear path (writer: Agent<_>)  =
-        writer.Post (Clear path)
+    let clear path (writer: Agent<_>) =
+        writer.Post(Clear path)
         writer
 
-    let close path (writer: Agent<_>)  =
-        writer.Post (Close path)
+    let close path (writer: Agent<_>) =
+        writer.Post(Close path)
         writer
 
 

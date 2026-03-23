@@ -45,9 +45,7 @@ module Logging =
 
     /// Log a message with a specific level
     let logWith level (logger: Logger) (msg: IMessage) =
-        msg
-        |> createMessage level
-        |> logger.Log
+        msg |> createMessage level |> logger.Log
 
 
     /// Log an informative message
@@ -67,7 +65,7 @@ module Logging =
 
 
     /// A logger that does nothing
-    let noOp : Logger = { Log = ignore }
+    let noOp: Logger = { Log = ignore }
 
 
     /// Create a logger that uses the given function to process messages
@@ -79,7 +77,9 @@ module Logging =
         create (fun msg ->
             msg.Message
             |> formatter
-            |> fun s -> if not (String.IsNullOrEmpty s) then printfn $"%s{s}"
+            |> fun s ->
+                if not (String.IsNullOrEmpty s) then
+                    printfn $"%s{s}"
         )
 
 
@@ -90,19 +90,18 @@ module Logging =
             |> formatter
             |> fun s ->
                 if not (String.IsNullOrEmpty s) then
-                    let text = [$"{msg.TimeStamp}: {msg.Level}"; s]
+                    let text = [ $"{msg.TimeStamp}: {msg.Level}"; s ]
                     System.IO.File.AppendAllLines(path, text)
         )
 
 
     /// Combine multiple loggers into one
     let combine (loggers: Logger list) : Logger =
-        create (fun msg ->
-            loggers |> List.iter (fun logger -> logger.Log msg)
-        )
+        create (fun msg -> loggers |> List.iter (fun logger -> logger.Log msg))
 
 
-    let levelValue = function
+    let levelValue =
+        function
         | Level.Debug -> 0
         | Level.Informative -> 1
         | Level.Warning -> 2
@@ -149,7 +148,11 @@ module MessageFormatter =
 
 
     /// Create a formatter with fallback
-    let createWithFallback (formatters: (Type * (IMessage -> string)) list) (fallback: IMessage -> string) : IMessage -> string =
+    let createWithFallback
+        (formatters: (Type * (IMessage -> string)) list)
+        (fallback: IMessage -> string)
+        : IMessage -> string
+        =
         fun msg ->
             let msgType = msg.GetType()
 
@@ -158,7 +161,8 @@ module MessageFormatter =
             |> List.tryPick (fun (regType, formatter) ->
                 if regType.IsAssignableFrom(msgType) then
                     Some formatter
-                else None
+                else
+                    None
             )
             |> Option.map (fun formatter -> formatter msg)
             |> Option.defaultWith (fun () -> fallback msg)
@@ -178,11 +182,11 @@ module AgentLogging =
     // ... your Level, IMessage, Event, Logger types here ...
 
     type LoggerMessage =
-        | Start  of path: string option * Level
+        | Start of path: string option * Level
         | LogEvent of Event
-        | Report of AsyncReplyChannel<string[]>                // formatted lines
-        | Write  of string * AsyncReplyChannel<Result<unit, string>>
-        | Stop   of AsyncReplyChannel<unit>
+        | Report of AsyncReplyChannel<string[]> // formatted lines
+        | Write of string * AsyncReplyChannel<Result<unit, string>>
+        | Stop of AsyncReplyChannel<unit>
         | FlushTimer
 
     type DisposeResult =
@@ -194,18 +198,17 @@ module AgentLogging =
     type AgentLogger =
         {
             Start: string option -> Level -> unit
-            Logger      : Logger
-            ReportAsync : unit -> Async<string[]>               // formatted lines
-            WriteAsync  : string -> Async<Result<unit, string>>
-            FlushAsync  : unit -> Async<unit>
-            StopAsync   : unit -> Async<unit>
-            DisposeWorkAsync : unit -> Async<DisposeResult>
+            Logger: Logger
+            ReportAsync: unit -> Async<string[]> // formatted lines
+            WriteAsync: string -> Async<Result<unit, string>>
+            FlushAsync: unit -> Async<unit>
+            StopAsync: unit -> Async<unit>
+            DisposeWorkAsync: unit -> Async<DisposeResult>
         }
+
         interface IDisposable with
             member this.Dispose() =
-                this.DisposeWorkAsync()
-                |> Async.RunSynchronously
-                |> ignore
+                this.DisposeWorkAsync() |> Async.RunSynchronously |> ignore
 
         interface IAsyncDisposable with
             member this.DisposeAsync() =
@@ -219,19 +222,20 @@ module AgentLogging =
         | AgentError of exn
 
 
-    let mutable errorHandler : (LoggingError -> unit) option = None
+    let mutable errorHandler: (LoggingError -> unit) option = None
 
 
-    type AgentLoggerConfig = {
-        Formatter: IMessage -> string
-        MaxMessages: int option
-        DefaultLevel: Level
-        FlushThreshold: int
-        FlushInterval: TimeSpan
-        MinFlushInterval : TimeSpan
-        MaxFlushInterval : TimeSpan
-        ErrorHandler: (LoggingError -> unit) option
-    }
+    type AgentLoggerConfig =
+        {
+            Formatter: IMessage -> string
+            MaxMessages: int option
+            DefaultLevel: Level
+            FlushThreshold: int
+            FlushInterval: TimeSpan
+            MinFlushInterval: TimeSpan
+            MaxFlushInterval: TimeSpan
+            ErrorHandler: (LoggingError -> unit) option
+        }
 
 
     type MessageStorage<'T> =
@@ -244,120 +248,112 @@ module AgentLogging =
 
 
         /// Default formatter that handles basic message types
-        let defaultFormatter : IMessage -> string =
-            fun msg -> $"%A{msg}"
+        let defaultFormatter: IMessage -> string = fun msg -> $"%A{msg}"
 
 
         /// Default error handler that prints to stderr
-        let defaultErrorHandler : LoggingError -> unit =
+        let defaultErrorHandler: LoggingError -> unit =
             function
-            | FormatterError (ex, msg) ->
-                eprintfn $"Formatter error for message %s{msg.GetType().Name}: %s{ex.Message}"
-            | FileWriteError (ex, operation) ->
-                eprintfn $"File write error during %s{operation}: %s{ex.Message}"
-            | AgentError ex ->
-                eprintfn $"Agent error: %s{ex.Message}"
+            | FormatterError(ex, msg) -> eprintfn $"Formatter error for message %s{msg.GetType().Name}: %s{ex.Message}"
+            | FileWriteError(ex, operation) -> eprintfn $"File write error during %s{operation}: %s{ex.Message}"
+            | AgentError ex -> eprintfn $"Agent error: %s{ex.Message}"
 
 
         /// Create a default configuration with console-only logging
-        let config : AgentLoggerConfig = {
-            Formatter = defaultFormatter
-            MaxMessages = Some 1000  // Keep the last 1000 messages in memory
-            DefaultLevel = Level.Informative
-            FlushThreshold = 100
-            FlushInterval = TimeSpan.FromSeconds(5.0)  // Auto-flush every 5 seconds
-            MinFlushInterval = TimeSpan.FromSeconds(1.0)
-            MaxFlushInterval = TimeSpan.FromSeconds(30.)
-            ErrorHandler = Some defaultErrorHandler
-        }
+        let config: AgentLoggerConfig =
+            {
+                Formatter = defaultFormatter
+                MaxMessages = Some 1000 // Keep the last 1000 messages in memory
+                DefaultLevel = Level.Informative
+                FlushThreshold = 100
+                FlushInterval = TimeSpan.FromSeconds(5.0) // Auto-flush every 5 seconds
+                MinFlushInterval = TimeSpan.FromSeconds(1.0)
+                MaxFlushInterval = TimeSpan.FromSeconds(30.)
+                ErrorHandler = Some defaultErrorHandler
+            }
 
 
         /// Create the default configuration for high-performance logging
-        let highPerformance : AgentLoggerConfig = {
-            Formatter = defaultFormatter
-            MaxMessages = Some 5000  // Larger buffer for high throughput
-            DefaultLevel = Level.Warning  // Only log warnings and errors
-            FlushThreshold = 1000
-            FlushInterval = TimeSpan.FromSeconds(10.0)
-            MinFlushInterval = TimeSpan.FromSeconds(1.0)
-            MaxFlushInterval = TimeSpan.FromSeconds(30.)
-            ErrorHandler = Some defaultErrorHandler
-        }
+        let highPerformance: AgentLoggerConfig =
+            {
+                Formatter = defaultFormatter
+                MaxMessages = Some 5000 // Larger buffer for high throughput
+                DefaultLevel = Level.Warning // Only log warnings and errors
+                FlushThreshold = 1000
+                FlushInterval = TimeSpan.FromSeconds(10.0)
+                MinFlushInterval = TimeSpan.FromSeconds(1.0)
+                MaxFlushInterval = TimeSpan.FromSeconds(30.)
+                ErrorHandler = Some defaultErrorHandler
+            }
 
 
         /// Create default configuration for debugging
-        let debug : AgentLoggerConfig = {
-            Formatter = defaultFormatter
-            MaxMessages = None  // Unlimited message storage
-            DefaultLevel = Level.Debug
-            FlushThreshold = 10
-            FlushInterval = TimeSpan.FromSeconds(1.0)
-            MinFlushInterval = TimeSpan.FromSeconds(1.0)
-            MaxFlushInterval = TimeSpan.FromSeconds(30.)
-            ErrorHandler = Some defaultErrorHandler
-        }
+        let debug: AgentLoggerConfig =
+            {
+                Formatter = defaultFormatter
+                MaxMessages = None // Unlimited message storage
+                DefaultLevel = Level.Debug
+                FlushThreshold = 10
+                FlushInterval = TimeSpan.FromSeconds(1.0)
+                MinFlushInterval = TimeSpan.FromSeconds(1.0)
+                MaxFlushInterval = TimeSpan.FromSeconds(30.)
+                ErrorHandler = Some defaultErrorHandler
+            }
 
 
         /// Create the default configuration for production use
-        let production : AgentLoggerConfig = {
-            Formatter = defaultFormatter
-            MaxMessages = Some 10_000  // Large buffer for production
-            DefaultLevel = Level.Error  // Only log errors in production
-            FlushThreshold = 10
-            FlushInterval = TimeSpan.FromSeconds(1.0)
-            MinFlushInterval = TimeSpan.FromSeconds(1.0)
-            MaxFlushInterval = TimeSpan.FromSeconds(30.)
-            ErrorHandler = Some defaultErrorHandler
-        }
+        let production: AgentLoggerConfig =
+            {
+                Formatter = defaultFormatter
+                MaxMessages = Some 10_000 // Large buffer for production
+                DefaultLevel = Level.Error // Only log errors in production
+                FlushThreshold = 10
+                FlushInterval = TimeSpan.FromSeconds(1.0)
+                MinFlushInterval = TimeSpan.FromSeconds(1.0)
+                MaxFlushInterval = TimeSpan.FromSeconds(30.)
+                ErrorHandler = Some defaultErrorHandler
+            }
 
 
         /// Create a custom configuration with a specified formatter
-        let withFormatter (formatter: IMessage -> string) (config: AgentLoggerConfig) = {
-            config with Formatter = formatter
-        }
+        let withFormatter (formatter: IMessage -> string) (config: AgentLoggerConfig) =
+            { config with Formatter = formatter }
 
 
         /// Create a configuration with a custom message limit
-        let withMaxMessages (maxMessages: int option) (config: AgentLoggerConfig) = {
-            config with MaxMessages = maxMessages
-        }
+        let withMaxMessages (maxMessages: int option) (config: AgentLoggerConfig) =
+            { config with MaxMessages = maxMessages }
 
 
         /// Create a configuration with a custom default level
-        let withLevel (level: Level) (config: AgentLoggerConfig) = {
-            config with DefaultLevel = level
-        }
+        let withLevel (level: Level) (config: AgentLoggerConfig) = { config with DefaultLevel = level }
 
 
         /// Create a configuration with a custom flush interval
-        let withFlushInterval (interval: TimeSpan) (config: AgentLoggerConfig) = {
-            config with FlushInterval = interval
-        }
+        let withFlushInterval (interval: TimeSpan) (config: AgentLoggerConfig) =
+            { config with FlushInterval = interval }
 
 
         /// Create a configuration with a custom flush threshold
-        let withFlushThreshold (threshold: int) (config: AgentLoggerConfig) = {
-            config with FlushThreshold = threshold
-        }
+        let withFlushThreshold (threshold: int) (config: AgentLoggerConfig) =
+            { config with FlushThreshold = threshold }
 
 
         /// Create a configuration with a custom minimum flush interval
-        let withMinFlushInterval (interval: TimeSpan) (config: AgentLoggerConfig) = {
-            config with MinFlushInterval = interval
-        }
+        let withMinFlushInterval (interval: TimeSpan) (config: AgentLoggerConfig) =
+            { config with MinFlushInterval = interval }
 
 
         /// Create a configuration with a custom maximum flush interval
-        let withMaxFlushInterval (interval: TimeSpan) (config: AgentLoggerConfig) = {
-            config with MaxFlushInterval = interval
-        }
+        let withMaxFlushInterval (interval: TimeSpan) (config: AgentLoggerConfig) =
+            { config with MaxFlushInterval = interval }
 
 
     let createAgentLogger (config: AgentLoggerConfig) =
         let cts = new CancellationTokenSource()
         let mutable isDisposed = 0L
 
-        let writer = W.create()
+        let writer = W.create ()
 
         let logger =
             Agent<LoggerMessage>.Start(fun inbox ->
@@ -370,25 +366,36 @@ module AgentLogging =
                 let maxFlushInterval = config.MaxFlushInterval
                 let flushThreshold = config.FlushThreshold
 
-                let scheduleFlush() =
+                let scheduleFlush () =
                     let now = DateTime.UtcNow
-                    let interval =
-                        if messageCountSinceFlush >= flushThreshold then minFlushInterval
-                        elif now - lastFlushTime > maxFlushInterval then maxFlushInterval
-                        else config.FlushInterval
 
-                    if not pendingFlush && interval > TimeSpan.Zero && not cts.Token.IsCancellationRequested then
+                    let interval =
+                        if messageCountSinceFlush >= flushThreshold then
+                            minFlushInterval
+                        elif now - lastFlushTime > maxFlushInterval then
+                            maxFlushInterval
+                        else
+                            config.FlushInterval
+
+                    if
+                        not pendingFlush
+                        && interval > TimeSpan.Zero
+                        && not cts.Token.IsCancellationRequested
+                    then
                         pendingFlush <- true
+
                         async {
                             try
                                 // Respect cancellation during delay
-                                do! Async.AwaitTask (Task.Delay(interval, cts.Token))
+                                do! Async.AwaitTask(Task.Delay(interval, cts.Token))
+
                                 if not cts.Token.IsCancellationRequested then
                                     inbox.Post(FlushTimer)
                             with
                             | :? OperationCanceledException -> ()
                             | :? ObjectDisposedException -> ()
-                        } |> Async.Start
+                        }
+                        |> Async.Start
 
                 let storage =
                     match config.MaxMessages with
@@ -398,7 +405,7 @@ module AgentLogging =
                 let addMessage elapsed ev =
                     match storage with
                     | RingBuffer rb -> RingBuffer.add (elapsed, ev) rb
-                    | UnlimitedList bag -> bag.Add (elapsed, ev)
+                    | UnlimitedList bag -> bag.Add(elapsed, ev)
 
                 let clearMessages () =
                     match storage with
@@ -422,12 +429,16 @@ module AgentLogging =
                         let text =
                             //AgentLoggerDefaults.defaultFormatter ev.Message
                             config.Formatter ev.Message
-                        if String.IsNullOrWhiteSpace text then None
+
+                        if String.IsNullOrWhiteSpace text then
+                            None
                         else
                             sb.Clear() |> ignore
+
                             let header =
                                 sb.AppendFormat("{0}. {1:F3}: {2}", count, elapsed, ev.Level)
                                 |> StringBuilder.toString
+
                             Some [| header; text |]
                     with ex ->
                         errorHandler |> Option.iter (fun h -> h (FormatterError(ex, ev.Message)))
@@ -436,10 +447,13 @@ module AgentLogging =
                 let rec loop (path: string option) (level: Level) (fileInitialized: bool) =
                     async {
                         let! msgOpt = inbox.TryReceive(1000)
+
                         match msgOpt with
                         | None ->
-                            if cts.Token.IsCancellationRequested then return ()
-                            else return! loop path level fileInitialized
+                            if cts.Token.IsCancellationRequested then
+                                return ()
+                            else
+                                return! loop path level fileInitialized
 
                         | Some msg ->
                             match msg with
@@ -449,11 +463,13 @@ module AgentLogging =
                                 reply.Reply(())
                                 return ()
 
-                            | Start (newPath, newLevel) ->
+                            | Start(newPath, newLevel) ->
                                 try
                                     // If switching to a different path, flush and close the previous writer to avoid leaks
                                     match path, newPath with
-                                    | Some oldPath, Some newP when not (String.Equals(oldPath, newP, StringComparison.Ordinal)) ->
+                                    | Some oldPath, Some newP when
+                                        not (String.Equals(oldPath, newP, StringComparison.Ordinal))
+                                        ->
 
                                         W.flush writer |> ignore
                                         W.close oldPath writer |> ignore
@@ -461,78 +477,92 @@ module AgentLogging =
 
                                     | _ -> ()
                                 with ex ->
-                                        ConsoleWriter.writeErrorMessage $"unexpected error in logging agent:\n{ex}" true true
+                                    ConsoleWriter.writeErrorMessage
+                                        $"unexpected error in logging agent:\n{ex}"
+                                        true
+                                        true
                                 // Reset initialization state when (re)starting a path
                                 return! loop newPath newLevel false
 
                             | LogEvent ev ->
-                                let shouldLog =
-                                    Logging.levelValue ev.Level >= Logging.levelValue level
+                                let shouldLog = Logging.levelValue ev.Level >= Logging.levelValue level
+
                                 if shouldLog then
                                     let elapsed = timer.Elapsed.TotalSeconds
                                     addMessage elapsed ev
-                                    let idx = countMessages()
+                                    let idx = countMessages ()
+
                                     match formatLogMessage elapsed idx ev with
                                     | Some lines ->
                                         match path with
                                         | Some p ->
                                             // Create the file lazily on first writing by prepending a header
                                             if not fileInitialized then
-                                                let header = $"Start logging %A{level}: %s{DateTime.Now.ToShortTimeString()}"
+                                                let header =
+                                                    $"Start logging %A{level}: %s{DateTime.Now.ToShortTimeString()}"
+
                                                 Array.append [| header; "" |] lines
                                                 |> fun firstBatch -> W.append p firstBatch writer |> ignore
+
                                                 scheduleFlush ()
                                                 return! loop path level true
                                             // Already initialized; just append the message lines
-                                            W.append p lines writer |> ignore      // async writer
+                                            W.append p lines writer |> ignore // async writer
                                             scheduleFlush ()
                                         // In the console case, print all lines for clarity.
-                                        | None   ->
+                                        | None ->
                                             if level = Level.Debug then
-                                                lines
-                                                |> Array.iter writeDebugMessage // print all lines
+                                                lines |> Array.iter writeDebugMessage // print all lines
                                     | None -> ()
+
                                     messageCountSinceFlush <- messageCountSinceFlush + 1
                                     scheduleFlush ()
+
                                 return! loop path level fileInitialized
 
                             | FlushTimer ->
                                 pendingFlush <- false
+
                                 try
                                     do! W.flushAsync writer
                                     lastFlushTime <- DateTime.UtcNow
                                     messageCountSinceFlush <- 0
-                                with
-                                | ex -> config.ErrorHandler |> Option.iter (fun h -> FileWriteError (ex, "flush") |> h)
+                                with ex ->
+                                    config.ErrorHandler |> Option.iter (fun h -> FileWriteError(ex, "flush") |> h)
+
                                 return! loop path level fileInitialized
 
                             | Report reply ->
                                 // produce formatted lines (oldest -> newest)
                                 let lines =
-                                    iterMessages()
+                                    iterMessages ()
                                     |> Seq.mapi (fun i (t, e) -> formatLogMessage t (i + 1) e)
                                     |> Seq.choose id
                                     |> Seq.collect id
                                     |> Array.ofSeq
+
                                 reply.Reply(lines)
                                 return! loop path level fileInitialized
 
-                            | Write (filePath, reply) ->
+                            | Write(filePath, reply) ->
                                 // fire-and-forget write of a snapshot
                                 let result =
                                     try
                                         let allLines =
-                                            iterMessages()
+                                            iterMessages ()
                                             |> Seq.mapi (fun i (t, e) -> formatLogMessage t (i + 1) e)
                                             |> Seq.choose id
                                             |> Seq.collect id
                                             |> Array.ofSeq
+
                                         W.append filePath allLines writer |> ignore // no flush here
-                                        Ok ()
-                                    with ex -> Error ex.Message
+                                        Ok()
+                                    with ex ->
+                                        Error ex.Message
+
                                 reply.Reply(result)
                                 return! loop path level fileInitialized
-                }
+                    }
 
                 loop None config.DefaultLevel false
             )
@@ -541,79 +571,85 @@ module AgentLogging =
         logger.OnError.Add(fun ex -> eprintfn $"Agent body error: %s{ex.Message}")
 
         let ensureNotDisposed () =
-            if Interlocked.Read(&isDisposed) = 1L then invalidOp "Logger agent has been disposed"
+            if Interlocked.Read(&isDisposed) = 1L then
+                invalidOp "Logger agent has been disposed"
 
-        let disposeAsync () = async {
-            if Interlocked.CompareExchange(&isDisposed, 1L, 0L) = 0L then
-                try
-                    // First, stop the logger agent gracefully
-                    do! logger.PostAndAsyncReply(fun rc -> Stop rc)
+        let disposeAsync () =
+            async {
+                if Interlocked.CompareExchange(&isDisposed, 1L, 0L) = 0L then
+                    try
+                        // First, stop the logger agent gracefully
+                        do! logger.PostAndAsyncReply(fun rc -> Stop rc)
 
-                    // Then clean up the file writer
-                    do! W.flushAsync writer
-                    do! W.stopAsync writer
+                        // Then clean up the file writer
+                        do! W.flushAsync writer
+                        do! W.stopAsync writer
 
-                    // Finally, clean up other resources
-                    cts.Cancel()
-                    cts.Dispose()
-                    writer |> Agent.dispose
-                    logger |> Agent.dispose
-                    return Disposed
-                with ex ->
-                    eprintfn $"Error during disposal: %s{ex.Message}"
-                    return DisposeError ex
-            else
-                return AlreadyDisposed
-        }
+                        // Finally, clean up other resources
+                        cts.Cancel()
+                        cts.Dispose()
+                        writer |> Agent.dispose
+                        logger |> Agent.dispose
+                        return Disposed
+                    with ex ->
+                        eprintfn $"Error during disposal: %s{ex.Message}"
+                        return DisposeError ex
+                else
+                    return AlreadyDisposed
+            }
 
 
         // Create the AgentLogger with proper disposal interfaces
         {
-            Start = fun path level ->
-                    ensureNotDisposed()
+            Start =
+                fun path level ->
+                    ensureNotDisposed ()
                     // TODO: this can be a problem if there is a long list of messages still
                     // being processed
-                    do logger.Post (Start(path, level))
+                    do logger.Post(Start(path, level))
 
             Logger =
-                { Log = fun ev ->
-                    if Interlocked.Read(&isDisposed) = 0L then
-                        try
-                            logger.Post(LogEvent ev)
-                        with
-                        | :? ObjectDisposedException -> ()
-                        | ex -> eprintfn $"Failed to post log event {ev} with:\n{ex.Message}"
+                {
+                    Log =
+                        fun ev ->
+                            if Interlocked.Read(&isDisposed) = 0L then
+                                try
+                                    logger.Post(LogEvent ev)
+                                with
+                                | :? ObjectDisposedException -> ()
+                                | ex -> eprintfn $"Failed to post log event {ev} with:\n{ex.Message}"
                 }
 
-            ReportAsync = fun () ->
-                async {
-                    ensureNotDisposed()
-                    return! logger.PostAndAsyncReply(fun rc -> Report rc)
-                }
+            ReportAsync =
+                fun () ->
+                    async {
+                        ensureNotDisposed ()
+                        return! logger.PostAndAsyncReply(fun rc -> Report rc)
+                    }
 
-            WriteAsync = fun path ->
-                async {
-                    ensureNotDisposed()
-                    return! logger.PostAndAsyncReply(fun rc -> Write(path, rc))
-                }
+            WriteAsync =
+                fun path ->
+                    async {
+                        ensureNotDisposed ()
+                        return! logger.PostAndAsyncReply(fun rc -> Write(path, rc))
+                    }
 
-            FlushAsync = fun () ->
-                async {
-                    ensureNotDisposed()
-                    logger.Post(FlushTimer)
-                    return ()
-                }
+            FlushAsync =
+                fun () ->
+                    async {
+                        ensureNotDisposed ()
+                        logger.Post(FlushTimer)
+                        return ()
+                    }
 
-            StopAsync = fun () ->
-                async {
-                    // Stop the pipeline; further logging will be ignored due to isDisposed flag
-                    do! disposeAsync() |> Async.Ignore
-                }
+            StopAsync =
+                fun () ->
+                    async {
+                        // Stop the pipeline; further logging will be ignored due to isDisposed flag
+                        do! disposeAsync () |> Async.Ignore
+                    }
 
-            DisposeWorkAsync = fun () ->
-                async {
-                    return! disposeAsync()
-                }
+            DisposeWorkAsync = fun () -> async { return! disposeAsync () }
         }
 
 

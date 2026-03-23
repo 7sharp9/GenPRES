@@ -19,17 +19,14 @@ module OrderLogging =
     module Mapping = EquationMapping
 
 
-    let printOrderEqs (o : Order) eqs =
+    let printOrderEqs (o: Order) eqs =
         let toEqString op vs =
             vs
             |> List.sortBy (fun vs -> vs |> List.head)
             |> List.map (fun vs ->
                 match vs with
-                | h::tail ->
-                    let s =
-                        tail
-                        |> List.map (OrderVariable.toString false)
-                        |> String.concat op
+                | h :: tail ->
+                    let s = tail |> List.map (OrderVariable.toString false) |> String.concat op
                     $"{h |> OrderVariable.toString false} = {s}"
                 | _ -> ""
             )
@@ -53,62 +50,56 @@ module OrderLogging =
             |> Solver.mapToOrderEqs (o |> Order.mapToOrderEquations mapping)
             |> List.map (fun e ->
                 match e with
-                | OrderProductEquation (ovar, ovars)
-                | OrderSumEquation (ovar, ovars) -> ovar::ovars
+                | OrderProductEquation(ovar, ovars)
+                | OrderSumEquation(ovar, ovars) -> ovar :: ovars
             )
             |> fun xs ->
-        $"""
+                $"""
         {(xs |> toEqString " * ").Replace(s, "")}
         {(xs |> toEqString " + ").Replace(s, "")}
         """
-        with
-        | e ->
+        with e ->
             writeErrorMessage $"error printing: {e.ToString()}"
             ""
 
 
-    let printOrderEvent = function
+    let printOrderEvent =
+        function
         | Events.MinIncrMaxToValues ovar ->
             $"OrderVariable to values {ovar.Variable |> Variable.count}: {ovar |> OrderVariable.toString true}"
 
-        | Events.SolverReplaceUnit (n, u) ->
-            $"replaced {n |> Name.toString} unit with {u |> ValueUnit.unitToString}"
+        | Events.SolverReplaceUnit(n, u) -> $"replaced {n |> Name.toString} unit with {u |> ValueUnit.unitToString}"
 
-        | Events.OrderSolveStarted o ->
-            $"=== Order ({o.Orderable.Name |> Name.toString}) Solver Started ==="
+        | Events.OrderSolveStarted o -> $"=== Order ({o.Orderable.Name |> Name.toString}) Solver Started ==="
 
-        | Events.OrderSolveFinished o ->
-            $"=== Order ({o.Orderable.Name |> Name.toString}) Solver Finished ==="
+        | Events.OrderSolveFinished o -> $"=== Order ({o.Orderable.Name |> Name.toString}) Solver Finished ==="
 
-        | Events.OrderSolveConstraintsStarted (o, cs) ->
+        | Events.OrderSolveConstraintsStarted(o, cs) ->
             $"=== Order ({o.Orderable.Name |> Name.toString}) Solver Constraints Started ({cs.Length} constraints) ==="
 
-        | Events.OrderSolveConstraintsFinished (o, cs) ->
+        | Events.OrderSolveConstraintsFinished(o, cs) ->
             $"=== Order ({o.Orderable.Name |> Name.toString}) Solver Constraints Finished ({cs.Length} constraints) ==="
 
         | Events.OrderScenario s -> s
 
-        | Events.OrderScenarioWithNameValue (o, n, v) ->
+        | Events.OrderScenarioWithNameValue(o, n, v) ->
             let (Id oid) = o.Id
             $"Scenario {oid}: {n |> Name.toString} = {v}"
 
-        | Events.MedicationCreated m ->
-            $"Medication created:\n\n{m}\n"
+        | Events.MedicationCreated m -> $"Medication created:\n\n{m}\n"
 
         | Events.ComponentItemsHarmonized s -> s
 
-        | Events.OrderIncreaseQuantityIncrement _ ->
-            $"increased quantity increment"
+        | Events.OrderIncreaseQuantityIncrement _ -> $"increased quantity increment"
 
-        | Events.OrderIncreaseRateIncrement _ ->
-            $"increased rate increment"
+        | Events.OrderIncreaseRateIncrement _ -> $"increased rate increment"
 
 
-    let printOrderException = function
+    let printOrderException =
+        function
         | Exceptions.OrderCouldNotBeSolved(s, o) ->
             $"Order could not be solved: {s} for order {o.Orderable.Name |> Name.toString}"
-        | Exceptions.OrderCouldNotBeCreated exn ->
-            $"Order could not be created:\n%A{exn}"
+        | Exceptions.OrderCouldNotBeCreated exn -> $"Order could not be created:\n%A{exn}"
 
 
     /// Format order messages using the IMessage interface
@@ -128,10 +119,12 @@ module OrderLogging =
 
     /// Create an order-specific logger using the general logging framework
     let createLogger (baseLogger: Logger option) =
-        let formatter = MessageFormatter.create [
-            typeof<OrderMessage>, formatOrderMessage
-            typeof<SolverMessage>, SolverLogging.formatSolverMessage
-        ]
+        let formatter =
+            MessageFormatter.create
+                [
+                    typeof<OrderMessage>, formatOrderMessage
+                    typeof<SolverMessage>, SolverLogging.formatSolverMessage
+                ]
 
         match baseLogger with
         | Some logger -> logger
@@ -140,28 +133,32 @@ module OrderLogging =
 
     /// Create a file-based order logger
     let createFileLogger (path: string) =
-        MessageFormatter.create [
-            typeof<OrderMessage>, formatOrderMessage
-            typeof<SolverMessage>, SolverLogging.formatSolverMessage
-        ]
+        MessageFormatter.create
+            [
+                typeof<OrderMessage>, formatOrderMessage
+                typeof<SolverMessage>, SolverLogging.formatSolverMessage
+            ]
         |> Logging.createFile path
 
 
     let createConsoleLogger () =
-        MessageFormatter.create [
-            typeof<OrderMessage>, formatOrderMessage
-            typeof<SolverMessage>, SolverLogging.formatSolverMessage
-        ]
+        MessageFormatter.create
+            [
+                typeof<OrderMessage>, formatOrderMessage
+                typeof<SolverMessage>, SolverLogging.formatSolverMessage
+            ]
         |> Logging.createConsole
 
     /// Create an agent-based order logger
     let createAgentLogger config =
         let formatter =
-            MessageFormatter.create [
-                typeof<OrderMessage>, formatOrderMessage
-                typeof<SolverMessage>, SolverLogging.formatSolverMessage
-                typeof<Informedica.GenForm.Lib.Types.Message>, Informedica.GenForm.Lib.FormLogging.formatMessage
-            ]
+            MessageFormatter.create
+                [
+                    typeof<OrderMessage>, formatOrderMessage
+                    typeof<SolverMessage>, SolverLogging.formatSolverMessage
+                    typeof<Informedica.GenForm.Lib.Types.Message>, Informedica.GenForm.Lib.FormLogging.formatMessage
+                ]
+
         config
         |> AgentLogging.AgentLoggerDefaults.withFormatter formatter
         |> AgentLogging.createAgentLogger
@@ -169,35 +166,30 @@ module OrderLogging =
 
     /// Convenience functions for logging order events
     let logOrderEvent (logger: Logger) (event: Events.Event) =
-        event
-        |> OrderEventMessage
-        |> Logging.logInfo logger
+        event |> OrderEventMessage |> Logging.logInfo logger
 
 
     let logOrderWarning (logger: Logger) (event: Events.Event) =
-        event
-        |> OrderEventMessage
-        |> Logging.logWarning logger
+        event |> OrderEventMessage |> Logging.logWarning logger
 
 
     let logOrderException (logger: Logger) (ex: Exceptions.Message) =
-        ex
-        |> OrderException
-        |> Logging.logError logger
+        ex |> OrderException |> Logging.logError logger
 
 
     /// Enhanced print function that can handle messages with context
-    let printOrderMsgWithContext (msgs : ResizeArray<float * Event> option) (msg : Event) =
+    let printOrderMsgWithContext (msgs: ResizeArray<float * Event> option) (msg: Event) =
         match msg.Message with
         | :? OrderMessage as m ->
             match m with
-            | OrderException(Exceptions.OrderCouldNotBeCreated exn) ->
-                $"Order couldn not be created:\n{exn}"
-            | OrderException (Exceptions.OrderCouldNotBeSolved(s, o)) ->
-                writeErrorMessage $"""
+            | OrderException(Exceptions.OrderCouldNotBeCreated exn) -> $"Order couldn not be created:\n{exn}"
+            | OrderException(Exceptions.OrderCouldNotBeSolved(s, o)) ->
+                writeErrorMessage
+                    $"""
 printing error for order {o.Orderable.Name |> Name.toString}
 messages: {msgs.Value.Count}
 """
+
                 let eqs =
                     match msgs with
                     | Some msgs ->
@@ -209,14 +201,14 @@ messages: {msgs.Value.Count}
                                 match solverMsg with
                                 | SolverMessage.ExceptionMessage m ->
                                     match m with
-                                    | Informedica.GenSolver.Lib.Types.Exceptions.SolverErrored (_, _, eqs) ->
-                                        Some eqs
+                                    | Informedica.GenSolver.Lib.Types.Exceptions.SolverErrored(_, _, eqs) -> Some eqs
                                     | _ -> None
                                 | _ -> None
                             | _ -> None
                         )
                         |> fun xs ->
-                            writeInfoMessage $"found {xs |> Array.length}"; xs
+                            writeInfoMessage $"found {xs |> Array.length}"
+                            xs
                         |> Array.tryHead
                     | None -> None
 
@@ -237,16 +229,21 @@ messages: {msgs.Value.Count}
 
     /// Backward compatibility - create a logger that matches the old interface
     let create (f: string -> unit) =
-        let formatter = MessageFormatter.create [
-            typeof<OrderMessage>, formatOrderMessage
-            typeof<SolverMessage>, SolverLogging.formatSolverMessage
-        ]
+        let formatter =
+            MessageFormatter.create
+                [
+                    typeof<OrderMessage>, formatOrderMessage
+                    typeof<SolverMessage>, SolverLogging.formatSolverMessage
+                ]
 
         {
-            Log = fun event ->
-                event.Message
-                |> formatter
-                |> fun s -> if not (String.IsNullOrEmpty s) then f s
+            Log =
+                fun event ->
+                    event.Message
+                    |> formatter
+                    |> fun s ->
+                        if not (String.IsNullOrEmpty s) then
+                            f s
         }
 
 
@@ -260,16 +257,14 @@ messages: {msgs.Value.Count}
     /// <param name="verbose">Also print the Order</param>
     /// <param name="ns">The items to print</param>
     /// <param name="orders">The list of Orders</param>
-    let printScenarios verbose ns (orders : Order list) =
+    let printScenarios verbose ns (orders: Order list) =
         let w =
             match orders with
-            | h::_ ->
-                h.Adjust
-                |> Quantity.toValueUnitStringList
-                |> Option.defaultValue ""
+            | h :: _ -> h.Adjust |> Quantity.toValueUnitStringList |> Option.defaultValue ""
             | _ -> ""
 
         writeInfoMessage $"\n\n=== SCENARIOS for Weight: %s{w} ==="
+
         orders
         |> List.iteri (fun i o ->
             o

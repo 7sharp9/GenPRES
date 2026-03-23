@@ -21,11 +21,7 @@ module Solver =
     /// <param name="eqs">The list of Equations</param>
     let sortByName eqs =
         eqs
-        |> List.sortBy (fun e ->
-            e
-            |> Equation.toVars
-            |> List.head
-            |> Variable.getName)
+        |> List.sortBy (fun e -> e |> Equation.toVars |> List.head |> Variable.getName)
 
 
     /// <summary>
@@ -39,10 +35,12 @@ module Solver =
     let printEqs exact pf eqs =
 
         "equations result:\n" |> pf
+
         eqs
         |> sortByName
         |> List.map (Equation.toString exact)
-        |> List.iteri (fun i s -> $"%i{i}.\t%s{s}"  |> pf)
+        |> List.iteri (fun i s -> $"%i{i}.\t%s{s}" |> pf)
+
         "-----" |> pf
 
         eqs
@@ -68,17 +66,9 @@ module Solver =
     let replace vars eqs =
         let rpl, rst =
             eqs
-            |> List.partition (fun e ->
-                vars
-                |> List.exists (fun v -> e |> Equation.contains v)
-            )
+            |> List.partition (fun e -> vars |> List.exists (fun v -> e |> Equation.contains v))
 
-        vars
-        |> List.fold (fun acc v ->
-            acc
-            |> List.map (Equation.replace v)
-        ) rpl
-        , rst
+        vars |> List.fold (fun acc v -> acc |> List.map (Equation.replace v)) rpl, rst
 
 
     /// <summary>
@@ -122,8 +112,9 @@ module Solver =
         let rec loop n que acc =
             match acc with
             | Error _ -> acc
-            | Ok acc  ->
+            | Ok acc ->
                 let n = n + 1
+
                 if n > (que @ acc |> List.length) * Constants.MAX_LOOP_COUNT then
                     writeErrorMessage $"too many loops: {n}"
 
@@ -132,19 +123,15 @@ module Solver =
                     |> Exceptions.raiseExc (Some log) []
 
                 let que =
-                    let sorted =
-                        que
-                        |> sortQue onlyMinIncrMax
+                    let sorted = que |> sortQue onlyMinIncrMax
 
-                    (n, sorted)
-                    |> Events.SolverLoopedQue
-                    |> Logger.logDebug log
+                    (n, sorted) |> Events.SolverLoopedQue |> Logger.logDebug log
 
                     sorted |> List.map snd
 
                 match que with
                 | [] -> acc |> Ok
-                    (*
+                (*
                     // can be used for debugging purposes
                     match acc |> List.filter (Equation.check onlyMinIncrMax >> not) with
                     | []      -> acc |> Ok
@@ -156,16 +143,13 @@ module Solver =
                         |> Exceptions.raiseExc (Some log) []
                     *)
 
-                | eq::tail ->
+                | eq :: tail ->
                     // need to calculate a result first to enable tail call optimization
                     let q, r =
                         // If the equation is already solved or not solvable,
                         // just put it to the accumulated equations and go on with the rest
                         if eq |> Equation.isSolvable |> not then
-                            tail,
-                            [ eq ]
-                            |> List.append acc
-                            |> Ok
+                            tail, [ eq ] |> List.append acc |> Ok
                         // Else go solve the equation
                         else
                             match eq |> solveE n (acc @ que) with
@@ -178,54 +162,42 @@ module Solver =
                                 acc
                                 |> replace vars
                                 |> function
-                                | rpl, rst ->
-                                    // replace vars in the que tail
-                                    let que =
-                                        tail
-                                        |> replace vars
-                                        |> function
-                                        | es1, es2 ->
-                                            es1
-                                            |> List.append es2
-                                            |> List.append rpl
+                                    | rpl, rst ->
+                                        // replace vars in the que tail
+                                        let que =
+                                            tail
+                                            |> replace vars
+                                            |> function
+                                                | es1, es2 -> es1 |> List.append es2 |> List.append rpl
 
-                                    que,
-                                    rst
-                                    |> List.append [ eq ]
-                                    |> Ok
+                                        que, rst |> List.append [ eq ] |> Ok
 
                             // Equation did not in fact change, so put it to
                             // the accumulated equations and go on with the rest
-                            | eq, Unchanged ->
-                                tail,
-                                [eq]
-                                |> List.append acc
-                                |> Ok
+                            | eq, Unchanged -> tail, [ eq ] |> List.append acc |> Ok
 
                             | eq, Errored m ->
                                 [],
-                                [eq] // TODO: check if this is right
+                                [ eq ] // TODO: check if this is right
                                 |> List.append acc
                                 |> List.append que
-                                |> fun eqs ->
-                                    Error (eqs, m)
+                                |> fun eqs -> Error(eqs, m)
+
                     loop n q r
 
         match var with
-        | None     -> eqs, []
-        | Some var -> eqs |> replace [var]
+        | None -> eqs, []
+        | Some var -> eqs |> replace [ var ]
         |> function
-        | rpl, rst ->
-            try
-                match rpl with
-                | [] -> eqs |> Ok
-                | _  ->
-                    (onlyMinIncrMax, rpl)
-                    |> Events.SolverStartSolving
-                    |> Logger.logDebug log
+            | rpl, rst ->
+                try
+                    match rpl with
+                    | [] -> eqs |> Ok
+                    | _ ->
+                        (onlyMinIncrMax, rpl) |> Events.SolverStartSolving |> Logger.logDebug log
 
-                    loop 0 rpl (Ok rst)
-                    (*
+                        loop 0 rpl (Ok rst)
+                (*
                     // switch to different mechanism to either
                     // sequential solve equations or in parallel
                     if onlyMinIncrMax (* || not useParallel*) then
@@ -235,27 +207,22 @@ module Solver =
                         // more efficient with longer running calculations
                         parallelLoop onlyMinIncrMax log sortQue 0 rpl (Ok rst)
                     *)
-            with
-            | Exceptions.SolverException errs  ->
-                 Error (rpl @ rst, errs)
-            | e ->
-                let msg = $"something unexpected happened, didn't catch {e}"
-                writeErrorMessage msg
-                msg |> failwith
+                with
+                | Exceptions.SolverException errs -> Error(rpl @ rst, errs)
+                | e ->
+                    let msg = $"something unexpected happened, didn't catch {e}"
+                    writeErrorMessage msg
+                    msg |> failwith
 
-            |> function
-            | Ok eqs ->
-                eqs
-                |> Events.SolverFinishedSolving
-                |> Logger.logDebug log
+                |> function
+                    | Ok eqs ->
+                        eqs |> Events.SolverFinishedSolving |> Logger.logDebug log
 
-                eqs |> Ok
-            | Error (eqs, m) ->
-                eqs
-                |> Events.SolverFinishedSolving
-                |> Logger.logDebug log
+                        eqs |> Ok
+                    | Error(eqs, m) ->
+                        eqs |> Events.SolverFinishedSolving |> Logger.logDebug log
 
-                Error (eqs, m)
+                        Error(eqs, m)
 
 
     /// <summary>
@@ -270,16 +237,18 @@ module Solver =
     /// <returns></returns>
     let solveVariable onlyMinIncrMax log sortQue vr eqs =
         let n1 = eqs |> List.length
-        let solve =
-            solve onlyMinIncrMax log sortQue (Some vr)
+        let solve = solve onlyMinIncrMax log sortQue (Some vr)
 
         match solve eqs with
-        | Error (eqs, errs) -> Error (eqs, errs)
+        | Error(eqs, errs) -> Error(eqs, errs)
         | Ok eqs ->
             //TODO: need to clean up the number check
             let n2 = eqs |> List.length
-            if n2 <> n1 then failwith $"not the same number of eqs, was: {n1}, now {n2}"
-            else Ok eqs
+
+            if n2 <> n1 then
+                failwith $"not the same number of eqs, was: {n1}, now {n2}"
+            else
+                Ok eqs
 
 
     /// <summary>
@@ -292,13 +261,15 @@ module Solver =
     /// <returns></returns>
     let solveAll onlyMinIncrMax log eqs =
         let n1 = eqs |> List.length
-        let solve =
-            solve onlyMinIncrMax log sortQue None
+        let solve = solve onlyMinIncrMax log sortQue None
 
         match solve eqs with
-        | Error (eqs, errs) -> Error (eqs, errs)
+        | Error(eqs, errs) -> Error(eqs, errs)
         | Ok eqs ->
             //TODO: need to clean up the number check
             let n2 = eqs |> List.length
-            if n2 <> n1 then failwith $"not the same number of eqs, was: {n1}, now {n2}"
-            else Ok eqs
+
+            if n2 <> n1 then
+                failwith $"not the same number of eqs, was: {n1}, now {n2}"
+            else
+                Ok eqs

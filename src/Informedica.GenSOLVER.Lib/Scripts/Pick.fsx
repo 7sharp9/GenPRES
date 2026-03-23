@@ -28,11 +28,10 @@ open Informedica.GenUnits.Lib
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
 
-
 module Solve =
 
     let procss s =
-        File.AppendAllLines("order.log", [s])
+        File.AppendAllLines("order.log", [ s ])
         $"{s} " |> printfn "%s"
 
 
@@ -41,120 +40,109 @@ module Solve =
 
     let solve b n p eqs =
         let logger =
-            fun s ->
-                File.AppendAllLines("order.log", [s])
+            fun s -> File.AppendAllLines("order.log", [ s ])
             |> SolverLogging.create
+
         let n = n |> Name.createExc
+
         try
-            Api.solve b Solver.sortQue logger n p eqs
-            |> Result.get
-        with
-        | _ ->
+            Api.solve b Solver.sortQue logger n p eqs |> Result.get
+        with _ ->
             procss $"cannot set {n |> Name.toString} with {p}"
             eqs
 
     let create c u v =
         let u = u |> Units.fromString
-        v
-        |> ValueUnit.create u.Value
-        |> c
+        v |> ValueUnit.create u.Value |> c
 
-    let solveIncr n incr u = solve true n (create (Increment.create >> IncrProp) u [|incr|])
-    let solveMinIncl n min u = solve true n (create (Minimum.create true >> MinProp) u [|min|])
-    let solveMinExcl n min u = solve true n (create (Minimum.create false >> MinProp) u [|min|])
-    let solveMaxIncl n max u = solve true n (create (Maximum.create true >> MaxProp) u [|max|])
-    let solveMaxExcl n max u = solve true n (create (Maximum.create false >> MaxProp) u [|max|])
-    let solveValues n vs u = solve true n (create (ValueSet.create >> ValsProp) u (vs |> List.toArray))
+    let solveIncr n incr u =
+        solve true n (create (Increment.create >> IncrProp) u [| incr |])
+
+    let solveMinIncl n min u =
+        solve true n (create (Minimum.create true >> MinProp) u [| min |])
+
+    let solveMinExcl n min u =
+        solve true n (create (Minimum.create false >> MinProp) u [| min |])
+
+    let solveMaxIncl n max u =
+        solve true n (create (Maximum.create true >> MaxProp) u [| max |])
+
+    let solveMaxExcl n max u =
+        solve true n (create (Maximum.create false >> MaxProp) u [| max |])
+
+    let solveValues n vs u =
+        solve true n (create (ValueSet.create >> ValsProp) u (vs |> List.toArray))
 
 
-    let init     = Api.init
+    let init = Api.init
     let nonZeroNegative = Api.nonZeroNegative
 
 
-    type Take = | TakeFromMin of int | TakeFromMax of int
+    type Take =
+        | TakeFromMin of int
+        | TakeFromMax of int
 
 
-    let pick s incr u take (eqs : Equation list) =
+    let pick s incr u take (eqs: Equation list) =
         printfn $"== start picking values from {s} =="
-        let solve n vs u =
-            solve false n
-                (create (ValueSet.create >> ValsProp) u (vs |> List.toArray))
 
-        let incr =
-            incr
-            |> Option.map (fun br ->
-                [|br|]
-                |> create Increment.create u
-            )
+        let solve n vs u =
+            solve false n (create (ValueSet.create >> ValsProp) u (vs |> List.toArray))
+
+        let incr = incr |> Option.map (fun br -> [| br |] |> create Increment.create u)
 
         let var =
             eqs
             |> List.collect Equation.toVars
-            |> List.tryFind (fun v ->
-                v
-                |> Variable.getName
-                |> Name.toString
-                |> fun x -> x = s
-            )
+            |> List.tryFind (fun v -> v |> Variable.getName |> Name.toString |> (fun x -> x = s))
             |> Option.get
 
         match var.Values |> ValueRange.getValSet with
-        | None    ->
+        | None ->
             match incr with
             | None -> eqs
             | Some incr ->
-                let min, max =
-                    var.Values |> ValueRange.getMin,
-                    var.Values |> ValueRange.getMax
+                let min, max = var.Values |> ValueRange.getMin, var.Values |> ValueRange.getMax
 
                 match min, max with
                 | Some min, Some max ->
                     printfn $"{min} - {incr} - {max}"
-                    let vs =
-                        ValueSet.minIncrMaxToValueSet
-                            min
-                            incr
-                            max
+                    let vs = ValueSet.minIncrMaxToValueSet min incr max
+
                     let brs =
                         take
                         |> function
-                        | TakeFromMin x ->
-                            vs |> ValueSet.toValueUnit |> ValueUnit.getValue |>  Array.take x
-                        | TakeFromMax x ->
-                            vs |> ValueSet.toValueUnit |> ValueUnit.getValue |> Array.rev |>  Array.take x
+                            | TakeFromMin x -> vs |> ValueSet.toValueUnit |> ValueUnit.getValue |> Array.take x
+                            | TakeFromMax x ->
+                                vs |> ValueSet.toValueUnit |> ValueUnit.getValue |> Array.rev |> Array.take x
                         |> Array.toList
+
                     eqs
-                    |> solve s brs
-                           (min |> Minimum.toValueUnit |> ValueUnit.getUnit |> Units.toStringEngShort)
+                    |> solve s brs (min |> Minimum.toValueUnit |> ValueUnit.getUnit |> Units.toStringEngShort)
                 | _ -> eqs
-        | Some (ValueSet vs) ->
+        | Some(ValueSet vs) ->
             let brs =
                 match take with
                 | TakeFromMin x ->
-                        let x =
-                            if x <= (vs |> ValueUnit.getValue |> Array.length) then x
-                            else
-                                (vs |> ValueUnit.getValue |> Array.length)
-                        vs
-                        |> ValueUnit.getValue
-                        |> Array.take x
-                        |> Array.toList
+                    let x =
+                        if x <= (vs |> ValueUnit.getValue |> Array.length) then
+                            x
+                        else
+                            (vs |> ValueUnit.getValue |> Array.length)
+
+                    vs |> ValueUnit.getValue |> Array.take x |> Array.toList
                 | TakeFromMax x ->
-                        let x =
-                            if x <= (vs |> ValueUnit.getValue |> Array.length) then x
-                            else
-                                (vs |> ValueUnit.getValue |> Array.length)
-                        vs
-                        |> ValueUnit.getValue
-                        |> Array.rev
-                        |> Array.take x
-                        |> Array.toList
+                    let x =
+                        if x <= (vs |> ValueUnit.getValue |> Array.length) then
+                            x
+                        else
+                            (vs |> ValueUnit.getValue |> Array.length)
+
+                    vs |> ValueUnit.getValue |> Array.rev |> Array.take x |> Array.toList
 
             try
-                eqs
-                |> solveValues s brs (vs |> ValueUnit.getUnit |> Units.toStringEngShort)
-            with
-            | _ ->
+                eqs |> solveValues s brs (vs |> ValueUnit.getUnit |> Units.toStringEngShort)
+            with _ ->
                 printfn $"cannot set {vs}"
                 eqs
 
@@ -163,18 +151,16 @@ module Solve =
             res
 
 
-    type Orb =
-        {
-            Components : Component list
-        }
+    type Orb = { Components: Component list }
+
     and Component =
         {
-            Name : string
-            Items : string list
+            Name: string
+            Items: string list
         }
 
 
-    let createEqs (orb : Orb) =
+    let createEqs (orb: Orb) =
         [
             "itm_cmp_qty = itm_cmp_cnc * cmp_qty"
             "itm_orb_qty = itm_orb_cnc * orb_qty"
@@ -241,63 +227,48 @@ module Solve =
         ]
         |> fun eqs ->
             let eqs = eqs |> List.map (fun s -> $" {s}")
-            let sumEqs =
-                eqs
-                |> List.filter _.Contains("sum")
+            let sumEqs = eqs |> List.filter _.Contains("sum")
 
             let eqs = eqs |> List.filter (fun e -> e.Contains("sum") |> not)
-            let itmEqs =
-                eqs
-                |> List.filter _.Contains("itm")
+            let itmEqs = eqs |> List.filter _.Contains("itm")
 
             let cmpEqs =
                 eqs
-                |> List.filter (fun e ->
-                    itmEqs
-                    |> List.exists ((=) e)
-                    |> not &&
-                    e.Contains("cmp")
-                )
+                |> List.filter (fun e -> itmEqs |> List.exists ((=) e) |> not && e.Contains("cmp"))
+
             let orbEqs =
                 eqs
-                |> List.filter (fun e ->
-                    itmEqs
-                    |> List.exists ((=) e)
-                    |> not &&
-                    cmpEqs
-                    |> List.exists((=) e)
-                    |> not
-                )
+                |> List.filter (fun e -> itmEqs |> List.exists ((=) e) |> not && cmpEqs |> List.exists ((=) e) |> not)
 
             orb.Components
-            |> List.fold (fun acc c ->
-                let itms =
-                    c.Items
-                    |> List.collect (fun i ->
-                        itmEqs
-                        |> List.map _.Replace(" cmp", $" {c.Name}").Replace(" itm", $" {i}")
-                    )
-                let cmps =
-                    cmpEqs
-                    |> List.map _.Replace(" cmp", $" {c.Name}")
+            |> List.fold
+                (fun acc c ->
+                    let itms =
+                        c.Items
+                        |> List.collect (fun i ->
+                            itmEqs |> List.map _.Replace(" cmp", $" {c.Name}").Replace(" itm", $" {i}")
+                        )
 
-                itms @ cmps @ acc
-            ) []
+                    let cmps = cmpEqs |> List.map _.Replace(" cmp", $" {c.Name}")
+
+                    itms @ cmps @ acc
+                )
+                []
             |> fun es ->
                 let sumEqs =
                     sumEqs
                     |> List.map (fun e ->
                         match e.Replace("sum(", "").Replace(")", "").Split(" = ") with
-                        | [|lv; rv|] ->
+                        | [| lv; rv |] ->
                             orb.Components
-                            |> List.map(fun c -> rv.Replace("cmp", c.Name))
-                            |> String.concat(" + ")
+                            |> List.map (fun c -> rv.Replace("cmp", c.Name))
+                            |> String.concat (" + ")
                             |> fun s -> $"{lv} = {s}"
                         | _ -> ""
                     )
+
                 es @ orbEqs @ sumEqs
         |> Api.init
-
 
 
 open Solve
@@ -309,94 +280,90 @@ let gentaEqs =
             [
                 {
                     Name = "genta_sol"
-                    Items = ["gentamicin"]
+                    Items = [ "gentamicin" ]
                 }
                 {
                     Name = "saline"
-                    Items = ["sodium"; "chloride"]
+                    Items = [ "sodium"; "chloride" ]
                 }
             ]
     }
     |> createEqs
 
 
-
 // find min/max scenarios
 gentaEqs
 //|> printEqs
 // patient
-|> solveValues "ord_adj" [10N] "kg[Weight]"
+|> solveValues "ord_adj" [ 10N ] "kg[Weight]"
 //|> printEqs
 // product
-|> solveValues "genta_sol_qty" [2N; 10N] "ml[Volume]"
-|> solveValues "gentamicin_cmp_cnc" [10N; 40N] "mg[Mass]/ml[Volume]"
-|> solveValues "gentamicin_cmp_qty" [20N;80N;400N]  "mg[Mass]"
+|> solveValues "genta_sol_qty" [ 2N; 10N ] "ml[Volume]"
+|> solveValues "gentamicin_cmp_cnc" [ 10N; 40N ] "mg[Mass]/ml[Volume]"
+|> solveValues "gentamicin_cmp_qty" [ 20N; 80N; 400N ] "mg[Mass]"
 //|> printEqs
 // preparation
 |> solveMaxIncl "gentamicin_orb_cnc" 2N "mg[Mass]/ml[Volume]" // max conc
 //|> solveMinIncl "orb_qty_adj" 5N "ml[Volume]/kg[Weight]"
-|> solveMaxIncl "orb_qty_adj" 20N "ml[Volume]/kg[Weight]"//
-|> solveValues "orb_qty" [60N] "ml[Volume]"//
-|> solveIncr "genta_sol_dos_qty" 1N "ml[Volume]"// max conc
-|> solveValues "genta_sol_orb_qty" ([1N/10N..1N/10N..10N] @ [11N..50N]) "ml[Volume]"// max conc
+|> solveMaxIncl "orb_qty_adj" 20N "ml[Volume]/kg[Weight]" //
+|> solveValues "orb_qty" [ 60N ] "ml[Volume]" //
+|> solveIncr "genta_sol_dos_qty" 1N "ml[Volume]" // max conc
+|> solveValues "genta_sol_orb_qty" ([ 1N / 10N .. 1N / 10N .. 10N ] @ [ 11N .. 50N ]) "ml[Volume]" // max conc
 //|> printEqs //|> ignore
 // dose
 |> solveMaxIncl "orb_dos_cnt" 1N "x[Count]"
 |> solveMaxIncl "orb_dos_qty_adj" 10N "ml[Volume]/kg[Weight]"
-|> solveMinIncl "gentamicin_dos_tot_adj" 5N "mg[Mass]/kg[Weight]/day[Time]"// max dose
-|> solveMaxIncl "gentamicin_dos_tot_adj" 7N "mg[Mass]/kg[Weight]/day[Time]"// max dose
+|> solveMinIncl "gentamicin_dos_tot_adj" 5N "mg[Mass]/kg[Weight]/day[Time]" // max dose
+|> solveMaxIncl "gentamicin_dos_tot_adj" 7N "mg[Mass]/kg[Weight]/day[Time]" // max dose
 //|> printEqs
 // administration
-|> solveValues "pres_freq" [1N] "x[Count]/day[Time]" // freq
-|> solveMinIncl "pres_time" (1N/2N) "hour[Time]"// time
-|> solveMaxIncl "pres_time" 1N "hour[Time]"// time
+|> solveValues "pres_freq" [ 1N ] "x[Count]/day[Time]" // freq
+|> solveMinIncl "pres_time" (1N / 2N) "hour[Time]" // time
+|> solveMaxIncl "pres_time" 1N "hour[Time]" // time
 //|> printEqs //|> ignore
 // pick the optimal scenario
 |> pick "orb_dos_qty" (Some 1N) "ml[Volume]" (TakeFromMin 10) // pick between min and max
-|> pick "orb_dos_rte" (Some (1N/10N)) "ml[Volume]/hour[Time]" (TakeFromMax 1) // pick between min and max
+|> pick "orb_dos_rte" (Some(1N / 10N)) "ml[Volume]/hour[Time]" (TakeFromMax 1) // pick between min and max
 |> pick "gentamicin_dos_tot_adj" None "mg[Mass]/kg[Weight]/day[Time]" (TakeFromMax 2) // choose from list
 //|> printEqs
 |> ignore
-
 
 
 // find min/max scenarios
 gentaEqs
 // patient
-|> solveValues "ord_adj" [800N/1000N] "kg[Weight]"
+|> solveValues "ord_adj" [ 800N / 1000N ] "kg[Weight]"
 //|> printEqs
 // product
-|> solveValues "genta_sol_qty" [2N; 10N] "ml[Volume]"
-|> solveValues "gentamicin_cmp_cnc" [10N; 40N] "mg[Mass]/ml[Volume]"
-|> solveValues "gentamicin_cmp_qty" [20N;80N;400N] "mg[Mass]"
+|> solveValues "genta_sol_qty" [ 2N; 10N ] "ml[Volume]"
+|> solveValues "gentamicin_cmp_cnc" [ 10N; 40N ] "mg[Mass]/ml[Volume]"
+|> solveValues "gentamicin_cmp_qty" [ 20N; 80N; 400N ] "mg[Mass]"
 //|> printEqs
 // preparation
-|> solveValues "orb_dos_cnt" [1N/2N] "x[Count]"
+|> solveValues "orb_dos_cnt" [ 1N / 2N ] "x[Count]"
 |> solveMaxIncl "gentamicin_orb_cnc" 2N "mg[Mass]/ml[Volume]" // max conc
 |> solveMinIncl "orb_qty_ad" 1N "ml[Volume]"
-|> solveMaxIncl "orb_qty_adj" 20N "ml[Volume]/kg[Weight]"//
+|> solveMaxIncl "orb_qty_adj" 20N "ml[Volume]/kg[Weight]" //
 //|> solveValues "orb_qty" [20N] "ml[Volume]"//
-|> solveValues "genta_sol_orb_qty" ([1N/10N..1N/10N..10N] @ [11N..50N]) "ml[Volume]"// max conc
-|> solveValues "saline_orb_qty" ([1N/10N..1N/10N..10N] @ [11N..50N]) "ml[Volume]"
+|> solveValues "genta_sol_orb_qty" ([ 1N / 10N .. 1N / 10N .. 10N ] @ [ 11N .. 50N ]) "ml[Volume]" // max conc
+|> solveValues "saline_orb_qty" ([ 1N / 10N .. 1N / 10N .. 10N ] @ [ 11N .. 50N ]) "ml[Volume]"
 //|> printEqs
 // dose
 |> solveMaxIncl "orb_dos_qty_adj" 10N "ml[Volume]/kg[Weight]"
-|> solveMinIncl "gentamicin_dos_tot_adj" 5N "mg[Mass]/kg[Weight]/day[Time]"// max dose
-|> solveMaxIncl "gentamicin_dos_tot_adj" 7N "mg[Mass]/kg[Weight]/day[Time]"// max dose
+|> solveMinIncl "gentamicin_dos_tot_adj" 5N "mg[Mass]/kg[Weight]/day[Time]" // max dose
+|> solveMaxIncl "gentamicin_dos_tot_adj" 7N "mg[Mass]/kg[Weight]/day[Time]" // max dose
 //|> printEqs
 // administration
-|> solveValues "pres_freq" [1N] "x[Count]/day[Time]"// freq
-|> solveMinIncl "pres_time" (1N/2N) "hour[Time]"// time
-|> solveMaxIncl "pres_time" 1N "hour[Time]"// time
+|> solveValues "pres_freq" [ 1N ] "x[Count]/day[Time]" // freq
+|> solveMinIncl "pres_time" (1N / 2N) "hour[Time]" // time
+|> solveMaxIncl "pres_time" 1N "hour[Time]" // time
 //|> printEqs
 // pick the optimal scenario
 |> pick "gentamicin_dos_tot_adj" None "mg[Mass]/kg[Weight]/day[Time]" (TakeFromMax 2) // choose from list
-|> pick "orb_dos_qty" (Some (1N/10N)) "ml[Volume]" (TakeFromMin 10) // pick between min and max
-|> pick "orb_dos_rte" (Some (1N/10N)) "ml[Volume]/hour[Time]" (TakeFromMax 1) // pick between min and max
+|> pick "orb_dos_qty" (Some(1N / 10N)) "ml[Volume]" (TakeFromMin 10) // pick between min and max
+|> pick "orb_dos_rte" (Some(1N / 10N)) "ml[Volume]/hour[Time]" (TakeFromMax 1) // pick between min and max
 //|> printEqs
 |> ignore
-
-
 
 
 let examplEqs =
@@ -405,11 +372,11 @@ let examplEqs =
             [
                 {
                     Name = "CMPA"
-                    Items = ["ITMA"]
+                    Items = [ "ITMA" ]
                 }
                 {
                     Name = "CMPB"
-                    Items = ["ITMB"]
+                    Items = [ "ITMB" ]
                 }
             ]
     }
@@ -424,17 +391,10 @@ examplEqs
 |> fun vars ->
     let cmps =
         vars
-        |> List.filter (fun s ->
-            s.Contains("CMPB") || s.Contains("ITMB")
-        )
-        |> List.filter (fun s ->
-            s.Contains("cmp_cnc") || s.Contains("CMPB_qty")
-        )
+        |> List.filter (fun s -> s.Contains("CMPB") || s.Contains("ITMB"))
+        |> List.filter (fun s -> s.Contains("cmp_cnc") || s.Contains("CMPB_qty"))
+
     vars
-    |> List.filter (fun s ->
-        s.Contains("CMPB") |> not &&
-        s.Contains("ITMB") |> not
-    )
+    |> List.filter (fun s -> s.Contains("CMPB") |> not && s.Contains("ITMB") |> not)
     |> List.append cmps
     |> List.length
-

@@ -64,8 +64,7 @@ module Api =
         | ParenteraliaResp of Parenteralia
         | NutritionPlanResp of NutritionPlanResponse
 
-    and OrderContextResponse =
-        | OrderContextResult of OrderContext
+    and OrderContextResponse = OrderContextResult of OrderContext
 
     and OrderPlanResponse =
         | OrderPlanFiltered of OrderPlan
@@ -78,43 +77,53 @@ module Api =
 
     module Command =
 
-        let toString = function
-            | OrderContextCmd (UpdateOrderContext, _) -> "UpdateOrderContext"
-            | OrderContextCmd (SelectOrderScenario, _) -> "SelectOrderScenario"
-            | OrderContextCmd (UpdateOrderScenario, _) -> "UpdateOrderScenario"
-            | OrderContextCmd (ResetOrderScenario, _) -> "ResetOrderScenario"
-            | OrderContextCmd (ReloadResources _, _) -> "ReloadResources"
-            | OrderContextCmd (DecreaseScheduleFrequencyProperty, _) -> "DecreaseScheduleFrequencyProperty"
-            | OrderContextCmd (IncreaseScheduleFrequencyProperty, _) -> "IncreaseScheduleFrequencyProperty"
-            | OrderContextCmd (SetMinScheduleFrequencyProperty, _) -> "SetMinScheduleFrequencyProperty"
-            | OrderContextCmd (SetMaxScheduleFrequencyProperty, _) -> "SetMaxScheduleFrequencyProperty"
-            | OrderContextCmd (SetMedianScheduleFrequencyProperty, _) -> "SetMedianScheduleFrequencyProperty"
-            | OrderContextCmd (DecreaseOrderableDoseQuantityProperty (ntimes, useCalc), _) -> $"DecreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
-            | OrderContextCmd (IncreaseOrderableDoseQuantityProperty (ntimes, useCalc), _) -> $"IncreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
-            | OrderContextCmd (SetMinOrderableDoseQuantityProperty, _) -> "SetMinOrderableDoseQuantityProperty"
-            | OrderContextCmd (SetMaxOrderableDoseQuantityProperty, _) -> "SetMaxOrderableDoseQuantityProperty"
-            | OrderContextCmd (SetMedianOrderableDoseQuantityProperty, _) -> "SetMedianOrderableDoseQuantityProperty"
-            | OrderContextCmd (DecreaseOrderableDoseRateProperty (ntimes, useCalc), _) -> $"DecreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
-            | OrderContextCmd (IncreaseOrderableDoseRateProperty (ntimes, useCalc), _) -> $"IncreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
-            | OrderContextCmd (SetMinOrderableDoseRateProperty, _) -> "SetMinOrderableDoseRateProperty"
-            | OrderContextCmd (SetMaxOrderableDoseRateProperty, _) -> "SetMaxOrderableDoseRateProperty"
-            | OrderContextCmd (SetMedianOrderableDoseRateProperty, _) -> "SetMedianOrderableDoseRateProperty"
-            | OrderContextCmd (DecreaseComponentOrderableQuantityProperty (cmp, ntimes, useCalc), _) -> $"DecreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
-            | OrderContextCmd (IncreaseComponentOrderableQuantityProperty (cmp, ntimes, useCalc), _) -> $"IncreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
-            | OrderContextCmd (SetMinComponentOrderableQuantityProperty cmp, _) -> $"SetMinComponentQuantityProperty cmp={cmp}"
-            | OrderContextCmd (SetMaxComponentOrderableQuantityProperty cmp, _) -> $"SetMaxComponentQuantityProperty cmp={cmp}"
-            | OrderContextCmd (SetMedianComponentOrderableQuantityProperty cmp, _) -> $"SetMedianComponentQuantityProperty cmp={cmp}"
+        let toString =
+            function
+            | OrderContextCmd(UpdateOrderContext, _) -> "UpdateOrderContext"
+            | OrderContextCmd(SelectOrderScenario, _) -> "SelectOrderScenario"
+            | OrderContextCmd(UpdateOrderScenario, _) -> "UpdateOrderScenario"
+            | OrderContextCmd(ResetOrderScenario, _) -> "ResetOrderScenario"
+            | OrderContextCmd(ReloadResources _, _) -> "ReloadResources"
+            | OrderContextCmd(DecreaseScheduleFrequencyProperty, _) -> "DecreaseScheduleFrequencyProperty"
+            | OrderContextCmd(IncreaseScheduleFrequencyProperty, _) -> "IncreaseScheduleFrequencyProperty"
+            | OrderContextCmd(SetMinScheduleFrequencyProperty, _) -> "SetMinScheduleFrequencyProperty"
+            | OrderContextCmd(SetMaxScheduleFrequencyProperty, _) -> "SetMaxScheduleFrequencyProperty"
+            | OrderContextCmd(SetMedianScheduleFrequencyProperty, _) -> "SetMedianScheduleFrequencyProperty"
+            | OrderContextCmd(DecreaseOrderableDoseQuantityProperty(ntimes, useCalc), _) ->
+                $"DecreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
+            | OrderContextCmd(IncreaseOrderableDoseQuantityProperty(ntimes, useCalc), _) ->
+                $"IncreaseOrderableDoseQuantityProperty ntimes={ntimes} useCalc={useCalc}"
+            | OrderContextCmd(SetMinOrderableDoseQuantityProperty, _) -> "SetMinOrderableDoseQuantityProperty"
+            | OrderContextCmd(SetMaxOrderableDoseQuantityProperty, _) -> "SetMaxOrderableDoseQuantityProperty"
+            | OrderContextCmd(SetMedianOrderableDoseQuantityProperty, _) -> "SetMedianOrderableDoseQuantityProperty"
+            | OrderContextCmd(DecreaseOrderableDoseRateProperty(ntimes, useCalc), _) ->
+                $"DecreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
+            | OrderContextCmd(IncreaseOrderableDoseRateProperty(ntimes, useCalc), _) ->
+                $"IncreaseOrderableDoseRateProperty ntimes={ntimes} useCalc={useCalc}"
+            | OrderContextCmd(SetMinOrderableDoseRateProperty, _) -> "SetMinOrderableDoseRateProperty"
+            | OrderContextCmd(SetMaxOrderableDoseRateProperty, _) -> "SetMaxOrderableDoseRateProperty"
+            | OrderContextCmd(SetMedianOrderableDoseRateProperty, _) -> "SetMedianOrderableDoseRateProperty"
+            | OrderContextCmd(DecreaseComponentOrderableQuantityProperty(cmp, ntimes, useCalc), _) ->
+                $"DecreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
+            | OrderContextCmd(IncreaseComponentOrderableQuantityProperty(cmp, ntimes, useCalc), _) ->
+                $"IncreaseComponentQuantityProperty cmp={cmp} ntimes={ntimes} useCalc={useCalc}"
+            | OrderContextCmd(SetMinComponentOrderableQuantityProperty cmp, _) ->
+                $"SetMinComponentQuantityProperty cmp={cmp}"
+            | OrderContextCmd(SetMaxComponentOrderableQuantityProperty cmp, _) ->
+                $"SetMaxComponentQuantityProperty cmp={cmp}"
+            | OrderContextCmd(SetMedianComponentOrderableQuantityProperty cmp, _) ->
+                $"SetMedianComponentQuantityProperty cmp={cmp}"
 
-            | OrderPlanCmd (UpdateOrderPlan _) -> "UpdatedOrderPlan"
-            | OrderPlanCmd (FilterOrderPlan _) -> "FilterOrderPlan"
+            | OrderPlanCmd(UpdateOrderPlan _) -> "UpdatedOrderPlan"
+            | OrderPlanCmd(FilterOrderPlan _) -> "FilterOrderPlan"
             | FormularyCmd _ -> "FormularyCmd"
             | ParenteraliaCmd _ -> "ParenteraliaCmd"
-            | NutritionPlanCmd (InitNutritionPlan _) -> "InitNutritionPlan"
-            | NutritionPlanCmd (UpdateNutritionOrderContext _) -> "UpdateNutritionOrderContext"
-            | NutritionPlanCmd (SelectNutritionOrderScenario _) -> "SelectNutritionOrderScenario"
-            | NutritionPlanCmd (NavigateNutritionOrderContext _) -> "NavigateNutritionOrderContext"
-            | NutritionPlanCmd (AddNutritionContext _) -> "AddNutritionContext"
-            | NutritionPlanCmd (RemoveNutritionContext _) -> "RemoveNutritionContext"
+            | NutritionPlanCmd(InitNutritionPlan _) -> "InitNutritionPlan"
+            | NutritionPlanCmd(UpdateNutritionOrderContext _) -> "UpdateNutritionOrderContext"
+            | NutritionPlanCmd(SelectNutritionOrderScenario _) -> "SelectNutritionOrderScenario"
+            | NutritionPlanCmd(NavigateNutritionOrderContext _) -> "NavigateNutritionOrderContext"
+            | NutritionPlanCmd(AddNutritionContext _) -> "AddNutritionContext"
+            | NutritionPlanCmd(RemoveNutritionContext _) -> "RemoveNutritionContext"
 
 
     /// Defines how routes are generated on server and mapped from the client

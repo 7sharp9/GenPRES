@@ -1,4 +1,3 @@
-
 #time
 
 #load "load.fsx"
@@ -12,7 +11,6 @@ Environment.SetEnvironmentVariable("GENPRES_DEBUG", "0")
 Environment.SetEnvironmentVariable("GENPRES_PROD", "1")
 
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
-
 
 
 open MathNet.Numerics
@@ -38,13 +36,11 @@ module HelperFunctions =
     open Informedica.Utils.Lib
 
 
-
     let print sl = sl |> List.iter (printfn "%s")
 
 
     let inline printOrderTable order =
-        order
-        |> Result.iter (Order.printTable ConsoleTables.Format.Minimal)
+        order |> Result.iter (Order.printTable ConsoleTables.Format.Minimal)
 
         order
 
@@ -52,44 +48,37 @@ module HelperFunctions =
     let solveOrder order =
         match order with
         | Error e -> $"Error solving order: {e}" |> failwith
-        | Ok o ->
-            o
-            |> Order.solveMinMax "Solve Order" true OrderLogging.noOp
+        | Ok o -> o |> Order.solveMinMax "Solve Order" true OrderLogging.noOp
 
 
     let run logger med cmds =
-        let logger, usePrintTable = logger |> Option.defaultValue OrderLogging.noOp, logger.IsNone
+        let logger, usePrintTable =
+            logger |> Option.defaultValue OrderLogging.noOp, logger.IsNone
 
         let rec loop cmds ord =
-            ord
-            |> Result.iter (OrderProcessor.classify >> printfn "%A")
+            ord |> Result.iter (OrderProcessor.classify >> printfn "%A")
 
             match cmds with
-            | [] ->
-                ord
-                |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
-            | cmd::rest ->
+            | [] -> ord |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
+            | cmd :: rest ->
                 match ord with
-                | Error (_, msgs) ->
-                    failwith $"Errors occured: {msgs}"
+                | Error(_, msgs) -> failwith $"Errors occured: {msgs}"
                 | Ok ord ->
-                    if usePrintTable then ord |> Ok |> printOrderTable |> ignore
+                    if usePrintTable then
+                        ord |> Ok |> printOrderTable |> ignore
 
-                    ord
-                    |> cmd
-                    |> OrderProcessor.processPipeline logger
-                    |> loop rest
+                    ord |> cmd |> OrderProcessor.processPipeline logger |> loop rest
 
         med
         |> Informedica.GenOrder.Lib.Medication.toOrderDto
         |> Order.Dto.fromDto
         |> function
-          | Error msg -> failwith $"{msg}"
-          | Ok ord ->
-              ord
-              |> Ok
-              |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
-              |> loop cmds
+            | Error msg -> failwith $"{msg}"
+            | Ok ord ->
+                ord
+                |> Ok
+                |> fun ord -> if usePrintTable then ord |> printOrderTable else ord
+                |> loop cmds
 
 
 module GenFormResult = Utils.GenFormResult
@@ -98,7 +87,8 @@ module GenFormResult = Utils.GenFormResult
 module MedicationTexts =
 
 
-    let onceSingleComponentMultipleItemsNoDose = """
+    let onceSingleComponentMultipleItemsNoDose =
+        """
 Id: 3beb2d76-625c-4e02-8c49-bcd5fa6f5166
 Name: chloorhexidine
 Quantity:
@@ -134,7 +124,8 @@ Components:
 
 
     // Once single component single item scenario
-    let onceSingleComponentSingleItem = """
+    let onceSingleComponentSingleItem =
+        """
 Id: 93e8c175-99a1-48d8-b2f4-90005fdb8ada
 Name: paracetamol
 Quantity:
@@ -165,7 +156,8 @@ Components:
 
 
     // OnceTimed single component single item scenario
-    let onceTimedSingleComponentSingleItem = """
+    let onceTimedSingleComponentSingleItem =
+        """
 Id: 95c44266-84c5-4969-a815-9fbf2c9ed693
 Name: paracetamol
 Quantity:
@@ -196,7 +188,8 @@ Components:
 
 
     // Discontinuous single component single item scenario
-    let discontinuousSingleComponentSingleItem = """
+    let discontinuousSingleComponentSingleItem =
+        """
 Id: d595fdbd-51ae-489d-a316-a458b7d5d032
 Name: paracetamol
 Quantity:
@@ -231,7 +224,8 @@ Components:
 """
 
 
-    let discontinousMultipleComponentMultipleItems = """
+    let discontinousMultipleComponentMultipleItems =
+        """
 Id: d1326abe-ca06-4c59-a52c-7af1152b75c4
 Name: amoxicilline/clavulaanzuur
 Quantity:
@@ -267,7 +261,8 @@ Components:
 
 
     // Timed single component single item scenario
-    let timedSingleComponentSingleItem = """
+    let timedSingleComponentSingleItem =
+        """
 Id: a9e18942-f879-4df1-bc21-6375c3291ed7
 Name: paracetamol
 Quantity:
@@ -297,7 +292,8 @@ Components:
 """
 
 
-    let continuousSingleComponentSingleItem = """
+    let continuousSingleComponentSingleItem =
+        """
 Id: 6854e269-df1c-480f-ac58-a08fe108a59d
 Name: propofol
 Quantity:
@@ -327,7 +323,8 @@ Components:
 """
 
 
-    let continuousMultipleComponent = """"
+    let continuousMultipleComponent =
+        """"
 Id: b5189d1a-c1c5-4223-9b2d-e8e35e1b22fd
 Name: noradrenaline
 Quantity:
@@ -375,7 +372,8 @@ Components:
 """
 
 
-    let timedMultipleComponentsDoseComponent = """
+    let timedMultipleComponentsDoseComponent =
+        """
 Id: a16b1489-d1c3-4f1e-a0ae-e83b18e1ebd5
 Name: samenstelling c
 Quantity:
@@ -464,7 +462,8 @@ Components:
 """
 
 
-    let gentaNormDose = """
+    let gentaNormDose =
+        """
 Id: 901730a9-ca51-444a-940a-b7a5796cd183
 Name: gentamicine
 Quantity:
@@ -533,14 +532,14 @@ let orderPropertySetFrequency step ord =
             // Dose quantity is solved and could be outside constraints
             if ord.Orderable.Dose.Quantity |> Quantity.isSolved then
                 OrderableDose Dose.setPerTimeToNonZeroPositive
-                ComponentDose ("", Dose.setPerTimeToNonZeroPositive)
-                ItemDose ("", "", Dose.setPerTimeToNonZeroPositive)
+                ComponentDose("", Dose.setPerTimeToNonZeroPositive)
+                ItemDose("", "", Dose.setPerTimeToNonZeroPositive)
             // Dose quantity is not solved yet, so per time should be
             // within constraints
             else
                 OrderableDose Dose.applyPerTimeConstraints
-                ComponentDose ("", Dose.applyPerTimeConstraints)
-                ItemDose ("", "", Dose.applyPerTimeConstraints)
+                ComponentDose("", Dose.applyPerTimeConstraints)
+                ItemDose("", "", Dose.applyPerTimeConstraints)
         ]
     // re-calc min max
     |> (OrderPropertyChange.proc [ ScheduleFrequency step ])
@@ -590,20 +589,14 @@ Components:
 |> Medication.fromString
 |> function
     | Error _ -> "fail" |> failwith
-    | Ok med ->
-        [
-            CalcMinMax
-        ]
-        |> HelperFunctions.run (Some consoleLogger) med
+    | Ok med -> [ CalcMinMax ] |> HelperFunctions.run (Some consoleLogger) med
 |> function
     | Error _ -> "fail" |> failwith
     | Ok ord ->
         printfn "=== before"
         ord |> Order.printTable ConsoleTables.Format.MarkDown
 
-        let ord =
-            ord
-            |> orderPropertySetFrequency Frequency.setMaxValue
+        let ord = ord |> orderPropertySetFrequency Frequency.setMaxValue
 
         printfn "=== after"
         ord |> Order.printTable ConsoleTables.Format.MarkDown

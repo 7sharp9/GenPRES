@@ -1,4 +1,3 @@
-
 #time
 
 #load "load.fsx"
@@ -36,12 +35,11 @@ open Informedica.GenForm.Lib
 module GenFormResult =
 
     let defaultValue value res =
-        res
-        |> Result.map fst
-        |> Result.defaultValue value
+        res |> Result.map fst |> Result.defaultValue value
 
 
-let provider : Resources.IResourceProvider = Api.getCachedProviderWithDataUrlId FormLogging.noOp dataUrlId
+let provider: Resources.IResourceProvider =
+    Api.getCachedProviderWithDataUrlId FormLogging.noOp dataUrlId
 
 
 let checkedRules =
@@ -51,10 +49,7 @@ let checkedRules =
     //    dr.Form = "" &&
     //    dr.Route = "iv"
     )
-    |> Check.checkAll
-            (provider.GetRouteMappings ())
-            Patient.patient
+    |> Check.checkAll (provider.GetRouteMappings()) Patient.patient
 
 
-checkedRules
-|> Array.iter (printfn "%s")
+checkedRules |> Array.iter (printfn "%s")

@@ -13,7 +13,8 @@ type Agent<'T>(body: Agent<'T> -> Async<unit>) as self =
     let cts = new CancellationTokenSource()
 
     // Track the lifetime of the mailbox processing loop without starting a second loop
-    let tcs = TaskCompletionSource<unit>(TaskCreationOptions.RunContinuationsAsynchronously)
+    let tcs =
+        TaskCompletionSource<unit>(TaskCreationOptions.RunContinuationsAsynchronously)
 
     let errEvent = Event<_>()
 
@@ -22,34 +23,40 @@ type Agent<'T>(body: Agent<'T> -> Async<unit>) as self =
     // This allows the agent to continue processing messages even after an error occurs.
     // The error event can be subscribed to by the user to handle errors gracefully.
     // The agent will keep running and processing messages, but will notify subscribers of any unhandled exceptions.
-    let mbox = new MailboxProcessor<'T>(
-        (fun _ ->
-            let rec loop () = async {
-                try
-                    // Run user body; for typical helpers this loops on Receive()
-                    do! body self
-                    // If body returns normally, keep processing
-                    return! loop ()
-                with
-                // Treat cancellation as a clean shutdown: stop looping and complete the TCS
-                | :? OperationCanceledException
-                | :? TaskCanceledException ->
-                    tcs.TrySetCanceled(cts.Token) |> ignore
-                    return ()
-                | :? ObjectDisposedException ->
-                    tcs.TrySetCanceled() |> ignore
-                    return ()
-                // For other errors, publish and continue processing
-                | e ->
-                    errEvent.Trigger(e)
-                    return! loop ()
-            }
-            async {
-                do! loop ()
-                // If we exit the loop without cancellation, complete gracefully
-                tcs.TrySetResult(()) |> ignore
-            }
-        ), true, cts.Token)
+    let mbox =
+        new MailboxProcessor<'T>(
+            (fun _ ->
+                let rec loop () =
+                    async {
+                        try
+                            // Run user body; for typical helpers this loops on Receive()
+                            do! body self
+                            // If body returns normally, keep processing
+                            return! loop ()
+                        with
+                        // Treat cancellation as a clean shutdown: stop looping and complete the TCS
+                        | :? OperationCanceledException
+                        | :? TaskCanceledException ->
+                            tcs.TrySetCanceled(cts.Token) |> ignore
+                            return ()
+                        | :? ObjectDisposedException ->
+                            tcs.TrySetCanceled() |> ignore
+                            return ()
+                        // For other errors, publish and continue processing
+                        | e ->
+                            errEvent.Trigger(e)
+                            return! loop ()
+                    }
+
+                async {
+                    do! loop ()
+                    // If we exit the loop without cancellation, complete gracefully
+                    tcs.TrySetResult(()) |> ignore
+                }
+            ),
+            true,
+            cts.Token
+        )
 
     /// <summary>
     /// Event that is triggered when an unhandled exception occurs in the agent's processing loop.
@@ -78,7 +85,8 @@ type Agent<'T>(body: Agent<'T> -> Async<unit>) as self =
     /// <summary>
     /// Posts a message to the agent and synchronously waits for a reply, with a timeout.
     /// </summary>
-    member _.TryPostAndReply(messageBuilder, timeout) = mbox.TryPostAndReply(messageBuilder, timeout)
+    member _.TryPostAndReply(messageBuilder, timeout) =
+        mbox.TryPostAndReply(messageBuilder, timeout)
 
     /// <summary>
     /// Posts a message to the agent and asynchronously waits for a reply.
@@ -88,19 +96,18 @@ type Agent<'T>(body: Agent<'T> -> Async<unit>) as self =
     /// <summary>
     /// Posts a message to the agent and asynchronously waits for a reply, with a timeout.
     /// </summary>
-    member _.PostAndTryAsyncReply(messageBuilder, timeout) = mbox.PostAndTryAsyncReply(messageBuilder, timeout)
+    member _.PostAndTryAsyncReply(messageBuilder, timeout) =
+        mbox.PostAndTryAsyncReply(messageBuilder, timeout)
 
     /// <summary>
     /// Starts the agent's processing loop.
     /// </summary>
-    member _.Start() =
-        mbox.Start()
+    member _.Start() = mbox.Start()
 
     /// <summary>
     /// Starts the agent's processing loop immediately on the current thread.
     /// </summary>
-    member _.StartImmediate () =
-            mbox.StartImmediate()
+    member _.StartImmediate() = mbox.StartImmediate()
 
     /// <summary>
     /// Receives the next message from the agent's queue asynchronously.
@@ -136,7 +143,7 @@ type Agent<'T>(body: Agent<'T> -> Async<unit>) as self =
     /// Gets or sets the default timeout for reply operations.
     /// </summary>
     member _.DefaultTimeout
-        with get() = mbox.DefaultTimeout
+        with get () = mbox.DefaultTimeout
         and set value = mbox.DefaultTimeout <- value
 
     /// <summary>
@@ -155,7 +162,7 @@ type Agent<'T>(body: Agent<'T> -> Async<unit>) as self =
     static member Start(body) =
         let mbox = new Agent<'T>(body)
 
-        mbox.Start ()
+        mbox.Start()
         mbox
 
     /// <summary>
@@ -163,7 +170,7 @@ type Agent<'T>(body: Agent<'T> -> Async<unit>) as self =
     /// </summary>
     static member StartImmediate(body) =
         let mbox = new Agent<'T>(body)
-        mbox.StartImmediate ()
+        mbox.StartImmediate()
         mbox
 
     interface IDisposable with
@@ -191,11 +198,13 @@ module Agent =
     /// <returns>An Agent instance.</returns>
     let createSimple<'T> (processor: 'T -> unit) =
         Agent<'T>.Start(fun inbox ->
-            let rec loop () = async {
-                let! message = inbox.Receive()
-                processor message
-                return! loop ()
-            }
+            let rec loop () =
+                async {
+                    let! message = inbox.Receive()
+                    processor message
+                    return! loop ()
+                }
+
             loop ()
         )
 
@@ -210,11 +219,13 @@ module Agent =
     /// <returns>An Agent instance.</returns>
     let createStateful<'T, 'State> (initialState: 'State, processor: 'State -> 'T -> 'State) =
         Agent<'T>.Start(fun inbox ->
-            let rec loop state = async {
-                let! message = inbox.Receive()
-                let newState = processor state message
-                return! loop newState
-            }
+            let rec loop state =
+                async {
+                    let! message = inbox.Receive()
+                    let newState = processor state message
+                    return! loop newState
+                }
+
             loop initialState
         )
 
@@ -224,14 +235,16 @@ module Agent =
     /// </summary>
     /// <param name="processor">A function to process each request and produce a reply.</param>
     /// <returns>An Agent instance.</returns>
-    let createReply<'Request, 'Reply>(processor: 'Request -> 'Reply) =
+    let createReply<'Request, 'Reply> (processor: 'Request -> 'Reply) =
         Agent<'Request * AsyncReplyChannel<'Reply>>.Start(fun inbox ->
-            let rec loop () = async {
-                let! request, replyChannel = inbox.Receive()
-                let reply = processor request
-                replyChannel.Reply(reply)
-                return! loop ()
-            }
+            let rec loop () =
+                async {
+                    let! request, replyChannel = inbox.Receive()
+                    let reply = processor request
+                    replyChannel.Reply(reply)
+                    return! loop ()
+                }
+
             loop ()
         )
 
@@ -243,14 +256,16 @@ module Agent =
     /// </summary>
     /// <param name="processor">An async function to process each request and produce a reply.</param>
     /// <returns>An Agent instance.</returns>
-    let createReplyAsync<'Request, 'Reply>(processor: 'Request -> Async<'Reply>) =
+    let createReplyAsync<'Request, 'Reply> (processor: 'Request -> Async<'Reply>) =
         Agent<'Request * AsyncReplyChannel<'Reply>>.Start(fun inbox ->
-            let rec loop () = async {
-                let! request, replyChannel = inbox.Receive()
-                let! reply = processor request
-                replyChannel.Reply(reply)
-                return! loop ()
-            }
+            let rec loop () =
+                async {
+                    let! request, replyChannel = inbox.Receive()
+                    let! reply = processor request
+                    replyChannel.Reply(reply)
+                    return! loop ()
+                }
+
             loop ()
         )
 
@@ -262,14 +277,18 @@ module Agent =
     /// <param name="initialState">The initial state value.</param>
     /// <param name="processor">A function to process each request and update the state.</param>
     /// <returns>An Agent instance.</returns>
-    let createStatefulReply<'Request, 'Reply, 'State> (initialState: 'State, processor: 'State -> 'Request -> 'Reply * 'State) =
+    let createStatefulReply<'Request, 'Reply, 'State>
+        (initialState: 'State, processor: 'State -> 'Request -> 'Reply * 'State)
+        =
         Agent<'Request * AsyncReplyChannel<'Reply>>.Start(fun inbox ->
-            let rec loop state = async {
-                let! request, replyChannel = inbox.Receive()
-                let reply, newState = processor state request
-                replyChannel.Reply(reply)
-                return! loop newState
-            }
+            let rec loop state =
+                async {
+                    let! request, replyChannel = inbox.Receive()
+                    let reply, newState = processor state request
+                    replyChannel.Reply(reply)
+                    return! loop newState
+                }
+
             loop initialState
         )
 
@@ -278,8 +297,7 @@ module Agent =
         try
             agent.Post msg
             true
-        with
-        | ex ->
+        with ex ->
             eprintfn $"cannot post {msg} because:\n{ex.ToString()}"
             false
 
@@ -292,9 +310,7 @@ module Agent =
     /// <param name="agent">The agent instance.</param>
     /// <returns>Some(reply) if successful, None if timed out.</returns>
     let tryPostAndReply timeout msg (agent: Agent<_>) =
-        agent.TryPostAndReply((fun replyChannel ->
-            msg, replyChannel
-        ), timeout)
+        agent.TryPostAndReply((fun replyChannel -> msg, replyChannel), timeout)
 
     /// <summary>
     /// Posts a request to the agent and synchronously waits for a reply.
@@ -316,15 +332,14 @@ module Agent =
                     | _ -> None
                 )
                 |> Option.defaultValue 30_000
+
             agent
             |> tryPostAndReply fallbackMs msg
             |> function
                 | Some v -> v
                 | None -> failwith $"Timed out waiting for reply after {fallbackMs} ms"
         else
-            agent.PostAndReply(fun replyChannel ->
-                msg, replyChannel
-            )
+            agent.PostAndReply(fun replyChannel -> msg, replyChannel)
 
     /// <summary>
     /// Posts a request to the agent and asynchronously waits for a reply.
@@ -333,9 +348,7 @@ module Agent =
     /// <param name="agent">The agent instance.</param>
     /// <returns>An Async computation returning the reply.</returns>
     let postAndAsyncReply msg (agent: Agent<_>) =
-        agent.PostAndAsyncReply(fun replyChannel ->
-            msg, replyChannel
-        )
+        agent.PostAndAsyncReply(fun replyChannel -> msg, replyChannel)
 
     /// <summary>
     /// Posts a request to the agent and asynchronously tries to receive a reply within the specified timeout.
@@ -345,9 +358,7 @@ module Agent =
     /// <param name="agent">The agent instance.</param>
     /// <returns>An Async computation returning Some(reply) or None if timed out.</returns>
     let postAndTryAsyncReply timeout msg (agent: Agent<_>) =
-        agent.PostAndTryAsyncReply((fun replyChannel ->
-            msg, replyChannel
-        ), timeout)
+        agent.PostAndTryAsyncReply((fun replyChannel -> msg, replyChannel), timeout)
 
     /// <summary>
     /// Posts a request to the agent and returns a Task that completes with the reply.
@@ -356,9 +367,7 @@ module Agent =
     /// <param name="agent">The agent instance.</param>
     /// <returns>A Task returning the reply.</returns>
     let postAndAsyncReplyTask msg (agent: Agent<_>) =
-        agent.PostAndAsyncReply(fun replyChannel ->
-            msg, replyChannel
-        )
+        agent.PostAndAsyncReply(fun replyChannel -> msg, replyChannel)
         |> Async.StartAsTask
 
     /// <summary>
@@ -366,35 +375,32 @@ module Agent =
     /// </summary>
     /// <param name="agent">The agent instance.</param>
     /// <returns>The default timeout in milliseconds.</returns>
-    let getDefaultTimeout (agent: Agent<_>) =
-        agent.DefaultTimeout
+    let getDefaultTimeout (agent: Agent<_>) = agent.DefaultTimeout
 
     /// <summary>
     /// Sets the default timeout for reply operations on the agent.
     /// </summary>
     /// <param name="timeout">Timeout in milliseconds.</param>
     /// <param name="agent">The agent instance.</param>
-    let setDefaultTimeout timeout (agent: Agent<_>) =
-        agent.DefaultTimeout <- timeout
+    let setDefaultTimeout timeout (agent: Agent<_>) = agent.DefaultTimeout <- timeout
 
     /// <summary>
     /// Gets the current number of messages in the agent's queue.
     /// </summary>
     /// <param name="agent">The agent instance.</param>
     /// <returns>The number of queued messages.</returns>
-    let getCurrentQueueLength (agent: Agent<_>)=
-        agent.CurrentQueueLength
+    let getCurrentQueueLength (agent: Agent<_>) = agent.CurrentQueueLength
 
 
     /// <summary>
     /// Disposes the agent and cancels its processing.
     /// </summary>
     /// <param name="agent">The agent instance.</param>
-    let dispose (agent: Agent<_>) =
-        (agent :> IDisposable).Dispose()
+    let dispose (agent: Agent<_>) = (agent :> IDisposable).Dispose()
 
 
-    let stopAndDispose (stopMsg: AsyncReplyChannel<unit> -> 'T) (agent: Agent<'T>) = async {
-        do! agent.PostAndAsyncReply stopMsg
-        (agent :> IDisposable).Dispose()
-    }
+    let stopAndDispose (stopMsg: AsyncReplyChannel<unit> -> 'T) (agent: Agent<'T>) =
+        async {
+            do! agent.PostAndAsyncReply stopMsg
+            (agent :> IDisposable).Dispose()
+        }

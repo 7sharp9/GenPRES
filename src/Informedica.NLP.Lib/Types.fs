@@ -6,26 +6,27 @@ module Types =
 
     type Message =
         {
-            Role : string
-            Content : string
-            Validator : string -> Result<string, string>
+            Role: string
+            Content: string
+            Validator: string -> Result<string, string>
         }
 
 
     type Conversation =
         {
-            Model : string
-            Messages : QuestionAnswer list
+            Model: string
+            Messages: QuestionAnswer list
         }
+
     and QuestionAnswer =
         {
-            Question : Message
-            Answer : Message option
+            Question: Message
+            Answer: Message option
         }
 
 
     type Response<'T> =
         {
-            Original : string
+            Original: string
             Response: 'T
         }

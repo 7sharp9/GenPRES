@@ -1,11 +1,10 @@
-
 #load "load.fsx"
 
 open MathNet.Numerics
 open Informedica.GenUnits.Lib
 open Informedica.GenSolver.Lib
 
-let a = 
+let a =
     {
         Name = "a" |> Variable.Name.createExc
         Values =

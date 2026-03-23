@@ -23,65 +23,48 @@ module DoseRule =
 
         open Informedica.GenUnits.Lib
 
-        let printFreqs (r : DoseRule) =
+        let printFreqs (r: DoseRule) =
             r.Frequencies
-            |> Option.map (fun vu ->
-                vu
-                |> Utils.ValueUnit.toString 0
-            )
+            |> Option.map (fun vu -> vu |> Utils.ValueUnit.toString 0)
             |> Option.defaultValue ""
 
 
         let printInterval (dr: DoseRule) =
-            if dr.IntervalTime = MinMax.empty then ""
+            if dr.IntervalTime = MinMax.empty then
+                ""
             else
                 dr.IntervalTime
-                |> MinMax.toString
-                    "min. interval "
-                    "min. interval "
-                    "max. interval "
-                    "max. interval "
+                |> MinMax.toString "min. interval " "min. interval " "max. interval " "max. interval "
 
 
         let printTime (dr: DoseRule) =
-            if dr.AdministrationTime = MinMax.empty then ""
+            if dr.AdministrationTime = MinMax.empty then
+                ""
             else
-                dr.AdministrationTime
-                |> MinMax.toString
-                    "min. "
-                    "min. "
-                    "max. "
-                    "max. "
+                dr.AdministrationTime |> MinMax.toString "min. " "min. " "max. " "max. "
 
 
         let printDuration (dr: DoseRule) =
-            if dr.Duration = MinMax.empty then ""
+            if dr.Duration = MinMax.empty then
+                ""
             else
                 dr.Duration
-                |> MinMax.toString
-                    "min. duur "
-                    "min. duur "
-                    "max. duur "
-                    "max. duur "
+                |> MinMax.toString "min. duur " "min. duur " "max. duur " "max. duur "
 
 
-        let printDose wrap (dr : DoseRule) =
-            let substDls =
-                    dr.ComponentLimits
-                    |> Array.collect _.SubstanceLimits
+        let printDose wrap (dr: DoseRule) =
+            let substDls = dr.ComponentLimits |> Array.collect _.SubstanceLimits
 
-            let formDls =
-                dr.ComponentLimits
-                |> Array.choose _.Limit
+            let formDls = dr.ComponentLimits |> Array.choose _.Limit
 
             let useSubstDl = substDls |> Array.length > 0
             // only use form dose limits if there are no substance dose limits
-            if useSubstDl then substDls
-            else formDls
+            if useSubstDl then substDls else formDls
             |> Array.map (fun dl ->
                 let perDose = "/dosis"
                 let emptyS = ""
                 let printMinMaxDose = DoseLimit.printMinMaxDose ""
+
                 [
                     $"%s{dl.Rate |> printMinMaxDose emptyS}"
                     $"%s{dl.RateAdjust |> printMinMaxDose emptyS}"
@@ -95,8 +78,7 @@ module DoseRule =
                 |> List.map String.trim
                 |> List.filter (String.IsNullOrEmpty >> not)
                 |> String.concat ", "
-                |> fun s ->
-                    $"%s{dl.DoseLimitTarget |> LimitTarget.toString} %s{wrap}%s{s}{wrap}"
+                |> fun s -> $"%s{dl.DoseLimitTarget |> LimitTarget.toString} %s{wrap}%s{s}{wrap}"
             )
 
 
@@ -104,7 +86,8 @@ module DoseRule =
         let kinderFormUrl = "https://www.kinderformularium.nl/geneesmiddelen.json"
 
 
-        let farmocoTherapeutischKompas = "https://www.farmacotherapeutischkompas.nl/bladeren/preparaatteksten/n/GENERIEK#doseringen"
+        let farmocoTherapeutischKompas =
+            "https://www.farmacotherapeutischkompas.nl/bladeren/preparaatteksten/n/GENERIEK#doseringen"
 
 
         let private _medications () =
@@ -113,15 +96,17 @@ module DoseRule =
                     "Ergocalciferol / fytomenadion / retinol / tocoferol (Vitamine A/D/E/K)",
                     "ergocalciferol-fytomenadion-retinol-tocoferol-vitamine-adek"
 
-                    "Natriumdocusaat (al dan niet i.c.m. sorbitol)",
-                    "natriumdocusaat-al-dan-niet-icm-sorbitol"
+                    "Natriumdocusaat (al dan niet i.c.m. sorbitol)", "natriumdocusaat-al-dan-niet-icm-sorbitol"
                 ]
+
             let res = JsonValue.Load kinderFormUrl
-            [ for v in res do
-                {|
-                    id = v?id.AsString()
-                    generic = v?generic_name.AsString().Trim().ToLower()
-                |}
+
+            [
+                for v in res do
+                    {|
+                        id = v?id.AsString()
+                        generic = v?generic_name.AsString().Trim().ToLower()
+                    |}
             ]
             |> List.distinct
 
@@ -140,6 +125,7 @@ module DoseRule =
             )
             |> Option.bind (fun m ->
                 let gen = gen |> String.replace "/" "-"
+
                 match source with
                 | _ when source = "NKF" ->
                     $"[Kinderformularium](https://www.kinderformularium.nl/geneesmiddel/{m.id}/{gen})"
@@ -153,9 +139,8 @@ module DoseRule =
 
         /// See for use of anonymous record in
         /// fold: https://github.com/dotnet/fsharp/issues/6699
-        let toMarkdown (rules : DoseRule array) =
-            let generic_md generic =
-                $"\n\n# %s{generic}\n\n---\n"
+        let toMarkdown (rules: DoseRule array) =
+            let generic_md generic = $"\n\n# %s{generic}\n\n---\n"
 
             let route_md route products synonyms =
                 if synonyms |> String.isNullOrWhiteSpace then
@@ -163,22 +148,26 @@ module DoseRule =
                 else
                     $"\n\n### Route: %s{route}\n\n#### Producten\n%s{products}\n\n#### Synoniemen\n%s{synonyms}\n"
 
-            let product_md product =  $"* %s{product}"
+            let product_md product = $"* %s{product}"
 
             let synonyms_md names =
-                if names |> Seq.isEmpty then ""
+                if names |> Seq.isEmpty then
+                    ""
                 else
                     let names = names |> String.concat ", "
                     $"* %s{names}"
 
-            let indication_md indication = $"\n\n## Indicatie: %s{indication}\n\n---\n"
+            let indication_md indication =
+                $"\n\n## Indicatie: %s{indication}\n\n---\n"
 
             let doseCapt_md = "\n\n#### Doseringen\n\n"
 
             let dose_md dt dose freqs intv time dur =
                 let dt = dt |> DoseType.toDescription
+
                 let freqs =
-                    if freqs |> String.isNullOrWhiteSpace then ""
+                    if freqs |> String.isNullOrWhiteSpace then
+                        ""
                     else
                         $" in %s{freqs}"
 
@@ -193,7 +182,8 @@ module DoseRule =
                     ]
                     |> String.concat ", "
                     |> fun s ->
-                        if s |> String.isNullOrWhiteSpace then ""
+                        if s |> String.isNullOrWhiteSpace then
+                            ""
                         else
                             $" (%s{s |> String.trim})"
 
@@ -201,61 +191,64 @@ module DoseRule =
 
             let patient_md patient =
                 let patient =
-                    if patient |> String.notEmpty then patient
-                    else "alle patienten"
+                    if patient |> String.notEmpty then
+                        patient
+                    else
+                        "alle patienten"
+
                 $"\n\n##### Patient: **%s{patient}**\n\n"
 
-            let printDoses (rules : DoseRule array) =
+            let printDoses (rules: DoseRule array) =
                 ("", rules |> Array.groupBy _.DoseType)
                 ||> Array.fold (fun acc (dt, ds) ->
                     let pedForm =
                         let link =
                             ds
                             |> Array.tryHead
-                            |> Option.bind (fun dr ->
-                                dr.Generic |> getLink dr.Source
-                            )
+                            |> Option.bind (fun dr -> dr.Generic |> getLink dr.Source)
                             |> Option.defaultValue "*Lokaal*"
 
                         ds
                         |> Array.map _.ScheduleText
                         |> Array.distinct
                         |> function
-                        | [| s |] -> $"\n\n%s{link}: %s{s}"
-                        | _ -> ""
+                            | [| s |] -> $"\n\n%s{link}: %s{s}"
+                            | _ -> ""
 
                     ds
-                    |> Array.fold (fun acc r ->
-                        let dose =
-                            r
-                            |> printDose ""
-                            |> Array.distinct
-                            |> String.concat ", "
+                    |> Array.fold
+                        (fun acc r ->
+                            let dose = r |> printDose "" |> Array.distinct |> String.concat ", "
 
-                        let freqs = r |> printFreqs
-                        let intv = r |> printInterval
-                        let time = r |> printTime
-                        let dur = r |> printDuration
+                            let freqs = r |> printFreqs
+                            let intv = r |> printInterval
+                            let time = r |> printTime
+                            let dur = r |> printDuration
 
-                        let md = dose_md dt dose freqs intv time dur
-                        if acc |> String.containsCapsInsens md then acc // prevent duplicate doserule per form print
-                        else
-                            $"%s{acc}\n%s{md}%s{pedForm}"
+                            let md = dose_md dt dose freqs intv time dur
 
-                    ) acc
+                            if acc |> String.containsCapsInsens md then
+                                acc // prevent duplicate doserule per form print
+                            else
+                                $"%s{acc}\n%s{md}%s{pedForm}"
+
+                        )
+                        acc
                 )
 
-            ({| md = ""; rules = [||] |},
-             rules
-             |> Array.groupBy _.Generic
-            )
+            ({|
+                md = ""
+                rules = [||]
+             |},
+             rules |> Array.groupBy _.Generic)
             ||> Array.fold (fun acc (generic, rs) ->
                 {| acc with
                     md = generic_md generic
                     rules = rs
                 |}
                 |> fun r ->
-                    if r.rules = Array.empty then r
+                    if r.rules = Array.empty then
+                        r
                     else
                         (r, r.rules |> Array.groupBy _.Indication)
                         ||> Array.fold (fun acc (indication, rs) ->
@@ -264,7 +257,8 @@ module DoseRule =
                                 rules = rs
                             |}
                             |> fun r ->
-                                if r.rules = Array.empty then r
+                                if r.rules = Array.empty then
+                                    r
                                 else
                                     (r, r.rules |> Array.groupBy _.Route)
                                     ||> Array.fold (fun acc (route, rs) ->
@@ -282,8 +276,10 @@ module DoseRule =
                                                 )
                                             )
                                             |> Array.map (fun p ->
-                                                if p.GPK |> String.IsNullOrWhiteSpace then p.Label
-                                                else $"{p.GPK} - {p.Label}"
+                                                if p.GPK |> String.IsNullOrWhiteSpace then
+                                                    p.Label
+                                                else
+                                                    $"{p.GPK} - {p.Label}"
                                                 |> product_md
                                             )
                                             |> Array.distinct
@@ -298,29 +294,30 @@ module DoseRule =
                                             |> synonyms_md
 
                                         {| acc with
-                                            md = acc.md + (route_md route prods synonyms)
-                                                        + doseCapt_md
+                                            md = acc.md + (route_md route prods synonyms) + doseCapt_md
                                             rules = rs
                                         |}
                                         |> fun r ->
-                                            if r.rules = Array.empty then r
+                                            if r.rules = Array.empty then
+                                                r
                                             else
-                                                (r, r.rules
-                                                    |> Array.sortBy (fun d -> d.PatientCategory |> PatientCategory.sortBy)
-                                                    |> Array.groupBy _.PatientCategory)
+                                                (r,
+                                                 r.rules
+                                                 |> Array.sortBy (fun d ->
+                                                     d.PatientCategory |> PatientCategory.sortBy
+                                                 )
+                                                 |> Array.groupBy _.PatientCategory)
                                                 ||> Array.fold (fun acc (pat, rs) ->
                                                     let doses =
                                                         rs
                                                         |> Array.sortBy (fun r -> r.DoseType |> DoseType.sortBy)
                                                         |> printDoses
+
                                                     let pat = pat |> PatientCategory.toString
 
                                                     {| acc with
                                                         rules = rs
-                                                        md =
-                                                            acc.md +
-                                                            (patient_md pat) +
-                                                            $"\n{doses}"
+                                                        md = acc.md + (patient_md pat) + $"\n{doses}"
                                                     |}
                                                 )
                                     )
@@ -329,15 +326,11 @@ module DoseRule =
             |> _.md
 
 
-        let printGenerics generics (doseRules : DoseRule[]) =
+        let printGenerics generics (doseRules: DoseRule[]) =
             doseRules
             |> generics
             |> Array.sort
-            |> Array.map(fun g ->
-                doseRules
-                |> Array.filter (fun dr -> dr.Generic = g)
-                |> toMarkdown
-            )
+            |> Array.map (fun g -> doseRules |> Array.filter (fun dr -> dr.Generic = g) |> toMarkdown)
 
 
     open Informedica.GenUnits.Lib
@@ -353,9 +346,10 @@ module DoseRule =
     /// <param name="dep">The Department to select the reconstitution</param>
     /// <param name="loc">The VenousAccess location to select the reconstitution</param>
     /// <param name="dr">The DoseRule</param>
-    let reconstitute mapping loc dep (dr : DoseRule) =
+    let reconstitute mapping loc dep (dr: DoseRule) =
         let warns = ResizeArray<string>()
         let reconstitute = Product.reconstitute mapping loc dep
+
         let dr =
             { dr with
                 ComponentLimits =
@@ -372,8 +366,8 @@ module DoseRule =
                         }
                     )
             }
-        dr,
-        warns |> Seq.distinct
+
+        dr, warns |> Seq.distinct
 
 
     let fromTupleInclExcl = MinMax.fromTuple Inclusive Exclusive
@@ -382,7 +376,7 @@ module DoseRule =
     let fromTupleInclIncl = MinMax.fromTuple Inclusive Inclusive
 
 
-    let mapToDoseRule (r : DoseRuleData) =
+    let mapToDoseRule (r: DoseRuleData) =
         try
             {
                 Source = r.Source
@@ -390,33 +384,26 @@ module DoseRule =
                 Generic = r.Generic
                 Form = r.Form
                 Brand =
-                    if r.Brand |> String.isNullOrWhiteSpace then None
-                    else r.Brand |> Some
+                    if r.Brand |> String.isNullOrWhiteSpace then
+                        None
+                    else
+                        r.Brand |> Some
                 Route = r.Route
                 ScheduleText = r.ScheduleText
                 PatientCategory =
                     {
                         Location = None
                         Department =
-                            if r.Department |> String.isNullOrWhiteSpace then None
+                            if r.Department |> String.isNullOrWhiteSpace then
+                                None
                             else
                                 r.Department |> Some
                         Gender = r.Gender
-                        Age =
-                            (r.MinAge, r.MaxAge)
-                            |> fromTupleInclExcl (Some Utils.Units.day)
-                        Weight =
-                            (r.MinWeight, r.MaxWeight)
-                            |> fromTupleInclExcl (Some Utils.Units.weightGram)
-                        BSA =
-                            (r.MinBSA, r.MaxBSA)
-                            |> fromTupleInclExcl (Some Utils.Units.bsaM2)
-                        GestAge =
-                            (r.MinGestAge, r.MaxGestAge)
-                            |> fromTupleInclExcl (Some Utils.Units.day)
-                        PMAge =
-                            (r.MinPMAge, r.MaxPMAge)
-                            |> fromTupleInclExcl (Some Utils.Units.day)
+                        Age = (r.MinAge, r.MaxAge) |> fromTupleInclExcl (Some Utils.Units.day)
+                        Weight = (r.MinWeight, r.MaxWeight) |> fromTupleInclExcl (Some Utils.Units.weightGram)
+                        BSA = (r.MinBSA, r.MaxBSA) |> fromTupleInclExcl (Some Utils.Units.bsaM2)
+                        GestAge = (r.MinGestAge, r.MaxGestAge) |> fromTupleInclExcl (Some Utils.Units.day)
+                        PMAge = (r.MinPMAge, r.MaxPMAge) |> fromTupleInclExcl (Some Utils.Units.day)
                         Access = AnyAccess
                     }
                 DoseType = r.DoseText |> DoseType.fromString r.DoseType
@@ -425,27 +412,21 @@ module DoseRule =
                     match r.FreqUnit |> Units.freqUnit with
                     | None -> None
                     | Some u ->
-                        if r.Frequencies |> Array.isEmpty then None
+                        if r.Frequencies |> Array.isEmpty then
+                            None
                         else
-                            r.Frequencies
-                            |> ValueUnit.withUnit u
-                            |> Some
-                AdministrationTime =
-                    (r.MinTime, r.MaxTime)
-                    |> fromTupleInclIncl (r.TimeUnit |> Utils.Units.timeUnit)
+                            r.Frequencies |> ValueUnit.withUnit u |> Some
+                AdministrationTime = (r.MinTime, r.MaxTime) |> fromTupleInclIncl (r.TimeUnit |> Utils.Units.timeUnit)
                 IntervalTime =
                     (r.MinInterval, r.MaxInterval)
                     |> fromTupleInclIncl (r.IntervalUnit |> Utils.Units.timeUnit)
-                Duration =
-                    (r.MinDur, r.MaxDur)
-                    |> fromTupleInclIncl (r.DurUnit |> Utils.Units.timeUnit)
+                Duration = (r.MinDur, r.MaxDur) |> fromTupleInclIncl (r.DurUnit |> Utils.Units.timeUnit)
                 FormLimit = None
                 ComponentLimits = [||]
                 RenalRule = None
             }
             |> Ok
-        with
-        | exn ->
+        with exn ->
             ("mapToDoseRule", Some exn) |> ErrorMsg |> Error
 
 
@@ -453,10 +434,7 @@ module DoseRule =
         try
             Web.getDataFromSheet dataUrlId "DoseRules"
             |> fun data ->
-                let getColumn =
-                    data
-                    |> Array.head
-                    |> Csv.getStringColumn
+                let getColumn = data |> Array.head |> Csv.getStringColumn
 
                 data
                 |> Array.tail
@@ -482,8 +460,8 @@ module DoseRule =
                         ScheduleText =
                             try
                                 get "ScheduleText"
-                            with
-                            | _ -> ""
+                            with _ ->
+                                ""
                         Gender = get "Gender" |> Gender.fromString
                         MinAge = get "MinAge" |> toBrOpt
                         MaxAge = get "MaxAge" |> toBrOpt
@@ -530,24 +508,19 @@ module DoseRule =
                 )
             |> Array.distinct
             |> Ok
-        with
-        | exn ->
-             createError "getDataResult" exn
+        with exn ->
+            createError "getDataResult" exn
 
     /// Pretty print dose rule data for  logging
     let doseRuleDataToString (dd: DoseRuleData) =
         let showOpt = Option.map string >> Option.defaultValue "-"
-        let showStr =
-            fun s ->
-                if s |> String.isNullOrWhiteSpace then "-"
-                else s
+        let showStr = fun s -> if s |> String.isNullOrWhiteSpace then "-" else s
 
         let showArray toStr xs =
-            if xs |> Array.isEmpty then "-"
+            if xs |> Array.isEmpty then
+                "-"
             else
-                xs
-                |> Array.map toStr
-                |> String.concat ","
+                xs |> Array.map toStr |> String.concat ","
 
         [
             $"Id   : Gen={dd.Generic |> showStr} | Comp={dd.Component |> showStr} | Subst={dd.Substance |> showStr}"
@@ -561,11 +534,8 @@ module DoseRule =
         |> String.concat "\n"
 
 
-
     let doseRuleDataIsValid (dd: DoseRuleData) =
-        let missing cond reason =
-            if cond then None
-            else Some reason
+        let missing cond reason = if cond then None else Some reason
 
         let doseType = dd.DoseText |> DoseType.fromString dd.DoseType
 
@@ -573,19 +543,18 @@ module DoseRule =
             match doseType with
             | NoDoseType -> false
             | Once _ -> true
-            | OnceTimed _ ->
-                dd.MaxTime.IsSome && dd.TimeUnit |> String.notEmpty
-            | Discontinuous _ ->
-                dd.Frequencies |> Array.length > 0 && dd.FreqUnit |> String.notEmpty
+            | OnceTimed _ -> dd.MaxTime.IsSome && dd.TimeUnit |> String.notEmpty
+            | Discontinuous _ -> dd.Frequencies |> Array.length > 0 && dd.FreqUnit |> String.notEmpty
             | Timed _ ->
-                dd.Frequencies |> Array.length > 0 && dd.FreqUnit |> String.notEmpty &&
-                dd.MaxTime.IsSome && dd.TimeUnit |> String.notEmpty
-            | Continuous _ ->
-                dd.RateUnit |> String.notEmpty &&
-                (dd.MaxRate.IsSome || dd.MaxRateAdj.IsSome)
+                dd.Frequencies |> Array.length > 0
+                && dd.FreqUnit |> String.notEmpty
+                && dd.MaxTime.IsSome
+                && dd.TimeUnit |> String.notEmpty
+            | Continuous _ -> dd.RateUnit |> String.notEmpty && (dd.MaxRate.IsSome || dd.MaxRateAdj.IsSome)
 
         let invalidReasons =
-            if isValid then []
+            if isValid then
+                []
             else
                 match doseType with
                 | NoDoseType -> []
@@ -641,8 +610,7 @@ module DoseRule =
                 | s, _ when s |> String.notEmpty -> $"{d.Generic} ({d.Form |> String.toLower})"
                 | _, s when s |> String.notEmpty -> $"{d.Generic} ({d.Brand |> String.toLower |> String.capitalize})"
                 | _ -> d.Generic
-                ,
-                d.Route
+                , d.Route
             )
 
         let procesGroup ((gen: string, rte: string), rs: DoseRuleData[]) =
@@ -665,9 +633,9 @@ module DoseRule =
 
                         if filtered |> Array.length = 0 then
                             let key = $"{gen} {rte}"
+
                             if warnings.ContainsKey(key) |> not then
-                                let msg =
-                                    $"{key}: no products found"
+                                let msg = $"{key}: no products found"
                                 warnings.TryAdd(key, msg) |> ignore
 
                             [|
@@ -691,17 +659,19 @@ module DoseRule =
                                 ps
                                 |> Array.groupBy (_.FormUnit >> ValueUnit.Group.unitToGroup)
                                 |> function
-                                    | [|_, ps|] ->
+                                    | [| _, ps |] ->
                                         ps
                                         |> Array.map (fun product ->
                                             { r with
                                                 Generic = gen
                                                 Form = product.Form |> String.toLower
                                                 Products =
-                                                    if r.GPKs |> Array.length > 0 then ps
+                                                    if r.GPKs |> Array.length > 0 then
+                                                        ps
                                                     else
                                                         ps
-                                                        |> Product.filter routeMapping
+                                                        |> Product.filter
+                                                            routeMapping
                                                             { Filter.doseFilter with
                                                                 Generic = r.Component |> Some
                                                                 Form = product.Form |> Some
@@ -721,10 +691,10 @@ module DoseRule =
 
                                                 { r with
                                                     Generic = gen
-                                                    Form =
-                                                        $"{product.Form |> String.toLower} ({u})"
+                                                    Form = $"{product.Form |> String.toLower} ({u})"
                                                     Products =
-                                                        if r.GPKs |> Array.length > 0 then ps
+                                                        if r.GPKs |> Array.length > 0 then
+                                                            ps
                                                         else
                                                             ps
                                                             |> Product.filter
@@ -755,34 +725,28 @@ module DoseRule =
             |> Async.RunSynchronously
             |> Array.collect id
 
-        data
-        |> Ok
+        data |> Ok
 
 
-    let addFormLimits routeMapping formRoutes (dr : DoseRule) =
-        let prods =
-            dr.ComponentLimits
-            |> Array.collect _.Products
+    let addFormLimits routeMapping formRoutes (dr: DoseRule) =
+        let prods = dr.ComponentLimits |> Array.collect _.Products
 
         let droplets =
             prods
-            |> Array.filter (fun p ->
-                p.Form |> String.containsCapsInsens "druppel"
-            )
+            |> Array.filter (fun p -> p.Form |> String.containsCapsInsens "druppel")
             |> Array.choose _.Divisible
             |> Array.distinct
             |> Array.tryExactlyOne
 
         let setDroplet vu =
             let v, u = vu |> ValueUnit.get
+
             match droplets with
             | None -> vu
-            | Some m ->
-                u
-                |> Units.Volume.dropletSetDropsPerMl m
-                |> ValueUnit.withValue v
+            | Some m -> u |> Units.Volume.dropletSetDropsPerMl m |> ValueUnit.withValue v
 
-        if dr.Form |> String.isNullOrWhiteSpace then dr
+        if dr.Form |> String.isNullOrWhiteSpace then
+            dr
         else
             prods
             |> Array.map _.FormUnit
@@ -807,7 +771,8 @@ module DoseRule =
                         | _ -> DoseLimit.limit.QuantityAdjust
                 }
                 |> fun dl ->
-                    if droplets |> Option.isNone then dl
+                    if droplets |> Option.isNone then
+                        dl
                     else
                         { dl with
                             DoseUnit =
@@ -816,20 +781,8 @@ module DoseRule =
                                 |> Option.defaultValue rsu.DoseUnit
                             Quantity =
                                 {
-                                    Min =
-                                        dl.Quantity.Min
-                                        |> Option.map (
-                                            Limit.apply
-                                                setDroplet
-                                                setDroplet
-                                        )
-                                    Max =
-                                        dl.Quantity.Max
-                                        |> Option.map (
-                                            Limit.apply
-                                                setDroplet
-                                                setDroplet
-                                        )
+                                    Min = dl.Quantity.Min |> Option.map (Limit.apply setDroplet setDroplet)
+                                    Max = dl.Quantity.Max |> Option.map (Limit.apply setDroplet setDroplet)
                                 }
 
                         }
@@ -839,11 +792,13 @@ module DoseRule =
             |> function
                 | None -> dr
                 | Some formLimit ->
-                    if formLimit |> DoseLimit.hasNoLimits then dr
-                    else { dr with FormLimit = Some formLimit }
+                    if formLimit |> DoseLimit.hasNoLimits then
+                        dr
+                    else
+                        { dr with FormLimit = Some formLimit }
 
 
-    let getDoseLimits (rs : DoseRuleData []) =
+    let getDoseLimits (rs: DoseRuleData[]) =
         rs
         |> Array.map (fun r ->
             // the adjust unit
@@ -853,46 +808,31 @@ module DoseRule =
             // the adjusted dose unit
             let duAdj =
                 match adj, du with
-                | Some adj, Some du ->
-                    du
-                    |> Units.per adj
-                    |> Some
+                | Some adj, Some du -> du |> Units.per adj |> Some
                 | _ -> None
             // the time unit
             let tu = r.FreqUnit |> Utils.Units.timeUnit
             // the dose unit per time unit
             let duTime =
                 match du, tu with
-                | Some du, Some tu ->
-                    du
-                    |> Units.per tu
-                    |> Some
+                | Some du, Some tu -> du |> Units.per tu |> Some
                 | _ -> None
             // the adjusted dose unit per time unit
             let duAdjTime =
                 match duAdj, tu with
-                | Some duAdj, Some tu ->
-                    duAdj
-                    |> Units.per tu
-                    |> Some
+                | Some duAdj, Some tu -> duAdj |> Units.per tu |> Some
                 | _ -> None
             // the rate unit
             let ru = r.RateUnit |> Units.fromString
             // the dose unit per rate unit
             let duRate =
                 match du, ru with
-                | Some du, Some ru ->
-                    du
-                    |> Units.per ru
-                    |> Some
+                | Some du, Some ru -> du |> Units.per ru |> Some
                 | _ -> None
             // the adjusted dose unit per rate unit
             let duAdjRate =
                 match duAdj, ru with
-                | Some duAdj, Some ru ->
-                    duAdj
-                    |> Units.per ru
-                    |> Some
+                | Some duAdj, Some ru -> duAdj |> Units.per ru |> Some
                 | _ -> None
 
             {
@@ -903,41 +843,29 @@ module DoseRule =
                         r.Substance |> SubstanceLimitTarget
                 AdjustUnit = adj
                 DoseUnit = du |> Option.defaultValue NoUnit
-                Quantity =
-                    (r.MinQty, r.MaxQty)
-                    |> fromTupleInclIncl du
-                QuantityAdjust =
-                    (r.MinQtyAdj, r.MaxQtyAdj)
-                    |> fromTupleInclIncl duAdj
-                PerTime =
-                    (r.MinPerTime, r.MaxPerTime)
-                    |> fromTupleInclIncl duTime
-                PerTimeAdjust =
-                    (r.MinPerTimeAdj, r.MaxPerTimeAdj)
-                    |> fromTupleInclIncl duAdjTime
-                Rate =
-                    (r.MinRate, r.MaxRate)
-                    |> fromTupleInclIncl duRate
-                RateAdjust =
-                    (r.MinRateAdj, r.MaxRateAdj)
-                    |> fromTupleInclIncl duAdjRate
+                Quantity = (r.MinQty, r.MaxQty) |> fromTupleInclIncl du
+                QuantityAdjust = (r.MinQtyAdj, r.MaxQtyAdj) |> fromTupleInclIncl duAdj
+                PerTime = (r.MinPerTime, r.MaxPerTime) |> fromTupleInclIncl duTime
+                PerTimeAdjust = (r.MinPerTimeAdj, r.MaxPerTimeAdj) |> fromTupleInclIncl duAdjTime
+                Rate = (r.MinRate, r.MaxRate) |> fromTupleInclIncl duRate
+                RateAdjust = (r.MinRateAdj, r.MaxRateAdj) |> fromTupleInclIncl duAdjRate
             }
         )
 
 
-    let addDoseLimits routeMapping formRoutes (rs: DoseRuleData[]) (dr : DoseRule) =
+    let addDoseLimits routeMapping formRoutes (rs: DoseRuleData[]) (dr: DoseRule) =
         { dr with
             ComponentLimits =
                 rs
                 |> Array.groupBy _.Component
-                |> Array.map (fun (cmp , rs) ->
+                |> Array.map (fun (cmp, rs) ->
                     let lim =
-                            rs
-                            // if no substance the dose limit is a component limit
-                            |> Array.filter (_.Substance >> String.isNullOrWhiteSpace)
-                            |> getDoseLimits
-                            |> Array.filter (DoseLimit.hasNoLimits >> not)
-                            |> Array.tryExactlyOne
+                        rs
+                        // if no substance the dose limit is a component limit
+                        |> Array.filter (_.Substance >> String.isNullOrWhiteSpace)
+                        |> getDoseLimits
+                        |> Array.filter (DoseLimit.hasNoLimits >> not)
+                        |> Array.tryExactlyOne
 
                     {
                         Name = cmp
@@ -945,6 +873,7 @@ module DoseRule =
                         Limit = lim
                         Products =
                             let dosis = "dosis" |> Units.General.general
+
                             rs
                             |> Array.collect _.Products
                             |> Array.filter (fun p ->
@@ -952,12 +881,11 @@ module DoseRule =
                                 | None -> true
                                 | Some l ->
                                     // special case where dosis is the dose unit
-                                    l.DoseUnit |> Units.eqsUnit dosis ||
+                                    l.DoseUnit |> Units.eqsUnit dosis
+                                    ||
                                     // special case where dosis is count unit
-                                    l.DoseUnit
-                                    |> ValueUnit.Group.eqsGroup Units.Count.times ||
-                                    l.DoseUnit
-                                    |> ValueUnit.Group.eqsGroup p.FormUnit
+                                    l.DoseUnit |> ValueUnit.Group.eqsGroup Units.Count.times
+                                    || l.DoseUnit |> ValueUnit.Group.eqsGroup p.FormUnit
                             )
                             |> Array.distinct
                         SubstanceLimits =
@@ -977,13 +905,7 @@ module DoseRule =
     /// <remarks>
     /// This function is memoized.
     /// </remarks>
-    let get
-        dataUrl
-        routeMapping
-        formRoutes
-        prods
-        : Result<_, Message list>
-        =
+    let get dataUrl routeMapping formRoutes prods : Result<_, Message list> =
         let addDoseLimits = addDoseLimits routeMapping formRoutes
 
         let map data =
@@ -1004,22 +926,14 @@ module DoseRule =
                         let chunkBySize = Parallel.totalWorders
 
                         let grouped =
-                            rules
-                            |> Array.map (fun (d, r) ->
-                                r |> Result.get, d
-                            )
-                            |> Array.groupBy fst
+                            rules |> Array.map (fun (d, r) -> r |> Result.get, d) |> Array.groupBy fst
 
 
                         grouped
                         |> Array.chunkBySize chunkBySize
                         |> Array.map (fun rs ->
                             async {
-                                return
-                                    rs
-                                    |> Array.map (fun (dr, rs) ->
-                                        dr |> addDoseLimits (rs |> Array.map snd)
-                                    )
+                                return rs |> Array.map (fun (dr, rs) -> dr |> addDoseLimits (rs |> Array.map snd))
                             }
                         )
                         |> Async.Parallel
@@ -1031,9 +945,7 @@ module DoseRule =
                 return rules
             }
 
-        dataUrl
-        |> getData
-        |> Result.bind map
+        dataUrl |> getData |> Result.bind map
 
 
     /// <summary>
@@ -1042,34 +954,30 @@ module DoseRule =
     /// <param name="routeMapping"></param>
     /// <param name="filter">The Filter</param>
     /// <param name="drs">The DoseRule array</param>
-    let filter routeMapping (filter : DoseFilter) (drs : DoseRule array) =
+    let filter routeMapping (filter: DoseFilter) (drs: DoseRule array) =
         // if the filter is 'empty' just return all
-        if filter = Filter.doseFilter then drs
+        if filter = Filter.doseFilter then
+            drs
         else
             let eqs a b =
-                a
-                |> Option.map (String.equalsCapInsens b)
-                |> Option.defaultValue true
+                a |> Option.map (String.equalsCapInsens b) |> Option.defaultValue true
 
             [|
-                fun (dr : DoseRule) -> dr.Indication |> eqs filter.Indication
-                fun (dr : DoseRule) -> dr.Generic |> eqs filter.Generic
-                fun (dr : DoseRule) -> dr.Form |> eqs filter.Form
-                fun (dr : DoseRule) -> filter.Route |> Option.isNone || dr.Route |> Mapping.eqsRoute routeMapping filter.Route
+                fun (dr: DoseRule) -> dr.Indication |> eqs filter.Indication
+                fun (dr: DoseRule) -> dr.Generic |> eqs filter.Generic
+                fun (dr: DoseRule) -> dr.Form |> eqs filter.Form
+                fun (dr: DoseRule) ->
+                    filter.Route |> Option.isNone
+                    || dr.Route |> Mapping.eqsRoute routeMapping filter.Route
                 // don't filter on patients if patient is not set
                 if filter.Patient = Patient.patient |> not then
-                    fun (dr : DoseRule) -> dr.PatientCategory |> PatientCategory.filter filter
-                fun (dr : DoseRule) ->
-                    filter.DoseType
-                    |> Option.map ((=) dr.DoseType)
-                    |> Option.defaultValue true
+                    fun (dr: DoseRule) -> dr.PatientCategory |> PatientCategory.filter filter
+                fun (dr: DoseRule) -> filter.DoseType |> Option.map ((=) dr.DoseType) |> Option.defaultValue true
             |]
-            |> Array.fold (fun (acc : DoseRule[]) pred ->
-                acc |> Array.filter pred
-            ) drs
+            |> Array.fold (fun (acc: DoseRule[]) pred -> acc |> Array.filter pred) drs
 
 
-    let private getMember getter (drs : DoseRule[]) =
+    let private getMember getter (drs: DoseRule[]) =
         drs
         |> Array.map getter
         |> Array.map String.trim
@@ -1093,14 +1001,13 @@ module DoseRule =
     let routes = getMember _.Route
 
 
-    let doseTypes (dsrs : DoseRule []) =
-        dsrs
-        |> Array.map _.DoseType
-        |> Array.distinct
+    let doseTypes (dsrs: DoseRule[]) =
+        dsrs |> Array.map _.DoseType |> Array.distinct
 
 
     /// Extract all the departments from the DoseRules.
-    let departments = getMember (fun dr -> dr.PatientCategory.Department |> Option.defaultValue "")
+    let departments =
+        getMember (fun dr -> dr.PatientCategory.Department |> Option.defaultValue "")
 
 
     /// Extract all genders from the DoseRules.
@@ -1108,7 +1015,7 @@ module DoseRule =
 
 
     /// Extract all patient categories from the DoseRules as strings.
-    let patientCategories (drs : DoseRule array) =
+    let patientCategories (drs: DoseRule array) =
         drs
         |> Array.map _.PatientCategory
         |> Array.sortBy PatientCategory.sortBy
@@ -1117,35 +1024,27 @@ module DoseRule =
 
 
     /// Extract all frequencies from the DoseRules as strings.
-    let frequencies (drs : DoseRule array) =
-        drs
-        |> Array.map Print.printFreqs
-        |> Array.distinct
+    let frequencies (drs: DoseRule array) =
+        drs |> Array.map Print.printFreqs |> Array.distinct
 
 
-    let useAdjust (dr : DoseRule) =
+    let useAdjust (dr: DoseRule) =
         dr.ComponentLimits
         |> Array.collect _.SubstanceLimits
         |> Array.exists DoseLimit.useAdjust
 
 
-    let rec getNormDose (dr : DoseRule) =
+    let rec getNormDose (dr: DoseRule) =
         dr.ComponentLimits
         |> Array.collect _.SubstanceLimits
         |> Array.collect (fun dl ->
             [|
                 match dl.PerTimeAdjust |> DoseLimit.getNormDose with
-                | Some norm ->
-                    (dl.DoseLimitTarget, norm)
-                    |> NormPerTimeAdjust
-                    |> Some
+                | Some norm -> (dl.DoseLimitTarget, norm) |> NormPerTimeAdjust |> Some
                 | _ -> None
 
                 match dl.QuantityAdjust |> DoseLimit.getNormDose with
-                | Some norm ->
-                    (dl.DoseLimitTarget, norm)
-                    |> NormQuantityAdjust
-                    |> Some
+                | Some norm -> (dl.DoseLimitTarget, norm) |> NormQuantityAdjust |> Some
                 | _ -> None
             |]
         )
@@ -1217,22 +1116,22 @@ module DoseRule =
             |> List.singleton
 
 
-        let distinctByDoseLimit (d : DoseRuleData) =
-                d.DoseType,
-                d.Substance |> String.isNullOrWhiteSpace,
-                d.AdjustUnit |> String.isNullOrWhiteSpace,
-                d.MinQty.IsSome,
-                d.MaxQty.IsSome,
-                d.MinQtyAdj.IsSome,
-                d.MaxQtyAdj.IsSome,
-                d.MinPerTime.IsSome,
-                d.MaxPerTime.IsSome,
-                d.MinPerTimeAdj.IsSome,
-                d.MaxPerTimeAdj.IsSome,
-                d.MinRate.IsSome,
-                d.MaxRate.IsSome,
-                d.MinRateAdj.IsSome,
-                d.MaxRateAdj.IsSome
+        let distinctByDoseLimit (d: DoseRuleData) =
+            d.DoseType,
+            d.Substance |> String.isNullOrWhiteSpace,
+            d.AdjustUnit |> String.isNullOrWhiteSpace,
+            d.MinQty.IsSome,
+            d.MaxQty.IsSome,
+            d.MinQtyAdj.IsSome,
+            d.MaxQtyAdj.IsSome,
+            d.MinPerTime.IsSome,
+            d.MaxPerTime.IsSome,
+            d.MinPerTimeAdj.IsSome,
+            d.MaxPerTimeAdj.IsSome,
+            d.MinRate.IsSome,
+            d.MaxRate.IsSome,
+            d.MinRateAdj.IsSome,
+            d.MaxRateAdj.IsSome
 
 
         let dataToCsv dataUrlId prods routeMapping distBy =
@@ -1255,18 +1154,16 @@ module DoseRule =
                 |> Array.distinctBy distBy
 
             grouped
-            |> Array.filter (snd >> Array.exists(fun d -> distinct |> Array.exists ((=) d)))
+            |> Array.filter (snd >> Array.exists (fun d -> distinct |> Array.exists ((=) d)))
             |> Array.collect snd
             |> Array.toList
             |> List.mapi (fun i d ->
                 let bigRatToStringList =
-                    Array.map BigRational.toDouble
-                    >> Array.map string
-                    >> String.concat ";"
+                    Array.map BigRational.toDouble >> Array.map string >> String.concat ";"
 
                 let bigRatOptToString =
-                    Option.map (BigRational.toDouble >> string)
-                    >> Option.defaultValue ""
+                    Option.map (BigRational.toDouble >> string) >> Option.defaultValue ""
+
                 [
                     $"{i}"
                     d.Source

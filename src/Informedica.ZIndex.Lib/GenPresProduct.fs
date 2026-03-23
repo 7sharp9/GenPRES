@@ -22,7 +22,7 @@ module GenPresProduct =
 
 
     let private parse gpks =
-        let gpks =  gpks |> List.toArray
+        let gpks = gpks |> List.toArray
 
         GenericProduct.get (gpks |> Array.toList)
         |> Array.map (fun gp ->
@@ -31,10 +31,10 @@ module GenPresProduct =
                 |> Array.filter (fun s -> s.IsAdditional |> not)
                 |> Array.map _.SubstanceName
                 |> Array.distinct
-                |> Array.fold (fun a s ->
-                    if a = "" then s
-                    else a + "/" + s) ""
-            ((n, gp.Form), gp))
+                |> Array.fold (fun a s -> if a = "" then s else a + "/" + s) ""
+
+            ((n, gp.Form), gp)
+        )
         |> Array.groupBy fst
         |> Array.map (fun ((nm, sh), xs) ->
             let gps = xs |> Array.map snd
@@ -50,46 +50,43 @@ module GenPresProduct =
                         |> String.trim
                         |> String.equalsCapInsens (gp.ATC |> String.subString 0 5)
                     )
-                    |> Array.map _.ATOMS)
+                    |> Array.map _.ATOMS
+                )
                 |> Array.distinct
 
             let unt =
                 gps
-                |> Array.fold (fun acc gp ->
-                    if acc <> "" then acc
-                    else
-                        gp.PrescriptionProducts
-                        |> Array.fold (fun acc pp ->
-                            if acc <> "" then acc
-                            else  pp.Unit
-                        ) ""
-                ) ""
+                |> Array.fold
+                    (fun acc gp ->
+                        if acc <> "" then
+                            acc
+                        else
+                            gp.PrescriptionProducts
+                            |> Array.fold (fun acc pp -> if acc <> "" then acc else pp.Unit) ""
+                    )
+                    ""
 
-            let rt =
-                gps
-                |> Array.collect _.Route
-                |> Array.distinct
+            let rt = gps |> Array.collect _.Route |> Array.distinct
 
-            create nm sh rt ph gps dpn unt [||])
+            create nm sh rt ph gps dpn unt [||]
+        )
 
 
     let private _get gpks =
-        let useDemo = FilePath.useDemo()
+        let useDemo = FilePath.useDemo ()
 
         fun () ->
             if (FilePath.productCache useDemo) |> File.exists then
                 FilePath.productCache useDemo
                 |> Json.getCache
                 |> (fun gpps ->
-                    if gpks |> List.isEmpty then gpps
+                    if gpks |> List.isEmpty then
+                        gpps
                     else
                         gpps
                         |> Array.filter (fun gpp ->
                             gpp.GenericProducts
-                            |> Array.exists (fun gp ->
-                                gpks
-                                |> List.exists (fun gpk -> gp.Id = gpk)
-                            )
+                            |> Array.exists (fun gp -> gpks |> List.exists (fun gpk -> gp.Id = gpk))
                         )
                 )
             else
@@ -118,15 +115,12 @@ module GenPresProduct =
     /// Get a list of all GenericProduct Ids.
     let getGPKS all =
         get all
-        |> Array.collect (fun gpp ->
-            gpp.GenericProducts
-            |> Array.map _.Id
-        )
+        |> Array.collect (fun gpp -> gpp.GenericProducts |> Array.map _.Id)
         |> Array.distinct
 
 
     /// Get the string representation of a GenPresProduct.
-    let toString (gpp : GenPresProduct) =
+    let toString (gpp: GenPresProduct) =
         gpp.Name + " " + gpp.Form + " " + (gpp.Routes |> String.concat "/")
 
 
@@ -139,9 +133,9 @@ module GenPresProduct =
     let filter n f r =
         get []
         |> Array.filter (fun gpp ->
-            (n = "" || gpp.Name   |> String.equalsCapInsens n) &&
-            (f = "" || gpp.Form  |> String.equalsCapInsens f) &&
-            (r = "" || gpp.Routes |> Array.exists (fun r' -> r' |> String.equalsCapInsens r))
+            (n = "" || gpp.Name |> String.equalsCapInsens n)
+            && (f = "" || gpp.Form |> String.equalsCapInsens f)
+            && (r = "" || gpp.Routes |> Array.exists (fun r' -> r' |> String.equalsCapInsens r))
         )
 
 
@@ -149,10 +143,7 @@ module GenPresProduct =
     let getGPKMap =
         fun () ->
             get []
-            |> Array.collect (fun gpp ->
-                gpp.GenericProducts
-                |> Array.map (fun gp -> gp.Id, gpp)
-            )
+            |> Array.collect (fun gpp -> gpp.GenericProducts |> Array.map (fun gp -> gp.Id, gpp))
             |> Array.groupBy fst
             |> Array.map (fun (k, v) -> k, v |> Array.map snd)
             |> Map.ofArray
@@ -172,31 +163,19 @@ module GenPresProduct =
 
     /// Get all Routes for all GenPresProducts.
     let getRoutes =
-        fun () ->
-            get []
-            |> Array.collect _.Routes
-            |> Array.distinct
-            |> Array.sort
+        fun () -> get [] |> Array.collect _.Routes |> Array.distinct |> Array.sort
         |> Memoization.memoize
 
 
     /// Get all pharmaceutical forms for all GenPresProducts.
     let getForms =
-        fun () ->
-            get []
-            |> Array.map _.Form
-            |> Array.distinct
-            |> Array.sort
+        fun () -> get [] |> Array.map _.Form |> Array.distinct |> Array.sort
         |> Memoization.memoize
 
 
     /// Get all Units for all GenPresProducts.
     let getUnits =
-        fun () ->
-            get []
-            |> Array.map _.Unit
-            |> Array.distinct
-            |> Array.sort
+        fun () -> get [] |> Array.map _.Unit |> Array.distinct |> Array.sort
         |> Memoization.memoize
 
 
@@ -209,16 +188,9 @@ module GenPresProduct =
     let getFormRoutes =
         fun () ->
             get []
-            |> Array.map (fun gpp ->
-                gpp.Form, gpp.Routes
-            )
+            |> Array.map (fun gpp -> gpp.Form, gpp.Routes)
             |> Array.groupBy fst
-            |> Array.map (fun (form, routes) ->
-                form,
-                routes
-                |> Array.collect snd
-                |> Array.distinct
-            )
+            |> Array.map (fun (form, routes) -> form, routes |> Array.collect snd |> Array.distinct)
             |> Array.distinct
             |> Array.sort
 
@@ -230,16 +202,10 @@ module GenPresProduct =
     /// <returns>
     /// An array of tuples of Route and Form.
     /// </returns>
-    let routeForms (gpps : GenPresProduct[]) =
+    let routeForms (gpps: GenPresProduct[]) =
         // route form
         gpps
-        |> Array.collect (fun gpp ->
-            gpp.Routes
-            |> Array.map (fun route ->
-                route,
-                gpp.Form
-            )
-        )
+        |> Array.collect (fun gpp -> gpp.Routes |> Array.map (fun route -> route, gpp.Form))
         |> Array.distinct
 
 
@@ -252,9 +218,7 @@ module GenPresProduct =
     let getFormUnits =
         fun () ->
             get []
-            |> Array.map (fun gpp ->
-                gpp.Form, gpp.Unit
-            )
+            |> Array.map (fun gpp -> gpp.Form, gpp.Unit)
             |> Array.distinct
             |> Array.sort
         |> Memoization.memoize
@@ -266,15 +230,11 @@ module GenPresProduct =
             get []
             |> Array.collect (fun gpp ->
                 gpp.GenericProducts
-                |> Array.collect (fun gp ->
-                    gp.Substances
-                    |> Array.map _.SubstanceUnit
-                )
+                |> Array.collect (fun gp -> gp.Substances |> Array.map _.SubstanceUnit)
             )
             |> Array.distinct
             |> Array.sort
         |> Memoization.memoize
-
 
 
     /// Get all Generic Units for all GenPresProducts.
@@ -283,10 +243,7 @@ module GenPresProduct =
             get []
             |> Array.collect (fun gpp ->
                 gpp.GenericProducts
-                |> Array.collect (fun gp ->
-                    gp.Substances
-                    |> Array.map _.GenericUnit
-                )
+                |> Array.collect (fun gp -> gp.Substances |> Array.map _.GenericUnit)
             )
             |> Array.distinct
             |> Array.sort
@@ -308,19 +265,14 @@ module GenPresProduct =
             |> Array.filter (fun gp -> gp.Id = gpk)
             |> Array.collect (fun gp ->
                 gp.Substances
-                |> Array.map (fun s ->
-                    s.SubstanceName,
-                    s.SubstanceQuantity,
-                    s.SubstanceUnit
-                )
+                |> Array.map (fun s -> s.SubstanceName, s.SubstanceQuantity, s.SubstanceUnit)
             )
         )
 
 
     /// Get all GenericProducts for all GenPresProducts.
     let getGenericProducts () =
-        get []
-        |> Array.collect _.GenericProducts
+        get [] |> Array.collect _.GenericProducts
 
 
     /// <summary>
@@ -332,19 +284,13 @@ module GenPresProduct =
 
         get []
         |> Array.filter (fun gpp ->
-            gpp.Name |> contains n ||
-            gpp.GenericProducts
-            |> Array.exists (fun gp ->
-                gp.Name |> contains n ||
-                gp.PrescriptionProducts
-                |> Array.exists (fun pp ->
-                    pp.TradeProducts
-                    |> Array.exists (fun tp ->
-                        tp.Label
-                        |> contains n
-                    )
-                )
-            )
+            gpp.Name |> contains n
+            || gpp.GenericProducts
+               |> Array.exists (fun gp ->
+                   gp.Name |> contains n
+                   || gp.PrescriptionProducts
+                      |> Array.exists (fun pp -> pp.TradeProducts |> Array.exists (fun tp -> tp.Label |> contains n))
+               )
         )
 
 
@@ -352,13 +298,11 @@ module GenPresProduct =
         get []
         |> Array.filter (fun gpp ->
             gpp.GenericProducts
-            |> Array.exists(fun gp ->
+            |> Array.exists (fun gp ->
                 gp.PrescriptionProducts
-                |> Array.exists(fun pp  ->
+                |> Array.exists (fun pp ->
                     pp.TradeProducts
-                    |> Array.exists(fun tp ->
-                        tp.Brand |> String.containsCapsInsens n
-                    )
+                    |> Array.exists (fun tp -> tp.Brand |> String.containsCapsInsens n)
                 )
             )
         )
