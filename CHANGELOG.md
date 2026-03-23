@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Server**: Graceful shutdown support — server now cleanly terminates active agents and connections on SIGTERM/SIGINT
+- **Server**: Switch to bounded domain modular architecture — server modules reorganised as independent bounded contexts for improved cohesion and testability; legacy code removed
+- **Server (Agents)**: Add `Agent.createReplyAsync` — new variant that accepts `'Request -> Async<'Reply>` to avoid blocking thread-pool threads in async agent workflows
+- **Client (UI)**: Update to latest Fable releases (Feliz.Router patched for compatibility)
+- **Tests (GenFORM)**: Migrate test scaffolding into formal CI test suite — 218 lines of new Expecto tests
+- **Tests (GenORDER)**: Migrate test scaffolding into formal CI test suite — 120 lines of new Expecto tests
+- **Build**: Add Fantomas pre-commit hook — F# source files are now auto-formatted on every commit; `.fantomasignore` updated to exclude client UI code
+
 ---
 
 ## [0.1.2-alpha] - 2026-03-23
@@ -37,10 +47,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dependencies**: Update Fable to latest version (PR #205)
 - **Build**: Apply Fantomas formatting to client UI code (PR #209)
+- **Build**: Apply Fantomas formatting to all F# source files (formatting-only change, no logic changes)
+- **Docs**: Update F# code formatting instructions to reflect Fantomas configuration
+
+### Removed
+
+- **Scripts**: Remove W3 analysis scripts (`GenCORECalculationsScaffolding.fsx`, `GenCOREPatientScaffolding.fsx`, `GenFORMTestScaffolding.fsx`, `GenOrderTestScaffolding.fsx`, `NKFCITests.fsx`, `NKFTestAnalysis.fsx`, `TestMigrationStatus.fsx`) — content has been migrated to formal CI test suites
 
 ### Fixed
 
 - **Server/GenForm**: Improve error handling when resources (Google Sheets / CSV) cannot be loaded
+- **Server (Agents)**: Convert `processOrderPlanCommand` and `processNutritionCommand` to use `let!` for async calls instead of `Async.RunSynchronously`, preventing thread-pool starvation
 - **Tests**: Fix errors in test scaffolding scripts (PR #203)
 - **GenOrder**: Fix incompatible substance concentrations causing incorrect product filtering
 - **GenOrder**: Add warning when filtering out products with incompatible units
