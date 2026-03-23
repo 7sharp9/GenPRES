@@ -89,9 +89,9 @@ let catalogue =
         { Module = "Patient"
           Name   = "premature"
           Purity = Pure
-          Signature = "unit -> Patient"
+          Signature = "Patient"
           Status = hasTest "premature"
-          Notes  = "Returns a Patient with age=24 weeks gest + weight range" }
+          Notes  = "Returns a Patient with age=32 weeks gest + weight range" }
 
         { Module = "Patient"
           Name   = "newBorn"
