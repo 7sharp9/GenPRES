@@ -19,7 +19,7 @@ module TitleBar =
             switchHosp : string -> unit
         |}) =
 
-        let context = React.useContext(Global.context)
+        let context : Global.Context = React.useContext Global.context
 
         let anchorElHosp, setAnchorElHosp = React.useState(None)
 

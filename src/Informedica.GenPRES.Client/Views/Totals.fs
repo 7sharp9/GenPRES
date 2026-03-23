@@ -64,7 +64,7 @@ module Totals =
         import Box from '@mui/material/Box';
 
         <Box display="inline" >
-            {items |> Array.map print |> unbox |> React.fragment}
+            {items |> Array.map print |> unbox<seq<ReactElement>> |> React.Fragment}
         </Box>
         """
 

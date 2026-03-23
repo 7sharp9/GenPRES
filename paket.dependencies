@@ -4,22 +4,21 @@ storage: none
 
 nuget FSharpPlus 1.7.0
 
-nuget Fable.Core
+nuget Fable.Core 5.0.0-rc.1
 nuget Fable.Remoting.Client
 nuget Fable.Remoting.Giraffe
 nuget Fable.Browser.DOM
 nuget Fable.Elmish
-nuget Fable.Elmish.React
+nuget Fable.Elmish.React 5.5.0-beta-1
 nuget Fable.Elmish.Debugger
-nuget Fable.Elmish.HMR
+nuget Fable.Elmish.HMR 9.0.0-beta.1
 nuget Fable.React.UseElmish
 nuget Fable.Mocha
 nuget Fable.SimpleHttp
 
-nuget Feliz.UseElmish ~> 2
-nuget Feliz ~> 2
-nuget Feliz.Markdown
-nuget Feliz.Router
+nuget Feliz.UseElmish
+nuget Feliz ~> 3
+nuget Feliz.Markdown 3.1.0
 nuget NJsonSchema 11.5.1
 
 nuget Saturn ~> 0

@@ -30,7 +30,7 @@ module Prescribe =
             localizationTerms : Deferred<string [] []>
         |}) =
 
-        let context = React.useContext Global.context
+        let context : Global.Context = React.useContext Global.context
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:900px)"
 
@@ -235,8 +235,8 @@ module Prescribe =
                                         item "preparation" Mui.Icons.Vaccines (Terms.``Prescribe Preparation`` |> getTerm "Bereiding") sc.Preparation
                                     item "administration" Mui.Icons.MedicationLiquid (Terms.``Prescribe Administration`` |> getTerm "Toediening") sc.Administration
                                 |]
-                                |> unbox
-                                |> React.fragment
+                                |> unbox<seq<ReactElement>>
+                                |> React.Fragment
                             }
                         </List>
                     </React.Fragment>
@@ -441,9 +441,9 @@ module Prescribe =
                             | Resolved pr | Recalculating pr ->
                                 pr.Scenarios
                                 |> Array.map (displayScenario pr pr.Filter.Generic)
-                                |> unbox
-                                |> React.fragment
-                            | _ -> Seq.empty |> React.fragment
+                                |> unbox<seq<ReactElement>>
+                                |> React.Fragment
+                            | _ -> Seq.empty<ReactElement> |> React.Fragment
                         }
                     </Stack>
                 </Stack>

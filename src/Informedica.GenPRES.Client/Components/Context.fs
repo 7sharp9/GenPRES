@@ -9,8 +9,4 @@ module Context =
 
     [<ReactComponent>]
     let Context (context: Global.Context) el =
-        React.contextProvider (
-            Global.context,
-            context,
-            React.fragment [ el ]
-        )
+        Global.context.Provider (context, React.Fragment [ el ])

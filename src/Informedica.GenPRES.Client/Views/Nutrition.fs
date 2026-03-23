@@ -324,8 +324,8 @@ module Nutrition =
             {
                 blocks
                 |> Array.map Mui.TypoGraphy.fromTextBlock
-                |> unbox
-                |> React.fragment
+                |> unbox<seq<ReactElement>>
+                |> React.Fragment
             }
         </Box>
         """
@@ -440,7 +440,7 @@ module Nutrition =
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {componentRows |> unbox |> React.fragment}
+                                {componentRows |> unbox<seq<ReactElement>> |> React.Fragment}
                                 <TableRow>
                                     <TableCell colSpan={2} sx={ {| fontWeight="bold" |} }>Totaal volume</TableCell>
                                     <TableCell align="right" sx={ {| fontWeight="bold" |} }>{totalVolume}</TableCell>
@@ -514,7 +514,7 @@ module Nutrition =
                     </Typography>
                     <Table size="small" sx={tableSx}>
                         <TableBody>
-                            {totalsRows |> unbox |> React.fragment}
+                            {totalsRows |> unbox<seq<ReactElement>> |> React.Fragment}
                         </TableBody>
                     </Table>
                 </Box>
@@ -530,7 +530,7 @@ module Nutrition =
                     INFUUS AFSPRAKEN CENTRAAL VENEUZE CATHETERS
                 </Typography>
                 {ViewHelpers.PrintView.PatientHeader {| weightKg = weightKg |}}
-                {contextSections |> unbox |> React.fragment}
+                {contextSections |> unbox<seq<ReactElement>> |> React.Fragment}
                 {totalsSection}
                 {ViewHelpers.PrintView.PatientSignature ()}
             </React.Fragment>
@@ -1057,8 +1057,8 @@ module Nutrition =
                     {headerRow}
                     {
                         componentRows
-                        |> unbox
-                        |> React.fragment
+                        |> unbox<seq<ReactElement>>
+                        |> React.Fragment
                     }
                     <Divider />
                     {totalVolumeDisplay}
@@ -1398,7 +1398,7 @@ module Nutrition =
 
                         <Box sx={ {| display="flex"; alignItems="center"; width="100%"; overflow="hidden" |} }>
                             <Typography>Enterale Voeding</Typography>
-                            {adminSummaries |> unbox |> React.fragment}
+                            {adminSummaries |> unbox<seq<ReactElement>> |> React.Fragment}
                         </Box>
                         """
 
@@ -1407,7 +1407,7 @@ module Nutrition =
                             $"""
                         import Stack from '@mui/material/Stack';
                         <Stack direction="column" spacing={{2}}>
-                            {enteralSlots |> unbox |> React.fragment}
+                            {enteralSlots |> unbox<seq<ReactElement>> |> React.Fragment}
                             {enteralFeedingAddButton}
                             {supplementAddButton}
                         </Stack>
@@ -1444,12 +1444,12 @@ module Nutrition =
                             Print
                         </Button>
                     </Stack>
-                    {parenteralSlots |> unbox |> React.fragment}
+                    {parenteralSlots |> unbox<seq<ReactElement>> |> React.Fragment}
                     <Stack direction="row" spacing={1}>
                         {
                             parenteralAddButtons
-                            |> unbox
-                            |> React.fragment
+                            |> unbox<seq<ReactElement>>
+                            |> React.Fragment
                         }
                     </Stack>
                 </Stack>

@@ -18,7 +18,7 @@ module Settings =
             localizationTerms: Deferred<string [] []>
         |}) =
 
-        let context = React.useContext(Global.context)
+        let context : Global.Context = React.useContext Global.context
         let lang = context.Localization
 
         let getTerm = Global.getLocalizedTerm props.localizationTerms lang

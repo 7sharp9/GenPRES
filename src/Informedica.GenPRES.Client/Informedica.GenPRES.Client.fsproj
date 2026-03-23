@@ -9,6 +9,7 @@
     <Compile Include="Utils.fs" />
     <Compile Include="Global.fs" />
     <Compile Include="MUI.fs" />
+    <Compile Include="./Components/FelizRouter.fs" />
     <Compile Include="./Components/Router.fs" />
     <Compile Include="./Components/Context.fs" />
     <Compile Include="./Components/Localization.fs" />

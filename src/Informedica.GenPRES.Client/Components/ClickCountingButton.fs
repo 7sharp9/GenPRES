@@ -26,10 +26,9 @@ module ClickCountingButton =
         // Cleanup timers on unmount
         React.useEffect(
             (fun () ->
-                React.createDisposable(fun () ->
+                fun () ->
                     debounceRef.current |> Option.iter JS.clearTimeout
                     intervalRef.current |> Option.iter JS.clearInterval
-                )
             ),
             [||]
         )

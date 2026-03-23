@@ -143,7 +143,7 @@ module ResponsiveTable =
                     {props.filter |> Option.defaultValue null}
                 </Box>
                 <Grid container rowSpacing={1} columnSpacing={ {| xs=1; sm=2; md=3 |} } >
-                    {React.fragment (cards |> unbox)}
+                    {React.Fragment (cards |> unbox<seq<ReactElement>>)}
                 </Grid>
             </Stack>
             """
