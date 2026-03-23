@@ -158,38 +158,44 @@ module AgentAdapters =
         logAgent
         (orderCtxPort: OrderContextPort)
         (cmd: OrderPlanCommand)
-        : OrderPlanResponse =
-        let setComponent name =
-            match logAgent with
-            | Some a -> a |> Logging.setComponentName (Some name) |> Async.RunSynchronously
-            | None -> ()
+        : Async<OrderPlanResponse> =
+        async {
+            let setComponent name =
+                match logAgent with
+                | Some a -> a |> Logging.setComponentName (Some name) |> Async.RunSynchronously
+                | None -> ()
 
-        match cmd with
-        | OrderPlanCommand.Update (tp, cmdOpt) ->
-            setComponent "TreatmentPlan"
-            OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
-            |> Async.RunSynchronously
-            |> OrderPlanService.calculateTotals
-            |> Ok
-            |> OrderPlanResponse.OrderPlan
+            match cmd with
+            | OrderPlanCommand.Update (tp, cmdOpt) ->
+                setComponent "TreatmentPlan"
+                let! updated = OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
+                return
+                    updated
+                    |> OrderPlanService.calculateTotals
+                    |> Ok
+                    |> OrderPlanResponse.OrderPlan
 
-        | OrderPlanCommand.Filter tp ->
-            tp
-            |> OrderPlanService.calculateTotals
-            |> Ok
-            |> OrderPlanResponse.OrderPlan
+            | OrderPlanCommand.Filter tp ->
+                return
+                    tp
+                    |> OrderPlanService.calculateTotals
+                    |> Ok
+                    |> OrderPlanResponse.OrderPlan
+        }
 
 
     let private createOrderPlanAgent logAgent orderCtxPort =
-        Agent.createReply<OrderPlanCommand, OrderPlanResponse>(fun cmd ->
-            try
-                writeDebugMessage $"[OrderPlanAgent] <- {cmd |> orderPlanCommandToString}"
-                let response = processOrderPlanCommand logAgent orderCtxPort cmd
-                writeDebugMessage $"[OrderPlanAgent] -> {cmd |> orderPlanCommandToString} completed"
-                response
-            with ex ->
-                writeErrorMessage $"[OrderPlanAgent] error in {cmd |> orderPlanCommandToString}: {ex}"
-                OrderPlanResponse.OrderPlan (Error [| ex.Message |])
+        Agent.createReplyAsync<OrderPlanCommand, OrderPlanResponse>(fun cmd ->
+            async {
+                try
+                    writeDebugMessage $"[OrderPlanAgent] <- {cmd |> orderPlanCommandToString}"
+                    let! response = processOrderPlanCommand logAgent orderCtxPort cmd
+                    writeDebugMessage $"[OrderPlanAgent] -> {cmd |> orderPlanCommandToString} completed"
+                    return response
+                with ex ->
+                    writeErrorMessage $"[OrderPlanAgent] error in {cmd |> orderPlanCommandToString}: {ex}"
+                    return OrderPlanResponse.OrderPlan (Error [| ex.Message |])
+            }
         )
 
 
@@ -230,47 +236,49 @@ module AgentAdapters =
         (provider: Resources.IResourceProvider)
         (orderCtxPort: OrderContextPort)
         (cmd: NutritionCommand)
-        : NutritionResponse =
-        match cmd with
-        | NutritionCommand.Init patient ->
-            NutritionPlanService.initNutritionPlan logger provider patient
-            |> NutritionResponse.NutritionPlan
+        : Async<NutritionResponse> =
+        async {
+            match cmd with
+            | NutritionCommand.Init patient ->
+                return
+                    NutritionPlanService.initNutritionPlan logger provider patient
+                    |> NutritionResponse.NutritionPlan
 
-        | NutritionCommand.Add (plan, category) ->
-            NutritionPlanService.addNutritionContext orderCtxPort (plan, category)
-            |> Async.RunSynchronously
-            |> NutritionResponse.NutritionPlan
+            | NutritionCommand.Add (plan, category) ->
+                let! result = NutritionPlanService.addNutritionContext orderCtxPort (plan, category)
+                return result |> NutritionResponse.NutritionPlan
 
-        | NutritionCommand.Remove (plan, id) ->
-            NutritionPlanService.removeNutritionContext (plan, id)
-            |> NutritionResponse.NutritionPlan
+            | NutritionCommand.Remove (plan, id) ->
+                return
+                    NutritionPlanService.removeNutritionContext (plan, id)
+                    |> NutritionResponse.NutritionPlan
 
-        | NutritionCommand.UpdateOrderContext (plan, label, ctx) ->
-            NutritionPlanService.updateNutritionOrderContext orderCtxPort (plan, label, ctx)
-            |> Async.RunSynchronously
-            |> NutritionResponse.NutritionPlan
+            | NutritionCommand.UpdateOrderContext (plan, label, ctx) ->
+                let! result = NutritionPlanService.updateNutritionOrderContext orderCtxPort (plan, label, ctx)
+                return result |> NutritionResponse.NutritionPlan
 
-        | NutritionCommand.SelectOrderScenario (plan, label, ctx) ->
-            NutritionPlanService.selectNutritionOrderScenario orderCtxPort (plan, label, ctx)
-            |> Async.RunSynchronously
-            |> NutritionResponse.NutritionPlan
+            | NutritionCommand.SelectOrderScenario (plan, label, ctx) ->
+                let! result = NutritionPlanService.selectNutritionOrderScenario orderCtxPort (plan, label, ctx)
+                return result |> NutritionResponse.NutritionPlan
 
-        | NutritionCommand.Navigate (plan, label, ctxCmd, ctx) ->
-            NutritionPlanService.navigateNutritionOrderContext orderCtxPort (plan, label, ctxCmd, ctx)
-            |> Async.RunSynchronously
-            |> NutritionResponse.NutritionPlan
+            | NutritionCommand.Navigate (plan, label, ctxCmd, ctx) ->
+                let! result = NutritionPlanService.navigateNutritionOrderContext orderCtxPort (plan, label, ctxCmd, ctx)
+                return result |> NutritionResponse.NutritionPlan
+        }
 
 
     let private createNutritionAgent logger provider orderCtxPort =
-        Agent.createReply<NutritionCommand, NutritionResponse>(fun cmd ->
-            try
-                writeDebugMessage $"[NutritionAgent] <- {cmd |> nutritionCommandToString}"
-                let response = processNutritionCommand logger provider orderCtxPort cmd
-                writeDebugMessage $"[NutritionAgent] -> {cmd |> nutritionCommandToString} completed"
-                response
-            with ex ->
-                writeErrorMessage $"[NutritionAgent] error in {cmd |> nutritionCommandToString}: {ex}"
-                NutritionResponse.NutritionPlan (Error [| ex.Message |])
+        Agent.createReplyAsync<NutritionCommand, NutritionResponse>(fun cmd ->
+            async {
+                try
+                    writeDebugMessage $"[NutritionAgent] <- {cmd |> nutritionCommandToString}"
+                    let! response = processNutritionCommand logger provider orderCtxPort cmd
+                    writeDebugMessage $"[NutritionAgent] -> {cmd |> nutritionCommandToString} completed"
+                    return response
+                with ex ->
+                    writeErrorMessage $"[NutritionAgent] error in {cmd |> nutritionCommandToString}: {ex}"
+                    return NutritionResponse.NutritionPlan (Error [| ex.Message |])
+            }
         )
 
 
