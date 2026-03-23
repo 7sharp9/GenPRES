@@ -88,7 +88,11 @@ let createProcess exe args dir =
     // See https://github.com/SAFE-Stack/SAFE-template/issues/551.
     CreateProcess.fromRawCommand exe args
     |> CreateProcess.withWorkingDirectory dir
-    |> CreateProcess.ensureExitCode
+    |> CreateProcess.addOnExited (fun data exitCode ->
+        // Treat SIGINT (130) and SIGTERM (143) as graceful shutdown
+        if exitCode <> 0 && exitCode <> 130 && exitCode <> 143 then
+            failwithf "Process exit code '%d' <> 0. Command Line: %s %s" exitCode exe (args |> String.concat " ")
+        data)
 
 
 let dotnet args dir = createProcess "dotnet" args dir
