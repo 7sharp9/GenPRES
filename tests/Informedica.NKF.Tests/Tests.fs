@@ -188,6 +188,7 @@ module Tests =
                     let cleaned = (Export.cleanGenericName drug).Generic
                     cleaned
                     |> Expect.equal "should be lowercased" "colistimethaatnatrium"
+                }
                 test "cleanGenericName strips ' (combinatiepreparaat)' suffix" {
                     let drug = createDrug "" "" "co-trimoxazol (combinatiepreparaat)" ""
                     (Export.cleanGenericName drug).Generic
