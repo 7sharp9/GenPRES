@@ -178,13 +178,13 @@ let scaffold = """
                     let dt = DoseType.fromString "once" "eenmalig"
                     match dt with
                     | Once _ -> ()
-                    | other  -> failtest $"expected Once, got {other}"
+                    | other  -> failtest $"expected Once, got %A{other}"
                 }
                 test "fromString 'continuous' produces Continuous constructor" {
                     let dt = DoseType.fromString "continuous" "continu"
                     match dt with
                     | Continuous _ -> ()
-                    | other        -> failtest $"expected Continuous, got {other}"
+                    | other        -> failtest $"expected Continuous, got %A{other}"
                 }
                 test "fromString unknown input produces NoDoseType" {
                     DoseType.fromString "unknown" ""
