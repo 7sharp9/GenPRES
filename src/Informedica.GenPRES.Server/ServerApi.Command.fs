@@ -90,12 +90,11 @@ module Command =
                         return result |> Result.map (List.toArray >> InteractionsChecked >> InteractionResp)
                     }
 
-                | InteractionCmd GetDrugNames ->
-                    // Already handled above, before requireLoaded guard
+                | _ ->
                     async {
                         return
                             Error
                                 [|
-                                    "Unexpected: GetDrugNames should be handled before requireLoaded"
+                                    $"Unexpected command after requireLoaded: {cmd |> Command.toString}"
                                 |]
                     }

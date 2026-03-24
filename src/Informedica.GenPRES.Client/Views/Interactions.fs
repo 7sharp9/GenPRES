@@ -68,8 +68,13 @@ module Interactions =
 
             | AddDrug drug ->
                 let drug = drug.Trim()
+                let planDrugs = getPlanDrugs treatmentPlan
 
-                if drug = "" || state.ManualDrugs |> List.contains drug then
+                if
+                    drug = ""
+                    || state.ManualDrugs |> List.contains drug
+                    || planDrugs |> List.contains drug
+                then
                     { state with DrugInput = "" }, Cmd.none
                 else
                     let newState =
@@ -136,6 +141,7 @@ module Interactions =
         JSX.jsx
             $"""
         <Chip
+            key={props.drug}
             label={props.drug}
             onDelete={onDelete}
         />
@@ -147,6 +153,7 @@ module Interactions =
         JSX.jsx
             $"""
         <Chip
+            key={props.drug}
             label={props.drug}
             color="primary"
             variant="outlined"

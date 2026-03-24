@@ -29,6 +29,7 @@ module private Elmish =
             TreatmentPlan: Deferred<OrderPlan>
             Interactions: Deferred<DrugInteraction[]>
             InteractionDrugNames: Deferred<string[]>
+            DrugNameRetries: int
             NutritionPlan: Deferred<NutritionPlan>
             Formulary: Deferred<Formulary>
             Parenteralia: Deferred<Parenteralia>
@@ -143,7 +144,10 @@ module private Elmish =
                         SnackbarSeverity = "warning"
                     }
                 else
-                    state
+                    { state with
+                        SnackbarMsg = ""
+                        SnackbarOpen = false
+                    }
 
             { newState with Interactions = Resolved interactions }, Cmd.none
         | Api.InteractionResp(Api.DrugNamesLoaded names) ->
@@ -355,6 +359,7 @@ module private Elmish =
             Parenteralia = HasNotStartedYet
             Interactions = HasNotStartedYet
             InteractionDrugNames = HasNotStartedYet
+            DrugNameRetries = 0
             Localization = HasNotStartedYet
             Hospitals = HasNotStartedYet
             Context =
@@ -503,7 +508,8 @@ module private Elmish =
         | UpdatePage page ->
             let retryDrugNames =
                 match state.InteractionDrugNames with
-                | Resolved _ -> Cmd.none
+                | Resolved _
+                | InProgress -> Cmd.none
                 | _ -> Cmd.ofMsg (LoadInteractionDrugNames Started)
 
             // make sure that the order context is not in use
@@ -921,17 +927,37 @@ module private Elmish =
         | LoadInteractionsResult _ -> state, Cmd.none
 
         | LoadInteractionDrugNames Started ->
-            { state with InteractionDrugNames = InProgress },
-            Api.InteractionCmd Api.GetDrugNames |> createApiMsg LoadInteractionDrugNames
+            match state.InteractionDrugNames with
+            | InProgress -> state, Cmd.none
+            | _ ->
+                { state with InteractionDrugNames = InProgress },
+                Api.InteractionCmd Api.GetDrugNames |> createApiMsg LoadInteractionDrugNames
 
-        | LoadInteractionDrugNames(Finished(Ok msg)) -> msg |> processOk
+        | LoadInteractionDrugNames(Finished(Ok msg)) ->
+            let state, cmd = msg |> processOk
+            { state with DrugNameRetries = 0 }, cmd
         | LoadInteractionDrugNames(Finished(Error _)) ->
-            { state with InteractionDrugNames = HasNotStartedYet },
-            async {
-                do! Async.Sleep 3000
-                return LoadInteractionDrugNames Started
-            }
-            |> Cmd.fromAsync
+            let retries = state.DrugNameRetries + 1
+
+            if retries >= 3 then
+                { state with
+                    InteractionDrugNames = HasNotStartedYet
+                    DrugNameRetries = retries
+                    SnackbarMsg = "Interactie medicatie namen konden niet worden geladen"
+                    SnackbarOpen = true
+                    SnackbarSeverity = "warning"
+                },
+                Cmd.none
+            else
+                { state with
+                    InteractionDrugNames = HasNotStartedYet
+                    DrugNameRetries = retries
+                },
+                async {
+                    do! Async.Sleep 3000
+                    return LoadInteractionDrugNames Started
+                }
+                |> Cmd.fromAsync
 
 
     let calculatInterventions calc meds pat =
