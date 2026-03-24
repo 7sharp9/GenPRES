@@ -16,6 +16,8 @@ fsi.AddPrinter<System.DateTime> _.ToShortDateString()
 #r "../../Informedica.ZIndex.Lib/bin/Debug/net10.0/Informedica.ZIndex.Lib.dll"
 #r "../../Informedica.GenORDER.Lib/bin/Debug/net10.0/Informedica.GenORDER.Lib.dll"
 
+#r "nuget: HL7.Fhir.R4"
+
 open System
 open Informedica.Utils.Lib
 
