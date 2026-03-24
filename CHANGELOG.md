@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Scripts (FHIR)**: Add `ImplementationPlan.fsx` — comprehensive FHIR R4 integration prototype: defines `FhirScenario` and `FhirMedicationRequest` types, implements bidirectional translation (`toFhirMedicationRequest` / `fromFhirMedicationRequest`), maps scenarios 6.1–6.6 from the interface specification, and documents the path to full `Hl7.Fhir.R4` integration (PR #215)
+- **Client (UI)**: Improve interactions feature — deduplicate drug-interaction requests, fix `retryDrugNames` `InProgress` state handling, resolve unbounded concurrency (PR #216)
+- **Scripts (FHIR)**: Add `FhirExpectoTests.fsx` — Expecto test scaffolding for the six FHIR translation scenarios; covers `toFhirMedicationRequest` output shape, `fromFhirMedicationRequest` round-trip, and Dutch G-Standard coding system constants
 - **Server**: Graceful shutdown support — server now cleanly terminates active agents and connections on SIGTERM/SIGINT
 - **Server**: Switch to bounded domain modular architecture — server modules reorganised as independent bounded contexts for improved cohesion and testability; legacy code removed
 - **Server (Agents)**: Add `Agent.createReplyAsync` — new variant that accepts `'Request -> Async<'Reply>` to avoid blocking thread-pool threads in async agent workflows
@@ -16,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tests (GenFORM)**: Migrate test scaffolding into formal CI test suite — 218 lines of new Expecto tests
 - **Tests (GenORDER)**: Migrate test scaffolding into formal CI test suite — 120 lines of new Expecto tests
 - **Build**: Add Fantomas pre-commit hook — F# source files are now auto-formatted on every commit; `.fantomasignore` updated to exclude client UI code
+
+### Fixed
+
+- **Client (UI)**: Fix "Select All" in treatment plan table — rows now correctly toggle; unfiltered row search replaced with filtered-row lookup for O(n²) → O(n) improvement (PR #217)
+- **Build**: Exclude `.fsx` scripts from Fantomas automatic formatting (PR #218)
+- **Build**: Fix Fantomas glob pattern — scripts directory path corrected so `.fsx` files are properly ignored (PR #219)
 
 ---
 
