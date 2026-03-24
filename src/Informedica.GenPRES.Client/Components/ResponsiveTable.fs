@@ -291,10 +291,6 @@ module ResponsiveTable =
 
         let onRowClick = fun pars -> pars?id |> string |> props.onRowClick
 
-        let getAllRowIds () =
-            props.rows
-            |> Array.choose (fun r -> r.cells |> Array.tryFind (fun c -> c.field = "id") |> Option.map _.value)
-
         // Return an alternating class name based on the row index within the current page
         let getRowClassName =
             fun (pars: obj) ->
@@ -366,7 +362,13 @@ module ResponsiveTable =
 
                 let selectedIds =
                     if selType = "exclude" then
-                        getAllRowIds () |> Array.filter (fun id -> ids |> Array.contains id |> not)
+                        let excludeSet = ids |> Set.ofArray
+
+                        rows
+                        |> Array.choose (fun r ->
+                            r.cells |> Array.tryFind (fun c -> c.field = "id") |> Option.map _.value
+                        )
+                        |> Array.filter (fun id -> excludeSet |> Set.contains id |> not)
                     else
                         ids
 
