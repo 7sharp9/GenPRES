@@ -58,7 +58,9 @@ module Api =
         | AddNutritionContext of NutritionPlan * NutritionCategory
         | RemoveNutritionContext of NutritionPlan * string
 
-    and InteractionCommand = CheckInteractions of string list
+    and InteractionCommand =
+        | CheckInteractions of string list
+        | GetDrugNames
 
     type Response =
         | OrderContextResp of OrderContextResponse
@@ -78,7 +80,9 @@ module Api =
         | NutritionPlanInitialised of NutritionPlan
         | NutritionPlanUpdated of NutritionPlan
 
-    and InteractionResponse = InteractionsChecked of DrugInteraction[]
+    and InteractionResponse =
+        | InteractionsChecked of DrugInteraction[]
+        | DrugNamesLoaded of string[]
 
 
     module Command =
@@ -131,6 +135,7 @@ module Api =
             | NutritionPlanCmd(AddNutritionContext _) -> "AddNutritionContext"
             | NutritionPlanCmd(RemoveNutritionContext _) -> "RemoveNutritionContext"
             | InteractionCmd(CheckInteractions _) -> "CheckInteractions"
+            | InteractionCmd GetDrugNames -> "GetDrugNames"
 
 
     /// Defines how routes are generated on server and mapped from the client
