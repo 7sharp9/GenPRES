@@ -291,13 +291,9 @@ module ResponsiveTable =
 
         let onRowClick = fun pars -> pars?id |> string |> props.onRowClick
 
-        let onSelectionChange =
-            fun selectionModel ->
-                Logging.log "selectionModel" selectionModel
-                // selectionModel is now { type: string, ids: Set }
-                // Extract the ids and convert to array
-                let selectedIds = selectionModel?ids |> unbox<Set<string>> |> Seq.toArray
-                props.onSelectChange selectedIds
+        let getAllRowIds () =
+            props.rows
+            |> Array.choose (fun r -> r.cells |> Array.tryFind (fun c -> c.field = "id") |> Option.map _.value)
 
         // Return an alternating class name based on the row index within the current page
         let getRowClassName =
@@ -361,6 +357,20 @@ module ResponsiveTable =
             )
 
         let filteredRows = rows
+
+        let onSelectionChange =
+            fun selectionModel ->
+                Logging.log "selectionModel" selectionModel
+                let selType: string = selectionModel?``type``
+                let ids: string[] = emitJsExpr selectionModel?ids "Array.from($0)"
+
+                let selectedIds =
+                    if selType = "exclude" then
+                        getAllRowIds () |> Array.filter (fun id -> ids |> Array.contains id |> not)
+                    else
+                        ids
+
+                props.onSelectChange selectedIds
 
         if isMobile then
             let typedColumns =
@@ -426,12 +436,12 @@ module ResponsiveTable =
                     null
 
             let selectedRows =
-                props.selectedRows
-                |> fun ids ->
-                    {|
-                        ``type`` = "include"
-                        ids = ids |> Set.ofArray
-                    |}
+                let jsIds: obj = emitJsExpr props.selectedRows "new Set($0)"
+
+                {|
+                    ``type`` = "include"
+                    ids = jsIds
+                |}
 
             let slots =
                 if props.showToolbar then
