@@ -31,8 +31,11 @@
 
 #load "load.fsx"
 
+Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
+
 open System
 open MathNet.Numerics
+open Hl7.Fhir
 open Informedica.Utils.Lib.BCL
 open Informedica.GenCore.Lib.Ranges
 open Informedica.GenUnits.Lib
@@ -114,8 +117,9 @@ type FhirScenario =
         DoseType: string
         // Component orderable quantities from the YAML products block
         Products: ScenarioProduct list
-        // Total administration quantity and unit
+        // Dose administration quantity and unit
         AdminQuantity: decimal
+        // Dose administration form unit
         AdminUnit: string
         // Schedule from the YAML schema block
         Schema: AdministrationSchema
@@ -148,7 +152,7 @@ let scenario61 =
         AdminUnit = "stuk"
         Schema =
             {
-                Frequency = Some 1
+                Frequency = None
                 TimePeriod = None
                 TimeUnit = None
                 RateQuantity = None
@@ -185,7 +189,7 @@ let scenario62 =
         AdminUnit = "mL"
         Schema =
             {
-                Frequency = Some 1
+                Frequency = None
                 TimePeriod = None
                 TimeUnit = None
                 RateQuantity = Some 85m
@@ -660,8 +664,10 @@ let printGenericProduct (gp: Types.GenericProduct) =
 
 /// Lookup all GenericProducts for a given medication name using ZIndex
 let lookupByGenericName (name: string) =
-    GenericProduct.get []
-    |> Array.filter (fun gp -> gp.Name |> String.equalsCapInsens name)
+    try
+        GenericProduct.get []
+        |> Array.filter (fun gp -> gp.Name |> String.equalsCapInsens name)
+    with _ -> [||]
 
 
 /// Demonstrate GPK lookup for the medications in our scenarios
@@ -789,7 +795,10 @@ demonstrateValueUnitParsing ()
 open Patient.Optics
 
 
-/// Convert a FhirScenario's patient data into a Patient record
+/// Convert a FhirScenario's patient data into a Patient record.
+/// NOTE: Age and Department are required for OrderContext lookups but are
+/// not present in the FHIR scenario. These would come from the FHIR Patient
+/// resource in a real implementation. Here we use defaults for demonstration.
 let buildPatient (scenario: FhirScenario) : Patient =
     let gender =
         match scenario.Gender with
@@ -797,10 +806,12 @@ let buildPatient (scenario: FhirScenario) : Patient =
         | "female" -> Female
         | _ -> AnyGender
 
-    patient
-    |> setGender gender
-    |> setWeight (scenario.WeightKg |> Kilogram |> Some)
-    |> setHeight (scenario.HeightCm |> decimal |> int |> Centimeter |> Some)
+    Patient.patient
+    |> Patient.setGender gender
+    |> Patient.setAge [ 5 |> Years ]
+    |> Patient.setWeight (scenario.WeightKg |> Kilogram |> Some)
+    |> Patient.setHeight (scenario.HeightCm |> int |> Centimeter |> Some)
+    |> Patient.setDepartment (Some "ICK")
 
 
 /// Convert the scenario DoseType string to the GenFORM DoseType discriminated union
@@ -875,33 +886,57 @@ let provider : Resources.IResourceProvider =
     Api.getCachedProviderWithDataUrlId OrderLogging.noOp (Environment.GetEnvironmentVariable("GENPRES_URL_ID"))
 
 
-/// Reconstruct an OrderContext for a given FHIR scenario by:
-///   1. Building the Patient from scenario patient data
-///   2. Creating an initial OrderContext
-///   3. Setting the filter from the scenario's indication, route, shape, and dose type
-///   4. Evaluating to trigger the ZIndex/GenFORM lookup
-let reconstructOrderContext (scenario: FhirScenario) : Result<OrderContext, string> =
+/// Reconstruct an OrderContext for a given FHIR scenario by progressively
+/// setting filter fields and evaluating after each step. This is required
+/// because each evaluate call narrows the available options for the next
+/// filter field (e.g., setting Generic populates available Indications).
+let reconstructOrderContext (scenario: FhirScenario) =
     let pat = buildPatient scenario
-    let doseType = parseDoseType scenario.DoseType
 
-    let ctx = OrderContext.create OrderLogging.noOp provider pat
+    let evaluate ctx =
+        ctx
+        |> OrderContext.UpdateOrderContext
+        |> OrderContext.evaluate OrderLogging.noOp provider
+        |> function
+            | Ok cmd -> cmd |> OrderContext.Command.get |> Ok
+            | Error e -> Error $"%A{e}"
 
-    // Set filter fields from the FHIR scenario context
-    let filter =
-        { ctx.Filter with
-            Indication = Some scenario.Indication
-            Generic = Some scenario.MedicationName
-            Route = Some scenario.Route
-            Form = Some scenario.Shape
-            DoseType = Some doseType
-        }
+    let setFilter f ctx = { ctx with Filter = f ctx.Filter }
 
-    { ctx with Filter = filter }
-    |> OrderContext.UpdateOrderContext
-    |> OrderContext.evaluate OrderLogging.noOp provider
-    |> function
-        | Ok cmd -> cmd |> OrderContext.Command.get |> Ok
-        | Error(msg, _) -> Error msg
+    // Progressive filter: Generic → Indication → Route → Form → DoseType
+    pat
+    |> OrderContext.create OrderLogging.noOp provider
+    |> setFilter (fun f -> { f with Generic = Some scenario.MedicationName })
+    |> evaluate
+    |> Result.bind (fun ctx ->
+        ctx
+        |> setFilter (fun f -> { f with Indication = Some scenario.Indication })
+        |> evaluate)
+    |> Result.bind (fun ctx ->
+        ctx
+        |> setFilter (fun f -> { f with Route = Some scenario.Route })
+        |> evaluate)
+    |> Result.bind (fun ctx ->
+        ctx
+        |> setFilter (fun f -> { f with Form = Some scenario.Shape })
+        |> evaluate)
+    |> Result.bind (fun ctx ->
+        // Match DoseType by prefix (e.g., "Once" matches Once "startdosering")
+        let targetDt = scenario.DoseType.ToLower()
+        let matchedDt =
+            ctx.Filter.DoseTypes
+            |> Array.tryFind (fun dt ->
+                let dtStr = $"%A{dt}".ToLower()
+                dtStr.StartsWith(targetDt))
+
+        match matchedDt with
+        | Some dt ->
+            ctx
+            |> setFilter (fun f -> { f with DoseType = Some dt })
+            |> evaluate
+        | None ->
+            // No matching DoseType — return context without DoseType filter
+            Ok ctx)
 
 
 for scenario in allScenarios do
@@ -947,8 +982,8 @@ let runOrderScenario (scenario: FhirScenario) =
 
             // Solve the order to propagate all constraints from ZIndex dose rules
             match sc.Order |> Order.solveMinMax "FHIR-ImplementationPlan" true OrderLogging.noOp with
-            | Error(_, msg) ->
-                printfn "  Solve warning: %s" msg
+            | Error(_, msgs) ->
+                printfn "  Solve warning: %A" msgs
                 sc.Order |> Order.printTable ConsoleTables.Format.Minimal
 
             | Ok solvedOrder ->
@@ -1011,214 +1046,30 @@ for scenario in allScenarios do
 // orderable quantities. Everything else (concentrations, dose limits) comes from
 // ZIndex.
 //
-// ── FHIR R4 resource types (mirror of the official data model) ───────────────
+// ── FHIR R4 SDK types ────────────────────────────────────────────────────────
 //
-// The types below model exactly the FHIR R4 fields used in GenPRES integration.
-// They are defined here in the script to document the mapping; the actual
-// Informedica.FHIR.Lib library would use Hl7.Fhir.R4 (NuGet) types instead.
+// Using the official Hl7.Fhir.R4 NuGet package (loaded via load.fsx).
+// See: https://docs.fire.ly/projects/Firely-NET-SDK/
 
-/// A single coding within a CodeableConcept
-type FhirCoding =
-    {
-        // Coding system URI, e.g. "urn:oid:2.16.840.1.113883.2.4.4.7" for GPK
-        System: string
-        // Code value within the system
-        Code: string
-        // Human-readable display text
-        Display: string option
-    }
+open Hl7.Fhir.Model
 
-
-/// A concept represented by one or more codings plus an optional display text
-type FhirCodeableConcept =
-    {
-        Coding: FhirCoding list
-        // Free-text representation (used when no coding is available)
-        Text: string option
-    }
-
-
-/// A measured or measurable quantity with unit
-type FhirQuantity =
-    {
-        Value: decimal
-        // Unit display label
-        Unit: string
-        // Unit system URI, e.g. "http://unitsofmeasure.org" for UCUM
-        System: string option
-        // UCUM code for the unit, e.g. "mL", "mg", "h"
-        Code: string option
-    }
-
-
-/// A ratio of two quantities, used for rates and concentrations
-type FhirRatio =
-    {
-        // Numerator (e.g. 85 mL for a rate of 85 mL/uur)
-        Numerator: FhirQuantity
-        // Denominator (e.g. 1 uur)
-        Denominator: FhirQuantity
-    }
-
-
-/// The repeat pattern within a Timing resource
-/// See https://hl7.org/fhir/R4/datatypes.html#Timing
-type FhirTimingRepeat =
-    {
-        // How many times per period (e.g. 4 for "4 x/dag")
-        Frequency: int option
-        // Length of the period (e.g. 1 for "per dag", 36 for "per 36 uur")
-        Period: decimal option
-        // UCUM-based period unit: s | min | h | d | wk | mo | a
-        PeriodUnit: string option
-        // Duration of each administration for timed infusions (e.g. 15 min)
-        Duration: decimal option
-        // UCUM-based duration unit
-        DurationUnit: string option
-        // Exact clock times for Timed orders, format HH:MM:SS
-        TimeOfDay: string list
-    }
-
-
-/// The Timing datatype: describes when an event is to occur
-type FhirTiming =
-    {
-        // Specific event date/times (for OnceTimed with a fixed start)
-        Event: DateTime list
-        // Repeating pattern
-        Repeat: FhirTimingRepeat option
-    }
-
-
-/// Rate expressed as either a ratio or a simple quantity
-type FhirDosageRate =
-    // Ratio: numerator/denominator, e.g. 85 mL / 1 uur
-    | RateRatio of FhirRatio
-    // SimpleQuantity with UCUM composite unit, e.g. "85 mL/h"
-    | RateQuantity of FhirQuantity
-
-
-/// A dose/rate entry within dosageInstruction.doseAndRate[]
-type FhirDosageAndRate =
-    {
-        // Type of dose entry (e.g. "ordered" vs. "calculated"); optional
-        Type: FhirCodeableConcept option
-        // The dose quantity per administration
-        Dose: FhirQuantity option
-        // The infusion rate
-        Rate: FhirDosageRate option
-    }
-
-
-/// The Dosage datatype: instructions for how medication should be taken/given
-/// See https://hl7.org/fhir/R4/dosage.html
-type FhirDosage =
-    {
-        // Free-text dosage instructions (human-readable summary)
-        Text: string option
-        // Timing of administration
-        Timing: FhirTiming option
-        // Route of administration (G-Standard thesaurus 9)
-        Route: FhirCodeableConcept option
-        // Method of administration
-        Method: FhirCodeableConcept option
-        // Dose quantity and rate
-        DoseAndRate: FhirDosageAndRate list
-    }
-
-
-/// A single ingredient within a Medication resource
-type FhirMedicationIngredient =
-    {
-        // The substance identified by GPK code
-        ItemCodeableConcept: FhirCodeableConcept
-        // Whether this is an active ingredient
-        IsActive: bool option
-        // Concentration: e.g. 10 mg / 1 mL
-        Strength: FhirRatio option
-    }
-
-
-/// The Medication resource: describes the medication product
-/// See https://hl7.org/fhir/R4/medication.html
-type FhirMedication =
-    {
-        ResourceType: string // always "Medication"
-        Id: string option
-        // Product identification by GPK code
-        Code: FhirCodeableConcept
-        // Pharmaceutical form (G-Standard thesaurus 10)
-        Form: FhirCodeableConcept option
-        // Ingredient list (supports multi-ingredient products)
-        Ingredient: FhirMedicationIngredient list
-    }
-
-
-/// A reference to another FHIR resource
-type FhirReference =
-    {
-        // Relative or absolute reference, e.g. "Patient/123456"
-        Reference: string
-        Display: string option
-    }
-
-
-/// The MedicationRequest resource: a prescription or medication order
-/// See https://hl7.org/fhir/R4/medicationrequest.html
-type FhirMedicationRequest =
-    {
-        ResourceType: string // always "MedicationRequest"
-        Id: string option
-        // Status: active | draft | on-hold | cancelled | completed | ...
-        Status: string
-        // Intent: proposal | plan | order | original-order | ...
-        Intent: string
-        // Identified medication by GPK code (use medicationCodeableConcept for GPK)
-        MedicationCodeableConcept: FhirCodeableConcept
-        // The patient
-        Subject: FhirReference
-        // When the prescription was written
-        AuthoredOn: DateTime option
-        // Clinical indication (ICD-10 or free text)
-        ReasonCode: FhirCodeableConcept list
-        // Free-text notes
-        Note: string list
-        // Dosage instructions
-        DosageInstruction: FhirDosage list
-        // How much to dispense
-        DispenseRequest: {| Quantity: FhirQuantity option |} option
-        // Contained Medication resources (for inline ingredient detail)
-        Contained: FhirMedication list
-    }
+module List =
+    let ofSeq (s: seq<'T>) = s |> Seq.toList
 
 
 // ── G-Standard and FHIR system constants ─────────────────────────────────────
-//
-// These OIDs and system URIs are used to identify coding systems in FHIR resources.
 
-/// G-Standard and FHIR coding system constants
 module FhirSystems =
 
-    /// OID for the Dutch G-Standard GPK product table
     let gpk = "urn:oid:2.16.840.1.113883.2.4.4.7"
-
-    /// OID for the G-Standard route thesaurus (Thesaurus 9)
     let route = "urn:oid:2.16.840.1.113883.2.4.4.9"
-
-    /// OID for the G-Standard pharmaceutical form thesaurus (Thesaurus 10)
     let form = "urn:oid:2.16.840.1.113883.2.4.4.10"
-
-    /// UCUM unit system URI
     let ucum = "http://unitsofmeasure.org"
-
-    /// SNOMED CT system URI
     let snomed = "http://snomed.info/sct"
 
 
-/// G-Standard route code → GenPRES route name and vice versa
 module RouteMapping =
 
-    // G-Standard Thesaurus 9 route codes
     let codeToName =
         Map.ofList
             [
@@ -1239,7 +1090,6 @@ module RouteMapping =
         codeToName |> Map.tryFind code |> Option.defaultValue ""
 
 
-/// FHIR timing period unit (UCUM-based) ↔ GenPRES time unit
 module PeriodUnitMapping =
 
     let fhirToGenPres =
@@ -1262,84 +1112,124 @@ module PeriodUnitMapping =
     let toFhir unit =
         genPresToFhir |> Map.tryFind unit |> Option.defaultValue unit
 
+    let toUnitsOfTime (s: string) =
+        match s with
+        | "s" -> Some Timing.UnitsOfTime.S
+        | "min" -> Some Timing.UnitsOfTime.Min
+        | "h" -> Some Timing.UnitsOfTime.H
+        | "d" -> Some Timing.UnitsOfTime.D
+        | "wk" -> Some Timing.UnitsOfTime.Wk
+        | "mo" -> Some Timing.UnitsOfTime.Mo
+        | "a" -> Some Timing.UnitsOfTime.A
+        | _ -> None
 
-// ── FHIR → GenPRES translation ────────────────────────────────────────────────
-//
-// fromFhirMedicationRequest: converts a FhirMedicationRequest resource into a
-// FhirScenario that can drive the GenPRES OrderContext lookup.
-//
-// Translation logic:
-//   - Patient context comes from the FHIR Patient resource (passed as parameters here)
-//   - Indication: MedicationRequest.reasonCode[0].text
-//   - Generic name: resolved from GPK code via ZIndex.GenericProduct.get [gpkCode]
-//   - Route: MedicationRequest.dosageInstruction[0].route.text (or look up from coding)
-//   - Shape: Medication.form.text (from contained Medication resource)
-//   - DoseType: inferred from timing and rate structure (see below)
-//   - Products: from Medication.ingredient[] + MedicationRequest quantities
-//   - AdminQuantity: dosageInstruction[0].doseAndRate[0].doseQuantity
-//   - Rate: dosageInstruction[0].doseAndRate[0].rateRatio (RateFormUnit/RateTimeUnit)
-//   - Frequency: dosageInstruction[0].timing.repeat (frequency, period, periodUnit)
-//   - ExactTimes: dosageInstruction[0].timing.repeat.timeOfDay
+    let fromUnitsOfTime (u: Timing.UnitsOfTime) =
+        match u with
+        | Timing.UnitsOfTime.S -> "s"
+        | Timing.UnitsOfTime.Min -> "min"
+        | Timing.UnitsOfTime.H -> "h"
+        | Timing.UnitsOfTime.D -> "d"
+        | Timing.UnitsOfTime.Wk -> "wk"
+        | Timing.UnitsOfTime.Mo -> "mo"
+        | Timing.UnitsOfTime.A -> "a"
+        | _ -> ""
 
-/// Infer the GenPRES DoseType string from the structure of a FHIR Dosage
-let inferDoseType (dosage: FhirDosage) : string =
-    let hasRate = dosage.DoseAndRate |> List.exists (fun dr -> dr.Rate.IsSome)
 
-    match dosage.Timing with
-    | None -> if hasRate then "Continuous" else "Once"
-    | Some timing ->
-        match timing.Repeat with
+// ── Helper: Nullable <-> Option ──────────────────────────────────────────────
+
+module Nullable =
+
+    let toOption (n: System.Nullable<'T>) =
+        if n.HasValue then Some n.Value else None
+
+    let ofOption (opt: 'T option) =
+        match opt with
+        | Some v -> System.Nullable v
+        | None -> System.Nullable()
+
+
+// ── FHIR -> GenPRES translation ──────────────────────────────────────────────
+
+/// Infer the GenPRES DoseType string from the structure of a FHIR Dosage.
+///
+/// Decision tree:
+///   1. Exact times (TimeOfDay non-empty) -> always Timed
+///   2. No timing at all -> Once (no rate) or Continuous (has rate)
+///   3. Frequency with PeriodUnit (recurring schedule):
+///      - any freq + rate -> Timed
+///      - any freq, no rate -> Discontinuous
+///   4. Frequency without PeriodUnit (one-time):
+///      - freq=1 + rate or duration -> OnceTimed
+///      - freq=1, no rate -> Once
+let inferDoseType (dosage: Dosage) : string =
+    let hasRate =
+        dosage.DoseAndRate
+        |> List.ofSeq
+        |> List.exists (fun dr -> dr.Rate <> null)
+
+    let repeat =
+        if dosage.Timing <> null && dosage.Timing.Repeat <> null then
+            Some dosage.Timing.Repeat
+        else
+            None
+
+    let hasExactTimes =
+        repeat
+        |> Option.map (fun r -> r.TimeOfDay |> Seq.isEmpty |> not)
+        |> Option.defaultValue false
+
+    if hasExactTimes then
+        "Timed"
+    else
+        match repeat with
         | None -> if hasRate then "Continuous" else "Once"
         | Some r ->
-            match r.Frequency, r.Duration with
-            // No frequency → continuous
-            | None, _ -> if hasRate then "Continuous" else "Once"
-            // One-time with duration or rate → OnceTimed
-            | Some 1, Some _ -> "OnceTimed"
-            | Some 1, None when hasRate -> "OnceTimed"
-            // One-time, no rate → Once
-            | Some 1, None -> "Once"
-            // Multiple per period with rate → Timed
-            | Some _, _ when hasRate -> "Timed"
-            // Multiple per period, no rate → Discontinuous
-            | Some _, _ -> "Discontinuous"
+            let freq = r.Frequency |> Nullable.toOption
+            let periodUnit = r.PeriodUnit |> Nullable.toOption
+            let duration = r.Duration |> Nullable.toOption
+
+            match freq, periodUnit, duration with
+            | None, _, _ -> if hasRate then "Continuous" else "Once"
+            | Some _, Some _, _ when hasRate -> "Timed"
+            | Some _, Some _, _ -> "Discontinuous"
+            | Some _, None, Some _ -> "OnceTimed"
+            | Some _, None, None when hasRate -> "OnceTimed"
+            | Some _, None, None -> "Once"
 
 
 /// Extract schedule from a FHIR Dosage
-let extractSchema (dosage: FhirDosage) : AdministrationSchema =
+let extractSchema (dosage: Dosage) : AdministrationSchema =
     let rateQty, rateFormUnit, rateTimeUnit =
         dosage.DoseAndRate
+        |> List.ofSeq
         |> List.tryHead
-        |> Option.bind _.Rate
-        |> Option.map
-            (function
-            | RateRatio r -> Some r.Numerator.Value, Some r.Numerator.Unit, Some r.Denominator.Unit
-            | RateQuantity q ->
-                // Parse UCUM composite unit like "mL/h"
-                let parts =
-                    (q.Code |> Option.defaultValue q.Unit).Split('/')
-
+        |> Option.bind (fun dr -> if dr.Rate <> null then Some dr.Rate else None)
+        |> Option.map (fun rate ->
+            match rate with
+            | :? Ratio as r ->
+                Some r.Numerator.Value.Value, Some r.Numerator.Unit, Some r.Denominator.Unit
+            | :? Quantity as q ->
+                let parts = (if q.Code <> null then q.Code else q.Unit).Split('/')
                 match parts with
-                | [| num; den |] -> Some q.Value, Some num, Some(PeriodUnitMapping.toGenPres den)
-                | _ -> Some q.Value, Some q.Unit, None)
+                | [| num; den |] -> Some q.Value.Value, Some num, Some(PeriodUnitMapping.toGenPres den)
+                | _ -> Some q.Value.Value, Some q.Unit, None
+            | _ -> None, None, None)
         |> Option.defaultValue (None, None, None)
 
     let frequency, timePeriod, timeUnit, exactTimes =
-        dosage.Timing
-        |> Option.map (fun t ->
-            let r = t.Repeat
-
-            let freq = r |> Option.bind _.Frequency
-            let period = r |> Option.bind _.Period
-
+        if dosage.Timing <> null && dosage.Timing.Repeat <> null then
+            let r = dosage.Timing.Repeat
+            let freq = r.Frequency |> Nullable.toOption
+            let period = r.Period |> Nullable.toOption
             let unit =
-                r
-                |> Option.bind _.PeriodUnit
+                r.PeriodUnit
+                |> Nullable.toOption
+                |> Option.map PeriodUnitMapping.fromUnitsOfTime
                 |> Option.map PeriodUnitMapping.toGenPres
-
-            let times = r |> Option.map _.TimeOfDay |> Option.defaultValue []
-            freq, period, unit, times)
-        |> Option.defaultValue (None, None, None, [])
+            let times = r.TimeOfDay |> Seq.toList
+            freq, period, unit, times
+        else
+            None, None, None, []
 
     {
         Frequency = frequency
@@ -1353,430 +1243,416 @@ let extractSchema (dosage: FhirDosage) : AdministrationSchema =
 
 
 /// Convert a FHIR MedicationRequest + patient parameters into a FhirScenario.
-/// The FhirScenario can then drive GenPRES OrderContext lookup (see Step 4).
 let fromFhirMedicationRequest
     (weightKg: decimal)
     (heightCm: decimal)
     (gender: string)
-    (req: FhirMedicationRequest)
+    (req: MedicationRequest)
     : FhirScenario =
 
-    // --- Indication (reasonCode.text) ---
     let indication =
         req.ReasonCode
+        |> List.ofSeq
         |> List.tryHead
-        |> Option.bind _.Text
+        |> Option.bind (fun cc -> if cc.Text <> null then Some cc.Text else None)
         |> Option.defaultValue ""
 
-    // --- GPK code → generic name via ZIndex ---
+    let medCc =
+        if req.Medication <> null then req.Medication :?> CodeableConcept
+        else CodeableConcept()
+
     let gpkCode =
-        req.MedicationCodeableConcept.Coding
+        medCc.Coding
+        |> List.ofSeq
         |> List.tryFind (fun c -> c.System = FhirSystems.gpk)
         |> Option.map _.Code
         |> Option.defaultValue ""
 
     let medicationName =
         if gpkCode |> String.isNullOrWhiteSpace then
-            req.MedicationCodeableConcept.Text |> Option.defaultValue ""
+            if medCc.Text <> null then medCc.Text else ""
         else
-            // Try to parse GPK code as int and look up via ZIndex
             match gpkCode |> System.Int32.TryParse with
             | true, gpkInt ->
-                match GenericProduct.get [ gpkInt ] |> Array.tryHead with
-                | Some gp -> gp.Name
-                | None -> req.MedicationCodeableConcept.Text |> Option.defaultValue gpkCode
-            | false, _ -> req.MedicationCodeableConcept.Text |> Option.defaultValue gpkCode
+                try
+                    match GenericProduct.get [ gpkInt ] |> Array.tryHead with
+                    | Some gp -> gp.Name
+                    | None -> if medCc.Text <> null then medCc.Text else gpkCode
+                with _ -> if medCc.Text <> null then medCc.Text else gpkCode
+            | false, _ -> if medCc.Text <> null then medCc.Text else gpkCode
 
-    // --- Route (dosageInstruction.route) ---
+    let dosages = req.DosageInstruction |> List.ofSeq
+    let firstDosage = dosages |> List.tryHead
+
     let route =
-        req.DosageInstruction
-        |> List.tryHead
-        |> Option.bind _.Route
+        firstDosage
+        |> Option.bind (fun d -> if d.Route <> null then Some d.Route else None)
         |> Option.map (fun cc ->
-            match cc.Text with
-            | Some t -> t
-            | None ->
+            if cc.Text <> null then cc.Text
+            else
                 cc.Coding
+                |> List.ofSeq
                 |> List.tryFind (fun c -> c.System = FhirSystems.route)
                 |> Option.map (fun c -> RouteMapping.toName c.Code)
                 |> Option.defaultValue "")
         |> Option.defaultValue ""
 
-    // --- Shape (Medication.form from contained resource) ---
     let shape =
         req.Contained
+        |> List.ofSeq
         |> List.tryHead
-        |> Option.bind _.Form
-        |> Option.bind _.Text
+        |> Option.bind (fun r ->
+            match r with
+            | :? Medication as m when m.Form <> null && m.Form.Text <> null -> Some m.Form.Text
+            | _ -> None)
         |> Option.defaultValue ""
 
-    // --- DoseType (inferred from dosage timing/rate structure) ---
     let doseType =
-        req.DosageInstruction
-        |> List.tryHead
+        firstDosage
         |> Option.map inferDoseType
         |> Option.defaultValue "Once"
 
-    // --- Admin quantity (dosageInstruction.doseAndRate.doseQuantity) ---
     let adminQty, adminUnit =
-        req.DosageInstruction
-        |> List.tryHead
-        |> Option.bind (fun d -> d.DoseAndRate |> List.tryHead)
-        |> Option.bind _.Dose
-        |> Option.map (fun q -> q.Value, q.Unit)
+        firstDosage
+        |> Option.bind (fun d ->
+            d.DoseAndRate |> List.ofSeq |> List.tryHead)
+        |> Option.bind (fun dr ->
+            if dr.Dose <> null then Some (dr.Dose :?> Quantity) else None)
+        |> Option.map (fun q -> q.Value.Value, q.Unit)
         |> Option.defaultValue (0m, "")
 
-    // --- Schema (timing + rate) ---
     let schema =
-        req.DosageInstruction
-        |> List.tryHead
+        firstDosage
         |> Option.map extractSchema
         |> Option.defaultValue
             {
-                Frequency = None
-                TimePeriod = None
-                TimeUnit = None
-                RateQuantity = None
-                RateFormUnit = None
-                RateTimeUnit = None
+                Frequency = None; TimePeriod = None; TimeUnit = None
+                RateQuantity = None; RateFormUnit = None; RateTimeUnit = None
                 ExactTimes = []
             }
 
-    // --- Products (from contained Medication.ingredient[]) ---
-    // NOTE: In a real implementation the admin quantity would be distributed
-    // across ingredients according to their proportions.
     let products =
         req.Contained
-        |> List.collect (fun med ->
-            med.Ingredient
-            |> List.map (fun ing ->
-                let gpk =
-                    ing.ItemCodeableConcept.Coding
-                    |> List.tryFind (fun c -> c.System = FhirSystems.gpk)
-                    |> Option.map _.Code
-                    |> Option.defaultValue ""
-
-                let display =
-                    ing.ItemCodeableConcept.Coding
-                    |> List.tryHead
-                    |> Option.bind _.Display
-                    |> Option.defaultValue (ing.ItemCodeableConcept.Text |> Option.defaultValue "")
-
-                {
-                    GpkPlaceholder = gpk
-                    Quantity = adminQty
-                    Unit = adminUnit
-                    Description = display
-                }))
+        |> List.ofSeq
+        |> List.collect (fun r ->
+            match r with
+            | :? Medication as med ->
+                med.Ingredient
+                |> List.ofSeq
+                |> List.map (fun ing ->
+                    let itemCc = ing.Item :?> CodeableConcept
+                    let gpk =
+                        itemCc.Coding
+                        |> List.ofSeq
+                        |> List.tryFind (fun c -> c.System = FhirSystems.gpk)
+                        |> Option.map _.Code
+                        |> Option.defaultValue ""
+                    let display =
+                        itemCc.Coding
+                        |> List.ofSeq
+                        |> List.tryHead
+                        |> Option.bind (fun c -> if c.Display <> null then Some c.Display else None)
+                        |> Option.defaultValue (if itemCc.Text <> null then itemCc.Text else "")
+                    {
+                        GpkPlaceholder = gpk
+                        Quantity = adminQty
+                        Unit = adminUnit
+                        Description = display
+                    })
+            | _ -> [])
 
     {
-        ScenarioId = req.Id |> Option.defaultValue ""
-        Description = req.Note |> List.tryHead |> Option.defaultValue ""
-        WeightKg = weightKg
-        HeightCm = heightCm
-        Gender = gender
-        Indication = indication
-        MedicationName = medicationName
-        Route = route
-        Shape = shape
-        DoseType = doseType
-        Products = products
-        AdminQuantity = adminQty
-        AdminUnit = adminUnit
+        ScenarioId = if req.Id <> null then req.Id else ""
+        Description =
+            req.Note
+            |> List.ofSeq
+            |> List.tryHead
+            |> Option.map (fun a -> a.Text.ToString())
+            |> Option.defaultValue ""
+        WeightKg = weightKg; HeightCm = heightCm; Gender = gender
+        Indication = indication; MedicationName = medicationName
+        Route = route; Shape = shape; DoseType = doseType
+        Products = products; AdminQuantity = adminQty; AdminUnit = adminUnit
         Schema = schema
     }
 
 
-// ── GenPRES → FHIR translation ────────────────────────────────────────────────
-//
-// toFhirMedicationRequest: converts a GenPRES FhirScenario (populated after
-// OrderContext lookup and order pipeline) into a FHIR R4 MedicationRequest.
-//
-// Translation logic:
-//   - MedicationRequest.status: "active"
-//   - MedicationRequest.intent: "order"
-//   - MedicationRequest.medicationCodeableConcept: GPK code from ZIndex lookup
-//   - MedicationRequest.reasonCode: scenario.Indication
-//   - DosageInstruction.route: RouteMapping.toCode scenario.Route
-//   - DosageInstruction.timing.repeat: Frequency / TimePeriod / TimeUnit / ExactTimes
-//   - DosageInstruction.doseAndRate.doseQuantity: AdminQuantity + AdminUnit
-//   - DosageInstruction.doseAndRate.rateRatio: RateFormUnit / RateTimeUnit / RateQuantity
-//   - Contained Medication.form: scenario.Shape
-//   - Contained Medication.ingredient: one entry per product
+// ── GenPRES -> FHIR translation ──────────────────────────────────────────────
 
-/// Build a FHIR Timing resource from an AdministrationSchema
-let toFhirTiming (schema: AdministrationSchema) : FhirTiming option =
-    let repeat =
-        match schema.Frequency, schema.TimePeriod, schema.TimeUnit with
-        | None, None, None when schema.ExactTimes |> List.isEmpty -> None
-        | _ ->
-            Some
-                {
-                    Frequency = schema.Frequency
-                    Period = schema.TimePeriod
-                    PeriodUnit = schema.TimeUnit |> Option.map PeriodUnitMapping.toFhir
-                    Duration = None
-                    DurationUnit = None
-                    TimeOfDay = schema.ExactTimes
-                }
+/// Build a FHIR Timing resource from an AdministrationSchema.
+/// The doseType is used to emit Frequency=1 for Once/OnceTimed when the
+/// schema has no explicit frequency, so the round-trip preserves DoseType.
+let toFhirTiming (doseType: string) (schema: AdministrationSchema) : Timing option =
+    let frequency =
+        match schema.Frequency with
+        | Some _ -> schema.Frequency
+        | None ->
+            match doseType with
+            | "Once" | "OnceTimed" -> Some 1
+            | _ -> None
 
-    if repeat.IsSome || schema.ExactTimes |> List.isEmpty |> not then
-        Some { Event = []; Repeat = repeat }
-    else
-        None
+    match frequency, schema.TimePeriod, schema.TimeUnit with
+    | None, None, None when schema.ExactTimes |> List.isEmpty -> None
+    | _ ->
+        let timing = Timing()
+        let rep = Timing.RepeatComponent()
+        rep.Frequency <- frequency |> Nullable.ofOption
+        rep.Period <- schema.TimePeriod |> Nullable.ofOption
+
+        schema.TimeUnit
+        |> Option.bind (PeriodUnitMapping.toFhir >> PeriodUnitMapping.toUnitsOfTime)
+        |> Nullable.ofOption
+        |> fun v -> rep.PeriodUnit <- v
+
+        if schema.ExactTimes |> List.isEmpty |> not then
+            rep.TimeOfDay <- System.Collections.Generic.List<string>(schema.ExactTimes)
+
+        timing.Repeat <- rep
+        Some timing
 
 
-/// Build a FHIR DosageAndRate from an AdministrationSchema + admin quantity
-let toFhirDosageAndRate (adminQty: decimal) (adminUnit: string) (schema: AdministrationSchema) : FhirDosageAndRate list =
-    let dose =
-        if adminQty > 0m then
-            Some
-                {
-                    Value = adminQty
-                    Unit = adminUnit
-                    System = Some FhirSystems.ucum
-                    Code = Some adminUnit
-                }
-        else
-            None
+/// Build FHIR Dosage.DoseAndRateComponent from schema + admin quantity
+let toFhirDosageAndRate (adminQty: decimal) (adminUnit: string) (schema: AdministrationSchema) : Dosage.DoseAndRateComponent =
+    let dr = Dosage.DoseAndRateComponent()
 
-    let rate =
-        match schema.RateQuantity, schema.RateFormUnit, schema.RateTimeUnit with
-        | Some qty, Some fu, Some tu ->
-            Some(
-                RateRatio
-                    {
-                        Numerator =
-                            {
-                                Value = qty
-                                Unit = fu
-                                System = Some FhirSystems.ucum
-                                Code = Some fu
-                            }
-                        Denominator =
-                            {
-                                Value = 1m
-                                Unit = tu
-                                System = Some FhirSystems.ucum
-                                Code = Some(PeriodUnitMapping.toFhir tu)
-                            }
-                    }
-            )
-        | _ -> None
+    if adminQty > 0m then
+        dr.Dose <-
+            Quantity(
+                Value = System.Nullable adminQty,
+                Unit = adminUnit,
+                System = FhirSystems.ucum,
+                Code = adminUnit
+            ) :> DataType
 
-    [ { Type = None; Dose = dose; Rate = rate } ]
+    match schema.RateQuantity, schema.RateFormUnit, schema.RateTimeUnit with
+    | Some qty, Some fu, Some tu ->
+        dr.Rate <-
+            Ratio(
+                Numerator = Quantity(Value = System.Nullable qty, Unit = fu, System = FhirSystems.ucum, Code = fu),
+                Denominator = Quantity(Value = System.Nullable 1m, Unit = tu, System = FhirSystems.ucum, Code = PeriodUnitMapping.toFhir tu)
+            ) :> DataType
+    | _ -> ()
+
+    dr
 
 
 /// Convert a GenPRES FhirScenario into a FHIR R4 MedicationRequest.
-/// GPK code must be resolved beforehand (real GPK, not placeholder).
 let toFhirMedicationRequest
     (resolvedGpkCode: string)
     (patientRef: string)
     (scenario: FhirScenario)
-    : FhirMedicationRequest =
+    : MedicationRequest =
 
     let routeCode = RouteMapping.toCode scenario.Route
 
-    let dosage =
-        {
-            Text = None
-            Timing = toFhirTiming scenario.Schema
-            Route =
-                Some
-                    {
-                        Coding =
-                            [
-                                {
-                                    System = FhirSystems.route
-                                    Code = routeCode
-                                    Display = Some scenario.Route
-                                }
-                            ]
-                        Text = Some scenario.Route
-                    }
-            Method = None
-            DoseAndRate = toFhirDosageAndRate scenario.AdminQuantity scenario.AdminUnit scenario.Schema
-        }
+    let dosage = Dosage()
+
+    toFhirTiming scenario.DoseType scenario.Schema
+    |> Option.iter (fun t -> dosage.Timing <- t)
+
+    dosage.Route <-
+        CodeableConcept(
+            Text = scenario.Route,
+            Coding = System.Collections.Generic.List<_>(
+                [ Coding(System = FhirSystems.route, Code = routeCode, Display = scenario.Route) ]))
+
+    dosage.DoseAndRate <-
+        System.Collections.Generic.List<_>(
+            [ toFhirDosageAndRate scenario.AdminQuantity scenario.AdminUnit scenario.Schema ])
 
     let medicationIngredients =
         scenario.Products
         |> List.map (fun p ->
-            {
-                ItemCodeableConcept =
-                    {
-                        Coding =
-                            [
-                                {
-                                    System = FhirSystems.gpk
-                                    Code = p.GpkPlaceholder
-                                    Display = Some p.Description
-                                }
-                            ]
-                        Text = Some p.Description
-                    }
-                IsActive = Some true
-                // Strength would be populated from ZIndex lookup
-                Strength = None
-            })
+            let ing = Medication.IngredientComponent()
+            ing.Item <-
+                CodeableConcept(
+                    Text = p.Description,
+                    Coding = System.Collections.Generic.List<_>(
+                        [ Coding(System = FhirSystems.gpk, Code = p.GpkPlaceholder, Display = p.Description) ]
+                    )) :> DataType
+            ing.IsActive <- System.Nullable true
+            ing)
 
-    let containedMedication =
-        {
-            ResourceType = "Medication"
-            Id = Some $"med-{scenario.ScenarioId}"
-            Code =
-                {
-                    Coding =
-                        [
-                            {
-                                System = FhirSystems.gpk
-                                Code = resolvedGpkCode
-                                Display = Some scenario.MedicationName
-                            }
-                        ]
-                    Text = Some scenario.MedicationName
-                }
-            Form =
-                Some
-                    {
-                        Coding = []
-                        Text = Some scenario.Shape
-                    }
-            Ingredient = medicationIngredients
-        }
+    let containedMedication = Medication()
+    containedMedication.Id <- $"med-{scenario.ScenarioId}"
+    containedMedication.Code <-
+        CodeableConcept(
+            Text = scenario.MedicationName,
+            Coding = System.Collections.Generic.List<_>(
+                [ Coding(System = FhirSystems.gpk, Code = resolvedGpkCode, Display = scenario.MedicationName) ]))
+    containedMedication.Form <- CodeableConcept(Text = scenario.Shape)
+    containedMedication.Ingredient <- System.Collections.Generic.List<_>(medicationIngredients)
 
-    {
-        ResourceType = "MedicationRequest"
-        Id = Some $"req-{scenario.ScenarioId}"
-        Status = "active"
-        Intent = "order"
-        MedicationCodeableConcept =
-            {
-                Coding =
-                    [
-                        {
-                            System = FhirSystems.gpk
-                            Code = resolvedGpkCode
-                            Display = Some scenario.MedicationName
-                        }
-                    ]
-                Text = Some scenario.MedicationName
-            }
-        Subject = { Reference = patientRef; Display = None }
-        AuthoredOn = Some DateTime.UtcNow
-        ReasonCode =
-            [
-                {
-                    Coding = []
-                    Text = Some scenario.Indication
-                }
-            ]
-        Note = [ scenario.Description ]
-        DosageInstruction = [ dosage ]
-        DispenseRequest = None
-        Contained = [ containedMedication ]
-    }
+    let req = MedicationRequest()
+    req.Id <- $"req-{scenario.ScenarioId}"
+    req.Status <- System.Nullable MedicationRequest.MedicationrequestStatus.Active
+    req.Intent <- System.Nullable MedicationRequest.MedicationRequestIntent.Order
+    req.Medication <-
+        CodeableConcept(
+            Text = scenario.MedicationName,
+            Coding = System.Collections.Generic.List<_>(
+                [ Coding(System = FhirSystems.gpk, Code = resolvedGpkCode, Display = scenario.MedicationName) ]
+            )) :> DataType
+    req.Subject <- ResourceReference(patientRef)
+    req.AuthoredOn <- DateTime.UtcNow.ToString("o")
+    req.ReasonCode <- System.Collections.Generic.List<_>([ CodeableConcept(Text = scenario.Indication) ])
+    req.Note <- System.Collections.Generic.List<_>([ Annotation(Text = Markdown(scenario.Description)) ])
+    req.DosageInstruction <- System.Collections.Generic.List<_>([ dosage ])
+    req.Contained <- System.Collections.Generic.List<Resource>([ containedMedication :> Resource ])
+    req
 
 
 // ── Demonstrate round-trip for each scenario ──────────────────────────────────
 
-printfn "\n=== STEP 8: FHIR R4 Bidirectional Translation ==="
+printfn "\n=== STEP 8: FHIR R4 Bidirectional Translation (using Hl7.Fhir.R4 SDK) ==="
 printfn """
-Official FHIR R4 resource docs:
-  MedicationRequest  https://hl7.org/fhir/R4/medicationrequest.html
-  Medication         https://hl7.org/fhir/R4/medication.html
-  Dosage             https://hl7.org/fhir/R4/dosage.html
-
-Translation direction:
-  A) FHIR MedicationRequest → FhirScenario (via fromFhirMedicationRequest)
-       → set Filter on OrderContext → call getScenarios → look up ZIndex rules
-       → apply orderable quantities from FHIR scenario → run order pipeline
-  B) GenPRES OrderScenario → FHIR MedicationRequest (via toFhirMedicationRequest)
-       → serialize to JSON for EHR / medication administration system
-
-Key insight: FHIR provides the filter context and orderable quantities only.
-Concentrations and dose limits are always derived from ZIndex/GenFORM, never
-stored in the FHIR resource.
+Now using official Hl7.Fhir.R4 NuGet package types:
+  MedicationRequest, Medication, Dosage, Timing, Quantity, Ratio, etc.
 """
 
-printfn "--- Round-trip demonstration (scenario → FHIR → scenario) ---"
+printfn "--- Round-trip demonstration (scenario -> FHIR -> scenario) ---"
 
-for scenario in allScenarios do
+
+/// Result of processing a single FHIR scenario through the full pipeline
+type ScenarioReport =
+    {
+        ScenarioId: string
+        Description: string
+        RoundTrip: {| Route: bool; DoseType: bool; Indication: bool |}
+        Order: string list option
+    }
+
+
+/// Format TextBlock arrays into concise lines, joining related blocks
+let formatTextBlocks (blocks: TextBlock[][]) =
+    blocks
+    |> Array.collect id
+    |> Array.choose (fun tb ->
+        match tb with
+        | Valid s | Caution s | Warning s | Alert s ->
+            if s |> String.isNullOrWhiteSpace |> not then Some s
+            else None)
+    |> Array.toList
+
+
+/// Run the full FHIR round-trip + order calculation for all scenarios.
+/// Returns a list of ScenarioReport values and prints a concise summary.
+let runRoundTrip () =
+    allScenarios
+    |> List.map (fun scenario ->
+        let gpkPlaceholder =
+            scenario.Products
+            |> List.tryHead
+            |> Option.map _.GpkPlaceholder
+            |> Option.defaultValue ""
+
+        let fhirReq = toFhirMedicationRequest gpkPlaceholder "Patient/DEMO" scenario
+
+        let roundTripped =
+            fromFhirMedicationRequest scenario.WeightKg scenario.HeightCm scenario.Gender fhirReq
+
+        let rtResult =
+            {|
+                Route = roundTripped.Route = scenario.Route
+                DoseType = roundTripped.DoseType = scenario.DoseType
+                Indication = roundTripped.Indication = scenario.Indication
+            |}
+
+        let orderLines =
+            match reconstructOrderContext scenario with
+            | Error _ -> None
+            | Ok ctx ->
+                ctx.Scenarios
+                |> Array.tryHead
+                |> Option.map (fun sc ->
+                    let prs = sc.Prescription |> formatTextBlocks
+                    let prep = sc.Preparation |> formatTextBlocks
+                    let adm = sc.Administration |> formatTextBlocks
+
+                    [
+                        if prs |> List.isEmpty |> not then
+                            yield "Rx:    " + (prs |> String.concat " ")
+                        if prep |> List.isEmpty |> not then
+                            yield "Prep:  " + (prep |> String.concat " ")
+                        if adm |> List.isEmpty |> not then
+                            yield "Admin: " + (adm |> String.concat " ")
+                    ])
+
+        {
+            ScenarioId = scenario.ScenarioId
+            Description = scenario.Description
+            RoundTrip = rtResult
+            Order = orderLines
+        })
+
+
+/// Print a concise report from the round-trip results
+let printReport (reports: ScenarioReport list) =
     printfn ""
-    printfn "  Scenario %-7s %s" scenario.ScenarioId scenario.Description
 
-    // A) GenPRES → FHIR
-    let gpkPlaceholder =
-        scenario.Products
-        |> List.tryHead
-        |> Option.map _.GpkPlaceholder
-        |> Option.defaultValue ""
+    for r in reports do
+        let rt =
+            [
+                if r.RoundTrip.Route then "Route" else "Route:X"
+                if r.RoundTrip.DoseType then "DoseType" else "DoseType:X"
+                if r.RoundTrip.Indication then "Indication" else "Indication:X"
+            ]
+            |> String.concat ", "
 
-    let fhirReq = toFhirMedicationRequest gpkPlaceholder "Patient/DEMO" scenario
+        printfn "--- %s: %s [%s]" r.ScenarioId r.Description rt
 
-    printfn "    → FHIR MedicationRequest: id=%A status=%s intent=%s"
-        fhirReq.Id
-        fhirReq.Status
-        fhirReq.Intent
+        match r.Order with
+        | None -> printfn "    (no matching order scenario)"
+        | Some lines ->
+            for line in lines do
+                line
+                |> String.replace "#" ""
+                |> String.replace "|" ""
+                |> printfn "    %s"
 
-    printfn "      medication: %s [GPK: %s]"
-        (fhirReq.MedicationCodeableConcept.Text |> Option.defaultValue "")
-        (fhirReq.MedicationCodeableConcept.Coding |> List.tryHead |> Option.map _.Code |> Option.defaultValue "")
+        printfn ""
 
-    printfn "      indication: %s"
-        (fhirReq.ReasonCode |> List.tryHead |> Option.bind _.Text |> Option.defaultValue "")
 
-    printfn "      route: %s"
-        (fhirReq.DosageInstruction |> List.tryHead |> Option.bind _.Route |> Option.bind _.Text |> Option.defaultValue "")
+let report = runRoundTrip ()
 
-    let dosageText =
-        fhirReq.DosageInstruction
-        |> List.tryHead
-        |> Option.map (fun d ->
-            let doseStr =
-                d.DoseAndRate
-                |> List.tryHead
-                |> Option.bind _.Dose
-                |> Option.map (fun q -> $"{q.Value} {q.Unit}")
-                |> Option.defaultValue "(no dose)"
-
-            let rateStr =
-                d.DoseAndRate
-                |> List.tryHead
-                |> Option.bind _.Rate
-                |> Option.map (function
-                    | RateRatio r -> $"{r.Numerator.Value} {r.Numerator.Unit}/{r.Denominator.Unit}"
-                    | RateQuantity q -> $"{q.Value} {q.Unit}")
-                |> Option.defaultValue "(no rate)"
-
-            let freqStr =
-                d.Timing
-                |> Option.bind _.Repeat
-                |> Option.map (fun r ->
-                    match r.Frequency, r.PeriodUnit with
-                    | Some f, Some u -> $"{f} x/{PeriodUnitMapping.toGenPres u}"
-                    | _ -> "(continuous)")
-                |> Option.defaultValue "(no schedule)"
-
-            $"dose={doseStr} rate={rateStr} freq={freqStr}")
-        |> Option.defaultValue "(no dosage)"
-
-    printfn "      dosage: %s" dosageText
-
-    // B) FHIR → FhirScenario (round-trip)
-    let roundTripped =
-        fromFhirMedicationRequest scenario.WeightKg scenario.HeightCm scenario.Gender fhirReq
-
-    let routeMatch = roundTripped.Route = scenario.Route
-    let doseTypeMatch = roundTripped.DoseType = scenario.DoseType
-    let indicationMatch = roundTripped.Indication = scenario.Indication
-
-    printfn "    ← Round-trip: Route=%s DoseType=%s Indication=%s"
-        (if routeMatch then "✓" else $"✗ got '{roundTripped.Route}'")
-        (if doseTypeMatch then "✓" else $"✗ got '{roundTripped.DoseType}'")
-        (if indicationMatch then "✓" else $"✗ got '{roundTripped.Indication}'")
-
+report
+|> printReport
 
 // ── Next implementation steps ─────────────────────────────────────────────────
+
+
+// A FhirScenario should be translated to a string representation of a Medication
+// to be able to recreate an Order. The rest of the FhirScenario is needed to provide
+// the context for the OrderScenario
+let sampleMed =
+        """
+Id: 93e8c175-99a1-48d8-b2f4-90005fdb8ada
+Name: paracetamol
+Quantity: 1
+Quantities:
+Route: RECTAAL
+OrderType: OnceOrder
+Adjust: 10 kg
+Frequencies:
+Time:
+Dose: [dun], [qty] 1 stuk/dosis
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: paracetamol
+	Form: zetpil
+	Quantities: 1 stuk
+	Divisible: 1
+	Dose: [qty] 1 stuk
+	Solution:
+	Substances:
+
+		Name: paracetamol
+		Concentrations: 120;240;500;1000;125;250;60;30;360;90;750;180 mg/stuk
+		Dose:
+		Solution:
+"""
 
 printfn """
 
@@ -1784,7 +1660,8 @@ printfn """
   1. Add Hl7.Fhir.R4 NuGet package (paket: 'nuget Hl7.Fhir.R4')
   2. Replace the script FhirMedicationRequest type with the Hl7.Fhir.R4 model type
   3. Implement fromFhirMedicationRequest using the FhirScenario approach:
-       MedicationRequest resource → FhirScenario → OrderContext filter → getScenarios
+       MedicationRequest resource → FhirScenario → Medication -> Order -> OrderScenario -> Run scenario to
+       calculate the full order -> print the order
   4. Implement toFhirMedicationRequest:
        OrderScenario + orderable quantities → MedicationRequest resource
   5. Add JSON serialization using Hl7.Fhir.Serialization.FhirJsonParser
