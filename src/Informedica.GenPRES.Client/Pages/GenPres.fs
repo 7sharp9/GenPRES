@@ -124,6 +124,7 @@ module GenPres =
                 parenteralia: Deferred<Parenteralia>
                 updateParenteralia: Parenteralia -> unit
                 interactions: Deferred<DrugInteraction[]>
+                interactionDrugNames: Deferred<string[]>
                 checkInteractions: string list -> unit
                 reloadResources: string -> unit
                 page: Global.Pages
@@ -186,24 +187,171 @@ module GenPres =
             match props.page with
             | Global.Pages.Settings -> null
             | _ ->
+                let patView =
+                    Views.Patient.View
+                        {|
+                            patient = props.patient
+                            updatePatient = props.updatePatient
+                            localizationTerms = props.localizationTerms
+                        |}
+
+                let sxPatientBox = {| flexBasis = 1 |}
+
                 JSX.jsx
                     $"""
                 import Box from '@mui/material/Box';
-                <Box sx={ {| flexBasis = 1 |} } >
-                    {Views.Patient.View
-                         {|
-                             patient = props.patient
-                             updatePatient = props.updatePatient
-                             localizationTerms = props.localizationTerms
-                         |}}
+                <Box sx={sxPatientBox} >
+                    {patView}
                 </Box>
                 """
+
+        let title =
+            let s =
+                $"GenPRES 2023 {props.page |> Global.pageToString props.localizationTerms lang}"
+
+            if props.isDemo then $"{s} - DEMO VERSION!" else s
+
+
+        let titleBar =
+            Components.TitleBar.View
+                {|
+                    title = title
+                    toggleSideMenu = fun _ -> ToggleMenu |> dispatch
+                    languages = props.languages
+                    hospitals = props.hospitals
+                    switchLang = props.switchLang
+                    switchHosp = props.switchHosp
+                |}
+
+        let sideMenu =
+            Components.SideMenu.View
+                {|
+                    anchor = "left"
+                    isOpen = state.SideMenuIsOpen
+                    toggle = fun _ -> ToggleMenu |> dispatch
+                    menuClick = SideMenuClick >> dispatch
+                    items = state.SideMenuItems
+                |}
+
+        let pageView =
+            match props.page with
+            | Global.Pages.LifeSupport ->
+                Views.EmergencyList.View
+                    {|
+                        interventions = props.bolusMedication
+                        localizationTerms = props.localizationTerms
+                        patient = props.patient
+                        onSelectItem = props.onSelectEmergencyListItem
+                    |}
+            | Global.Pages.ContinuousMeds ->
+                Views.ContinuousMeds.View
+                    {|
+                        interventions = props.continuousMedication
+                        localizationTerms = props.localizationTerms
+                        patient = props.patient
+                        onSelectItem = props.onSelectContinuousMedicationItem
+                    |}
+            | Global.Pages.Prescribe ->
+                Views.Prescribe.View
+                    {|
+                        orderContext = props.orderContext
+                        orderContextMsg = props.orderContextMsg
+                        treatmentPlan = props.treatmentPlan
+                        updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan(tp, None) |> props.treatmentPlanCommand
+                        localizationTerms = props.localizationTerms
+                    |}
+            | Global.Pages.Nutrition ->
+                Views.Nutrition.View
+                    {|
+                        patient = props.patient
+                        nutritionPlan = props.nutritionPlan
+                        nutritionPlanMsg = props.nutritionPlanMsg
+                        orderContextMsg = props.orderContextMsg
+                        localizationTerms = props.localizationTerms
+                    |}
+            | Global.Pages.TreatmentPlan ->
+                Views.TreatmentPlan.View
+                    {|
+                        treatmentPlan = props.treatmentPlan
+                        updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan(tp, None) |> props.treatmentPlanCommand
+                        filterTreatmentPlan = Api.FilterOrderPlan >> props.treatmentPlanCommand
+                        orderContextMsg =
+                            fun (cmd, ctx) ->
+                                match props.treatmentPlan with
+                                | Resolved tp -> Api.UpdateOrderPlan(tp, Some(cmd, ctx)) |> props.treatmentPlanCommand
+                                | _ -> ()
+                        localizationTerms = props.localizationTerms
+                    |}
+            | Global.Pages.Interactions ->
+                Views.Interactions.View
+                    {|
+                        interactions = props.interactions
+                        interactionDrugNames = props.interactionDrugNames
+                        checkInteractions = props.checkInteractions
+                        treatmentPlan = props.treatmentPlan
+                        localizationTerms = props.localizationTerms
+                    |}
+            | Global.Pages.Formulary ->
+                Views.Formulary.View
+                    {|
+                        formulary = props.formulary
+                        updateFormulary = props.updateFormulary
+                        localizationTerms = props.localizationTerms
+                    |}
+            | Global.Pages.Parenteralia ->
+                Views.Parenteralia.View
+                    {|
+                        parenteralia = props.parenteralia
+                        updateParenteralia = props.updateParenteralia
+                    |}
+            | Global.Pages.Settings ->
+                Views.Settings.View
+                    {|
+                        reloadResources = props.reloadResources
+                        orderContext = props.orderContext
+                        localizationTerms = props.localizationTerms
+                    |}
+
+        let totalsView =
+            match props.page with
+            | Global.Pages.Prescribe ->
+                match props.orderContext with
+                | Resolved pr -> Views.Totals.View {| intake = pr.Intake |}
+                | _ -> null
+            | Global.Pages.Nutrition ->
+                match props.nutritionPlan with
+                | Resolved np -> Views.Totals.View {| intake = np.Totals |}
+                | _ -> null
+            | Global.Pages.TreatmentPlan ->
+                match props.treatmentPlan with
+                | Resolved tp -> Views.Totals.View {| intake = tp.Totals |}
+                | _ -> null
+            | _ -> null
+
+        let disclaimerView =
+            Views.Disclaimer.View
+                {|
+                    accept = props.acceptDisclaimer
+                    languages = props.languages
+                    switchLang = props.switchLang
+                    localizationTerms = props.localizationTerms
+                |}
+
+        let sxContainer =
+            {|
+                height = "87%"
+                marginTop = 3
+            |}
+
+        let sxStack = {| height = "100%" |}
+
+        let onCloseModal = fun () -> ()
 
         JSX.jsx
             $"""
         import {{ ThemeProvider }} from '@mui/material/styles';
         import CssBaseline from '@mui/material/CssBaseline';
-        import React from "react";
+        import React from 'react';
         import Stack from '@mui/material/Stack';
         import Box from '@mui/material/Box';
         import Container from '@mui/material/Container';
@@ -212,145 +360,25 @@ module GenPres =
 
         <React.Fragment>
             <Box>
-                {Components.TitleBar.View
-                     {|
-                         title =
-                             let s =
-                                 $"GenPRES 2023 {props.page |> Global.pageToString props.localizationTerms lang}"
-
-                             if props.isDemo then $"{s} - DEMO VERSION!" else s
-
-                         toggleSideMenu = fun _ -> ToggleMenu |> dispatch
-                         languages = props.languages
-                         hospitals = props.hospitals
-                         switchLang = props.switchLang
-                         switchHosp = props.switchHosp
-                     |}}
+                {titleBar}
             </Box>
             <React.Fragment>
-                {Components.SideMenu.View
-                     {|
-                         anchor = "left"
-                         isOpen = state.SideMenuIsOpen
-                         toggle = fun _ -> ToggleMenu |> dispatch
-                         menuClick = SideMenuClick >> dispatch
-                         items = state.SideMenuItems
-                     |}}
+                {sideMenu}
             </React.Fragment>
-            <Container id="page-container" sx={ {|
-                                                    height = "87%"
-                                                    marginTop = 3
-                                                |} } >
-                <Stack sx={ {| height = "100%" |} }>
+            <Container id="page-container" sx={sxContainer} >
+                <Stack sx={sxStack}>
                     {patientBox}
                     <Box id="page-box" sx={sxPageBox}>
-                        {match props.page with
-                         | Global.Pages.LifeSupport ->
-                             Views.EmergencyList.View
-                                 {|
-                                     interventions = props.bolusMedication
-                                     localizationTerms = props.localizationTerms
-                                     patient = props.patient
-                                     onSelectItem = props.onSelectEmergencyListItem
-                                 |}
-                         | Global.Pages.ContinuousMeds ->
-                             Views.ContinuousMeds.View
-                                 {|
-                                     interventions = props.continuousMedication
-                                     localizationTerms = props.localizationTerms
-                                     patient = props.patient
-                                     onSelectItem = props.onSelectContinuousMedicationItem
-                                 |}
-                         | Global.Pages.Prescribe ->
-                             Views.Prescribe.View
-                                 {|
-                                     orderContext = props.orderContext
-                                     orderContextMsg = props.orderContextMsg
-                                     treatmentPlan = props.treatmentPlan
-                                     updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan(tp, None) |> props.treatmentPlanCommand
-                                     localizationTerms = props.localizationTerms
-                                 |}
-                         | Global.Pages.Nutrition ->
-                             Views.Nutrition.View
-                                 {|
-                                     patient = props.patient
-                                     nutritionPlan = props.nutritionPlan
-                                     nutritionPlanMsg = props.nutritionPlanMsg
-                                     orderContextMsg = props.orderContextMsg
-                                     localizationTerms = props.localizationTerms
-                                 |}
-
-                         | Global.Pages.TreatmentPlan ->
-                             Views.TreatmentPlan.View
-                                 {|
-                                     treatmentPlan = props.treatmentPlan
-                                     updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan(tp, None) |> props.treatmentPlanCommand
-                                     filterTreatmentPlan = Api.FilterOrderPlan >> props.treatmentPlanCommand
-                                     orderContextMsg =
-                                         fun (cmd, ctx) ->
-                                             match props.treatmentPlan with
-                                             | Resolved tp -> Api.UpdateOrderPlan(tp, Some(cmd, ctx)) |> props.treatmentPlanCommand
-                                             | _ -> ()
-                                     localizationTerms = props.localizationTerms
-                                 |}
-                         | Global.Pages.Interactions ->
-                             Views.Interactions.View
-                                 {|
-                                     interactions = props.interactions
-                                     checkInteractions = props.checkInteractions
-                                     treatmentPlan = props.treatmentPlan
-                                     localizationTerms = props.localizationTerms
-                                 |}
-                         | Global.Pages.Formulary ->
-                             Views.Formulary.View
-                                 {|
-                                     formulary = props.formulary
-                                     updateFormulary = props.updateFormulary
-                                     localizationTerms = props.localizationTerms
-                                 |}
-                         | Global.Pages.Parenteralia ->
-                             Views.Parenteralia.View
-                                 {|
-                                     parenteralia = props.parenteralia
-                                     updateParenteralia = props.updateParenteralia
-                                 |}
-                         | Global.Pages.Settings ->
-                             Views.Settings.View
-                                 {|
-                                     reloadResources = props.reloadResources
-                                     orderContext = props.orderContext
-                                     localizationTerms = props.localizationTerms
-                                 |}
-
-            }
+                        {pageView}
                     </Box>
                     <Box>
-                        {match props.page with
-                         | Global.Pages.Prescribe ->
-                             match props.orderContext with
-                             | Resolved pr -> Views.Totals.View {| intake = pr.Intake |}
-                             | _ -> null
-                         | Global.Pages.Nutrition ->
-                             match props.nutritionPlan with
-                             | Resolved np -> Views.Totals.View {| intake = np.Totals |}
-                             | _ -> null
-                         | Global.Pages.TreatmentPlan ->
-                             match props.treatmentPlan with
-                             | Resolved tp -> Views.Totals.View {| intake = tp.Totals |}
-                             | _ -> null
-                         | _ -> null}
+                        {totalsView}
                     </Box>
                 </Stack>
             </Container>
-            <Modal open={props.showDisclaimer} onClose={fun () -> ()} >
+            <Modal open={props.showDisclaimer} onClose={onCloseModal} >
                 <Box sx={modalStyle}>
-                    {Views.Disclaimer.View
-                         {|
-                             accept = props.acceptDisclaimer
-                             languages = props.languages
-                             switchLang = props.switchLang
-                             localizationTerms = props.localizationTerms
-                         |}}
+                    {disclaimerView}
                 </Box>
             </Modal>
 
