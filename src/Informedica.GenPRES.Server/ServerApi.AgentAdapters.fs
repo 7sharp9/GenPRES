@@ -289,16 +289,21 @@ module AgentAdapters =
     // ---------------------------------------------------------------
 
     [<RequireQualifiedAccess>]
-    type InteractionCommand = Check of string list
+    type InteractionCommand =
+        | Check of string list
+        | GetNames
 
 
     [<RequireQualifiedAccess>]
-    type InteractionResponse = Checked of Result<Shared.Types.DrugInteraction list, string[]>
+    type InteractionResponse =
+        | Checked of Result<Shared.Types.DrugInteraction list, string[]>
+        | Names of Result<string list, string[]>
 
 
     let private interactionCommandToString =
         function
         | InteractionCommand.Check _ -> "CheckInteractions"
+        | InteractionCommand.GetNames -> "GetDrugNames"
 
 
     let private processInteractionCommand (cachedJson: string option) (cmd: InteractionCommand) : InteractionResponse =
@@ -312,6 +317,14 @@ module AgentAdapters =
                 InteractionResponse.Checked(Ok result)
             with ex ->
                 InteractionResponse.Checked(Error [| ex.Message |])
+
+        | InteractionCommand.GetNames ->
+            try
+                let result = Informedica.GenInteract.Lib.Api.getDrugNames cachedJson
+
+                InteractionResponse.Names(Ok result)
+            with ex ->
+                InteractionResponse.Names(Error [| ex.Message |])
 
 
     let private createInteractionAgent () =
@@ -332,6 +345,13 @@ module AgentAdapters =
     let private extractInteractions =
         function
         | InteractionResponse.Checked r -> r
+        | _ -> Error [| "Unexpected interaction response" |]
+
+
+    let private extractDrugNames =
+        function
+        | InteractionResponse.Names r -> r
+        | _ -> Error [| "Unexpected interaction response" |]
 
 
     // ---------------------------------------------------------------
@@ -433,6 +453,8 @@ module AgentAdapters =
                 {
                     checkInteractions =
                         fun drugs -> postAsync interactionAgent (InteractionCommand.Check drugs) extractInteractions
+
+                    getDrugNames = fun () -> postAsync interactionAgent InteractionCommand.GetNames extractDrugNames
                 }
 
             requireLoaded =

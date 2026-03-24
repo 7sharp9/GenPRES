@@ -16,25 +16,34 @@ module Interactions =
     module private Elmish =
 
 
+        let getPlanDrugs (treatmentPlan: Deferred<OrderPlan>) =
+            match treatmentPlan with
+            | Resolved tp -> tp.Scenarios |> Array.map _.Name |> Array.distinct |> Array.toList
+            | _ -> []
+
+
+        let getCombinedDrugs planDrugs manualDrugs =
+            (planDrugs @ manualDrugs) |> List.distinct
+
+
         type State =
             {
                 DrugInput: string
-                Drugs: string list
+                ManualDrugs: string list
             }
 
 
         type Msg =
             | UpdateDrugInput of string
-            | AddDrug
+            | AddDrug of string
             | RemoveDrug of string
-            | ImportFromTreatmentPlan
-            | ClearDrugs
+            | ClearManualDrugs
 
 
         let init () =
             {
                 DrugInput = ""
-                Drugs = []
+                ManualDrugs = []
             },
             Cmd.none
 
@@ -46,39 +55,53 @@ module Interactions =
             (state: State)
             : State * Cmd<Msg>
             =
+            let triggerCheck manualDrugs =
+                let combined = getCombinedDrugs (getPlanDrugs treatmentPlan) manualDrugs
+
+                if combined.Length >= 2 then
+                    checkInteractions combined
+                else
+                    checkInteractions []
+
             match msg with
             | UpdateDrugInput s -> { state with DrugInput = s }, Cmd.none
 
-            | AddDrug ->
-                let drug = state.DrugInput.Trim()
+            | AddDrug drug ->
+                let drug = drug.Trim()
+                let planDrugs = getPlanDrugs treatmentPlan
 
-                if drug = "" || state.Drugs |> List.contains drug then
+                if
+                    drug = ""
+                    || state.ManualDrugs |> List.contains drug
+                    || planDrugs |> List.contains drug
+                then
                     { state with DrugInput = "" }, Cmd.none
                 else
-                    { state with
-                        DrugInput = ""
-                        Drugs = state.Drugs @ [ drug ]
-                    },
-                    Cmd.none
+                    let newState =
+                        { state with
+                            DrugInput = ""
+                            ManualDrugs = state.ManualDrugs @ [ drug ]
+                        }
 
-            | RemoveDrug drug -> { state with Drugs = state.Drugs |> List.filter (fun d -> d <> drug) }, Cmd.none
+                    triggerCheck newState.ManualDrugs
+                    newState, Cmd.none
 
-            | ImportFromTreatmentPlan ->
-                let drugs =
-                    match treatmentPlan with
-                    | Resolved tp -> tp.Scenarios |> Array.map _.Name |> Array.distinct |> Array.toList
-                    | _ -> []
+            | RemoveDrug drug ->
+                let newState =
+                    { state with ManualDrugs = state.ManualDrugs |> List.filter (fun d -> d <> drug) }
 
-                let newState = { state with Drugs = drugs }
-                checkInteractions newState.Drugs
+                triggerCheck newState.ManualDrugs
                 newState, Cmd.none
 
-            | ClearDrugs ->
-                { state with
-                    Drugs = []
-                    DrugInput = ""
-                },
-                Cmd.none
+            | ClearManualDrugs ->
+                let newState =
+                    { state with
+                        ManualDrugs = []
+                        DrugInput = ""
+                    }
+
+                triggerCheck newState.ManualDrugs
+                newState, Cmd.none
 
 
     open Elmish
@@ -93,13 +116,14 @@ module Interactions =
             |})
         =
         let cls1, cls2 = props.interaction.Name
+        let classText = $"%s{cls1} / %s{cls2}"
 
         JSX.jsx
             $"""
         <TableRow key={props.index}>
             <TableCell>{props.interaction.Drug1}</TableCell>
             <TableCell>{props.interaction.Drug2}</TableCell>
-            <TableCell>{$"%s{cls1} / %s{cls2}"}</TableCell>
+            <TableCell>{classText}</TableCell>
         </TableRow>
         """
 
@@ -112,32 +136,28 @@ module Interactions =
                 onDelete: unit -> unit
             |})
         =
+        let onDelete = fun _ -> props.onDelete ()
+
         JSX.jsx
             $"""
         <Chip
+            key={props.drug}
             label={props.drug}
-            onDelete={fun _ -> props.onDelete ()}
+            onDelete={onDelete}
         />
         """
 
 
     [<JSX.Component>]
-    let private ImportButton
-        (props:
-            {|
-                label: string
-                onClick: unit -> unit
-            |})
-        =
+    let private PlanDrugChip (props: {| drug: string |}) =
         JSX.jsx
             $"""
-        <Button
+        <Chip
+            key={props.drug}
+            label={props.drug}
+            color="primary"
             variant="outlined"
-            onClick={fun _ -> props.onClick ()}
-            startIcon={Mui.Icons.SummarizeIcon}
-        >
-            {props.label}
-        </Button>
+        />
         """
 
 
@@ -146,6 +166,7 @@ module Interactions =
         (props:
             {|
                 interactions: Deferred<DrugInteraction[]>
+                interactionDrugNames: Deferred<string[]>
                 checkInteractions: string list -> unit
                 treatmentPlan: Deferred<OrderPlan>
                 localizationTerms: Deferred<string[][]>
@@ -160,10 +181,7 @@ module Interactions =
         let state, dispatch =
             React.useElmish (init (), update props.treatmentPlan props.checkInteractions, [| box props.treatmentPlan |])
 
-        let hasTreatmentPlan =
-            match props.treatmentPlan with
-            | Resolved tp -> tp.Scenarios.Length > 0
-            | _ -> false
+        let planDrugs = getPlanDrugs props.treatmentPlan
 
         let interactionRows =
             match props.interactions with
@@ -180,18 +198,24 @@ module Interactions =
             | Resolved _ -> true
             | _ -> false
 
-        let importButton =
-            if hasTreatmentPlan then
-                ImportButton
-                    {|
-                        label = Terms.``Treatment Plan`` |> getTerm "Behandelplan"
-                        onClick = fun () -> ImportFromTreatmentPlan |> dispatch
-                    |}
-            else
-                null
+        let drugNameValues =
+            match props.interactionDrugNames with
+            | Resolved names -> names
+            | _ -> [||]
 
-        let chipList =
-            state.Drugs
+        let isDrugNamesLoading =
+            match props.interactionDrugNames with
+            | InProgress -> true
+            | _ -> false
+
+        let planChips =
+            planDrugs
+            |> List.toArray
+            |> Array.map (fun drug -> PlanDrugChip {| drug = drug |})
+
+        let manualChips =
+            state.ManualDrugs
+            |> List.filter (fun d -> planDrugs |> List.contains d |> not)
             |> List.toArray
             |> Array.map (fun drug ->
                 DrugChip
@@ -200,6 +224,8 @@ module Interactions =
                         onDelete = fun () -> RemoveDrug drug |> dispatch
                     |}
             )
+
+        let chipList = Array.append planChips manualChips
 
         let drug1Label = Terms.``Interactions Drug 1`` |> getTerm "Medicatie 1"
         let drug2Label = Terms.``Interactions Drug 2`` |> getTerm "Medicatie 2"
@@ -251,6 +277,35 @@ module Interactions =
             else
                 null
 
+        let titleLabel = Terms.``Interactions`` |> getTerm "Interacties"
+
+        let autocomplete =
+            Components.Autocomplete.View
+                {|
+                    label = "Medicatie"
+                    selected = None
+                    values = drugNameValues
+                    updateSelected =
+                        fun opt ->
+                            match opt with
+                            | Some drug -> AddDrug drug |> dispatch
+                            | None -> ()
+                    isLoading = isDrugNamesLoading
+                    disabled = false
+                |}
+
+        let deleteLabel = Terms.``Delete`` |> getTerm "Verwijder"
+        let onClickClear = fun _ -> ClearManualDrugs |> dispatch
+
+        let sxBox = {| overflowY = "auto" |}
+        let sxTitle = {| fontSize = 14 |}
+
+        let sxChips =
+            {|
+                flexWrap = "wrap"
+                gap = 1
+            |}
+
         JSX.jsx
             $"""
         import Box from '@mui/material/Box';
@@ -258,7 +313,6 @@ module Interactions =
         import CardContent from '@mui/material/CardContent';
         import Typography from '@mui/material/Typography';
         import Stack from '@mui/material/Stack';
-        import TextField from '@mui/material/TextField';
         import Button from '@mui/material/Button';
         import Chip from '@mui/material/Chip';
         import Table from '@mui/material/Table';
@@ -272,61 +326,31 @@ module Interactions =
         import Alert from '@mui/material/Alert';
         import Divider from '@mui/material/Divider';
 
-        <Box sx={ {| overflowY = "auto" |} }>
+        <Box sx={sxBox}>
             <Card>
                 <CardContent>
                     <Stack direction="column" spacing={3}>
 
-                        <Typography sx={ {| fontSize = 14 |} } color="text.secondary" gutterBottom>
-                            {Terms.``Interactions`` |> getTerm "Interacties"}
+                        <Typography sx={sxTitle} color="text.secondary" gutterBottom>
+                            {titleLabel}
                         </Typography>
 
-                        <Stack direction="row" spacing={2}>
-                            {importButton}
-                        </Stack>
-
                         <Stack direction="row" spacing={1} alignItems="center">
-                            <TextField
-                                label="Medicatie"
-                                variant="outlined"
-                                size="small"
-                                value={state.DrugInput}
-                                onChange={fun (e: Browser.Types.Event) -> (e.target?value: string) |> UpdateDrugInput |> dispatch}
-                                onKeyDown={fun (e: Browser.Types.KeyboardEvent) ->
-                                               if e.key = "Enter" then
-                                                   e.preventDefault ()
-                                                   AddDrug |> dispatch}
-                            />
-                            <Button
-                                variant="contained"
-                                onClick={fun _ -> AddDrug |> dispatch}
-                                disabled={state.DrugInput.Trim() = ""}
-                            >
-                                +
-                            </Button>
+                            {autocomplete}
                         </Stack>
 
-                        <Stack direction="row" spacing={1} sx={ {|
-                                                                    flexWrap = "wrap"
-                                                                    gap = 1
-                                                                |} }>
+                        <Stack direction="row" spacing={1} sx={sxChips}>
                             {chipList}
                         </Stack>
 
                         <Stack direction="row" spacing={2}>
                             <Button
-                                variant="contained"
-                                onClick={fun _ -> props.checkInteractions state.Drugs}
-                                disabled={state.Drugs.Length < 2 || isLoading}
-                            >
-                                {"Check"}
-                            </Button>
-                            <Button
                                 variant="text"
-                                onClick={fun _ -> ClearDrugs |> dispatch}
+                                onClick={onClickClear}
+                                disabled={state.ManualDrugs.IsEmpty}
                                 startIcon={Mui.Icons.Delete}
                             >
-                                {Terms.``Delete`` |> getTerm "Verwijder"}
+                                {deleteLabel}
                             </Button>
                         </Stack>
 

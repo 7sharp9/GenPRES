@@ -135,6 +135,17 @@ module Adapters =
                                 with ex ->
                                     return Error [| ex.Message |]
                             }
+
+                    getDrugNames =
+                        fun () ->
+                            async {
+                                try
+                                    let result = Informedica.GenInteract.Lib.Api.getDrugNames (loadInteractionJson ())
+
+                                    return Ok result
+                                with ex ->
+                                    return Error [| ex.Message |]
+                            }
                 }
             requireLoaded =
                 fun () ->

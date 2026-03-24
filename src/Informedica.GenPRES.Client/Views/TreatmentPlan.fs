@@ -298,6 +298,52 @@ module TreatmentPlan =
         let refreshOrderScenario (ctx: OrderContext) =
             props.orderContextMsg (Api.ResetOrderScenario, ctx)
 
+        let navigateOrderScenario =
+            {|
+                // Frequency
+                setMinFrequency = fun ctx -> props.orderContextMsg (Api.SetMinScheduleFrequencyProperty, ctx)
+                decrFrequency = fun ctx -> props.orderContextMsg (Api.DecreaseScheduleFrequencyProperty, ctx)
+                setMedianFrequency = fun ctx -> props.orderContextMsg (Api.SetMedianScheduleFrequencyProperty, ctx)
+                incrFrequency = fun ctx -> props.orderContextMsg (Api.IncreaseScheduleFrequencyProperty, ctx)
+                setMaxFrequency = fun ctx -> props.orderContextMsg (Api.SetMaxScheduleFrequencyProperty, ctx)
+                // Rate
+                setMinRate = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseRateProperty, ctx)
+                decrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseRateProperty(n, uc), ctx)
+                setMedianRate = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseRateProperty, ctx)
+                incrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseRateProperty(n, uc), ctx)
+                setMaxRate = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseRateProperty, ctx)
+                // Dose Quantity
+                setMinDoseQty = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseQuantityProperty, ctx)
+                decrDoseQty =
+                    fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseQuantityProperty(n, uc), ctx)
+                setMedianDoseQty = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseQuantityProperty, ctx)
+                incrDoseQty =
+                    fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseQuantityProperty(n, uc), ctx)
+                setMaxDoseQty = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseQuantityProperty, ctx)
+                // Component Quantity
+                setMinComponentQty =
+                    fun (ctx, cmp) -> props.orderContextMsg (Api.SetMinComponentOrderableQuantityProperty cmp, ctx)
+                decrComponentQty =
+                    fun (ctx, cmp, n, uc) ->
+                        props.orderContextMsg (Api.DecreaseComponentOrderableQuantityProperty(cmp, n, uc), ctx)
+                setMedianComponentQty =
+                    fun (ctx, cmp) -> props.orderContextMsg (Api.SetMedianComponentOrderableQuantityProperty cmp, ctx)
+                incrComponentQty =
+                    fun (ctx, cmp, n, uc) ->
+                        props.orderContextMsg (Api.IncreaseComponentOrderableQuantityProperty(cmp, n, uc), ctx)
+                setMaxComponentQty =
+                    fun (ctx, cmp) -> props.orderContextMsg (Api.SetMaxComponentOrderableQuantityProperty cmp, ctx)
+            |}
+
+        let orderContext =
+            match props.treatmentPlan with
+            | Resolved tp
+            | Recalculating tp ->
+                tp.Selected
+                |> Option.map (fun sc -> OrderContext.fromOrderScenario tp.Patient sc |> Resolved)
+                |> Option.defaultValue HasNotStartedYet
+            | _ -> HasNotStartedYet
+
         let deleteBtn =
             match props.treatmentPlan with
             | Resolved tp
@@ -314,6 +360,33 @@ module TreatmentPlan =
                 """
             | _ -> null
 
+        let responsiveTable =
+            Components.ResponsiveTable.View
+                {|
+                    hideFilter = true
+                    columns = columns
+                    rows = rows
+                    rowCreate = rowCreate
+                    height = "50vh"
+                    onRowClick = selectOrder
+                    checkboxSelection = true
+                    selectedRows = selectedRows
+                    onSelectChange = filterOrders
+                    showToolbar = true
+                    showFooter = true
+                    onPrint = None
+                |}
+
+        let orderView =
+            Order.View
+                {|
+                    orderContext = orderContext
+                    updateOrderScenario = updateOrderScenario
+                    navigateOrderScenario = navigateOrderScenario
+                    refreshOrderScenario = refreshOrderScenario
+                    closeOrder = handleModalClose
+                    localizationTerms = props.localizationTerms
+                |}
 
         JSX.jsx
             $"""
@@ -325,75 +398,10 @@ module TreatmentPlan =
                       paddingBottom = (if isMobile then "16px" else "220px")
                   |} } >
             {deleteBtn}
-            {Components.ResponsiveTable.View(
-                 {|
-                     hideFilter = true
-                     columns = columns
-                     rows = rows
-                     rowCreate = rowCreate
-                     height = "50vh"
-                     onRowClick = selectOrder
-                     checkboxSelection = true
-                     selectedRows = selectedRows
-                     onSelectChange = filterOrders
-                     showToolbar = true
-                     showFooter = true
-                     onPrint = None
-                 |}
-             )}
+            {responsiveTable}
             <Modal open={modalOpen} onClose={handleModalClose} >
                 <Box sx={modalStyle}>
-                    {Order.View
-                         {|
-                             orderContext =
-                                 match props.treatmentPlan with
-                                 | Resolved tp
-                                 | Recalculating tp ->
-                                     tp.Selected
-                                     |> Option.map (fun sc -> OrderContext.fromOrderScenario tp.Patient sc |> Resolved)
-                                     |> Option.defaultValue HasNotStartedYet
-                                 | _ -> HasNotStartedYet
-                             updateOrderScenario = updateOrderScenario
-                             navigateOrderScenario =
-                                 {|
-                                     // Frequency
-                                     setMinFrequency = fun ctx -> props.orderContextMsg (Api.SetMinScheduleFrequencyProperty, ctx)
-                                     decrFrequency = fun ctx -> props.orderContextMsg (Api.DecreaseScheduleFrequencyProperty, ctx)
-                                     setMedianFrequency = fun ctx -> props.orderContextMsg (Api.SetMedianScheduleFrequencyProperty, ctx)
-                                     incrFrequency = fun ctx -> props.orderContextMsg (Api.IncreaseScheduleFrequencyProperty, ctx)
-                                     setMaxFrequency = fun ctx -> props.orderContextMsg (Api.SetMaxScheduleFrequencyProperty, ctx)
-                                     // Rate
-                                     setMinRate = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseRateProperty, ctx)
-                                     decrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseRateProperty(n, uc), ctx)
-                                     setMedianRate = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseRateProperty, ctx)
-                                     incrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseRateProperty(n, uc), ctx)
-                                     setMaxRate = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseRateProperty, ctx)
-                                     // Dose Quantity
-                                     setMinDoseQty = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseQuantityProperty, ctx)
-                                     decrDoseQty =
-                                         fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseQuantityProperty(n, uc), ctx)
-                                     setMedianDoseQty = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseQuantityProperty, ctx)
-                                     incrDoseQty =
-                                         fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseQuantityProperty(n, uc), ctx)
-                                     setMaxDoseQty = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseQuantityProperty, ctx)
-                                     // Component Quantity
-                                     setMinComponentQty =
-                                         fun (ctx, cmp) -> props.orderContextMsg (Api.SetMinComponentOrderableQuantityProperty cmp, ctx)
-                                     decrComponentQty =
-                                         fun (ctx, cmp, n, uc) ->
-                                             props.orderContextMsg (Api.DecreaseComponentOrderableQuantityProperty(cmp, n, uc), ctx)
-                                     setMedianComponentQty =
-                                         fun (ctx, cmp) -> props.orderContextMsg (Api.SetMedianComponentOrderableQuantityProperty cmp, ctx)
-                                     incrComponentQty =
-                                         fun (ctx, cmp, n, uc) ->
-                                             props.orderContextMsg (Api.IncreaseComponentOrderableQuantityProperty(cmp, n, uc), ctx)
-                                     setMaxComponentQty =
-                                         fun (ctx, cmp) -> props.orderContextMsg (Api.SetMaxComponentOrderableQuantityProperty cmp, ctx)
-                                 |}
-                             refreshOrderScenario = refreshOrderScenario
-                             closeOrder = handleModalClose
-                             localizationTerms = props.localizationTerms
-                         |}}
+                    {orderView}
                 </Box>
             </Modal>
         </Box>

@@ -33,7 +33,11 @@ type NutritionPlanPort =
     }
 
 
-type InteractionPort = { checkInteractions: string list -> Async<Result<DrugInteraction list, string[]>> }
+type InteractionPort =
+    {
+        checkInteractions: string list -> Async<Result<DrugInteraction list, string[]>>
+        getDrugNames: unit -> Async<Result<string list, string[]>>
+    }
 
 
 type AppEnv =

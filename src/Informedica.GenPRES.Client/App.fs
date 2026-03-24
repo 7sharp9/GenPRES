@@ -28,6 +28,8 @@ module private Elmish =
             OrderContext: Deferred<OrderContext>
             TreatmentPlan: Deferred<OrderPlan>
             Interactions: Deferred<DrugInteraction[]>
+            InteractionDrugNames: Deferred<string[]>
+            DrugNameRetries: int
             NutritionPlan: Deferred<NutritionPlan>
             Formulary: Deferred<Formulary>
             Parenteralia: Deferred<Parenteralia>
@@ -38,6 +40,7 @@ module private Elmish =
             IsDemo: bool
             SnackbarMsg: string
             SnackbarOpen: bool
+            SnackbarSeverity: string
             ServerStatus: Deferred<bool>
             ServerError: string option
         }
@@ -75,6 +78,7 @@ module private Elmish =
 
         | CheckInteractions of string list
         | LoadInteractionsResult of ApiResponse
+        | LoadInteractionDrugNames of ApiResponse
 
         | UpdateLanguage of Localization.Locales
         | LoadLocalization of AsyncOperationStatus<Result<string[][], string>>
@@ -117,13 +121,37 @@ module private Elmish =
         match msg with
         | Api.OrderContextResp(Api.OrderContextResult ctx) -> { state with OrderContext = Resolved ctx }, Cmd.none
         | Api.OrderPlanResp(Api.OrderPlanFiltered tp)
-        | Api.OrderPlanResp(Api.OrderPlanUpdated tp) -> { state with TreatmentPlan = Resolved tp }, Cmd.none
+        | Api.OrderPlanResp(Api.OrderPlanUpdated tp) ->
+            let drugs = tp.Scenarios |> Array.map _.Name |> Array.distinct |> Array.toList
+
+            let cmd =
+                if drugs.Length >= 2 then
+                    Cmd.ofMsg (CheckInteractions drugs)
+                else
+                    Cmd.none
+
+            { state with TreatmentPlan = Resolved tp }, cmd
         | Api.FormularyResp form -> { state with Formulary = Resolved form }, Cmd.none
         | Api.ParenteraliaResp par -> { state with Parenteralia = Resolved par }, Cmd.none
         | Api.NutritionPlanResp(Api.NutritionPlanInitialised plan)
         | Api.NutritionPlanResp(Api.NutritionPlanUpdated plan) -> { state with NutritionPlan = Resolved plan }, Cmd.none
         | Api.InteractionResp(Api.InteractionsChecked interactions) ->
-            { state with Interactions = Resolved interactions }, Cmd.none
+            let newState =
+                if interactions.Length > 0 then
+                    { state with
+                        SnackbarMsg = $"Er zijn %i{interactions.Length} interactie(s) gevonden"
+                        SnackbarOpen = true
+                        SnackbarSeverity = "warning"
+                    }
+                else
+                    { state with
+                        SnackbarMsg = ""
+                        SnackbarOpen = false
+                    }
+
+            { newState with Interactions = Resolved interactions }, Cmd.none
+        | Api.InteractionResp(Api.DrugNamesLoaded names) ->
+            { state with InteractionDrugNames = Resolved names }, Cmd.none
 
 
     let loadOrderContext resp =
@@ -330,6 +358,8 @@ module private Elmish =
             Formulary = HasNotStartedYet
             Parenteralia = HasNotStartedYet
             Interactions = HasNotStartedYet
+            InteractionDrugNames = HasNotStartedYet
+            DrugNameRetries = 0
             Localization = HasNotStartedYet
             Hospitals = HasNotStartedYet
             Context =
@@ -340,6 +370,7 @@ module private Elmish =
             IsDemo = false
             SnackbarMsg = ""
             SnackbarOpen = false
+            SnackbarSeverity = "error"
             ServerStatus = HasNotStartedYet
             ServerError = None
         }
@@ -359,6 +390,7 @@ module private Elmish =
                     Cmd.ofMsg (LoadLocalization Started)
                     Cmd.ofMsg (LoadFormulary Started)
                     Cmd.ofMsg (LoadParenteralia Started)
+                    Cmd.ofMsg (LoadInteractionDrugNames Started)
                 ]
 
         initialState pat page lang discl med, cmds
@@ -414,6 +446,7 @@ module private Elmish =
             { state with
                 SnackbarMsg = "Er ging iets mis, herladen"
                 SnackbarOpen = true
+                SnackbarSeverity = "error"
                 ServerError = Some $"Server fout: {errMsg}"
             },
             cmd
@@ -423,17 +456,23 @@ module private Elmish =
             { state with
                 SnackbarMsg = ""
                 SnackbarOpen = false
+                SnackbarSeverity = "error"
             },
             Cmd.none
 
         | CheckServer Started -> { state with ServerStatus = InProgress }, checkServer
 
         | CheckServer(Finished(Ok _)) ->
+            let cmd =
+                match state.InteractionDrugNames with
+                | HasNotStartedYet -> Cmd.ofMsg (LoadInteractionDrugNames Started)
+                | _ -> Cmd.none
+
             { state with
                 ServerStatus = Resolved true
                 ServerError = None
             },
-            Cmd.none
+            cmd
 
         | CheckServer(Finished(Error err)) ->
             Logging.error "server niet bereikbaar" err
@@ -467,6 +506,12 @@ module private Elmish =
             Cmd.none
 
         | UpdatePage page ->
+            let retryDrugNames =
+                match state.InteractionDrugNames with
+                | Resolved _
+                | InProgress -> Cmd.none
+                | _ -> Cmd.ofMsg (LoadInteractionDrugNames Started)
+
             // make sure that the order context is not in use
             // i.e. the order context should be "fresh"
             if
@@ -479,11 +524,15 @@ module private Elmish =
                     Page = page
                     OrderContext = HasNotStartedYet
                 },
-                Cmd.ofMsg (LoadOrderContextResult(Api.UpdateOrderContext, Started))
+                Cmd.batch
+                    [
+                        Cmd.ofMsg (LoadOrderContextResult(Api.UpdateOrderContext, Started))
+                        retryDrugNames
+                    ]
             else if page = Settings then
-                { state with Page = page }, Cmd.none
+                { state with Page = page }, retryDrugNames
             else
-                { state with Page = page }, Cmd.none
+                { state with Page = page }, retryDrugNames
 
         | UpdatePatient pat ->
             let pat = pat |> applyNormalValues state.NormalValues
@@ -865,14 +914,50 @@ module private Elmish =
                 ]
 
         | CheckInteractions drugs ->
-            { state with Interactions = InProgress },
-            Api.InteractionCmd(Api.CheckInteractions drugs)
-            |> createApiMsg LoadInteractionsResult
+            if drugs.Length < 2 then
+                { state with Interactions = HasNotStartedYet }, Cmd.none
+            else
+                { state with Interactions = InProgress },
+                Api.InteractionCmd(Api.CheckInteractions drugs)
+                |> createApiMsg LoadInteractionsResult
 
         | LoadInteractionsResult(Finished(Ok msg)) -> msg |> processOk
         | LoadInteractionsResult(Finished(Error err)) ->
             ({ state with Interactions = HasNotStartedYet }, Cmd.none) |> processError err
         | LoadInteractionsResult _ -> state, Cmd.none
+
+        | LoadInteractionDrugNames Started ->
+            match state.InteractionDrugNames with
+            | InProgress -> state, Cmd.none
+            | _ ->
+                { state with InteractionDrugNames = InProgress },
+                Api.InteractionCmd Api.GetDrugNames |> createApiMsg LoadInteractionDrugNames
+
+        | LoadInteractionDrugNames(Finished(Ok msg)) ->
+            let state, cmd = msg |> processOk
+            { state with DrugNameRetries = 0 }, cmd
+        | LoadInteractionDrugNames(Finished(Error _)) ->
+            let retries = state.DrugNameRetries + 1
+
+            if retries >= 3 then
+                { state with
+                    InteractionDrugNames = HasNotStartedYet
+                    DrugNameRetries = retries
+                    SnackbarMsg = "Interactie medicatie namen konden niet worden geladen"
+                    SnackbarOpen = true
+                    SnackbarSeverity = "warning"
+                },
+                Cmd.none
+            else
+                { state with
+                    InteractionDrugNames = HasNotStartedYet
+                    DrugNameRetries = retries
+                },
+                async {
+                    do! Async.Sleep 3000
+                    return LoadInteractionDrugNames Started
+                }
+                |> Cmd.fromAsync
 
 
     let calculatInterventions calc meds pat =
@@ -943,7 +1028,16 @@ let View () =
     let state, dispatch = React.useElmish (init, update, [||])
     let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
-    let handleClose = fun _ -> CloseSnackbar |> dispatch
+    let handleClose =
+        fun (_: obj) (reason: string) ->
+            if reason <> "clickaway" then
+                CloseSnackbar |> dispatch
+
+    let autoHide =
+        match state.SnackbarSeverity with
+        | "success"
+        | "info" -> 3000 |> box
+        | _ -> null
 
     let bm =
         calculatInterventions EmergencyTreatment.calculate state.BolusMedication state.Patient
@@ -1030,6 +1124,7 @@ let View () =
                          parenteralia = state.Parenteralia
                          updateParenteralia = UpdateParenteralia >> dispatch
                          interactions = state.Interactions
+                         interactionDrugNames = state.InteractionDrugNames
                          checkInteractions = fun drugs -> CheckInteractions drugs |> dispatch
                          reloadResources = fun pw -> OrderContextMsg(Api.ReloadResources pw, OrderContext.empty) |> dispatch
                          page = state.Page
@@ -1045,10 +1140,13 @@ let View () =
             <div>
                 <Snackbar
                     open={state.SnackbarOpen}
-                    autoHideDuration={3000}
-                    message={state.SnackbarMsg}
+                    autoHideDuration={autoHide}
                     onClose={handleClose}
-                />
+                >
+                    <Alert severity={state.SnackbarSeverity} onClose={fun _ -> CloseSnackbar |> dispatch} sx={ {| width = "100%" |} }>
+                        {state.SnackbarMsg}
+                    </Alert>
+                </Snackbar>
             </div>
         </ThemeProvider>
     </React.StrictMode>
