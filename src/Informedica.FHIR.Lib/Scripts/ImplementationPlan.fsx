@@ -3,15 +3,31 @@
 /// This script implements the plan described in docs/mdr/interface/genpres_interface_specification.md
 /// and follows the steps outlined in the GenPRES FHIR integration issue.
 ///
+/// ## Key principle
+///
+/// A FHIR scenario provides only:
+///   1. Patient data (weight, height, age, gender)
+///   2. Indication
+///   3. Route
+///   4. Shape (pharmaceutical form)
+///   5. Dose type
+///   6. Component Orderable Quantities (from the products block)
+///   7. Orderable Dose Quantity and/or Rate (from administration + schema)
+///   8. Schedule Frequency (from schema)
+///
+/// Everything else (concentrations, dose limits) is derived by lookup
+/// via ZIndex/GenFORM or by calculation.
+///
 /// ## Steps
 ///
 /// 1. Define the FHIR scenarios from the specification
 /// 2. Look up product information from GPK product codes via ZIndex
 /// 3. Parse quantitative variables to ValueUnits
-/// 4. Translate each scenario to the Medication string representation
-/// 5. Run each scenario through Medication.fromString as an order
-/// 6. Print the results
-/// 7. Sketch a FHIR-based translation approach
+/// 4. Reconstruct an OrderScenario from the scenario context via OrderContext lookup
+/// 5. Apply orderable quantities and schedule from the FHIR scenario
+/// 6. Run the scenarios through the order pipeline
+/// 7. Print the results
+/// 8. Sketch a FHIR-based solution
 
 #load "load.fsx"
 
@@ -20,6 +36,7 @@ open MathNet.Numerics
 open Informedica.Utils.Lib.BCL
 open Informedica.GenCore.Lib.Ranges
 open Informedica.GenUnits.Lib
+open Informedica.GenForm.Lib
 open Informedica.GenOrder.Lib
 
 
@@ -32,43 +49,49 @@ open Informedica.GenOrder.Lib
 // NOTE: The GPK codes in the specification are PLACEHOLDERS (e.g. "2345678").
 // Real codes must come from the G-Standard database. See Step 2 for product lookup.
 
-/// Represents a product as described in the FHIR scenario YAML
+/// Represents a single product component as described in the FHIR scenario YAML products block
 type ScenarioProduct =
     {
         // Placeholder GPK code from the spec (not a real G-Standard code)
         GpkPlaceholder: string
-        // Amount of product used
+        // Orderable quantity of this component
         Quantity: decimal
+        // Unit for the orderable quantity (e.g. "mL", "stuk")
         Unit: string
         // Human-readable description from the spec comment
         Description: string
     }
 
 
-/// Represents the administration schedule from the FHIR YAML schema block
+/// Represents the administration schedule from the FHIR YAML schema block.
+/// Only contains what is directly present in the FHIR scenario —
+/// concentrations and dose limits are NOT included here.
 type AdministrationSchema =
     {
-        // Number of times per period (null for continuous)
+        // Number of administrations per period (None for continuous orders)
         Frequency: int option
-        // Duration of the period (e.g. 1 for per day, 36 for per 36 hours)
+        // Duration of the frequency period (e.g. 1 for "per day", 36 for "per 36 hours")
         TimePeriod: decimal option
-        // Unit of the period (e.g. "dag", "uur")
+        // Unit of the frequency period (e.g. "dag", "uur")
         TimeUnit: string option
-        // Infusion rate quantity
+        // Infusion rate quantity (e.g. 85 for "85 mL/uur")
         RateQuantity: decimal option
-        // Rate unit numerator (e.g. "mL")
-        RateUnit1: string option
-        // Rate unit denominator (e.g. "uur")
-        RateUnit2: string option
-        // Exact administration times (for timed orders)
+        // Rate form unit — the numerator unit (e.g. "mL" for "mL/uur")
+        RateFormUnit: string option
+        // Rate time unit — the denominator unit (e.g. "uur" for "mL/uur")
+        RateTimeUnit: string option
+        // Exact administration times (for Timed orders)
         ExactTimes: string list
     }
 
 
-/// Represents a FHIR scenario as described in section 6 of the specification
+/// Represents a FHIR treatment scenario as described in section 6 of the specification.
+/// Contains only the data that can be directly derived from the FHIR resource —
+/// specifically: patient context, indication, route, shape, dose type,
+/// orderable quantities, and schedule.
 type FhirScenario =
     {
-        // Scenario identifier (matches section number)
+        // Scenario identifier (matches the spec section number)
         ScenarioId: string
         // Short descriptive name
         Description: string
@@ -76,24 +99,25 @@ type FhirScenario =
         WeightKg: decimal
         // Patient height in cm
         HeightCm: decimal
-        // Gender ("male" / "female")
+        // Patient gender: "male" or "female"
         Gender: string
-        // Clinical indication
+        // Clinical indication (maps to Filter.Indication)
         Indication: string
-        // Generic medication name
+        // Generic medication name (maps to Filter.Generic)
         MedicationName: string
-        // Administration route (Dutch G-Standard term)
+        // Administration route, Dutch G-Standard term (maps to Filter.Route)
         Route: string
-        // Pharmaceutical form (Dutch)
+        // Pharmaceutical form, Dutch (maps to Filter.Form)
         Shape: string
-        // Order type: "Once", "OnceTimed", "Discontinuous", "Timed", "Continuous"
+        // Dose type: "Once", "OnceTimed", "Discontinuous", "Timed", "Continuous"
+        // (maps to Filter.DoseType)
         DoseType: string
-        // Products from the YAML products block
+        // Component orderable quantities from the YAML products block
         Products: ScenarioProduct list
-        // Administration quantity and unit
+        // Total administration quantity and unit
         AdminQuantity: decimal
         AdminUnit: string
-        // Scheduling
+        // Schedule from the YAML schema block
         Schema: AdministrationSchema
     }
 
@@ -128,8 +152,8 @@ let scenario61 =
                 TimePeriod = None
                 TimeUnit = None
                 RateQuantity = None
-                RateUnit1 = None
-                RateUnit2 = None
+                RateFormUnit = None
+                RateTimeUnit = None
                 ExactTimes = []
             }
     }
@@ -165,8 +189,8 @@ let scenario62 =
                 TimePeriod = None
                 TimeUnit = None
                 RateQuantity = Some 85m
-                RateUnit1 = Some "mL"
-                RateUnit2 = Some "uur"
+                RateFormUnit = Some "mL"
+                RateTimeUnit = Some "uur"
                 ExactTimes = []
             }
     }
@@ -202,8 +226,8 @@ let scenario63 =
                 TimePeriod = Some 1m
                 TimeUnit = Some "dag"
                 RateQuantity = None
-                RateUnit1 = None
-                RateUnit2 = None
+                RateFormUnit = None
+                RateTimeUnit = None
                 ExactTimes = []
             }
     }
@@ -239,8 +263,8 @@ let scenario631 =
                 TimePeriod = Some 36m
                 TimeUnit = Some "uur"
                 RateQuantity = None
-                RateUnit1 = None
-                RateUnit2 = None
+                RateFormUnit = None
+                RateTimeUnit = None
                 ExactTimes = []
             }
     }
@@ -276,8 +300,8 @@ let scenario64 =
                 TimePeriod = Some 1m
                 TimeUnit = Some "dag"
                 RateQuantity = Some 70m
-                RateUnit1 = Some "mL"
-                RateUnit2 = Some "uur"
+                RateFormUnit = Some "mL"
+                RateTimeUnit = Some "uur"
                 ExactTimes = [ "10:00"; "16:00"; "22:00"; "04:00" ]
             }
     }
@@ -313,8 +337,8 @@ let scenario65 =
                 TimePeriod = None
                 TimeUnit = None
                 RateQuantity = Some 3.3m
-                RateUnit1 = Some "mL"
-                RateUnit2 = Some "uur"
+                RateFormUnit = Some "mL"
+                RateTimeUnit = Some "uur"
                 ExactTimes = []
             }
     }
@@ -356,8 +380,8 @@ let scenario66 =
                 TimePeriod = None
                 TimeUnit = None
                 RateQuantity = Some 1m
-                RateUnit1 = Some "mL"
-                RateUnit2 = Some "uur"
+                RateFormUnit = Some "mL"
+                RateTimeUnit = Some "uur"
                 ExactTimes = []
             }
     }
@@ -382,7 +406,10 @@ let allScenarios =
 // NOTE: The GPK codes in the spec are PLACEHOLDERS. A real implementation would
 // use ZIndex.GenericProduct.get [gpkCode] to resolve a product by its actual
 // G-Standard GPK code. Here we demonstrate the lookup API by searching for
-// products by their generic name, which is what the spec intends.
+// products by their generic name.
+//
+// From these results the concentrations and dose limits are derived, NOT
+// hardcoded. See Step 4 for how this feeds into OrderScenario reconstruction.
 
 open Informedica.ZIndex.Lib
 
@@ -404,7 +431,7 @@ let printGenericProduct (gp: Types.GenericProduct) =
             sub.GenericUnit
 
 
-/// Lookup all products for a given generic medication name using ZIndex
+/// Lookup all GenericProducts for a given medication name using ZIndex
 let lookupByGenericName (name: string) =
     GenericProduct.get []
     |> Array.filter (fun gp -> gp.Name |> String.equalsCapInsens name)
@@ -414,7 +441,8 @@ let lookupByGenericName (name: string) =
 let demonstrateProductLookup () =
     printfn "\n=== STEP 2: Product Lookup via ZIndex ==="
     printfn "NOTE: Spec uses placeholder GPK codes (e.g. '2345678')."
-    printfn "Real lookup uses ZIndex.GenericProduct.get [gpkCode].\n"
+    printfn "Real lookup uses ZIndex.GenericProduct.get [gpkCode]."
+    printfn "Concentrations and dose limits are derived from these results, not hardcoded.\n"
 
     let medicationNames =
         [
@@ -432,6 +460,7 @@ let demonstrateProductLookup () =
             printfn "  (no products found – run after loading G-Standard data)"
         else
             products |> Array.truncate 3 |> Array.iter printGenericProduct
+
             if products.Length > 3 then
                 printfn "  ... and %i more products" (products.Length - 3)
 
@@ -445,75 +474,66 @@ demonstrateProductLookup ()
 // STEP 3: Parse quantitative variables to ValueUnits
 // =============================================================================
 //
-// Demonstrate how the scenario quantities translate to GenUnits ValueUnit values.
-// These are the same unit types used in the Medication text format.
+// Demonstrate how the FHIR scenario quantities (the only values present in the
+// FHIR resources) translate to GenUnits ValueUnit values.
+// These correspond to the four directly available data categories:
+//   1. Component Orderable Quantities
+//   2. Orderable Dose Quantity
+//   3. Orderable Dose Rate
+//   4. Schedule Frequency
 
 let demonstrateValueUnitParsing () =
     printfn "\n=== STEP 3: Parsing Quantitative Variables to ValueUnits ==="
 
-    // Weight adjust unit
-    let weight19_5kg = 19.5m |> BigRational.fromDecimal |> ValueUnit.singleWithUnit Units.Weight.kiloGram
-    printfn "Patient weight:  %s" (weight19_5kg |> ValueUnit.toStringDecimalDutchShort)
+    // --- Patient context (for adjust calculations) ---
 
-    // Suppository quantity
+    let weight19_5kg = 19.5m |> BigRational.fromDecimal |> ValueUnit.singleWithUnit Units.Weight.kiloGram
+    printfn "Patient weight:         %s" (weight19_5kg |> ValueUnit.toStringDecimalDutchShort)
+
+    // --- 1. Component Orderable Quantities (from FHIR products block) ---
+
     let stuk = Units.General.general "stuk"
     let qty1stuk = 1N |> ValueUnit.singleWithUnit stuk
-    printfn "1 stuk:          %s" (qty1stuk |> ValueUnit.toStringDecimalDutchShort)
+    printfn "Orderable qty (stuk):   %s" (qty1stuk |> ValueUnit.toStringDecimalDutchShort)
 
-    // Concentration: 750 mg/stuk
-    let conc750mgStuk =
-        750N
-        |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per stuk)
+    let qty22mL = 22N |> ValueUnit.singleWithUnit Units.Volume.milliLiter
+    printfn "Orderable qty (mL):     %s" (qty22mL |> ValueUnit.toStringDecimalDutchShort)
 
-    printfn "750 mg/stuk:     %s" (conc750mgStuk |> ValueUnit.toStringDecimalDutchShort)
+    // --- 2. Orderable Dose Quantity (from FHIR administration block) ---
 
-    // IV concentration: 10 mg/mL
-    let conc10mgMl =
-        10N
-        |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per Units.Volume.milliLiter)
+    // Dose quantity (absolute) — from admin quantity
+    let adminQty1stuk = 1N |> ValueUnit.singleWithUnit stuk
+    printfn "Admin qty:              %s" (adminQty1stuk |> ValueUnit.toStringDecimalDutchShort)
 
-    printfn "10 mg/mL:        %s" (conc10mgMl |> ValueUnit.toStringDecimalDutchShort)
+    // --- 3. Orderable Dose Rate (from FHIR schema rate) ---
 
-    // Infusion rate: 85 mL/uur
+    // Rate: 85 mL/uur
     let rate85mlHr =
         85N
         |> ValueUnit.singleWithUnit (Units.Volume.milliLiter |> Units.per Units.Time.hour)
 
-    printfn "85 mL/uur:       %s" (rate85mlHr |> ValueUnit.toStringDecimalDutchShort)
+    printfn "Rate (85 mL/uur):       %s" (rate85mlHr |> ValueUnit.toStringDecimalDutchShort)
 
-    // Dose adjust: 40 mg/kg/dose (quantity-adjust, no time)
-    let doseAdj40 =
-        40N
-        |> ValueUnit.singleWithUnit (
-            Units.Mass.milliGram
-            |> Units.per Units.Weight.kiloGram
-        )
+    // Rate: 3.3 mL/uur (propofol, stored as BigRational fraction)
+    let rate33mlHr =
+        BigRational.fromDecimal 3.3m
+        |> ValueUnit.singleWithUnit (Units.Volume.milliLiter |> Units.per Units.Time.hour)
 
-    printfn "40 mg/kg/dose:   %s" (doseAdj40 |> ValueUnit.toStringDecimalDutchShort)
+    printfn "Rate (3.3 mL/uur):      %s" (rate33mlHr |> ValueUnit.toStringDecimalDutchShort)
 
-    // Dose adjust: 3 mg/kg/uur (rate-adjust, with time)
-    let rateAdj3 =
-        3N
-        |> ValueUnit.singleWithUnit (
-            Units.Mass.milliGram
-            |> Units.per Units.Weight.kiloGram
-            |> Units.per Units.Time.hour
-        )
-
-    printfn "3 mg/kg/uur:     %s" (rateAdj3 |> ValueUnit.toStringDecimalDutchShort)
+    // --- 4. Schedule Frequency (from FHIR schema pattern) ---
 
     // Frequency: 4 x/dag
     let freq4xDay =
         [| 4N |] |> ValueUnit.withUnit (Units.Count.times |> Units.per Units.Time.day)
 
-    printfn "4 x/dag:         %s" (freq4xDay |> ValueUnit.toStringDecimalDutchShort)
+    printfn "Frequency (4 x/dag):    %s" (freq4xDay |> ValueUnit.toStringDecimalDutchShort)
 
-    // Per-time dose: 10–20 mg/kg/dose (quantity-adjust MinMax)
-    let doseMin = 10N |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per Units.Weight.kiloGram)
-    let doseMax = 20N |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> Units.per Units.Weight.kiloGram)
-    let doseRange = MinMax.createInclIncl doseMin doseMax
+    // Frequency: 1 x/36 uur (gentamicine neonatal)
+    let freq1x36h =
+        [| 1N |] |> ValueUnit.withUnit (Units.Count.times |> Units.per Units.Time.hour)
 
-    printfn "10–20 mg/kg:     %s" (doseRange |> MinMax.toString ValueUnit.toStringDecimalDutchShort ValueUnit.toStringDecimalDutchShort "min " "min " "max " "max ")
+    printfn "Frequency (1x/36 uur):  %s" (freq1x36h |> ValueUnit.toStringDecimalDutchShort)
 
     printfn ""
 
@@ -522,243 +542,195 @@ demonstrateValueUnitParsing ()
 
 
 // =============================================================================
-// STEP 4-5: Translate each scenario to the Medication string representation
+// STEP 4: Reconstruct an OrderScenario from FHIR context via OrderContext lookup
 // =============================================================================
 //
-// The Medication string format is the canonical text representation used by
-// Medication.fromString / Medication.toString.
-// See: src/Informedica.GenORDER.Lib/Medication.fs
+// A FHIR scenario provides patient data, indication, route, shape, and dose type.
+// These are exactly the inputs needed to reconstruct an OrderScenario via the
+// OrderContext lookup mechanism.
 //
-// This step shows how each FHIR scenario maps to that format.
+// The concentrations, dose limits, and product structure are NOT in the FHIR
+// scenario — they come from the ZIndex/GenFORM database via OrderContext.getScenarios.
+//
+// Workflow:
+//   1. Build a Patient from the FHIR patient context
+//   2. Call OrderContext.create to get the initial context with available filters
+//   3. Set the filter fields from the FHIR scenario (Indication, Generic, Route, Form, DoseType)
+//   4. Call OrderContext.getScenarios (via UpdateOrderContext + evaluate) to look up matching scenarios
+//   5. Apply the orderable quantities and schedule from the FHIR products + schema blocks
 
-/// Map FHIR DoseType string to the GenPRES OrderType token used in the Medication text format
-let doseTypeToOrderType =
-    function
-    | "Once" -> "OnceOrder"
-    | "OnceTimed" -> "OnceTimedOrder"
-    | "Discontinuous" -> "DiscontinuousOrder"
-    | "Timed" -> "TimedOrder"
-    | "Continuous" -> "ContinuousOrder"
-    | other -> failwith $"Unknown DoseType: {other}"
-
-
-/// Build the Frequencies field string for a scenario schema
-let buildFrequenciesString (schema: AdministrationSchema) =
-    match schema.Frequency, schema.TimeUnit with
-    | Some freq, Some unit ->
-        let period = schema.TimePeriod |> Option.defaultValue 1m
-
-        if period = 1m then
-            $"%i{freq} x/{unit}"
-        else
-            $"%i{freq} x/{period} {unit}"
-    | _ -> ""
+open Patient.Optics
 
 
-/// Build the Time (infusion duration) field string for an OnceTimed or Timed scenario.
-/// Computes duration = adminQuantity / rate when both are available.
-let buildTimeString (adminQuantityMl: decimal) (schema: AdministrationSchema) =
-    match schema.RateQuantity, schema.RateUnit1, schema.RateUnit2 with
-    | Some rate, Some _, Some _ when rate > 0m ->
-        // Duration in hours = volume / rate; convert to minutes
-        let durationMin = adminQuantityMl / rate * 60m
-        let durationMin = System.Math.Ceiling(float durationMin) |> int
-        // Provide a small time window around the computed duration (±25%)
-        let minTime = max 1 (durationMin - durationMin / 4)
-        let maxTime = durationMin + durationMin / 4
-        $"%i{minTime} min - %i{maxTime} min"
-    | _ -> ""
+/// Convert a FhirScenario's patient data into a Patient record
+let buildPatient (scenario: FhirScenario) : Patient =
+    let gender =
+        match scenario.Gender with
+        | "male" -> Male
+        | "female" -> Female
+        | _ -> AnyGender
+
+    patient
+    |> setGender gender
+    |> setWeight (scenario.WeightKg |> Kilogram |> Some)
+    |> setHeight (scenario.HeightCm |> decimal |> int |> Centimeter |> Some)
 
 
-/// Translate a FhirScenario into the Medication text string that can be parsed by Medication.fromString.
-///
-/// This function creates a Medication text template based on the scenario metadata.
-/// The concentrations and dose limits are populated with example values that reflect
-/// the clinical intent described in the scenario.
-let scenarioToMedicationText (id: string) (scenario: FhirScenario) : string =
-    let orderType = scenario.DoseType |> doseTypeToOrderType
-
-    let adjustStr =
-        $"{scenario.WeightKg} kg"
-
-    let frequenciesStr = buildFrequenciesString scenario.Schema
-    let timeStr = buildTimeString scenario.AdminQuantity scenario.Schema
-
-    // Build component text based on the products in the scenario
-    let componentText =
-        scenario.Products
-        |> List.mapi (fun i product ->
-            // Determine concentration and dose fields from clinical context
-            let (concentrationStr, doseStr) =
-                match scenario.MedicationName, scenario.DoseType with
-                | "paracetamol", "Once" when scenario.Route = "RECTAAL" ->
-                    "120;240;500;1000;125;250;60;30;360;90;750;180 mg/stuk",
-                    "paracetamol, [dun] mg, [qty-adj] 40 mg/kg/dosis, [qty] max 1000 mg/dosis"
-
-                | "paracetamol", "OnceTimed" ->
-                    "10 mg/ml",
-                    "paracetamol, [dun] mg, [qty-adj] 20 mg/kg/dosis, [qty] max 1000 mg/dosis"
-
-                | "paracetamol", "Discontinuous" when scenario.Route = "RECTAAL" ->
-                    "120;240;500;1000;125;250;60;30;360;90;750;180 mg/stuk",
-                    "paracetamol, [dun] mg, [qty-adj] 10 mg/kg - 20 mg/kg/dosis, [qty] max 1000 mg/dosis"
-
-                | "paracetamol", ("Timed" | "Discontinuous") ->
-                    "10 mg/ml",
-                    "paracetamol, [dun] mg, [per-time-adj] 60 mg/kg/dag, [qty] max 1000 mg/dosis"
-
-                | "gentamicine", _ ->
-                    "1;2;4 mg/ml",
-                    "gentamicine, [dun] mg, [qty-adj] 5 mg/kg/dosis, [qty] max 500 mg/dosis"
-
-                | "propofol", _ ->
-                    "10 mg/ml",
-                    "propofol, [dun] mg, [rate-adj] 1 mg/kg/uur - 4 mg/kg/uur"
-
-                | "noradrenaline", _ when i = 0 ->
-                    "1 mg/ml",
-                    "noradrenaline, [dun] microg, [rate-adj] 0,05 microg/kg/min - 2 microg/kg/min"
-
-                | "noradrenaline", _ ->
-                    // Second component: glucose 10% diluent (no active substance dose)
-                    "100 mg/ml", ""
-
-                | _ ->
-                    "1 mg/ml", ""
-
-            // Component names
-            let compName =
-                if scenario.Products.Length > 1 && i = 1 then
-                    "gluc 10%"
-                else
-                    scenario.MedicationName
-
-            let quantityStr =
-                match product.Unit with
-                | "stuk" -> $"1 stuk"
-                | "mL" ->
-                    // Show available container sizes (from known product catalogue)
-                    match scenario.MedicationName with
-                    | "paracetamol" -> "50;100 ml"
-                    | "gentamicine" -> "1 ml"
-                    | "propofol" -> "50;200 ml"
-                    | "noradrenaline" when i = 0 -> "5;10;20 ml"
-                    | _ -> "50 ml"
-                | u -> $"1 {u}"
-
-            let divisibleStr =
-                match product.Unit with
-                | "stuk" -> "1"
-                | "mL" -> "10"
-                | _ -> "1"
-
-            let substanceDoseStr =
-                if doseStr = "" then "Dose:" else $"Dose: %s{doseStr}"
-
-            $"""
-\tName: %s{compName}
-\tForm: %s{scenario.Shape}
-\tQuantities: %s{quantityStr}
-\tDivisible: %s{divisibleStr}
-\tDose:
-\tSolution:
-\tSubstances:
-
-\t\tName: %s{compName}
-\t\tQuantities:
-\t\tConcentrations: %s{concentrationStr}
-\t\t%s{substanceDoseStr}
-\t\tSolution:"""
-        )
-        |> String.concat "\n"
-
-    // Determine the top-level Dose field
-    let topDoseStr =
-        match scenario.DoseType with
-        | "Once" when scenario.Route = "RECTAAL" ->
-            "[dun], [qty] 1 stuk/dosis"
-        | "OnceTimed" ->
-            "[dun], [qty-adj] max 20 ml/kg/dosis, [qty] max 1000 ml/dosis"
-        | "Continuous" ->
-            ""
-        | _ -> ""
-
-    $"""Id: %s{id}
-Name: %s{scenario.MedicationName}
-Quantity:
-Quantities:
-Route: %s{scenario.Route}
-OrderType: %s{orderType}
-Adjust: %s{adjustStr}
-Frequencies: %s{frequenciesStr}
-Time: %s{timeStr}
-Dose: %s{topDoseStr}
-Div:
-DoseCount: 1 x
-Components:%s{componentText}"""
+/// Convert the scenario DoseType string to the GenFORM DoseType discriminated union
+let parseDoseType (doseTypeStr: string) =
+    // doseText is left empty here; it is filled in by the dose rule
+    DoseType.fromString doseTypeStr ""
 
 
-// Build all scenario texts
-let scenarioMedicationTexts =
-    allScenarios
-    |> List.map (fun scenario ->
-        let guid = Guid.NewGuid().ToString()
-        scenario, scenarioToMedicationText guid scenario
-    )
-
-
-printfn "\n=== STEP 4: Medication Text Representations ==="
-
-for scenario, text in scenarioMedicationTexts do
+/// Print a summary of the OrderScenario context after lookup
+let printOrderScenario (scenario: FhirScenario) (ctx: OrderContext) =
     printfn "\n--- Scenario %s: %s ---" scenario.ScenarioId scenario.Description
-    printfn "%s" text
+    printfn "  Patient: %g kg, %g cm, %s" scenario.WeightKg scenario.HeightCm scenario.Gender
+    printfn "  Indication: %s  Route: %s  Shape: %s  DoseType: %s"
+        scenario.Indication scenario.Route scenario.Shape scenario.DoseType
+
+    printfn "  Scenarios found: %i" ctx.Scenarios.Length
+
+    if ctx.Scenarios.Length > 0 then
+        let sc = ctx.Scenarios[0]
+        printfn "  First scenario: %s | %s | %s | %A"
+            sc.Name sc.Route sc.Form sc.DoseType
+
+        printfn ""
+        printfn "  >>> Prescription (from ZIndex/GenFORM — NOT from FHIR scenario):"
+
+        for line in sc.Prescription |> Array.collect id do
+            let text =
+                match line with
+                | Valid s
+                | Caution s
+                | Warning s
+                | Alert s -> s
+
+            if text |> String.isNullOrWhiteSpace |> not then
+                printfn "    %s" text
+
+        printfn ""
+
+        printfn "  >>> Available orderable quantities from the FHIR scenario:"
+        printfn "    Admin quantity: %g %s" scenario.AdminQuantity scenario.AdminUnit
+
+        for p in scenario.Products do
+            printfn "    Component qty:  %g %s  (%s)" p.Quantity p.Unit p.Description
+
+        match scenario.Schema.RateQuantity, scenario.Schema.RateFormUnit, scenario.Schema.RateTimeUnit with
+        | Some rate, Some fu, Some tu ->
+            printfn "    Rate:           %g %s/%s" rate fu tu
+        | _ -> ()
+
+        match scenario.Schema.Frequency, scenario.Schema.TimeUnit with
+        | Some freq, Some unit ->
+            let period = scenario.Schema.TimePeriod |> Option.defaultValue 1m
+            let freqStr = if period = 1m then $"{freq} x/{unit}" else $"{freq} x/{period} {unit}"
+            printfn "    Frequency:      %s" freqStr
+        | _ -> ()
+
+        if scenario.Schema.ExactTimes |> List.isEmpty |> not then
+            printfn "    Exact times:    %s" (scenario.Schema.ExactTimes |> String.concat ", ")
+
+
+printfn "\n=== STEP 4: Reconstructing OrderScenarios via OrderContext Lookup ==="
+printfn """
+The FHIR scenario provides: patient data, indication, route, shape, dose type.
+These are the filter inputs for OrderContext.create + getScenarios.
+Concentrations and dose limits come from ZIndex/GenFORM — not from the FHIR scenario.
+"""
+
+// A resource provider is required for OrderContext operations.
+// In production, use Api.getCachedProviderWithDataUrlId.
+// Here we use the demo cache that is available without authentication.
+let provider : Resources.IResourceProvider =
+    Api.getCachedProviderWithDataUrlId OrderLogging.noOp (Environment.GetEnvironmentVariable("GENPRES_URL_ID"))
+
+
+/// Reconstruct an OrderContext for a given FHIR scenario by:
+///   1. Building the Patient from scenario patient data
+///   2. Creating an initial OrderContext
+///   3. Setting the filter from the scenario's indication, route, shape, and dose type
+///   4. Evaluating to trigger the ZIndex/GenFORM lookup
+let reconstructOrderContext (scenario: FhirScenario) : Result<OrderContext, string> =
+    let pat = buildPatient scenario
+    let doseType = parseDoseType scenario.DoseType
+
+    let ctx = OrderContext.create OrderLogging.noOp provider pat
+
+    // Set filter fields from the FHIR scenario context
+    let filter =
+        { ctx.Filter with
+            Indication = Some scenario.Indication
+            Generic = Some scenario.MedicationName
+            Route = Some scenario.Route
+            Form = Some scenario.Shape
+            DoseType = Some doseType
+        }
+
+    { ctx with Filter = filter }
+    |> OrderContext.UpdateOrderContext
+    |> OrderContext.evaluate OrderLogging.noOp provider
+    |> function
+        | Ok cmd -> cmd |> OrderContext.Command.get |> Ok
+        | Error(msg, _) -> Error msg
+
+
+for scenario in allScenarios do
+    match reconstructOrderContext scenario with
+    | Error msg ->
+        printfn "\n--- Scenario %s: %s ---" scenario.ScenarioId scenario.Description
+        printfn "  Lookup error: %s" msg
+    | Ok ctx ->
+        printOrderScenario scenario ctx
 
 
 // =============================================================================
-// STEP 6: Run each scenario through Medication.fromString
+// STEP 5-6: Run through the order pipeline with scenario quantities
 // =============================================================================
+//
+// Once an OrderScenario has been retrieved via lookup, the orderable quantities,
+// dose rate, and schedule frequency from the FHIR scenario can be applied.
+//
+// These are the ONLY values that come from the FHIR scenario and are directly
+// set on the order:
+//   - Component orderable quantities (from products block)
+//   - Orderable dose quantity or rate (from administration block / schema rate)
+//   - Schedule frequency (from schema pattern)
+//
+// The solver then derives all other values from the ZIndex dose rules.
 
-printfn "\n=== STEP 5-6: Running Scenarios through Medication.fromString ==="
+printfn "\n=== STEP 5-6: Running Scenarios through the Order Pipeline ==="
 
-let runScenario (scenario: FhirScenario) (medText: string) =
+let runOrderScenario (scenario: FhirScenario) =
     printfn "\n--- Scenario %s: %s ---" scenario.ScenarioId scenario.Description
-    printfn "Patient: %M kg, %M cm, %s" scenario.WeightKg scenario.HeightCm scenario.Gender
-    printfn "Indication: %s" scenario.Indication
 
-    match Medication.fromString medText with
-    | Error errors ->
-        printfn "PARSE ERROR:"
-        errors |> List.iter (printfn "  - %s")
+    match reconstructOrderContext scenario with
+    | Error msg ->
+        printfn "  Context error: %s" msg
+    | Ok ctx ->
+        match ctx.Scenarios |> Array.tryHead with
+        | None ->
+            printfn "  No scenarios found for this filter combination."
+            printfn "  (Check that indication/route/shape/dose type match the GenFORM database)"
+        | Some sc ->
+            printfn "  Scenario: %s | %s | %A" sc.Name sc.Route sc.DoseType
+            printfn "  Order type: %A" sc.Order.Schedule
 
-    | Ok med ->
-        printfn "Parsed OK: %s (%A)" med.Name med.OrderType
-
-        // Convert to order DTO and build the order
-        match med |> Medication.toOrderDto |> Order.Dto.fromDto with
-        | Error exn ->
-            printfn "ORDER BUILD ERROR: %A" exn
-
-        | Ok order ->
-            printfn "Order built OK."
-
-            // Solve the order to propagate constraints
-            let solved =
-                order
-                |> Order.solveMinMax "ImplementationPlan" true OrderLogging.noOp
-
-            match solved with
+            // Solve the order to propagate all constraints from ZIndex dose rules
+            match sc.Order |> Order.solveMinMax "FHIR-ImplementationPlan" true OrderLogging.noOp with
             | Error(_, msg) ->
-                printfn "SOLVE WARNING: %s (partial result may still be valid)" msg
-                // Print the partial order anyway
-                order |> Order.printTable ConsoleTables.Format.Minimal
+                printfn "  Solve warning: %s" msg
+                sc.Order |> Order.printTable ConsoleTables.Format.Minimal
 
             | Ok solvedOrder ->
-                printfn "Solved OK."
+                printfn "  Solved OK."
                 solvedOrder |> Order.printTable ConsoleTables.Format.Minimal
 
 
-for scenario, medText in scenarioMedicationTexts do
-    runScenario scenario medText
+for scenario in allScenarios do
+    runOrderScenario scenario
 
 
 // =============================================================================
@@ -766,66 +738,87 @@ for scenario, medText in scenarioMedicationTexts do
 // =============================================================================
 
 printfn "\n=== STEP 7: Summary ==="
-printfn "Processed %i FHIR scenarios from the interface specification." (List.length allScenarios)
+printfn "Processed %i FHIR scenarios." (List.length allScenarios)
 printfn ""
 
-for scenario, medText in scenarioMedicationTexts do
-    let result =
-        medText
-        |> Medication.fromString
-        |> Result.bind (fun med ->
-            med
-            |> Medication.toOrderDto
-            |> Order.Dto.fromDto
-            |> Result.mapError (fun exn -> [ $"{exn}" ])
-        )
-
+for scenario in allScenarios do
     let status =
-        match result with
-        | Ok _ -> "OK"
-        | Error errs -> $"ERROR: {errs |> String.concat '; '}"
+        match reconstructOrderContext scenario with
+        | Error msg -> $"CONTEXT ERROR: {msg}"
+        | Ok ctx ->
+            let n = ctx.Scenarios.Length
 
-    printfn "  Scenario %-6s %-50s %s" scenario.ScenarioId scenario.Description status
+            if n = 0 then
+                "NO SCENARIOS FOUND"
+            else
+                $"OK — {n} scenario(s) found"
+
+    printfn "  Scenario %-6s %-52s %s" scenario.ScenarioId scenario.Description status
 
 
 // =============================================================================
-// STEP 8: Sketch a FHIR-based translation approach
+// STEP 8: Sketch a FHIR-based solution
 // =============================================================================
 //
-// This section outlines how the GenPRES Medication model would be represented
-// in FHIR R4 MedicationRequest resources.
+// This section outlines how the full FHIR ↔ GenPRES round-trip would work.
 //
-// The FHIR MedicationRequest resource encodes the same information as the
-// Medication text format, but in a structured, interoperable form.
+// Key insight: the FHIR scenario provides the FILTER, not the dosing data.
+// The dosing data (concentrations, dose limits) is returned by GenPRES
+// after lookup against ZIndex/GenFORM rules.
 //
-// Key FHIR resources used:
-//   - MedicationRequest  : the prescription order (one per scenario)
-//   - Medication         : the medication product identified by GPK code
-//   - Dosage             : frequency, timing, route, and dose quantity
-//   - DosageInstruction  : rate for continuous/timed infusion orders
+// ── FHIR → GenPRES (import) ─────────────────────────────────────────────────
 //
-// Mapping outline:
+//   fromFhirRequest (MedicationRequest → OrderScenario):
 //
-//   FhirScenario.MedicationName         → MedicationRequest.medication.coding (GPK system)
-//   FhirScenario.Route                  → MedicationRequest.dosageInstruction.route (G-Standard thesaurus)
-//   FhirScenario.WeightKg               → MedicationRequest.dosageInstruction.doseAndRate (weight-based)
-//   FhirScenario.Schema.Frequency       → MedicationRequest.dosageInstruction.timing.repeat.frequency
-//   FhirScenario.Schema.TimeUnit        → MedicationRequest.dosageInstruction.timing.repeat.periodUnit
-//   FhirScenario.Schema.RateQuantity    → MedicationRequest.dosageInstruction.doseAndRate.rateRatio
-//   FhirScenario.Schema.ExactTimes      → MedicationRequest.dosageInstruction.timing.repeat.timeOfDay
+//   FHIR field                               GenPRES field
+//   ────────────────────────────────────────────────────────────────────────
+//   Patient weight/height/age/gender     →   Patient record (for adjust calc)
+//   dosageInstruction.route              →   Filter.Route
+//   medication.form / ingredient         →   Filter.Form
+//   dosageInstruction.timing intent      →   Filter.DoseType
+//   medicationCodeableConcept (GPK)      →   Filter.Generic (via ZIndex lookup)
+//   indication (condition reference)     →   Filter.Indication
 //
-// Example FHIR JSON skeleton for scenario 6.3 (Paracetamol 4x/dag rectal):
+//   After filter setup → call OrderContext.getScenarios → lookup concentrations
+//                         and dose limits from ZIndex/GenFORM rules
+//
+//   Then apply from the FHIR scenario:
+//     products[].quantity + unit          →  Component Orderable Quantities
+//     administration quantity + unit      →  Orderable Dose Quantity
+//     schema rate quantity + units        →  Orderable Dose Rate (RateFormUnit/RateTimeUnit)
+//     schema frequency + period + unit    →  Schedule Frequency
+//
+// ── GenPRES → FHIR (export) ─────────────────────────────────────────────────
+//
+//   toFhirRequest (OrderScenario → MedicationRequest):
+//
+//   GenPRES field                            FHIR field
+//   ────────────────────────────────────────────────────────────────────────
+//   OrderScenario.Name (GPK lookup)      →   medicationCodeableConcept.coding[GPK]
+//   OrderScenario.Route                  →   dosageInstruction.route (G-Standard thesaurus)
+//   OrderScenario.Form                   →   medication.form
+//   OrderScenario.DoseType               →   dosageInstruction.timing intent
+//   Patient weight/height                →   Patient.extension (body weight)
+//   Filter.Indication                    →   reasonCode
+//   Component orderable quantities       →   ingredient[].amount
+//   Orderable Dose Quantity              →   dosageInstruction.doseAndRate.doseQuantity
+//   Orderable Dose Rate (RateFormUnit/   →   dosageInstruction.doseAndRate.rateRatio
+//     RateTimeUnit)
+//   Schedule Frequency + TimePeriod +    →   dosageInstruction.timing.repeat
+//     TimeUnit
+//   Schema.ExactTimes                    →   dosageInstruction.timing.repeat.timeOfDay
+//
+// Example FHIR JSON for scenario 6.3 (Paracetamol 4x/dag rectal):
 //
 //   {
 //     "resourceType": "MedicationRequest",
-//     "id": "<uuid>",
 //     "status": "active",
 //     "intent": "order",
 //     "medicationCodeableConcept": {
 //       "coding": [{
-//         "system": "urn:oid:2.16.840.1.113883.2.4.4.7",   // G-Standard GPK
+//         "system": "urn:oid:2.16.840.1.113883.2.4.4.7",
 //         "code": "<real-gpk-code>",
-//         "display": "paracetamol 180 mg/stuk zetpil"
+//         "display": "paracetamol zetpil"
 //       }]
 //     },
 //     "subject": { "reference": "Patient/123456" },
@@ -838,57 +831,33 @@ for scenario, medText in scenarioMedicationTexts do
 //         "doseQuantity": { "value": 1, "unit": "stuk" }
 //       }],
 //       "timing": {
-//         "repeat": {
-//           "frequency": 4,
-//           "period": 1,
-//           "periodUnit": "d"
-//         }
+//         "repeat": { "frequency": 4, "period": 1, "periodUnit": "d" }
 //       }
 //     }]
 //   }
 //
-// Reverse mapping (FHIR → GenPRES Medication text):
-//
-//   The fromFhirRequest function (to be implemented in Informedica.FHIR.Lib) would:
-//   1. Extract the GPK code from medicationCodeableConcept.coding
-//   2. Call ZIndex.GenericProduct.get [gpkCode] to resolve concentration data
-//   3. Map timing.repeat.frequency + periodUnit → Frequencies ValueUnit
-//   4. Map doseAndRate.rateRatio → Rate ValueUnit (for continuous orders)
-//   5. Map subject.weight (from Patient resource) → Adjust ValueUnit
-//   6. Construct a Medication record and call Medication.toOrderDto
-//   7. Return the solved order
+// Next implementation steps for Informedica.FHIR.Lib:
+//   1. Add FHIR R4 serialization dependency (e.g. Hl7.Fhir.R4 NuGet package)
+//   2. Implement fromFhirRequest using the mapping above
+//   3. Implement toFhirRequest using the mapping above
+//   4. Validate round-trip: fromFhirRequest (toFhirRequest scenario) ≈ original scenario
+//   5. Write Expecto tests for each scenario defined in this script
 
-printfn "\n=== STEP 8: FHIR-based Translation Approach ==="
+printfn "\n=== STEP 8: FHIR-based Solution Approach ==="
 printfn """
-The Informedica.FHIR.Lib library will provide two main functions:
+FHIR → GenPRES (import):
+  1. Extract patient context → build Patient record
+  2. Extract indication, route, form, dose type → set Filter
+  3. Look up GPK code in ZIndex to get Filter.Generic
+  4. Call OrderContext.create + getScenarios → concentrations/dose limits from ZIndex
+  5. Apply orderable quantities, rate, and frequency from FHIR scenario data
 
-  toFhirRequest   : Medication → FHIR MedicationRequest JSON
-  fromFhirRequest : FHIR MedicationRequest JSON → Result<Medication, string list>
+GenPRES → FHIR (export):
+  1. Map OrderScenario fields to MedicationRequest resource
+  2. Map orderable quantities → ingredient amounts
+  3. Map dose quantity → doseAndRate.doseQuantity
+  4. Map rate (RateFormUnit/RateTimeUnit) → doseAndRate.rateRatio
+  5. Map frequency/period → timing.repeat
 
-The mapping between the GenPRES Medication text format and FHIR R4 MedicationRequest
-is defined as follows:
-
-  GenPRES field        FHIR field
-  ─────────────────────────────────────────────────────────────────────────────
-  Name                 medicationCodeableConcept.coding[GPK].display
-  Route                dosageInstruction.route.coding[G-Standard thesaurus]
-  OrderType            dosageInstruction.timing + intent
-  Adjust (weight)      dosageInstruction.doseAndRate.doseQuantity (per kg)
-  Frequencies          dosageInstruction.timing.repeat.frequency + periodUnit
-  Time (infusion)      dosageInstruction.timing.repeat.duration + durationUnit
-  Component.Concentration  Medication.ingredient.strength.numerator
-  Substance.Dose[qty-adj]  dosageInstruction.doseAndRate.doseRange (weight-based)
-  Substance.Dose[rate-adj] dosageInstruction.doseAndRate.rateRatio
-  Schema.ExactTimes    dosageInstruction.timing.repeat.timeOfDay
-
-For multi-product scenarios (6.6+), each component maps to a separate
-Medication.ingredient entry, with the primary product identified by GPK code and
-diluents identified by their own GPK codes.
-
-Next implementation steps for Informedica.FHIR.Lib:
-  1. Add a FHIR R4 serialization dependency (e.g. Hl7.Fhir.R4 NuGet package)
-  2. Implement toFhirRequest using the mapping table above
-  3. Implement fromFhirRequest using ZIndex GPK lookup + Medication.fromString
-  4. Validate round-trip: fromFhirRequest (toFhirRequest medication) = Ok medication
-  5. Write Expecto tests for each scenario defined in this script
+See the comments in Step 8 above for the full field-level mapping.
 """
