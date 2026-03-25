@@ -775,8 +775,6 @@ module private Elmish =
                     | Recalculating _ -> Recalculating tp
                     | _ -> Resolved tp
 
-                let drugs = tp.Scenarios |> Array.map _.Name |> Array.distinct |> Array.toList
-
                 // CheckInteractions is dispatched by processApiMsg when the API response
                 // arrives, so we don't duplicate it here.
                 let cmd =

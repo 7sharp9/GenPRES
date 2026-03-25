@@ -31,6 +31,8 @@ module SideMenu =
             |> SelectableList.View
 
         if props.isMobile then
+            let sxDrawerPaper = {| width = drawerWidth |}
+
             JSX.jsx
                 $"""
             import Drawer from '@mui/material/Drawer';
@@ -38,9 +40,9 @@ module SideMenu =
             <div>
                 <Drawer
                     anchor={props.anchor}
-                    width={drawerWidth}
                     open={props.isOpen}
                     onClose={props.toggle}
+                    PaperProps={ {| sx = sxDrawerPaper |} }
                 >
                 {menu}
                 </Drawer>
