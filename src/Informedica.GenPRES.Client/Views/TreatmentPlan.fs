@@ -12,16 +12,25 @@ module TreatmentPlan =
 
 
     [<JSX.Component>]
-    let View
-        (props:
-            {|
-                treatmentPlan: Deferred<OrderPlan>
-                updateTreatmentPlan: OrderPlan -> unit
-                filterTreatmentPlan: OrderPlan -> unit
-                orderContextMsg: Api.OrderContextCommand * OrderContext -> unit
-                localizationTerms: Deferred<string[][]>
-            |})
-        =
+    let View (props: {| appEnv: obj |}) =
+        let envTreatmentPlan = AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv
+        let treatmentPlan = envTreatmentPlan.TreatmentPlan
+        let treatmentPlanCommand = envTreatmentPlan.TreatmentPlanCommand
+
+        let updateTreatmentPlan tp =
+            treatmentPlanCommand (Api.UpdateOrderPlan(tp, None))
+
+        let filterTreatmentPlan tp =
+            treatmentPlanCommand (Api.FilterOrderPlan tp)
+
+        let orderContextMsg (cmd, ctx) =
+            match treatmentPlan with
+            | Resolved tp
+            | Recalculating tp -> treatmentPlanCommand (Api.UpdateOrderPlan(tp, Some(cmd, ctx)))
+            | _ -> ()
+
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
@@ -29,21 +38,21 @@ module TreatmentPlan =
         // Derive modal visibility from Elmish state — if an order is selected, the modal is open.
         // This avoids duplicating tp.Selected.IsSome in local React state.
         let modalOpen =
-            match props.treatmentPlan with
+            match treatmentPlan with
             | Resolved tp
             | Recalculating tp -> tp.Selected.IsSome
             | _ -> false
 
         let handleModalClose =
             fun () ->
-                match props.treatmentPlan with
+                match treatmentPlan with
                 | Resolved tp
-                | Recalculating tp -> { tp with Selected = None } |> props.updateTreatmentPlan
+                | Recalculating tp -> { tp with Selected = None } |> updateTreatmentPlan
                 | _ -> ()
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
-        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
+        let getTerm = Global.getLocalizedTerm localizationTerms lang
 
         let columns =
             [|
@@ -125,7 +134,7 @@ module TreatmentPlan =
                 )
                 |> String.concat ""
 
-            match props.treatmentPlan with
+            match treatmentPlan with
             | Resolved tp
             | Recalculating tp ->
                 tp.Scenarios
@@ -239,7 +248,7 @@ module TreatmentPlan =
         let modalStyle = ViewHelpers.modalStyle
 
         let selectOrder id =
-            match props.treatmentPlan with
+            match treatmentPlan with
             | Resolved tp
             | Recalculating tp ->
                 tp.Scenarios
@@ -253,11 +262,11 @@ module TreatmentPlan =
                             Filtered = [||]
                             Selected = Some sc
                         }
-                        |> props.updateTreatmentPlan
+                        |> updateTreatmentPlan
             | _ -> ()
 
         let filterOrders ids =
-            match props.treatmentPlan with
+            match treatmentPlan with
             | Resolved tp
             | Recalculating tp ->
                 { tp with
@@ -269,18 +278,18 @@ module TreatmentPlan =
                             tp.Scenarios
                             |> Array.filter (fun os -> os.Order |> _.Id |> (fun id -> ids |> Array.exists ((=) id)))
                 }
-                |> props.filterTreatmentPlan
+                |> filterTreatmentPlan
             | _ -> ()
 
         let selectedRows =
-            match props.treatmentPlan with
+            match treatmentPlan with
             | Resolved tp
             | Recalculating tp -> tp.Filtered |> Array.map _.Order |> Array.map _.Id
             | _ -> [||]
 
         let onDelete =
             fun () ->
-                match props.treatmentPlan with
+                match treatmentPlan with
                 | Resolved tp
                 | Recalculating tp ->
                     { tp with
@@ -289,63 +298,66 @@ module TreatmentPlan =
                             |> Array.filter (fun sc -> tp.Filtered |> Array.exists ((=) sc) |> not)
 
                     }
-                    |> props.updateTreatmentPlan
+                    |> updateTreatmentPlan
                 | _ -> ()
 
         let updateOrderScenario (ctx: OrderContext) =
-            props.orderContextMsg (Api.UpdateOrderScenario, ctx)
+            orderContextMsg (Api.UpdateOrderScenario, ctx)
 
         let refreshOrderScenario (ctx: OrderContext) =
-            props.orderContextMsg (Api.ResetOrderScenario, ctx)
+            orderContextMsg (Api.ResetOrderScenario, ctx)
 
         let navigateOrderScenario =
             {|
                 // Frequency
-                setMinFrequency = fun ctx -> props.orderContextMsg (Api.SetMinScheduleFrequencyProperty, ctx)
-                decrFrequency = fun ctx -> props.orderContextMsg (Api.DecreaseScheduleFrequencyProperty, ctx)
-                setMedianFrequency = fun ctx -> props.orderContextMsg (Api.SetMedianScheduleFrequencyProperty, ctx)
-                incrFrequency = fun ctx -> props.orderContextMsg (Api.IncreaseScheduleFrequencyProperty, ctx)
-                setMaxFrequency = fun ctx -> props.orderContextMsg (Api.SetMaxScheduleFrequencyProperty, ctx)
+                setMinFrequency = fun ctx -> orderContextMsg (Api.SetMinScheduleFrequencyProperty, ctx)
+                decrFrequency = fun ctx -> orderContextMsg (Api.DecreaseScheduleFrequencyProperty, ctx)
+                setMedianFrequency = fun ctx -> orderContextMsg (Api.SetMedianScheduleFrequencyProperty, ctx)
+                incrFrequency = fun ctx -> orderContextMsg (Api.IncreaseScheduleFrequencyProperty, ctx)
+                setMaxFrequency = fun ctx -> orderContextMsg (Api.SetMaxScheduleFrequencyProperty, ctx)
                 // Rate
-                setMinRate = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseRateProperty, ctx)
-                decrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseRateProperty(n, uc), ctx)
-                setMedianRate = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseRateProperty, ctx)
-                incrRate = fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseRateProperty(n, uc), ctx)
-                setMaxRate = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseRateProperty, ctx)
+                setMinRate = fun ctx -> orderContextMsg (Api.SetMinOrderableDoseRateProperty, ctx)
+                decrRate = fun (ctx, n, uc) -> orderContextMsg (Api.DecreaseOrderableDoseRateProperty(n, uc), ctx)
+                setMedianRate = fun ctx -> orderContextMsg (Api.SetMedianOrderableDoseRateProperty, ctx)
+                incrRate = fun (ctx, n, uc) -> orderContextMsg (Api.IncreaseOrderableDoseRateProperty(n, uc), ctx)
+                setMaxRate = fun ctx -> orderContextMsg (Api.SetMaxOrderableDoseRateProperty, ctx)
                 // Dose Quantity
-                setMinDoseQty = fun ctx -> props.orderContextMsg (Api.SetMinOrderableDoseQuantityProperty, ctx)
+                setMinDoseQty = fun ctx -> orderContextMsg (Api.SetMinOrderableDoseQuantityProperty, ctx)
                 decrDoseQty =
-                    fun (ctx, n, uc) -> props.orderContextMsg (Api.DecreaseOrderableDoseQuantityProperty(n, uc), ctx)
-                setMedianDoseQty = fun ctx -> props.orderContextMsg (Api.SetMedianOrderableDoseQuantityProperty, ctx)
+                    fun (ctx, n, uc) -> orderContextMsg (Api.DecreaseOrderableDoseQuantityProperty(n, uc), ctx)
+                setMedianDoseQty = fun ctx -> orderContextMsg (Api.SetMedianOrderableDoseQuantityProperty, ctx)
                 incrDoseQty =
-                    fun (ctx, n, uc) -> props.orderContextMsg (Api.IncreaseOrderableDoseQuantityProperty(n, uc), ctx)
-                setMaxDoseQty = fun ctx -> props.orderContextMsg (Api.SetMaxOrderableDoseQuantityProperty, ctx)
+                    fun (ctx, n, uc) -> orderContextMsg (Api.IncreaseOrderableDoseQuantityProperty(n, uc), ctx)
+                setMaxDoseQty = fun ctx -> orderContextMsg (Api.SetMaxOrderableDoseQuantityProperty, ctx)
                 // Component Quantity
                 setMinComponentQty =
-                    fun (ctx, cmp) -> props.orderContextMsg (Api.SetMinComponentOrderableQuantityProperty cmp, ctx)
+                    fun (ctx, cmp) -> orderContextMsg (Api.SetMinComponentOrderableQuantityProperty cmp, ctx)
                 decrComponentQty =
                     fun (ctx, cmp, n, uc) ->
-                        props.orderContextMsg (Api.DecreaseComponentOrderableQuantityProperty(cmp, n, uc), ctx)
+                        orderContextMsg (Api.DecreaseComponentOrderableQuantityProperty(cmp, n, uc), ctx)
                 setMedianComponentQty =
-                    fun (ctx, cmp) -> props.orderContextMsg (Api.SetMedianComponentOrderableQuantityProperty cmp, ctx)
+                    fun (ctx, cmp) -> orderContextMsg (Api.SetMedianComponentOrderableQuantityProperty cmp, ctx)
                 incrComponentQty =
                     fun (ctx, cmp, n, uc) ->
-                        props.orderContextMsg (Api.IncreaseComponentOrderableQuantityProperty(cmp, n, uc), ctx)
+                        orderContextMsg (Api.IncreaseComponentOrderableQuantityProperty(cmp, n, uc), ctx)
                 setMaxComponentQty =
-                    fun (ctx, cmp) -> props.orderContextMsg (Api.SetMaxComponentOrderableQuantityProperty cmp, ctx)
+                    fun (ctx, cmp) -> orderContextMsg (Api.SetMaxComponentOrderableQuantityProperty cmp, ctx)
             |}
 
         let orderContext =
-            match props.treatmentPlan with
-            | Resolved tp
-            | Recalculating tp ->
+            match treatmentPlan with
+            | Resolved tp ->
                 tp.Selected
                 |> Option.map (fun sc -> OrderContext.fromOrderScenario tp.Patient sc |> Resolved)
+                |> Option.defaultValue HasNotStartedYet
+            | Recalculating tp ->
+                tp.Selected
+                |> Option.map (fun sc -> OrderContext.fromOrderScenario tp.Patient sc |> Recalculating)
                 |> Option.defaultValue HasNotStartedYet
             | _ -> HasNotStartedYet
 
         let deleteBtn =
-            match props.treatmentPlan with
+            match treatmentPlan with
             | Resolved tp
             | Recalculating tp when tp.Filtered |> Array.length > 0 ->
                 JSX.jsx
@@ -385,7 +397,7 @@ module TreatmentPlan =
                     navigateOrderScenario = navigateOrderScenario
                     refreshOrderScenario = refreshOrderScenario
                     closeOrder = handleModalClose
-                    localizationTerms = props.localizationTerms
+                    localizationTerms = localizationTerms
                 |}
 
         JSX.jsx

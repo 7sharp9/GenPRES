@@ -168,33 +168,28 @@ module Formulary =
 
 
     [<JSX.Component>]
-    let View
-        (props:
-            {|
-                formulary: Deferred<Formulary>
-                updateFormulary: Formulary -> unit
-                localizationTerms: Deferred<string[][]>
-            |})
-        =
+    let View (props: {| appEnv: obj |}) =
+        let envFormulary = AppEnv.asEnv<AppEnv.IFormulary> props.appEnv
+        let formulary = envFormulary.Formulary
+        let updateFormulary = envFormulary.UpdateFormulary
+
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
-        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
+        let getTerm = Global.getLocalizedTerm localizationTerms lang
 
         let state, dispatch =
-            React.useElmish (
-                init props.formulary,
-                update props.formulary props.updateFormulary,
-                [| box props.formulary |]
-            )
+            React.useElmish (init formulary, update formulary updateFormulary, [| box formulary |])
 
         let select = ViewHelpers.filterSelect false
         let autoComplete = ViewHelpers.autoComplete false
 
 
-        let progress = ViewHelpers.progressOrEmpty props.formulary
+        let progress = ViewHelpers.progressOrEmpty formulary
 
         let stackDirection =
             if Mui.Hooks.useMediaQuery "(max-width:900px)" then
@@ -216,7 +211,7 @@ module Formulary =
                     <Typography sx={ {| fontSize = 14 |} } color="text.secondary" gutterBottom>
                         {Formulary |> getTerm "Formularium"}
                     </Typography>
-                    {match props.formulary with
+                    {match formulary with
                      | Resolved form -> false, form.Indication, form.Indications
                      | _ -> true, None, [||]
                      |> fun (isLoading, sel, items) ->
@@ -231,7 +226,7 @@ module Formulary =
 
                 }
                     <Stack direction={stackDirection} spacing={3} >
-                        {match props.formulary with
+                        {match formulary with
                          | Resolved form -> false, form.Generic, form.Generics
                          | _ -> true, None, [||]
                          |> fun (isLoading, sel, items) ->
@@ -243,7 +238,7 @@ module Formulary =
                                  |> select isLoading lbl state.Generic (GenericChange >> dispatch)
                              else
                                  items |> autoComplete isLoading lbl sel (GenericChange >> dispatch)}
-                        {match props.formulary with
+                        {match formulary with
                          | Resolved form -> false, form.Route, form.Routes
                          | _ -> true, None, [||]
                          |> fun (isLoading, sel, items) ->
@@ -255,7 +250,7 @@ module Formulary =
                                  |> select isLoading lbl state.Route (RouteChange >> dispatch)
                              else
                                  items |> autoComplete isLoading lbl sel (RouteChange >> dispatch)}
-                        {match props.formulary with
+                        {match formulary with
                          | Resolved form -> false, form.Form, form.Forms
                          | _ -> true, None, [||]
                          |> fun (isLoading, sel, items) ->
@@ -267,7 +262,7 @@ module Formulary =
                                  |> select isLoading lbl state.Route (FormChange >> dispatch)
                              else
                                  items |> autoComplete isLoading lbl sel (FormChange >> dispatch)}
-                        {match props.formulary with
+                        {match formulary with
                          | Resolved form ->
                              (false, form.DoseType, form.DoseTypes)
                              |> fun (isLoading, sel, items) ->
@@ -291,7 +286,7 @@ module Formulary =
                 </Stack>
 
                 <Box sx={ {| color = Mui.Colors.Indigo.``900`` |} } >
-                    {match props.formulary with
+                    {match formulary with
                      | Resolved form ->
                          form.Markdown
                          |> Markdown.markdown.children

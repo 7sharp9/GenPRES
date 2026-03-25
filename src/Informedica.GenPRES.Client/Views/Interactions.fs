@@ -162,49 +162,48 @@ module Interactions =
 
 
     [<JSX.Component>]
-    let View
-        (props:
-            {|
-                interactions: Deferred<DrugInteraction[]>
-                interactionDrugNames: Deferred<string[]>
-                checkInteractions: string list -> unit
-                treatmentPlan: Deferred<OrderPlan>
-                localizationTerms: Deferred<string[][]>
-            |})
-        =
+    let View (props: {| appEnv: obj |}) =
+        let envInteractions = AppEnv.asEnv<AppEnv.IInteractions> props.appEnv
+        let interactions = envInteractions.Interactions
+        let interactionDrugNames = envInteractions.InteractionDrugNames
+        let checkInteractions = envInteractions.CheckInteractions
+        let treatmentPlan = (AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv).TreatmentPlan
+
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
 
-        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
+        let getTerm = Global.getLocalizedTerm localizationTerms lang
 
         let state, dispatch =
-            React.useElmish (init (), update props.treatmentPlan props.checkInteractions, [| box props.treatmentPlan |])
+            React.useElmish (init (), update treatmentPlan checkInteractions, [| box treatmentPlan |])
 
-        let planDrugs = getPlanDrugs props.treatmentPlan
+        let planDrugs = getPlanDrugs treatmentPlan
 
         let interactionRows =
-            match props.interactions with
+            match interactions with
             | Resolved interactions -> interactions
             | _ -> [||]
 
         let isLoading =
-            match props.interactions with
+            match interactions with
             | InProgress -> true
             | _ -> false
 
         let hasChecked =
-            match props.interactions with
+            match interactions with
             | Resolved _ -> true
             | _ -> false
 
         let drugNameValues =
-            match props.interactionDrugNames with
+            match interactionDrugNames with
             | Resolved names -> names
             | _ -> [||]
 
         let isDrugNamesLoading =
-            match props.interactionDrugNames with
+            match interactionDrugNames with
             | InProgress -> true
             | _ -> false
 

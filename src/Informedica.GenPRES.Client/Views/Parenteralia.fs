@@ -111,13 +111,10 @@ module Parenteralia =
 
 
     [<JSX.Component>]
-    let View
-        (props:
-            {|
-                parenteralia: Deferred<Parenteralia>
-                updateParenteralia: Parenteralia -> unit
-            |})
-        =
+    let View (props: {| appEnv: obj |}) =
+        let envParenteralia = AppEnv.asEnv<AppEnv.IParenteralia> props.appEnv
+        let parenteralia = envParenteralia.Parenteralia
+        let updateParenteralia = envParenteralia.UpdateParenteralia
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
@@ -126,16 +123,12 @@ module Parenteralia =
         let getTerm = Global.getLocalizedTerm HasNotStartedYet lang
 
         let state, dispatch =
-            React.useElmish (
-                init props.parenteralia,
-                update props.parenteralia props.updateParenteralia,
-                [| box props.parenteralia |]
-            )
+            React.useElmish (init parenteralia, update parenteralia updateParenteralia, [| box parenteralia |])
 
         let select = ViewHelpers.filterSelect false
         let autoComplete = ViewHelpers.autoComplete false
 
-        let progress = ViewHelpers.progressOrEmpty props.parenteralia
+        let progress = ViewHelpers.progressOrEmpty parenteralia
 
         let stackDirection = if isMobile then "column" else "row"
 
@@ -155,7 +148,7 @@ module Parenteralia =
                     {Terms.Formulary |> getTerm "Parenteralia"}
                 </Typography>
                 <Stack direction={stackDirection} spacing={3} >
-                    {match props.parenteralia with
+                    {match parenteralia with
                      | Resolved par -> false, par.Generic, par.Generics
                      | _ -> true, None, [||]
                      |> fun (isLoading, sel, items) ->
@@ -176,7 +169,7 @@ module Parenteralia =
                                  (GenericChange >> dispatch)
 
                 }
-                    {match props.parenteralia with
+                    {match parenteralia with
                      | Resolved par -> false, par.Form, par.Forms
                      | _ -> true, None, [||]
                      |> fun (isLoading, sel, items) ->
@@ -193,7 +186,7 @@ module Parenteralia =
                                  (Terms.``Formulary Indications`` |> getTerm "Forms")
                                  state.Form
                                  (FormChange >> dispatch)}
-                    {match props.parenteralia with
+                    {match parenteralia with
                      | Resolved par -> false, par.Route, par.Routes
                      | _ -> true, None, [||]
                      |> fun (isLoading, sel, items) ->
@@ -215,7 +208,7 @@ module Parenteralia =
 
                 </Stack>
                 <Box sx={ {| color = Mui.Colors.Indigo.``900`` |} } >
-                    {match props.parenteralia with
+                    {match parenteralia with
                      | Resolved par ->
                          par.Markdown
                          |> Markdown.markdown.children

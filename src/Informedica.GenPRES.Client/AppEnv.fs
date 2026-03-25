@@ -1,0 +1,84 @@
+module AppEnv
+
+open Shared
+open Shared.Types
+
+
+/// Downcast appEnv to the requested interface.
+let inline asEnv<'T> (appEnv: obj) : 'T = unbox<'T> appEnv
+
+
+/// Localization data access
+[<Interface>]
+type ILocalization =
+    abstract LocalizationTerms: Deferred<string[][]>
+
+
+/// Order context data and commands
+[<Interface>]
+type IOrderContext =
+    abstract OrderContext: Deferred<OrderContext>
+    abstract OrderContextMsg: Api.OrderContextCommand * OrderContext -> unit
+
+
+/// Treatment plan data and commands
+[<Interface>]
+type ITreatmentPlan =
+    abstract TreatmentPlan: Deferred<OrderPlan>
+    abstract TreatmentPlanCommand: Api.OrderPlanCommand -> unit
+
+
+/// Nutrition plan data and commands
+[<Interface>]
+type INutritionPlan =
+    abstract NutritionPlan: Deferred<NutritionPlan>
+    abstract NutritionPlanMsg: Api.NutritionPlanCommand -> unit
+
+
+/// Patient data and updates
+[<Interface>]
+type IPatient =
+    abstract Patient: Patient option
+    abstract UpdatePatient: Patient option -> unit
+
+
+/// Formulary data and updates
+[<Interface>]
+type IFormulary =
+    abstract Formulary: Deferred<Formulary>
+    abstract UpdateFormulary: Formulary -> unit
+
+
+/// Parenteralia data and updates
+[<Interface>]
+type IParenteralia =
+    abstract Parenteralia: Deferred<Parenteralia>
+    abstract UpdateParenteralia: Parenteralia -> unit
+
+
+/// Drug interaction data and commands
+[<Interface>]
+type IInteractions =
+    abstract Interactions: Deferred<DrugInteraction[]>
+    abstract InteractionDrugNames: Deferred<string[]>
+    abstract CheckInteractions: string list -> unit
+
+
+/// Resource reloading (admin/settings)
+[<Interface>]
+type IResources =
+    abstract ReloadResources: string -> unit
+
+
+/// Bolus/emergency medication list (computed)
+[<Interface>]
+type IBolusMedication =
+    abstract BolusMedication: Deferred<Intervention list>
+    abstract OnSelectBolusMedicationItem: string -> unit
+
+
+/// Continuous medication list (computed)
+[<Interface>]
+type IContinuousMedication =
+    abstract ContinuousMedication: Deferred<Intervention list>
+    abstract OnSelectContinuousMedicationItem: string -> unit

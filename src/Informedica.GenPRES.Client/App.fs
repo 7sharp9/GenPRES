@@ -756,21 +756,33 @@ module private Elmish =
         | TreatmentPlanMsg tpCmd ->
             match tpCmd with
             | Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)) ->
-                { state with TreatmentPlan = InProgress },
-                Api.OrderPlanCmd(Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)))
-                |> createApiMsg (fun resp -> LoadOrderPlanResult(tpCmd, resp))
+                match state.TreatmentPlan with
+                | InProgress
+                | Recalculating _ -> state, Cmd.none
+                | _ ->
+                    { state with TreatmentPlan = Recalculating tp },
+                    Api.OrderPlanCmd(Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)))
+                    |> createApiMsg (fun resp -> LoadOrderPlanResult(tpCmd, resp))
             | Api.UpdateOrderPlan(tp, None) ->
                 let onlySetOrderContext =
                     state.TreatmentPlan
                     |> Deferred.map (fun st -> st.Selected.IsNone && tp.Selected.IsSome)
                     |> Deferred.defaultValue false
 
+                let tpState =
+                    match state.TreatmentPlan with
+                    | Recalculating _ -> Recalculating tp
+                    | _ -> Resolved tp
+
                 let cmd =
                     if state.Page = TreatmentPlan then
-                        if onlySetOrderContext then
-                            Cmd.none
-                        else
-                            Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
+                        match state.TreatmentPlan with
+                        | Recalculating _ -> Cmd.none
+                        | _ ->
+                            if onlySetOrderContext then
+                                Cmd.none
+                            else
+                                Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
                     else
                         Cmd.batch
                             [
@@ -780,7 +792,7 @@ module private Elmish =
 
                 { state with
                     Page = TreatmentPlan
-                    TreatmentPlan = Resolved tp
+                    TreatmentPlan = tpState
                 },
                 cmd
             | Api.FilterOrderPlan tp ->
@@ -975,6 +987,56 @@ module private Elmish =
 open Elmish
 
 
+type private ConcreteAppEnv
+    (state: State, dispatch: Msg -> unit, bm: Deferred<Intervention list>, cm: Deferred<Intervention list>) =
+
+    interface AppEnv.ILocalization with
+        member _.LocalizationTerms = state.Localization
+
+    interface AppEnv.IOrderContext with
+        member _.OrderContext = state.OrderContext
+        member _.OrderContextMsg(cmd, ctx) = OrderContextMsg(cmd, ctx) |> dispatch
+
+    interface AppEnv.ITreatmentPlan with
+        member _.TreatmentPlan = state.TreatmentPlan
+        member _.TreatmentPlanCommand cmd = TreatmentPlanMsg cmd |> dispatch
+
+    interface AppEnv.INutritionPlan with
+        member _.NutritionPlan = state.NutritionPlan
+        member _.NutritionPlanMsg cmd = NutritionPlanMsg cmd |> dispatch
+
+    interface AppEnv.IPatient with
+        member _.Patient = state.Patient
+        member _.UpdatePatient p = UpdatePatient p |> dispatch
+
+    interface AppEnv.IFormulary with
+        member _.Formulary = state.Formulary
+        member _.UpdateFormulary f = UpdateFormulary f |> dispatch
+
+    interface AppEnv.IParenteralia with
+        member _.Parenteralia = state.Parenteralia
+        member _.UpdateParenteralia p = UpdateParenteralia p |> dispatch
+
+    interface AppEnv.IInteractions with
+        member _.Interactions = state.Interactions
+        member _.InteractionDrugNames = state.InteractionDrugNames
+        member _.CheckInteractions drugs = CheckInteractions drugs |> dispatch
+
+    interface AppEnv.IResources with
+        member _.ReloadResources pw =
+            OrderContextMsg(Api.ReloadResources pw, OrderContext.empty) |> dispatch
+
+    interface AppEnv.IBolusMedication with
+        member _.BolusMedication = bm
+        member _.OnSelectBolusMedicationItem s = OnSelectEmergencyListItem s |> dispatch
+
+    interface AppEnv.IContinuousMedication with
+        member _.ContinuousMedication = cm
+
+        member _.OnSelectContinuousMedicationItem s =
+            OnSelectContinuousMedicationItem s |> dispatch
+
+
 [<Literal>]
 let private themeDef =
     """
@@ -1051,6 +1113,8 @@ let View () =
 
         calculatInterventions calc state.ContinuousMedication state.Patient
 
+    let appEnv = ConcreteAppEnv(state, dispatch, bm, cm) :> obj
+
     let sx =
         if isMobile then
             {|
@@ -1102,33 +1166,12 @@ let View () =
                 {Components.Router.View {| onUrlChanged = UrlChanged >> dispatch |}}
                 {Pages.GenPres.View
                      {|
+                         appEnv = appEnv
                          showDisclaimer = state.ShowDisclaimer
                          isDemo = state.IsDemo
                          acceptDisclaimer = fun _ -> AcceptDisclaimer |> dispatch
-                         patient = state.Patient
                          updatePage = UpdatePage >> dispatch
-                         updatePatient = UpdatePatient >> dispatch
-                         bolusMedication = bm
-                         continuousMedication = cm
-                         onSelectContinuousMedicationItem = OnSelectContinuousMedicationItem >> dispatch
-                         onSelectEmergencyListItem = OnSelectEmergencyListItem >> dispatch
-                         products = state.Products
-                         orderContext = state.OrderContext
-                         orderContextMsg = fun (cmd, ctx) -> OrderContextMsg(cmd, ctx) |> dispatch
-                         treatmentPlan = state.TreatmentPlan
-                         treatmentPlanCommand = TreatmentPlanMsg >> dispatch
-                         nutritionPlan = state.NutritionPlan
-                         nutritionPlanMsg = NutritionPlanMsg >> dispatch
-                         formulary = state.Formulary
-                         updateFormulary = UpdateFormulary >> dispatch
-                         parenteralia = state.Parenteralia
-                         updateParenteralia = UpdateParenteralia >> dispatch
-                         interactions = state.Interactions
-                         interactionDrugNames = state.InteractionDrugNames
-                         checkInteractions = fun drugs -> CheckInteractions drugs |> dispatch
-                         reloadResources = fun pw -> OrderContextMsg(Api.ReloadResources pw, OrderContext.empty) |> dispatch
                          page = state.Page
-                         localizationTerms = state.Localization
                          languages = Localization.languages
                          hospitals = state.Hospitals
                          switchLang = UpdateLanguage >> dispatch

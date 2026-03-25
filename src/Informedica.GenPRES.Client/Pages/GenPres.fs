@@ -102,33 +102,12 @@ module GenPres =
     let View
         (props:
             {|
+                appEnv: obj
                 showDisclaimer: bool
                 isDemo: bool
                 acceptDisclaimer: bool -> unit
-                patient: Patient option
-                updatePatient: Patient option -> unit
                 updatePage: Global.Pages -> unit
-                bolusMedication: Deferred<Intervention list>
-                continuousMedication: Deferred<Intervention list>
-                onSelectContinuousMedicationItem: string -> unit
-                onSelectEmergencyListItem: string -> unit
-                products: Deferred<Product list>
-                orderContext: Deferred<OrderContext>
-                orderContextMsg: (Api.OrderContextCommand * OrderContext) -> unit
-                treatmentPlan: Deferred<OrderPlan>
-                treatmentPlanCommand: Api.OrderPlanCommand -> unit
-                nutritionPlan: Deferred<NutritionPlan>
-                nutritionPlanMsg: Api.NutritionPlanCommand -> unit
-                formulary: Deferred<Formulary>
-                updateFormulary: Formulary -> unit
-                parenteralia: Deferred<Parenteralia>
-                updateParenteralia: Parenteralia -> unit
-                interactions: Deferred<DrugInteraction[]>
-                interactionDrugNames: Deferred<string[]>
-                checkInteractions: string list -> unit
-                reloadResources: string -> unit
                 page: Global.Pages
-                localizationTerms: Deferred<string[][]>
                 languages: Localization.Locales[]
                 hospitals: Deferred<string[]>
                 switchLang: Localization.Locales -> unit
@@ -140,18 +119,22 @@ module GenPres =
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
-        let deps =
-            [|
-                box props.page
-                box props.updatePage
-                box lang
-                box props.orderContext
-            |]
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
+
+        let orderContext = (AppEnv.asEnv<AppEnv.IOrderContext> props.appEnv).OrderContext
+        let treatmentPlan = (AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv).TreatmentPlan
+        let nutritionPlan = (AppEnv.asEnv<AppEnv.INutritionPlan> props.appEnv).NutritionPlan
+
+        let updatePageRef = React.useRef props.updatePage
+        updatePageRef.current <- props.updatePage
+
+        let deps = [| box props.page; box lang; box orderContext |]
 
         let state, dispatch =
             React.useElmish (
-                init lang props.localizationTerms props.page,
-                update lang props.localizationTerms props.updatePage,
+                init lang localizationTerms props.page,
+                (fun msg state -> update lang localizationTerms updatePageRef.current msg state),
                 deps
             )
 
@@ -183,17 +166,13 @@ module GenPres =
                     | _ -> "auto"
             |}
 
+        let appEnvProps = {| appEnv = props.appEnv |}
+
         let patientBox =
             match props.page with
             | Global.Pages.Settings -> null
             | _ ->
-                let patView =
-                    Views.Patient.View
-                        {|
-                            patient = props.patient
-                            updatePatient = props.updatePatient
-                            localizationTerms = props.localizationTerms
-                        |}
+                let patView = Views.Patient.View appEnvProps
 
                 let sxPatientBox = {| flexBasis = 1 |}
 
@@ -206,8 +185,7 @@ module GenPres =
                 """
 
         let title =
-            let s =
-                $"GenPRES 2023 {props.page |> Global.pageToString props.localizationTerms lang}"
+            let s = $"GenPRES 2023 {props.page |> Global.pageToString localizationTerms lang}"
 
             if props.isDemo then $"{s} - DEMO VERSION!" else s
 
@@ -235,95 +213,28 @@ module GenPres =
 
         let pageView =
             match props.page with
-            | Global.Pages.LifeSupport ->
-                Views.EmergencyList.View
-                    {|
-                        interventions = props.bolusMedication
-                        localizationTerms = props.localizationTerms
-                        patient = props.patient
-                        onSelectItem = props.onSelectEmergencyListItem
-                    |}
-            | Global.Pages.ContinuousMeds ->
-                Views.ContinuousMeds.View
-                    {|
-                        interventions = props.continuousMedication
-                        localizationTerms = props.localizationTerms
-                        patient = props.patient
-                        onSelectItem = props.onSelectContinuousMedicationItem
-                    |}
-            | Global.Pages.Prescribe ->
-                Views.Prescribe.View
-                    {|
-                        orderContext = props.orderContext
-                        orderContextMsg = props.orderContextMsg
-                        treatmentPlan = props.treatmentPlan
-                        updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan(tp, None) |> props.treatmentPlanCommand
-                        localizationTerms = props.localizationTerms
-                    |}
-            | Global.Pages.Nutrition ->
-                Views.Nutrition.View
-                    {|
-                        patient = props.patient
-                        nutritionPlan = props.nutritionPlan
-                        nutritionPlanMsg = props.nutritionPlanMsg
-                        orderContextMsg = props.orderContextMsg
-                        localizationTerms = props.localizationTerms
-                    |}
-            | Global.Pages.TreatmentPlan ->
-                Views.TreatmentPlan.View
-                    {|
-                        treatmentPlan = props.treatmentPlan
-                        updateTreatmentPlan = fun tp -> Api.UpdateOrderPlan(tp, None) |> props.treatmentPlanCommand
-                        filterTreatmentPlan = Api.FilterOrderPlan >> props.treatmentPlanCommand
-                        orderContextMsg =
-                            fun (cmd, ctx) ->
-                                match props.treatmentPlan with
-                                | Resolved tp -> Api.UpdateOrderPlan(tp, Some(cmd, ctx)) |> props.treatmentPlanCommand
-                                | _ -> ()
-                        localizationTerms = props.localizationTerms
-                    |}
-            | Global.Pages.Interactions ->
-                Views.Interactions.View
-                    {|
-                        interactions = props.interactions
-                        interactionDrugNames = props.interactionDrugNames
-                        checkInteractions = props.checkInteractions
-                        treatmentPlan = props.treatmentPlan
-                        localizationTerms = props.localizationTerms
-                    |}
-            | Global.Pages.Formulary ->
-                Views.Formulary.View
-                    {|
-                        formulary = props.formulary
-                        updateFormulary = props.updateFormulary
-                        localizationTerms = props.localizationTerms
-                    |}
-            | Global.Pages.Parenteralia ->
-                Views.Parenteralia.View
-                    {|
-                        parenteralia = props.parenteralia
-                        updateParenteralia = props.updateParenteralia
-                    |}
-            | Global.Pages.Settings ->
-                Views.Settings.View
-                    {|
-                        reloadResources = props.reloadResources
-                        orderContext = props.orderContext
-                        localizationTerms = props.localizationTerms
-                    |}
+            | Global.Pages.LifeSupport -> Views.EmergencyList.View appEnvProps
+            | Global.Pages.ContinuousMeds -> Views.ContinuousMeds.View appEnvProps
+            | Global.Pages.Prescribe -> Views.Prescribe.View appEnvProps
+            | Global.Pages.Nutrition -> Views.Nutrition.View appEnvProps
+            | Global.Pages.TreatmentPlan -> Views.TreatmentPlan.View appEnvProps
+            | Global.Pages.Interactions -> Views.Interactions.View appEnvProps
+            | Global.Pages.Formulary -> Views.Formulary.View appEnvProps
+            | Global.Pages.Parenteralia -> Views.Parenteralia.View appEnvProps
+            | Global.Pages.Settings -> Views.Settings.View appEnvProps
 
         let totalsView =
             match props.page with
             | Global.Pages.Prescribe ->
-                match props.orderContext with
+                match orderContext with
                 | Resolved pr -> Views.Totals.View {| intake = pr.Intake |}
                 | _ -> null
             | Global.Pages.Nutrition ->
-                match props.nutritionPlan with
+                match nutritionPlan with
                 | Resolved np -> Views.Totals.View {| intake = np.Totals |}
                 | _ -> null
             | Global.Pages.TreatmentPlan ->
-                match props.treatmentPlan with
+                match treatmentPlan with
                 | Resolved tp -> Views.Totals.View {| intake = tp.Totals |}
                 | _ -> null
             | _ -> null
@@ -334,7 +245,7 @@ module GenPres =
                     accept = props.acceptDisclaimer
                     languages = props.languages
                     switchLang = props.switchLang
-                    localizationTerms = props.localizationTerms
+                    localizationTerms = localizationTerms
                 |}
 
         let sxContainer =

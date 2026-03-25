@@ -11,24 +11,24 @@ module ContinuousMeds =
 
 
     [<JSX.Component>]
-    let View
-        (props:
-            {|
-                interventions: Deferred<Types.Intervention list>
-                localizationTerms: Deferred<string[][]>
-                patient: Patient option
-                onSelectItem: string -> unit
-            |})
-        =
+    let View (props: {| appEnv: obj |}) =
+        let envContinuous = AppEnv.asEnv<AppEnv.IContinuousMedication> props.appEnv
+        let interventions = envContinuous.ContinuousMedication
+        let onSelectItem = envContinuous.OnSelectContinuousMedicationItem
+
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
+
+        let patient = (AppEnv.asEnv<AppEnv.IPatient> props.appEnv).Patient
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
         let hosp = context.Hospital
 
         let printOpen, setPrintOpen = React.useState false
-        let weightKg = ViewHelpers.PrintView.patientWeight props.patient
+        let weightKg = ViewHelpers.PrintView.patientWeight patient
 
-        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
+        let getTerm = Global.getLocalizedTerm localizationTerms lang
 
         let renderQuantityCell =
             fun (pars: obj) ->
@@ -105,7 +105,7 @@ module ContinuousMeds =
             |]
 
         let rows =
-            match props.interventions with
+            match interventions with
             | Resolved items ->
                 items
                 |> List.filter (fun i ->
@@ -281,7 +281,7 @@ module ContinuousMeds =
                      rows = rows
                      rowCreate = rowCreate
                      height = "70vh"
-                     onRowClick = props.onSelectItem
+                     onRowClick = onSelectItem
                      checkboxSelection = false
                      selectedRows = [||]
                      onSelectChange = ignore
