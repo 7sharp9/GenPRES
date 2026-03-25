@@ -11,19 +11,15 @@ module Settings =
 
 
     [<JSX.Component>]
-    let View
-        (props:
-            {|
-                reloadResources: string -> unit
-                orderContext: Deferred<OrderContext>
-                localizationTerms: Deferred<string[][]>
-            |})
-        =
+    let View (props: {| appEnv: obj |}) =
+        let reloadResources = (props.appEnv :?> AppEnv.IResources).ReloadResources
+        let orderContext = (props.appEnv :?> AppEnv.IOrderContext).OrderContext
+        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
 
-        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
+        let getTerm = Global.getLocalizedTerm localizationTerms lang
 
         let refreshIcon = Mui.Icons.RefreshIcon
 
@@ -35,14 +31,14 @@ module Settings =
 
         let isLoading =
             reloading
-            && match props.orderContext with
+            && match orderContext with
                | Resolved _ -> false
                | _ -> true
 
         React.useEffect (
             fun () ->
                 if reloading then
-                    match props.orderContext with
+                    match orderContext with
                     | InProgress
                     | Recalculating _ -> wasInProgress.current <- true
                     | Resolved _ ->
@@ -57,7 +53,7 @@ module Settings =
                         setDialogOpen true
                         setPasswordError true
                     | _ -> ()
-            , [| box reloading; box props.orderContext |]
+            , [| box reloading; box orderContext |]
         )
 
         let backdrop =
@@ -79,7 +75,7 @@ module Settings =
             fun _ ->
                 setReloading true
                 setPasswordError false
-                props.reloadResources password
+                reloadResources password
 
         let handleKeyDown (e: Browser.Types.KeyboardEvent) =
             if e.key = "Enter" then

@@ -113,21 +113,17 @@ module Patient =
 
 
     [<JSX.Component>]
-    let View
-        (props:
-            {|
-                patient: Patient option
-                updatePatient: Patient option -> unit
-                localizationTerms: Deferred<string[][]>
-            |})
-        =
+    let View (props: {| appEnv: obj |}) =
+        let patient = (props.appEnv :?> AppEnv.IPatient).Patient
+        let updatePatient = (props.appEnv :?> AppEnv.IPatient).UpdatePatient
+        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
-        let isExpanded, setExpanded = React.useState (props.patient |> canCalculate |> not)
+        let isExpanded, setExpanded = React.useState (patient |> canCalculate |> not)
 
         // Auto-close accordion after 5 seconds when expanded
         React.useEffect (
@@ -141,16 +137,21 @@ module Patient =
             [| box isExpanded |]
         )
 
-        let depArr = [| box props.patient; box props.updatePatient; box lang |]
+        // Use a ref so useElmish closures always call the latest updatePatient
+        // without needing the function in the deps array (which would cause infinite re-renders)
+        let updatePatientRef = React.useRef updatePatient
+        updatePatientRef.current <- updatePatient
+
+        let depArr = [| box patient; box lang |]
 
         let pat, dispatch =
-            React.useElmish (init props.patient, update props.updatePatient, depArr)
+            React.useElmish (init patient, (fun msg state -> update updatePatientRef.current msg state), depArr)
 
-        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
+        let getTerm = Global.getLocalizedTerm localizationTerms lang
 
         let handleChange =
             fun _ ->
-                if props.patient |> canCalculate |> not then
+                if patient |> canCalculate |> not then
                     true |> setExpanded
                 else
                     isExpanded |> not |> setExpanded
@@ -200,7 +201,7 @@ module Patient =
             import Checkbox from '@mui/material/Checkbox';
 
             <Checkbox
-                checked={props.patient
+                checked={patient
                          |> Option.map (fun p -> p.Access |> List.exists ((=) item))
                          |> Option.defaultValue false}
                 onChange={fun _ ->
@@ -435,7 +436,7 @@ module Patient =
             {|
                 expanded = isExpanded
                 onChange = handleChange
-                summary = pat |> show lang props.localizationTerms |> toJsx
+                summary = pat |> show lang localizationTerms |> toJsx
                 children = children
                 isMobile = isMobile
                 detailsPaddingTop = None

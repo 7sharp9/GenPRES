@@ -1340,35 +1340,30 @@ module Nutrition =
 
 
     [<JSX.Component>]
-    let View
-        (props:
-            {|
-                patient: Patient option
-                nutritionPlan: Deferred<NutritionPlan>
-                nutritionPlanMsg: Api.NutritionPlanCommand -> unit
-                orderContextMsg: (Api.OrderContextCommand * OrderContext) -> unit
-                localizationTerms: Deferred<string[][]>
-            |})
-        =
+    let View (props: {| appEnv: obj |}) =
+        let patient = (props.appEnv :?> AppEnv.IPatient).Patient
+        let nutritionPlan = (props.appEnv :?> AppEnv.INutritionPlan).NutritionPlan
+        let nutritionPlanMsg = (props.appEnv :?> AppEnv.INutritionPlan).NutritionPlanMsg
+        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         React.useEffect (
             (fun () ->
-                match props.patient, props.nutritionPlan with
-                | Some pat, HasNotStartedYet -> props.nutritionPlanMsg (Api.InitNutritionPlan pat)
+                match patient, nutritionPlan with
+                | Some pat, HasNotStartedYet -> nutritionPlanMsg (Api.InitNutritionPlan pat)
                 | _ -> ()
             ),
-            [| box props.patient; box props.nutritionPlan |]
+            [| box patient; box nutritionPlan |]
         )
 
         let progress =
-            match props.nutritionPlan with
-            | HasNotStartedYet when props.patient.IsNone -> JSX.jsx $"<>Voer eerst patient gegevens in</>"
-            | _ -> ViewHelpers.progressOrEmpty props.nutritionPlan
+            match nutritionPlan with
+            | HasNotStartedYet when patient.IsNone -> JSX.jsx $"<>Voer eerst patient gegevens in</>"
+            | _ -> ViewHelpers.progressOrEmpty nutritionPlan
 
         let isRecalculating =
-            match props.nutritionPlan with
+            match nutritionPlan with
             | Recalculating _ -> true
             | _ -> false
 
@@ -1388,7 +1383,7 @@ module Nutrition =
                         if hasSupplements then
                             setConfirmDeleteTarget (Some nc.Id)
                         else
-                            Api.RemoveNutritionContext(plan, nc.Id) |> props.nutritionPlanMsg
+                            Api.RemoveNutritionContext(plan, nc.Id) |> nutritionPlanMsg
                     )
                 else
                     None
@@ -1397,21 +1392,21 @@ module Nutrition =
                 {|
                     nutritionContext = nc
                     plan = plan
-                    nutritionPlanMsg = props.nutritionPlanMsg
-                    localizationTerms = props.localizationTerms
+                    nutritionPlanMsg = nutritionPlanMsg
+                    localizationTerms = localizationTerms
                     onRemove = onRemove
                     wrapInAccordion = wrapInAccordion
                     isRecalculating = isRecalculating
                 |}
 
         let addContext plan category =
-            Api.AddNutritionContext(plan, category) |> props.nutritionPlanMsg
+            Api.AddNutritionContext(plan, category) |> nutritionPlanMsg
 
         let hasCategory plan cat =
             plan.NutritionContexts |> Array.exists (fun nc -> nc.Category = cat)
 
         let content =
-            match props.nutritionPlan with
+            match nutritionPlan with
             | Resolved plan
             | Recalculating plan ->
                 let enteralContexts =
@@ -1565,9 +1560,9 @@ module Nutrition =
 
             let handleConfirm =
                 fun _ ->
-                    match confirmDeleteTarget, props.nutritionPlan with
+                    match confirmDeleteTarget, nutritionPlan with
                     | Some ncId, (Resolved plan | Recalculating plan) ->
-                        Api.RemoveNutritionContext(plan, ncId) |> props.nutritionPlanMsg
+                        Api.RemoveNutritionContext(plan, ncId) |> nutritionPlanMsg
                     | _ -> ()
 
                     setConfirmDeleteTarget None
@@ -1596,7 +1591,7 @@ module Nutrition =
             """
 
         let printDialog =
-            match printOpen, props.nutritionPlan with
+            match printOpen, nutritionPlan with
             | true, (Resolved plan | Recalculating plan) ->
                 ParenteralPrintView
                     {|
