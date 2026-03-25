@@ -170,7 +170,7 @@ module Prescribe =
 
                     orderContextMsg (Api.SelectOrderScenario, ctx)
 
-                let updateTreatmentPlan () =
+                let appendScenarioToTreatmentPlan () =
                     match treatmentPlan with
                     | Resolved tp ->
                         { tp with Scenarios = [| sc |] |> Array.append tp.Scenarios }
@@ -305,7 +305,7 @@ module Prescribe =
                             <Button
                                 size="small"
                                 disabled={isAnythingLoading}
-                                onClick={updateTreatmentPlan}
+                                onClick={appendScenarioToTreatmentPlan}
                                 startIcon={Mui.Icons.Add}
                             >Voorschrijven</Button>
                         </CardActions>
