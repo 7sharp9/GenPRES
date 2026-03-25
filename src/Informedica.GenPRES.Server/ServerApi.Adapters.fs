@@ -72,7 +72,7 @@ module Adapters =
             updateOrderPlan =
                 fun tp cmdOpt ->
                     async {
-                        do! setComponentName "TreatmentPlan" agent
+                        do! setComponentName "OrderPlan" agent
 
                         let! updated = OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
                         return updated |> OrderPlanService.calculateTotals |> Ok

@@ -20,7 +20,7 @@ module GenPres =
 
         type State =
             {
-                SideMenuItems: (JSX.Element option * string * bool)[]
+                SideMenuItems: (JSX.Element option * string * bool * string option)[]
                 SideMenuIsOpen: bool
                 Configuration: Configuration Option
             }
@@ -37,7 +37,7 @@ module GenPres =
                 ContinuousMeds
                 Prescribe
                 Nutrition
-                TreatmentPlan
+                OrderPlan
                 Interactions
                 Formulary
                 Parenteralia
@@ -55,16 +55,16 @@ module GenPres =
                             let b = p = page
 
                             match p |> pageToString terms lang with
-                            | s when p = LifeSupport -> Mui.Icons.FireExtinguisher |> Some, s, b
-                            | s when p = ContinuousMeds -> Mui.Icons.Vaccines |> Some, s, b
-                            | s when p = Prescribe -> Mui.Icons.Message |> Some, s, b
-                            | s when p = Nutrition -> Mui.Icons.LocalDiningIcon |> Some, s, b
-                            | s when p = TreatmentPlan -> Mui.Icons.SummarizeIcon |> Some, s, b
-                            | s when p = Interactions -> Mui.Icons.WarningAmber |> Some, s, b
-                            | s when p = Formulary -> Mui.Icons.LocalPharmacy |> Some, s, b
-                            | s when p = Parenteralia -> Mui.Icons.Bloodtype |> Some, s, b
-                            | s when p = Settings -> Mui.Icons.Settings |> Some, s, b
-                            | s -> None, s, b
+                            | s when p = LifeSupport -> Mui.Icons.FireExtinguisher |> Some, s, b, None
+                            | s when p = ContinuousMeds -> Mui.Icons.Vaccines |> Some, s, b, None
+                            | s when p = Prescribe -> Mui.Icons.Message |> Some, s, b, None
+                            | s when p = Nutrition -> Mui.Icons.LocalDiningIcon |> Some, s, b, None
+                            | s when p = OrderPlan -> Mui.Icons.SummarizeIcon |> Some, s, b, None
+                            | s when p = Interactions -> Mui.Icons.WarningAmber |> Some, s, b, None
+                            | s when p = Formulary -> Mui.Icons.LocalPharmacy |> Some, s, b, None
+                            | s when p = Parenteralia -> Mui.Icons.Bloodtype |> Some, s, b, None
+                            | s when p = Settings -> Mui.Icons.Settings |> Some, s, b, None
+                            | s -> None, s, b, None
                         )
 
                     SideMenuIsOpen = false
@@ -90,7 +90,12 @@ module GenPres =
                 { state with
                     SideMenuItems =
                         state.SideMenuItems
-                        |> Array.map (fun (icon, item, _) -> if item = s then icon, item, true else icon, item, false)
+                        |> Array.map (fun (icon, item, _, bg) ->
+                            if item = s then
+                                icon, item, true, bg
+                            else
+                                icon, item, false, bg
+                        )
                 },
                 Cmd.none
 
@@ -123,7 +128,7 @@ module GenPres =
             (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let orderContext = (AppEnv.asEnv<AppEnv.IOrderContext> props.appEnv).OrderContext
-        let treatmentPlan = (AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv).TreatmentPlan
+        let orderPlan = (AppEnv.asEnv<AppEnv.IOrderPlan> props.appEnv).OrderPlan
         let nutritionPlan = (AppEnv.asEnv<AppEnv.INutritionPlan> props.appEnv).NutritionPlan
 
         let updatePageRef = React.useRef props.updatePage
@@ -154,11 +159,13 @@ module GenPres =
             {|
                 marginTop = 3
                 paddingRight = 1
+                flexGrow = 1
+                minHeight = 0
                 overflowY =
                     match props.page with
                     | Global.Pages.Prescribe
                     | Global.Pages.Nutrition
-                    | Global.Pages.TreatmentPlan
+                    | Global.Pages.OrderPlan
                     | Global.Pages.Interactions
                     | Global.Pages.Parenteralia
                     | Global.Pages.Formulary -> "auto"
@@ -201,14 +208,34 @@ module GenPres =
                     switchHosp = props.switchHosp
                 |}
 
+        let interactions = (AppEnv.asEnv<AppEnv.IInteractions> props.appEnv).Interactions
+
+        let hasInteractions =
+            match interactions with
+            | Resolved arr -> arr.Length > 0
+            | _ -> false
+
+        let interactionsLabel =
+            Global.pageToString localizationTerms lang Global.Pages.Interactions
+
+        let menuItems =
+            state.SideMenuItems
+            |> Array.map (fun (icon, text, sel, _) ->
+                if text = interactionsLabel && hasInteractions then
+                    icon, text, sel, Some "#fff4e5"
+                else
+                    icon, text, sel, None
+            )
+
         let sideMenu =
             Components.SideMenu.View
                 {|
                     anchor = "left"
                     isOpen = state.SideMenuIsOpen
+                    isMobile = isMobile
                     toggle = fun _ -> ToggleMenu |> dispatch
                     menuClick = SideMenuClick >> dispatch
-                    items = state.SideMenuItems
+                    items = menuItems
                 |}
 
         let pageView =
@@ -217,7 +244,7 @@ module GenPres =
             | Global.Pages.ContinuousMeds -> Views.ContinuousMeds.View appEnvProps
             | Global.Pages.Prescribe -> Views.Prescribe.View appEnvProps
             | Global.Pages.Nutrition -> Views.Nutrition.View appEnvProps
-            | Global.Pages.TreatmentPlan -> Views.TreatmentPlan.View appEnvProps
+            | Global.Pages.OrderPlan -> Views.OrderPlan.View appEnvProps
             | Global.Pages.Interactions -> Views.Interactions.View appEnvProps
             | Global.Pages.Formulary -> Views.Formulary.View appEnvProps
             | Global.Pages.Parenteralia -> Views.Parenteralia.View appEnvProps
@@ -233,8 +260,8 @@ module GenPres =
                 match nutritionPlan with
                 | Resolved np -> Views.Totals.View {| intake = np.Totals |}
                 | _ -> null
-            | Global.Pages.TreatmentPlan ->
-                match treatmentPlan with
+            | Global.Pages.OrderPlan ->
+                match orderPlan with
                 | Resolved tp -> Views.Totals.View {| intake = tp.Totals |}
                 | _ -> null
             | _ -> null
@@ -250,7 +277,7 @@ module GenPres =
 
         let sxContainer =
             {|
-                height = "87%"
+                height = "calc(100vh - 88px)"
                 marginTop = 3
             |}
 
@@ -276,17 +303,19 @@ module GenPres =
             <React.Fragment>
                 {sideMenu}
             </React.Fragment>
-            <Container id="page-container" sx={sxContainer} >
-                <Stack sx={sxStack}>
-                    {patientBox}
-                    <Box id="page-box" sx={sxPageBox}>
-                        {pageView}
-                    </Box>
-                    <Box>
-                        {totalsView}
-                    </Box>
-                </Stack>
-            </Container>
+            <Box sx={ {| marginLeft = (if isMobile then "0px" else "240px") |} }>
+                <Container id="page-container" sx={sxContainer} >
+                    <Stack sx={sxStack}>
+                        {patientBox}
+                        <Box id="page-box" sx={sxPageBox}>
+                            {pageView}
+                        </Box>
+                        <Box>
+                            {totalsView}
+                        </Box>
+                    </Stack>
+                </Container>
+            </Box>
             <Modal open={props.showDisclaimer} onClose={onCloseModal} >
                 <Box sx={modalStyle}>
                     {disclaimerView}

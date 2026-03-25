@@ -124,7 +124,7 @@ type LoggerType =
     | OrderLogger
     | ResourcesLogger
     | FormularyLogger
-    | TherapyTreatmentPlanLogger
+    | OrderPlanLogger
     | ParenteraliaLogger
 
 

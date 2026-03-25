@@ -9,7 +9,7 @@ type Pages =
     | ContinuousMeds
     | Prescribe
     | Nutrition
-    | TreatmentPlan
+    | OrderPlan
     | Formulary
     | Parenteralia
     | Interactions
@@ -31,7 +31,7 @@ let pageToString terms locale page =
     | ContinuousMeds -> Terms.``Continuous Medication List`` |> getTerm
     | Prescribe -> Terms.``Prescribe`` |> getTerm
     | Nutrition -> Terms.``Nutrition`` |> getTerm
-    | TreatmentPlan -> Terms.``Treatment Plan`` |> getTerm
+    | OrderPlan -> Terms.``Treatment Plan`` |> getTerm
     | Formulary -> Terms.``Formulary`` |> getTerm
     | Parenteralia -> Terms.``Parenteralia`` |> getTerm
     | Interactions -> Terms.``Interactions`` |> getTerm

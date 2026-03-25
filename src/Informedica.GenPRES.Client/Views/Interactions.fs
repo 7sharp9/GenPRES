@@ -16,8 +16,8 @@ module Interactions =
     module private Elmish =
 
 
-        let getPlanDrugs (treatmentPlan: Deferred<OrderPlan>) =
-            match treatmentPlan with
+        let getPlanDrugs (orderPlan: Deferred<OrderPlan>) =
+            match orderPlan with
             | Resolved tp -> tp.Scenarios |> Array.map _.Name |> Array.distinct |> Array.toList
             | _ -> []
 
@@ -49,14 +49,14 @@ module Interactions =
 
 
         let update
-            (treatmentPlan: Deferred<OrderPlan>)
+            (orderPlan: Deferred<OrderPlan>)
             (checkInteractions: string list -> unit)
             (msg: Msg)
             (state: State)
             : State * Cmd<Msg>
             =
             let triggerCheck manualDrugs =
-                let combined = getCombinedDrugs (getPlanDrugs treatmentPlan) manualDrugs
+                let combined = getCombinedDrugs (getPlanDrugs orderPlan) manualDrugs
 
                 if combined.Length >= 2 then
                     checkInteractions combined
@@ -68,7 +68,7 @@ module Interactions =
 
             | AddDrug drug ->
                 let drug = drug.Trim()
-                let planDrugs = getPlanDrugs treatmentPlan
+                let planDrugs = getPlanDrugs orderPlan
 
                 if
                     drug = ""
@@ -167,7 +167,7 @@ module Interactions =
         let interactions = envInteractions.Interactions
         let interactionDrugNames = envInteractions.InteractionDrugNames
         let checkInteractions = envInteractions.CheckInteractions
-        let treatmentPlan = (AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv).TreatmentPlan
+        let orderPlan = (AppEnv.asEnv<AppEnv.IOrderPlan> props.appEnv).OrderPlan
 
         let localizationTerms =
             (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
@@ -178,9 +178,24 @@ module Interactions =
         let getTerm = Global.getLocalizedTerm localizationTerms lang
 
         let state, dispatch =
-            React.useElmish (init (), update treatmentPlan checkInteractions, [| box treatmentPlan |])
+            React.useElmish (init (), update orderPlan checkInteractions, [| box orderPlan |])
 
-        let planDrugs = getPlanDrugs treatmentPlan
+        let planDrugs = getPlanDrugs orderPlan
+
+        // Re-check interactions when plan drugs change (e.g., order added or removed)
+        let planDrugsKey = planDrugs |> String.concat "|"
+
+        React.useEffect (
+            (fun () ->
+                let combined = getCombinedDrugs planDrugs state.ManualDrugs
+
+                if combined.Length >= 2 then
+                    checkInteractions combined
+                else
+                    checkInteractions []
+            ),
+            [| box planDrugsKey |]
+        )
 
         let interactionRows =
             match interactions with

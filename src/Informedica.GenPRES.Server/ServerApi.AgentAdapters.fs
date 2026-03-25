@@ -170,7 +170,7 @@ module AgentAdapters =
 
             match cmd with
             | OrderPlanCommand.Update(tp, cmdOpt) ->
-                setComponent "TreatmentPlan"
+                setComponent "OrderPlan"
                 let! updated = OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
                 return updated |> OrderPlanService.calculateTotals |> Ok |> OrderPlanResponse.OrderPlan
 

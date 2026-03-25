@@ -23,9 +23,9 @@ type IOrderContext =
 
 /// Treatment plan data and commands
 [<Interface>]
-type ITreatmentPlan =
-    abstract TreatmentPlan: Deferred<OrderPlan>
-    abstract TreatmentPlanCommand: Api.OrderPlanCommand -> unit
+type IOrderPlan =
+    abstract OrderPlan: Deferred<OrderPlan>
+    abstract OrderPlanCommand: Api.OrderPlanCommand -> unit
 
 
 /// Nutrition plan data and commands
