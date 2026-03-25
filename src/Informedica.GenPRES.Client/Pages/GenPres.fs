@@ -215,13 +215,12 @@ module GenPres =
             | Resolved arr -> arr.Length > 0
             | _ -> false
 
-        let interactionsLabel =
-            Global.pageToString localizationTerms lang Global.Pages.Interactions
+        let interactionsIndex = pages |> List.tryFindIndex ((=) Global.Pages.Interactions)
 
         let menuItems =
             state.SideMenuItems
-            |> Array.map (fun (icon, text, sel, _) ->
-                if text = interactionsLabel && hasInteractions then
+            |> Array.mapi (fun idx (icon, text, sel, _) ->
+                if Some idx = interactionsIndex && hasInteractions then
                     icon, text, sel, Some "#fff4e5"
                 else
                     icon, text, sel, None
@@ -303,7 +302,13 @@ module GenPres =
             <React.Fragment>
                 {sideMenu}
             </React.Fragment>
-            <Box sx={ {| marginLeft = (if isMobile then "0px" else "240px") |} }>
+            <Box sx={ {|
+                          marginLeft =
+                              (if isMobile then
+                                   "0px"
+                               else
+                                   $"%i{Components.SideMenu.drawerWidth}px")
+                      |} }>
                 <Container id="page-container" sx={sxContainer} >
                     <Stack sx={sxStack}>
                         {patientBox}

@@ -182,17 +182,22 @@ module Interactions =
 
         let planDrugs = getPlanDrugs orderPlan
 
-        // Re-check interactions when plan drugs change (e.g., order added or removed)
+        // Re-check interactions when plan drugs change (e.g., order added or removed).
+        // Skip if already InProgress to avoid duplicate API calls (processApiMsg also
+        // dispatches CheckInteractions on OrderPlan API responses).
         let planDrugsKey = planDrugs |> String.concat "|"
 
         React.useEffect (
             (fun () ->
-                let combined = getCombinedDrugs planDrugs state.ManualDrugs
+                match interactions with
+                | InProgress -> ()
+                | _ ->
+                    let combined = getCombinedDrugs planDrugs state.ManualDrugs
 
-                if combined.Length >= 2 then
-                    checkInteractions combined
-                else
-                    checkInteractions []
+                    if combined.Length >= 2 then
+                        checkInteractions combined
+                    else
+                        checkInteractions []
             ),
             [| box planDrugsKey |]
         )

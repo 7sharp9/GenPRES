@@ -594,6 +594,7 @@ module private Elmish =
                             ctx
                             |> OrderContext.setMedication m.indication m.medication m.route m.form m.dosetype
                             |> Resolved
+                // State. prefix needed: disambiguates State.Context field from Global.Context type
                 State.Context.Localization = lang |> Option.defaultValue Localization.English
             },
             Cmd.ofMsg (pat |> UpdatePatient)
@@ -776,25 +777,22 @@ module private Elmish =
 
                 let drugs = tp.Scenarios |> Array.map _.Name |> Array.distinct |> Array.toList
 
+                // CheckInteractions is dispatched by processApiMsg when the API response
+                // arrives, so we don't duplicate it here.
                 let cmd =
                     if state.Page = OrderPlan then
                         match state.OrderPlan with
-                        | Recalculating _ -> Cmd.ofMsg (CheckInteractions drugs)
+                        | Recalculating _ -> Cmd.none
                         | _ ->
                             if onlySetOrderContext then
                                 Cmd.none
                             else
-                                Cmd.batch
-                                    [
-                                        Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
-                                        Cmd.ofMsg (CheckInteractions drugs)
-                                    ]
+                                Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
                     else
                         Cmd.batch
                             [
                                 Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, OrderContext.empty))
                                 Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
-                                Cmd.ofMsg (CheckInteractions drugs)
                             ]
 
                 { state with

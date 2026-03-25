@@ -7,6 +7,9 @@ module SideMenu =
     open Fable.Core
 
 
+    let drawerWidth = 240
+
+
     [<JSX.Component>]
     let View
         (props:
@@ -19,7 +22,6 @@ module SideMenu =
                 items: (JSX.Element option * string * bool * string option)[]
             |})
         =
-        let drawerWidth = 240
 
         let menu =
             {|
