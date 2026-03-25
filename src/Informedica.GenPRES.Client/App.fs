@@ -1101,7 +1101,7 @@ let View () =
 
         calculatInterventions calc state.ContinuousMedication state.Patient
 
-    let appEnv = ConcreteAppEnv(state, dispatch, bm, cm)
+    let appEnv = ConcreteAppEnv(state, dispatch, bm, cm) :> obj
 
     let sx =
         if isMobile then
@@ -1154,7 +1154,7 @@ let View () =
                 {Components.Router.View {| onUrlChanged = UrlChanged >> dispatch |}}
                 {Pages.GenPres.View
                      {|
-                         appEnv = appEnv :> obj
+                         appEnv = appEnv
                          showDisclaimer = state.ShowDisclaimer
                          isDemo = state.IsDemo
                          acceptDisclaimer = fun _ -> AcceptDisclaimer |> dispatch

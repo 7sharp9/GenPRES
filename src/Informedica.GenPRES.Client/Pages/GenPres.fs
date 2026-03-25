@@ -119,23 +119,22 @@ module GenPres =
         let lang = context.Localization
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
-        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
-        let orderContext = (props.appEnv :?> AppEnv.IOrderContext).OrderContext
-        let treatmentPlan = (props.appEnv :?> AppEnv.ITreatmentPlan).TreatmentPlan
-        let nutritionPlan = (props.appEnv :?> AppEnv.INutritionPlan).NutritionPlan
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
-        let deps =
-            [|
-                box props.page
-                box props.updatePage
-                box lang
-                box orderContext
-            |]
+        let orderContext = (AppEnv.asEnv<AppEnv.IOrderContext> props.appEnv).OrderContext
+        let treatmentPlan = (AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv).TreatmentPlan
+        let nutritionPlan = (AppEnv.asEnv<AppEnv.INutritionPlan> props.appEnv).NutritionPlan
+
+        let updatePageRef = React.useRef props.updatePage
+        updatePageRef.current <- props.updatePage
+
+        let deps = [| box props.page; box lang; box orderContext |]
 
         let state, dispatch =
             React.useElmish (
                 init lang localizationTerms props.page,
-                update lang localizationTerms props.updatePage,
+                (fun msg state -> update lang localizationTerms updatePageRef.current msg state),
                 deps
             )
 

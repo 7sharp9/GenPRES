@@ -169,9 +169,12 @@ module Formulary =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let formulary = (props.appEnv :?> AppEnv.IFormulary).Formulary
-        let updateFormulary = (props.appEnv :?> AppEnv.IFormulary).UpdateFormulary
-        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
+        let envFormulary = AppEnv.asEnv<AppEnv.IFormulary> props.appEnv
+        let formulary = envFormulary.Formulary
+        let updateFormulary = envFormulary.UpdateFormulary
+
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization

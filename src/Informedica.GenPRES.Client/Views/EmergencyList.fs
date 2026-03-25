@@ -14,13 +14,14 @@ module EmergencyList =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let interventions = (props.appEnv :?> AppEnv.IBolusMedication).BolusMedication
+        let envBolus = AppEnv.asEnv<AppEnv.IBolusMedication> props.appEnv
+        let interventions = envBolus.BolusMedication
+        let onSelectItem = envBolus.OnSelectBolusMedicationItem
 
-        let onSelectItem =
-            (props.appEnv :?> AppEnv.IBolusMedication).OnSelectBolusMedicationItem
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
-        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
-        let patient = (props.appEnv :?> AppEnv.IPatient).Patient
+        let patient = (AppEnv.asEnv<AppEnv.IPatient> props.appEnv).Patient
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization

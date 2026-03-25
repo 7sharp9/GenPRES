@@ -4,6 +4,10 @@ open Shared
 open Shared.Types
 
 
+/// Downcast appEnv to the requested interface.
+let inline asEnv<'T> (appEnv: obj) : 'T = unbox<'T> appEnv
+
+
 /// Localization data access
 [<Interface>]
 type ILocalization =

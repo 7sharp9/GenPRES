@@ -13,10 +13,9 @@ module TreatmentPlan =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let treatmentPlan = (props.appEnv :?> AppEnv.ITreatmentPlan).TreatmentPlan
-
-        let treatmentPlanCommand =
-            (props.appEnv :?> AppEnv.ITreatmentPlan).TreatmentPlanCommand
+        let envTreatmentPlan = AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv
+        let treatmentPlan = envTreatmentPlan.TreatmentPlan
+        let treatmentPlanCommand = envTreatmentPlan.TreatmentPlanCommand
 
         let updateTreatmentPlan tp =
             treatmentPlanCommand (Api.UpdateOrderPlan(tp, None))
@@ -30,7 +29,8 @@ module TreatmentPlan =
             | Recalculating tp -> treatmentPlanCommand (Api.UpdateOrderPlan(tp, Some(cmd, ctx)))
             | _ -> ()
 
-        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization

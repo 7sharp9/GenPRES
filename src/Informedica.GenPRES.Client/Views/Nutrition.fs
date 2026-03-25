@@ -1341,10 +1341,13 @@ module Nutrition =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let patient = (props.appEnv :?> AppEnv.IPatient).Patient
-        let nutritionPlan = (props.appEnv :?> AppEnv.INutritionPlan).NutritionPlan
-        let nutritionPlanMsg = (props.appEnv :?> AppEnv.INutritionPlan).NutritionPlanMsg
-        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
+        let patient = (AppEnv.asEnv<AppEnv.IPatient> props.appEnv).Patient
+        let envNutritionPlan = AppEnv.asEnv<AppEnv.INutritionPlan> props.appEnv
+        let nutritionPlan = envNutritionPlan.NutritionPlan
+        let nutritionPlanMsg = envNutritionPlan.NutritionPlanMsg
+
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 

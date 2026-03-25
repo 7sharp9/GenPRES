@@ -12,9 +12,11 @@ module Settings =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let reloadResources = (props.appEnv :?> AppEnv.IResources).ReloadResources
-        let orderContext = (props.appEnv :?> AppEnv.IOrderContext).OrderContext
-        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
+        let reloadResources = (AppEnv.asEnv<AppEnv.IResources> props.appEnv).ReloadResources
+        let orderContext = (AppEnv.asEnv<AppEnv.IOrderContext> props.appEnv).OrderContext
+
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization

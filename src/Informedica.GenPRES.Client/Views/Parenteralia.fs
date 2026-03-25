@@ -112,8 +112,9 @@ module Parenteralia =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let parenteralia = (props.appEnv :?> AppEnv.IParenteralia).Parenteralia
-        let updateParenteralia = (props.appEnv :?> AppEnv.IParenteralia).UpdateParenteralia
+        let envParenteralia = AppEnv.asEnv<AppEnv.IParenteralia> props.appEnv
+        let parenteralia = envParenteralia.Parenteralia
+        let updateParenteralia = envParenteralia.UpdateParenteralia
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization

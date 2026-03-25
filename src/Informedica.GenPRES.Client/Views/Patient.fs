@@ -114,9 +114,12 @@ module Patient =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let patient = (props.appEnv :?> AppEnv.IPatient).Patient
-        let updatePatient = (props.appEnv :?> AppEnv.IPatient).UpdatePatient
-        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
+        let envPatient = AppEnv.asEnv<AppEnv.IPatient> props.appEnv
+        let patient = envPatient.Patient
+        let updatePatient = envPatient.UpdatePatient
+
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization

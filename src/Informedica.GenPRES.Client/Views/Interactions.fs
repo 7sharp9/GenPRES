@@ -163,14 +163,14 @@ module Interactions =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let interactions = (props.appEnv :?> AppEnv.IInteractions).Interactions
+        let envInteractions = AppEnv.asEnv<AppEnv.IInteractions> props.appEnv
+        let interactions = envInteractions.Interactions
+        let interactionDrugNames = envInteractions.InteractionDrugNames
+        let checkInteractions = envInteractions.CheckInteractions
+        let treatmentPlan = (AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv).TreatmentPlan
 
-        let interactionDrugNames =
-            (props.appEnv :?> AppEnv.IInteractions).InteractionDrugNames
-
-        let checkInteractions = (props.appEnv :?> AppEnv.IInteractions).CheckInteractions
-        let treatmentPlan = (props.appEnv :?> AppEnv.ITreatmentPlan).TreatmentPlan
-        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization

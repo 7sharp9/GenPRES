@@ -12,14 +12,14 @@ module ContinuousMeds =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let interventions =
-            (props.appEnv :?> AppEnv.IContinuousMedication).ContinuousMedication
+        let envContinuous = AppEnv.asEnv<AppEnv.IContinuousMedication> props.appEnv
+        let interventions = envContinuous.ContinuousMedication
+        let onSelectItem = envContinuous.OnSelectContinuousMedicationItem
 
-        let onSelectItem =
-            (props.appEnv :?> AppEnv.IContinuousMedication).OnSelectContinuousMedicationItem
+        let localizationTerms =
+            (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
-        let localizationTerms = (props.appEnv :?> AppEnv.ILocalization).LocalizationTerms
-        let patient = (props.appEnv :?> AppEnv.IPatient).Patient
+        let patient = (AppEnv.asEnv<AppEnv.IPatient> props.appEnv).Patient
 
         let context: Global.Context = React.useContext Global.context
         let lang = context.Localization
