@@ -756,21 +756,33 @@ module private Elmish =
         | TreatmentPlanMsg tpCmd ->
             match tpCmd with
             | Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)) ->
-                { state with TreatmentPlan = Recalculating tp },
-                Api.OrderPlanCmd(Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)))
-                |> createApiMsg (fun resp -> LoadOrderPlanResult(tpCmd, resp))
+                match state.TreatmentPlan with
+                | InProgress
+                | Recalculating _ -> state, Cmd.none
+                | _ ->
+                    { state with TreatmentPlan = Recalculating tp },
+                    Api.OrderPlanCmd(Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)))
+                    |> createApiMsg (fun resp -> LoadOrderPlanResult(tpCmd, resp))
             | Api.UpdateOrderPlan(tp, None) ->
                 let onlySetOrderContext =
                     state.TreatmentPlan
                     |> Deferred.map (fun st -> st.Selected.IsNone && tp.Selected.IsSome)
                     |> Deferred.defaultValue false
 
+                let tpState =
+                    match state.TreatmentPlan with
+                    | Recalculating _ -> Recalculating tp
+                    | _ -> Resolved tp
+
                 let cmd =
                     if state.Page = TreatmentPlan then
-                        if onlySetOrderContext then
-                            Cmd.none
-                        else
-                            Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
+                        match state.TreatmentPlan with
+                        | Recalculating _ -> Cmd.none
+                        | _ ->
+                            if onlySetOrderContext then
+                                Cmd.none
+                            else
+                                Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
                     else
                         Cmd.batch
                             [
@@ -780,7 +792,7 @@ module private Elmish =
 
                 { state with
                     Page = TreatmentPlan
-                    TreatmentPlan = Resolved tp
+                    TreatmentPlan = tpState
                 },
                 cmd
             | Api.FilterOrderPlan tp ->
