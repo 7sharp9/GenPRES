@@ -1,90 +1,238 @@
-# Clean Safe Architecture Investigation
+# Clean Safe Architecture
 
-**Issue**: [Safe Clean Architecture](https://github.com/informedica/GenPRES/issues) — Investigate requirements for adopting a Clean Safe Architecture with Tagless Final style.
+**Issue**: [Safe Clean Architecture #194](https://github.com/informedica/GenPRES/issues/194)
 
-**Reference**: <https://rdeneau.gitbook.io/safe-clean-architecture/domain-workflows/1-introduction/5-tagless-final>
+**References**:
+- <https://rdeneau.gitbook.io/safe-clean-architecture/architecture/2-principles>
+- <https://blog.ploeh.dk/2020/03/02/impureim-sandwich/>
+- <https://github.com/rdeneau/gitbook-safe-clean-archi>
 
-**Date**: 2026-03-22
-
-**Issue**: [Safe Clean Architecture #194](https://github.com/informedica/GenPRES/issues/194) — Investigate requirements for adopting a Clean Safe Architecture with Tagless Final style.
+**Date**: 2026-03-25 (updated from original 2026-03-22)
 
 ## Table of Contents
 
 - [Summary](#summary)
-- [Current Architecture](#current-architecture)
-  - [Strengths](#strengths)
-  - [Gaps](#gaps)
-- [Clean Safe Architecture Principles](#clean-safe-architecture-principles)
+- [Implemented Architecture](#implemented-architecture)
+  - [Layer Overview](#layer-overview)
+  - [File Layout](#file-layout)
+  - [Port Types — Tagless Final Style](#port-types--tagless-final-style)
+  - [Command Router](#command-router)
+  - [Adapters and Agent Adapters](#adapters-and-agent-adapters)
+  - [Composition Root](#composition-root)
+- [Architecture Principles](#architecture-principles)
+  - [Clean Safe Architecture Layers](#clean-safe-architecture-layers)
   - [Tagless Final in F#](#tagless-final-in-f)
-- [Gap Analysis](#gap-analysis)
-- [Recommended Changes](#recommended-changes)
-  - [Phase 1 — Split ServerApi.fs into cohesive layers](#phase-1--split-serverapifs-into-cohesive-layers)
-  - [Phase 2 — Introduce Application-Layer Ports](#phase-2--introduce-application-layer-ports)
-  - [Phase 3 — Wire via a single Composition Root](#phase-3--wire-via-a-single-composition-root)
-  - [Phase 4 — Improve test coverage with stub adapters](#phase-4--improve-test-coverage-with-stub-adapters)
-- [What to Leave Alone](#what-to-leave-alone)
-- [Architecture Gap Table](#architecture-gap-table)
-- [Prototype](#prototype)
+  - [Impureim Sandwich](#impureim-sandwich)
+- [Vertical Slice Architecture — Future Direction](#vertical-slice-architecture--future-direction)
+  - [What Is a Vertical Slice?](#what-is-a-vertical-slice)
+  - [Current State: Horizontal Layers](#current-state-horizontal-layers)
+  - [Target State: Vertical Slices](#target-state-vertical-slices)
+  - [Migration Strategy](#migration-strategy)
+- [Testing with Stub Adapters](#testing-with-stub-adapters)
+- [What Remains Unchanged](#what-remains-unchanged)
+- [Architecture Status Table](#architecture-status-table)
+- [Demonstration Script](#demonstration-script)
 
 ---
 
 ## Summary
 
-GenPRES already has several Clean Architecture elements in place — notably `IResourceProvider` as a data-access port and pure-functional domain libraries.  The main improvement opportunity is in the **Application layer** (`ServerApi.fs`), which currently mixes DTO mapping, orchestration logic, command routing, and infrastructure setup in a single 1 400-line file.
+The GenPRES server has been migrated from a monolithic 1 400-line `ServerApi.fs` to a Clean Safe Architecture using the **Tagless Final** pattern (records of functions as ports) and an explicit **Composition Root**.
 
-Adopting the **Tagless Final** style means introducing narrow *application-layer port* types (records of functions) for each workflow area, coding the application services against those abstractions, and resolving the concrete dependencies once in a dedicated **Composition Root**.
+All four migration phases are complete:
 
-The changes are **incremental and low-risk** — they do not touch the domain libraries or the client side.
+1. ✅ `ServerApi.fs` split into cohesive focused files
+2. ✅ Application-layer ports introduced (`FormularyPort`, `OrderContextPort`, `OrderPlanPort`, `NutritionPlanPort`, `InteractionPort`)
+3. ✅ `AppEnv` composition root wires all ports
+4. ✅ Stub adapters support unit testing without any I/O
 
----
-
-## Current Architecture
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  PRESENTATION     IServerApi (Fable.Remoting)                │
-├──────────────────────────────────────────────────────────────┤
-│  APPLICATION      ServerApi.fs  (1 400 lines)                │
-│                   • Mappers — DTO ↔ domain conversions        │
-│                   • OrderContext, Formulary, OrderPlan, ...   │
-│                   • Command — command router                  │
-│                   • ApiImpl — creates IServerApi instance     │
-│                   Dependencies: provider + logger threaded    │
-│                   through every function call                 │
-├──────────────────────────────────────────────────────────────┤
-│  PORT             IResourceProvider (GenForm.Lib.Resources)  │
-├──────────────────────────────────────────────────────────────┤
-│  DOMAIN           GenOrder.Lib  GenForm.Lib  GenSolver.Lib   │
-│                   (mostly pure functional, no I/O)           │
-├──────────────────────────────────────────────────────────────┤
-│  INFRASTRUCTURE   ResourceProvider / CachedResourceProvider  │
-│                   (Google Sheets → CSV → domain types)       │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Strengths
-
-| Element | Why it is good |
-|---|---|
-| `IResourceProvider` | Already a well-defined Port; abstracts all resource loading |
-| `ResourceConfig` | Uses record-of-functions — this *is* Tagless Final style |
-| Domain libraries | Pure F# with no I/O side effects; highly testable |
-| `IServerApi` | Clean presentation-layer boundary via Fable.Remoting |
-| `Shared.Api.Command` discriminated union | Explicit command model; aligns with CQRS |
-
-### Gaps
-
-| Gap | Impact |
-|---|---|
-| `ServerApi.fs` is a 1 400-line monolith mixing 4+ concerns | Hard to navigate, test, and extend |
-| `logger` and `provider` are threaded through every function | Fragile, verbose; no single wiring point |
-| No narrow application-layer ports (only `IResourceProvider`) | Cannot substitute parts for testing without a full provider |
-| Effects (`async`/`Result`) composed inconsistently | Some functions return `Result`, others `Async<Result>`, mixing convention |
-| No explicit Composition Root | Dependency resolution is scattered across `Server.fs` and `ServerApi.fs` |
+The domain libraries (`GenOrder`, `GenForm`, `GenSolver`) remain pure and unchanged.  The next architectural investigation focuses on moving towards **vertical slice architecture** — grouping each bounded domain context as a self-contained module.
 
 ---
 
-## Clean Safe Architecture Principles
+## Implemented Architecture
+
+### Layer Overview
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  PRESENTATION     IServerApi (Fable.Remoting)                    │
+│                   ServerApi.ApiImpl.fs  — one line               │
+├──────────────────────────────────────────────────────────────────┤
+│  COMPOSITION ROOT ServerApi.CompositionRoot.fs                   │
+│                   Wires provider → AgentAdapters → AppEnv →      │
+│                   IServerApi                                     │
+├──────────────────────────────────────────────────────────────────┤
+│  COMMAND ROUTER   ServerApi.Command.fs                           │
+│                   Pattern-matches Command DU against AppEnv      │
+│                   ports; uniform Async<Result<_,string[]>>       │
+├──────────────────────────────────────────────────────────────────┤
+│  PORTS            ServerApi.Ports.fs                             │
+│                   FormularyPort, OrderContextPort, OrderPlanPort │
+│                   NutritionPlanPort, InteractionPort, AppEnv     │
+├────────────────────────────┬─────────────────────────────────────┤
+│  DIRECT ADAPTERS           │  AGENT ADAPTERS                     │
+│  ServerApi.Adapters.fs     │  ServerApi.AgentAdapters.fs         │
+│  provider + logger → ports │  MailboxProcessor per component     │
+├──────────────────────────────────────────────────────────────────┤
+│  APPLICATION SERVICES  ServerApi.Services.fs                     │
+│  FormularyService, OrderContextService, OrderPlanService, ...    │
+├──────────────────────────────────────────────────────────────────┤
+│  MAPPERS           ServerApi.Mappers.fs                          │
+│                   Pure DTO ↔ domain conversions                  │
+├──────────────────────────────────────────────────────────────────┤
+│  PORT (INFRASTRUCTURE) IResourceProvider                         │
+│                   GenForm.Lib.Resources                          │
+├──────────────────────────────────────────────────────────────────┤
+│  DOMAIN            GenOrder.Lib  GenForm.Lib  GenSolver.Lib      │
+│                    Pure functional — no I/O                      │
+├──────────────────────────────────────────────────────────────────┤
+│  INFRASTRUCTURE    ResourceProvider / CachedResourceProvider     │
+│                    Google Sheets → CSV → domain types            │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### File Layout
+
+```
+src/Informedica.GenPRES.Server/
+├── Server.fs                      — entry point; creates provider; calls CompositionRoot.compose
+├── ServerApi.Mappers.fs           — pure DTO ↔ domain conversions
+├── ServerApi.Services.fs          — application services (FormularyService, OrderContextService, …)
+├── ServerApi.Ports.fs             — port record types + AppEnv
+├── ServerApi.Adapters.fs          — direct adapters: provider + logger → port records
+├── ServerApi.AgentAdapters.fs     — MailboxProcessor-backed adapters (per component)
+├── ServerApi.Command.fs           — thin command dispatcher; routes Command DU → AppEnv ports
+├── ServerApi.CompositionRoot.fs   — single wiring point; creates IServerApi
+└── ServerApi.ApiImpl.fs           — one-liner: createServerApi = CompositionRoot.compose
+```
+
+### Port Types — Tagless Final Style
+
+All ports are F# record types (Tagless Final / algebra encoding).  Every port operation returns `Async<Result<'T, string[]>>`, giving a **uniform effect type** across the entire application layer.
+
+```fsharp
+// ServerApi.Ports.fs
+
+type FormularyPort =
+    {
+        getFormulary    : Formulary -> Async<Result<Formulary, string[]>>
+        getParenteralia : Parenteralia -> Async<Result<Parenteralia, string[]>>
+    }
+
+type OrderContextPort =
+    { evaluate : OrderContextCommand -> OrderContext -> Async<Result<OrderContext, string[]>> }
+
+type OrderPlanPort =
+    {
+        updateOrderPlan : OrderPlan -> (OrderContextCommand * OrderContext) option -> Async<Result<OrderPlan, string[]>>
+        filterOrderPlan : OrderPlan -> Async<Result<OrderPlan, string[]>>
+    }
+
+type NutritionPlanPort =
+    {
+        initNutritionPlan            : Patient -> Async<Result<NutritionPlan, string[]>>
+        addNutritionContext          : NutritionPlan * NutritionCategory -> Async<Result<NutritionPlan, string[]>>
+        removeNutritionContext       : NutritionPlan * string -> Async<Result<NutritionPlan, string[]>>
+        updateNutritionOrderContext  : NutritionPlan * string * OrderContext -> Async<Result<NutritionPlan, string[]>>
+        selectNutritionOrderScenario : NutritionPlan * string * OrderContext -> Async<Result<NutritionPlan, string[]>>
+        navigateNutritionOrderContext: NutritionPlan * string * OrderContextCommand * OrderContext -> Async<Result<NutritionPlan, string[]>>
+    }
+
+type InteractionPort =
+    {
+        checkInteractions : string list -> Async<Result<DrugInteraction list, string[]>>
+        getDrugNames      : unit -> Async<Result<string list, string[]>>
+    }
+
+/// Root environment — passed to every command handler
+type AppEnv =
+    {
+        formulary     : FormularyPort
+        orderContext  : OrderContextPort
+        orderPlan     : OrderPlanPort
+        nutritionPlan : NutritionPlanPort
+        interaction   : InteractionPort
+        requireLoaded : unit -> string[] option   // guard: returns Some errors if resources not yet loaded
+    }
+```
+
+### Command Router
+
+`ServerApi.Command.fs` is the only file that touches both `AppEnv` and the `Command` discriminated union.  It is intentionally thin — it matches commands to port calls and wraps the results in the appropriate response case:
+
+```fsharp
+// ServerApi.Command.fs
+
+let processCmd (env: AppEnv) cmd =
+    match cmd with
+    | InteractionCmd GetDrugNames -> ...           // allowed before load
+    | _ ->
+        match env.requireLoaded () with
+        | Some msgs -> async { return Error msgs } // guard: resources not loaded yet
+        | None ->
+            match cmd with
+            | OrderContextCmd(ctxCmd, ctx) ->
+                async {
+                    let! result = env.orderContext.evaluate ctxCmd ctx
+                    return result |> Result.map (OrderContextResult >> OrderContextResp)
+                }
+            | FormularyCmd form -> ...
+            | ...
+```
+
+### Adapters and Agent Adapters
+
+Two adapter implementations are provided:
+
+**Direct adapters** (`ServerApi.Adapters.fs`) — call service functions synchronously inside an `async` block.  Useful for simple cases or scripting.
+
+**Agent adapters** (`ServerApi.AgentAdapters.fs`) — each bounded domain context gets its own `MailboxProcessor` agent:
+
+- `FormularyAgent` — serialises formulary/parenteralia lookups
+- `OrderCtxAgent` — serialises order-context evaluations
+- `OrderPlanAgent` — serialises order-plan updates
+- `NutritionAgent` — serialises all nutrition-plan operations
+- `InteractionAgent` — serialises drug-interaction checks
+
+Per-component agents ensure that concurrent client requests do not block each other across domain boundaries.  The `OrderContextPort` record backed by the `OrderCtxAgent` is passed into the `OrderPlanAgent` and `NutritionAgent` so that cross-component calls stay within the agent boundary.
+
+The production `AppEnv` is always built via `AgentAdapters.makeAppEnv provider`:
+
+```fsharp
+// Server.fs → CompositionRoot.compose → AgentAdapters.makeAppEnv
+let env = AgentAdapters.makeAppEnv provider
+```
+
+### Composition Root
+
+`ServerApi.CompositionRoot.fs` is the single wiring point.  `Server.fs` creates the `provider` and calls `compose`:
+
+```fsharp
+// ServerApi.CompositionRoot.fs
+let compose (provider: IResourceProvider) : IServerApi =
+    let env = AgentAdapters.makeAppEnv provider
+    {
+        processCommand =
+            fun cmd ->
+                async {
+                        try
+                            writeInfoMessage $"Processing command: {cmd |> Shared.Api.Command.toString}"
+                            let! result = Command.processCmd env cmd
+                            writeInfoMessage $"Finished processing command: {cmd |> Shared.Api.Command.toString}"
+                            return result
+                        with ex ->
+                            writeErrorMessage $"Error processing command: {cmd |> Shared.Api.Command.toString}\n{ex}"
+                            return Error [| ex.Message |]
+        testApi = fun () -> async { return "Hello world!" }
+    }
+```
+
+---
+
+## Architecture Principles
+
+### Clean Safe Architecture Layers
 
 Clean Architecture in the SAFE Stack context has five concerns:
 
@@ -97,190 +245,254 @@ Clean Architecture in the SAFE Stack context has five concerns:
 The dependency rule: inner layers must not depend on outer layers.
 
 ```
-Domain Core  ←  Application Services  ←  Ports  ←  Adapters  ←  Composition Root
+Domain Core  →  Application Services  →  Ports  ←  Adapters  ←  Composition Root
 ```
 
 ### Tagless Final in F#
 
-"Tagless Final" (also called "finally tagless" or the "free monad lite") is a functional programming pattern where abstract behaviours are represented as parameterised *algebras*.  In Haskell this uses type classes; in F# the idiomatic encoding is a **record of functions**:
-Domain Core  →  Application Services  →  Ports  ←  Adapters  ←  Composition Root
-```fsharp
-// The "algebra" — a port — expressed as a record of functions
-type IOrderContextPort =
-    {
-        evaluate :
-            Api.OrderContextCommand
-            -> OrderContext
-            -> Async<Result<OrderContext, string[]>>
-    }
-```
+"Tagless Final" (also called "finally tagless") is a functional programming pattern where abstract behaviours are represented as parameterised *algebras*.  In Haskell this uses type classes; in F# the idiomatic encoding is a **record of functions**.
 
-The application layer codes against these abstract records and never touches a concrete `IResourceProvider`.  Concrete adapters implement the records at the composition root.
+The application layer codes against these abstract records and never imports a concrete `IResourceProvider`.  Concrete adapters implement the records at the composition root only.
 
-The key properties:
+Key properties:
 
 - **Testability** — any port can be replaced with a stub record in tests.
 - **Composability** — ports are plain F# values; they compose naturally.
 - **Single dependency axis** — the application layer only sees the port records, not the infrastructure.
+- **Uniform effect type** — `Async<Result<'T, string[]>>` for every port operation.
+
+`ResourceConfig` in `GenForm.Lib` was already using this pattern before the server-side migration and served as the model to follow.
+
+### Impureim Sandwich
+
+The [Impureim Sandwich](https://blog.ploeh.dk/2020/03/02/impureim-sandwich/) (Mark Seemann, 2020) is a simple but powerful structuring principle for functional code that must interact with the real world:
+
+```
+┌─────────────────────────────────┐
+│  Impure — read inputs (I/O)     │   e.g. load resources, receive HTTP command
+├─────────────────────────────────┤
+│  Pure   — process (domain logic)│   e.g. calculate dosage, validate constraints
+├─────────────────────────────────┤
+│  Impure — write outputs (I/O)   │   e.g. send HTTP response, write logs
+└─────────────────────────────────┘
+```
+
+The idea is to push all I/O to the edges so that the largest possible portion of code is **pure** and therefore trivially testable.
+
+**How GenPRES maps to the sandwich:**
+
+| Slice | GenPRES element |
+|---|---|
+| Impure read | `Server.fs` creates `provider`; `CachedResourceProvider` loads Google Sheets once on startup |
+| Pure core | `GenForm.Lib`, `GenOrder.Lib`, `GenSolver.Lib` — pure domain functions with no I/O |
+| Application services | `OrderContextService`, `FormularyService`, etc. — orchestrate pure domain calls |
+| Impure write | `AgentAdapters` posts results back through `Async`; `CompositionRoot` returns `IServerApi` over Fable.Remoting |
+
+The port types (`FormularyPort`, `OrderContextPort`, …) form the seam between the pure core and impure edges.  Stub adapters in tests replace the impure edges with pure in-memory values, turning the entire application-layer into a pure sandwich that can be tested without I/O.
+
+**Remaining gap**: the application-service functions (`FormularyService.get`, `OrderContextService.evaluate`, …) still accept a concrete `IResourceProvider` rather than a narrow port.  Moving these to accept their respective port records (instead of the whole provider) would push the sandwich seam inward and further isolate the pure core.
 
 ---
 
-## Gap Analysis
+## Vertical Slice Architecture — Future Direction
 
-| Concern | Current state | Target state |
-|---|---|---|
-| Application layer size | 1 file, 1 400 lines | 3–4 focused files |
-| Application-layer ports | None (only `IResourceProvider`) | `IOrderContextPort`, `IFormularyPort`, `IOrderPlanPort`, `INutritionPlanPort` |
-| Effect type consistency | Mixed (`Result` / `Async<Result>`) | Uniform `Async<Result<'T, string[]>>` for all ports |
-| Composition Root | Implicit, scattered | Explicit `CompositionRoot.fs` |
-| Testability at application layer | Requires real provider | Stub `AppEnv` with in-memory port implementations |
-| Domain / Infrastructure coupling | `GenOrder.Api` takes `provider` directly | Already thin — no change needed |
+### What Is a Vertical Slice?
 
----
+Vertical Slice Architecture (Jimmy Bogard) organises code by **feature** or **bounded context** rather than by technical layer.  Each slice is a self-contained unit that owns everything it needs — types, ports, services, adapters — for one domain area.
 
-## Recommended Changes
+```
+Horizontal layers (current):              Vertical slices (future direction):
+                                          
+  ServerApi.Ports.fs ──────────────        Formulary/
+  ServerApi.Services.fs ───────────          Formulary.Ports.fs
+  ServerApi.Adapters.fs ───────────          Formulary.Services.fs
+  ServerApi.AgentAdapters.fs ──────          Formulary.Adapters.fs
+                                             Formulary.AgentAdapter.fs
+                                          
+                                          OrderContext/
+                                            OrderContext.Ports.fs
+                                            OrderContext.Services.fs
+                                            OrderContext.Adapters.fs
+                                            OrderContext.AgentAdapter.fs
+                                          
+                                          OrderPlan/
+                                            ...
+                                          
+                                          NutritionPlan/
+                                            ...
+                                          
+                                          Interaction/
+                                            ...
+```
 
-### Phase 1 — Split `ServerApi.fs` into cohesive layers
+### Current State: Horizontal Layers
 
-Split the existing file without changing any behaviour:
+The implemented architecture is already well-structured but follows a horizontal layer model:
+
+- All ports live in one file (`ServerApi.Ports.fs`)
+- All services live in one file (`ServerApi.Services.fs`)
+- All adapters live in two files (`ServerApi.Adapters.fs`, `ServerApi.AgentAdapters.fs`)
+
+The five bounded contexts — **Formulary**, **OrderContext**, **OrderPlan**, **NutritionPlan**, **Interaction** — each have their own port records and agents, but they are spread horizontally across the layer files.
+
+### Target State: Vertical Slices
+
+A modular vertical-slice layout would co-locate each bounded context's concerns:
 
 ```
 src/Informedica.GenPRES.Server/
-├── ServerApi.Mappers.fs      ← extracted Mappers module (pure DTO conversions)
-├── ServerApi.Services.fs     ← extracted application-service modules (OrderContext, Formulary, etc.)
-├── ServerApi.Command.fs      ← extracted Command router
-└── ServerApi.ApiImpl.fs      ← extracted IServerApi implementation + ApiImpl
+├── Server.fs
+├── ServerApi.ApiImpl.fs          — entry point, unchanged
+├── ServerApi.CompositionRoot.fs  — assembles slices, unchanged
+├── ServerApi.Command.fs          — routes Command DU to slice ports, unchanged
+│
+├── Slices/
+│   ├── Formulary/
+│   │   ├── FormularyPorts.fs       — port types
+│   │   ├── FormularyServices.fs    — pure orchestration
+│   │   ├── FormularyAdapters.fs    — direct and agent adapters
+│   │   └── FormularyMappers.fs     — DTO conversions (optional)
+│   │
+│   ├── OrderContext/
+│   │   ├── OrderContextPorts.fs
+│   │   ├── OrderContextServices.fs
+│   │   └── OrderContextAdapters.fs
+│   │
+│   ├── OrderPlan/
+│   │   ├── OrderPlanPorts.fs
+│   │   ├── OrderPlanServices.fs
+│   │   └── OrderPlanAdapters.fs
+│   │
+│   ├── NutritionPlan/
+│   │   ├── NutritionPlanPorts.fs
+│   │   ├── NutritionPlanServices.fs
+│   │   └── NutritionPlanAdapters.fs
+│   │
+│   └── Interaction/
+│       ├── InteractionPorts.fs
+│       ├── InteractionServices.fs
+│       └── InteractionAdapters.fs
+│
+└── ServerApi.Ports.fs            — re-exports AppEnv (assembly point for all slice ports)
 ```
 
-**Risk**: Low — pure refactoring, no logic changes.
-**Benefit**: Navigability, clearer ownership, smaller review surface per file.
+Each slice would be:
 
-### Phase 2 — Introduce Application-Layer Ports
+- **Independently testable** — stub only that slice's port record.
+- **Independently deployable** (in theory) — the bounded context owns its full stack.
+- **Minimal coupling** — the only cross-slice dependency is the `OrderContextPort` that `OrderPlan` and `NutritionPlan` call into (already handled via injection today).
 
-Define a set of narrow application-level port types as F# record types.  A prototype is provided in `src/Informedica.GenPRES.Server/Scripts/CleanArchitecture.fsx`.
+### Migration Strategy
 
-```fsharp
-type IOrderContextPort =
-    { evaluate : Api.OrderContextCommand -> OrderContext -> Async<Result<OrderContext, string[]>> }
+The migration to vertical slices can be done **incrementally** without changing any behaviour:
 
-type IFormularyPort =
-    { getDoseRules    : Formulary -> Async<Result<Formulary, string>>
-      getParenteralia : Parenteralia -> Async<Result<Parenteralia, string>> }
+1. **Extract one slice at a time** — start with `Interaction` (simplest; no cross-slice dependencies).
+2. **Move port type into the slice folder** — `InteractionPort` moves to `Slices/Interaction/InteractionPorts.fs`.
+3. **Move services and adapter logic** — move the relevant private functions from `ServerApi.Services.fs` and `ServerApi.AgentAdapters.fs`.
+4. **Re-export from the top-level files** — the slice types are re-exported from `ServerApi.Ports.fs` / `ServerApi.AgentAdapters.fs` during transition to keep `ServerApi.Command.fs` and `CompositionRoot.fs` unchanged.
+5. **Repeat for each bounded context** — Formulary, OrderContext, OrderPlan, NutritionPlan.
+6. **Remove the top-level shim files** once all slices are extracted.
 
-type IOrderPlanPort =
-    { updateOrderPlan : OrderPlan -> (Api.OrderContextCommand * OrderContext) option -> Async<Result<OrderPlan, string[]>>
-      filterOrderPlan : OrderPlan -> Async<Result<OrderPlan, string[]>> }
-
-type INutritionPlanPort = { ... }
-
-/// Root environment — the "Reader environment" for all application services
-type AppEnv =
-    { formulary    : IFormularyPort
-      orderContext : IOrderContextPort
-      orderPlan    : IOrderPlanPort
-      nutritionPlan: INutritionPlanPort }
-```
-
-The `ApplicationService.processCommand` function then takes `AppEnv` instead of `provider + logger`:
-
-```fsharp
-let processCommand (env: AppEnv) (cmd: Command) : Async<Result<Response, string[]>>
-```
-
-**Risk**: Medium — changes the signature of the command processor.
-**Benefit**: Clear seam for testing; no concrete infrastructure in application code.
-
-### Phase 3 — Wire via a single Composition Root
-
-Create `Server/CompositionRoot.fs` (or extend `Server.fs`) that:
-
-1. Creates `provider` (already done in `Server.fs`).
-2. Creates a `Logger` (currently recreated per-command in `Command.processCmd`).
-3. Creates the concrete adapters (`makeOrderContextPort`, etc.).
-4. Assembles `AppEnv`.
-5. Creates `IServerApi` using `AppEnv`.
-
-```fsharp
-// CompositionRoot.fs
-let compose (dataUrlId: string) : IServerApi =
-    let logger   = resolveLogger ()
-    let provider = GenForm.Lib.Api.getCachedProviderWithDataUrlId logger dataUrlId
-    let env      = Adapters.makeAppEnv provider logger
-    { processCommand = ApplicationService.processCommand env
-      testApi        = fun () -> async { return "Hello world!" } }
-```
-
-**Risk**: Low — isolates wiring; reduces hidden coupling.
-**Benefit**: Single place to read the dependency graph; easier onboarding.
-
-### Phase 4 — Improve test coverage with stub adapters
-
-With `AppEnv` in place, any application-layer test can build a minimal stub environment:
-
-```fsharp
-let stubEnv returnCtx =
-    { orderContext  = { evaluate = fun _cmd _ctx -> async { return Ok returnCtx } }
-      formulary     = { getDoseRules = fun _ -> failwith "not stubbed"
-                        getParenteralia = fun _ -> failwith "not stubbed" }
-      orderPlan     = { ... }
-      nutritionPlan = { ... } }
-
-testAsync "order context command returns Ok" {
-    let env    = stubEnv someContext
-    let cmd    = OrderContextCmd (UpdateOrderContext, someContext)
-    let! resp  = ApplicationService.processCommand env cmd
-    resp |> Expect.isOk "should succeed"
-}
-```
-
-**Risk**: None — additive only.
-**Benefit**: Fast, isolated application-layer tests with no I/O or resource loading.
+**Risk**: Low — each step is a pure refactoring (move code, keep behaviour).
+**Benefit**: Each bounded context can be reviewed, tested, and evolved independently.
 
 ---
 
-## What to Leave Alone
+## Testing with Stub Adapters
+
+With `AppEnv` in place, any application-layer test can build a minimal stub environment — no `IResourceProvider`, no network, no Google Sheets:
+
+```fsharp
+let stubEnv: AppEnv =
+    {
+        formulary =
+            { getFormulary    = fun form -> async { return Ok { form with Markdown = "stubbed" } }
+              getParenteralia = fun par  -> async { return Ok par } }
+
+        orderContext =
+            { evaluate = fun _cmd ctx -> async { return Ok ctx } }
+
+        orderPlan =
+            { updateOrderPlan = fun tp _   -> async { return Ok tp }
+              filterOrderPlan = fun tp     -> async { return Ok tp } }
+
+        nutritionPlan =
+            { initNutritionPlan             = fun pat  -> async { return Ok (NutritionPlan.create pat [||]) }
+              addNutritionContext            = fun (p,_)-> async { return Ok p }
+              removeNutritionContext         = fun (p,_)-> async { return Ok p }
+              updateNutritionOrderContext    = fun (p,_,_) -> async { return Ok p }
+              selectNutritionOrderScenario   = fun (p,_,_) -> async { return Ok p }
+              navigateNutritionOrderContext  = fun (p,_,_,_) -> async { return Ok p } }
+
+        interaction =
+            { checkInteractions = fun _ -> async { return Ok [] }
+              getDrugNames       = fun () -> async { return Ok [] } }
+
+        requireLoaded = fun () -> None
+    }
+```
+
+The `requireLoaded` guard can be tested independently:
+
+```fsharp
+let notLoadedEnv = { stubEnv with requireLoaded = fun () -> Some [| "resources not ready" |] }
+// Any command (except GetDrugNames) should return Error
+```
+
+A working demonstration is in `src/Informedica.GenPRES.Server/Scripts/CleanArchitecture.fsx`.
+
+---
+
+## What Remains Unchanged
 
 | Area | Reason |
 |---|---|
-| `IResourceProvider` | Already a good port; well-tested; do not replace |
-| Domain libraries (`GenOrder`, `GenForm`, `GenSolver`) | Already pure; no changes needed |
-| `IServerApi` / `Shared.Api` | Clean presentation boundary; no changes needed |
-| Client-side Elmish MVU | Out of scope; this investigation focuses on the server |
-| `ResourceConfig` record-of-functions | Already Tagless Final style; a model to follow |
+| `IResourceProvider` | Good port; well-tested; used only inside adapters |
+| Domain libraries (`GenOrder`, `GenForm`, `GenSolver`) | Already pure; no changes planned |
+| `IServerApi` / `Shared.Api` | Clean presentation boundary via Fable.Remoting; no changes |
+| Client-side Elmish MVU | Out of scope |
+| `ResourceConfig` record-of-functions | Already Tagless Final style; model for the ports |
 
 ---
 
-## Architecture Gap Table
+## Architecture Status Table
 
-| Layer | Current | Clean Safe Architecture target |
-|---|---|---|
-| Presentation | `IServerApi` (Remoting) | unchanged |
-| Application | `ServerApi.fs` — 1 file, 1 400 lines | split into 3–4 focused files |
-| Ports | `IResourceProvider` only | `IResourceProvider` + 4 application-level ports |
-| Composition Root | implicit in `Server.fs` | explicit `CompositionRoot.fs` |
-| Domain | `GenOrder`/`GenForm` (mostly pure) | unchanged |
-| Infrastructure | `ResourceProvider`/`CachedResourceProvider` | + narrow `Adapters` module |
-| Testability | requires full `IResourceProvider` | stub `AppEnv` for unit tests |
+| Layer | Before migration | After migration (current) | Next step |
+|---|---|---|---|
+| Presentation | `IServerApi` (Remoting) | unchanged | unchanged |
+| Application entry | `ServerApi.fs` — 1 400 lines | `ServerApi.ApiImpl.fs` — 1 line | unchanged |
+| Command Router | buried in `ServerApi.fs` | `ServerApi.Command.fs` | move per-slice as slices are extracted |
+| Ports | none (only `IResourceProvider`) | `ServerApi.Ports.fs` — 5 port records + `AppEnv` | move into slice folders |
+| Direct Adapters | inline in `ServerApi.fs` | `ServerApi.Adapters.fs` | move into slice folders |
+| Agent Adapters | none | `ServerApi.AgentAdapters.fs` — one agent per bounded context | move into slice folders |
+| Application Services | inline in `ServerApi.fs` | `ServerApi.Services.fs` | move into slice folders |
+| Mappers | inline in `ServerApi.fs` | `ServerApi.Mappers.fs` | unchanged or per-slice |
+| Composition Root | implicit in `Server.fs` | `ServerApi.CompositionRoot.fs` | unchanged |
+| Domain | `GenOrder`/`GenForm` (pure) | unchanged | unchanged |
+| Infrastructure | `ResourceProvider`/`CachedResourceProvider` | unchanged | unchanged |
+| Testability | requires full `IResourceProvider` | stub `AppEnv` for unit tests | per-slice stub records |
 
 ---
 
-## Prototype
+## Demonstration Script
 
-A working prototype of the patterns described in this document is provided in:
+A working demonstration of the implemented architecture is in:
 
 ```
 src/Informedica.GenPRES.Server/Scripts/CleanArchitecture.fsx
 ```
 
-The script demonstrates:
+The script:
 
-1. Current architecture observations (Section 1)
-2. Tagless Final record-of-functions encoding (Section 2)
-3. Proposed `AppEnv` port types (Section 3)
-4. `ApplicationService.processCommand` coded against `AppEnv` (Section 4)
-5. Concrete adapters wiring `AppEnv` from `IResourceProvider` (Section 5)
-6. Stub adapters for unit testing (Section 6)
-7. Phased migration plan (Section 7)
-8. Summary gap table (Section 8)
+1. Verifies that all port types resolve from the compiled server DLLs.
+2. Builds a full stub `AppEnv` with no I/O.
+3. Routes `FormularyCmd`, `OrderContextCmd`, and `NutritionPlanCmd` through `Command.processCmd` using the stubs.
+4. Tests the `requireLoaded` guard.
+5. Tests error propagation from a failing port.
 
-The prototype uses `#load "load.fsx"` to bring in the compiled domain DLLs and existing `ServerApi.fs` modules, so all type signatures compile against the actual codebase types.
+Run it with:
+
+```bash
+cd src/Informedica.GenPRES.Server/Scripts
+dotnet fsi CleanArchitecture.fsx
+```
