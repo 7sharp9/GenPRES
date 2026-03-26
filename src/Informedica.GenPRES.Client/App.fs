@@ -26,7 +26,7 @@ module private Elmish =
             ContinuousMedication: Deferred<ContinuousMedication list>
             Products: Deferred<Product list>
             OrderContext: Deferred<OrderContext>
-            TreatmentPlan: Deferred<OrderPlan>
+            OrderPlan: Deferred<OrderPlan>
             Interactions: Deferred<DrugInteraction[]>
             InteractionDrugNames: Deferred<string[]>
             DrugNameRetries: int
@@ -64,7 +64,7 @@ module private Elmish =
         | OrderContextMsg of Api.OrderContextCommand * OrderContext
         | LoadOrderContextResult of Api.OrderContextCommand * ApiResponse
 
-        | TreatmentPlanMsg of Api.OrderPlanCommand
+        | OrderPlanMsg of Api.OrderPlanCommand
         | LoadOrderPlanResult of Api.OrderPlanCommand * ApiResponse
 
         | NutritionPlanMsg of Api.NutritionPlanCommand
@@ -130,7 +130,7 @@ module private Elmish =
                 else
                     Cmd.none
 
-            { state with TreatmentPlan = Resolved tp }, cmd
+            { state with OrderPlan = Resolved tp }, cmd
         | Api.FormularyResp form -> { state with Formulary = Resolved form }, Cmd.none
         | Api.ParenteraliaResp par -> { state with Parenteralia = Resolved par }, Cmd.none
         | Api.NutritionPlanResp(Api.NutritionPlanInitialised plan)
@@ -158,7 +158,7 @@ module private Elmish =
         Api.OrderContextCmd >> createApiMsg resp
 
 
-    let loadTreatmentPlan resp = Api.OrderPlanCmd >> createApiMsg resp
+    let loadOrderPlan resp = Api.OrderPlanCmd >> createApiMsg resp
 
 
     let loadFormuarly = Api.FormularyCmd >> createApiMsg LoadFormulary
@@ -350,7 +350,7 @@ module private Elmish =
                     OrderContext.empty
                     |> OrderContext.setMedication m.indication m.medication m.route m.form m.dosetype
                     |> Resolved
-            TreatmentPlan =
+            OrderPlan =
                 match pat with
                 | None -> HasNotStartedYet
                 | Some p -> OrderPlan.create p [||] |> Resolved
@@ -548,13 +548,13 @@ module private Elmish =
                         | _ -> OrderContext.empty
                         |> OrderContext.setPatient p
                         |> Resolved
-                TreatmentPlan =
+                OrderPlan =
                     match pat with
                     | None -> HasNotStartedYet
                     | Some p ->
                         let tp = OrderPlan.create p [||]
 
-                        state.TreatmentPlan
+                        state.OrderPlan
                         |> Deferred.map (fun tp -> { tp with Patient = p })
                         |> Deferred.defaultValue tp
                         |> Resolved
@@ -594,7 +594,8 @@ module private Elmish =
                             ctx
                             |> OrderContext.setMedication m.indication m.medication m.route m.form m.dosetype
                             |> Resolved
-                Context = { state.Context with Localization = lang |> Option.defaultValue Localization.English }
+                // State. prefix needed: disambiguates State.Context field from Global.Context type
+                State.Context.Localization = lang |> Option.defaultValue Localization.English
             },
             Cmd.ofMsg (pat |> UpdatePatient)
 
@@ -753,30 +754,32 @@ module private Elmish =
             ({ state with OrderContext = HasNotStartedYet }, Cmd.none) |> processError err
 
 
-        | TreatmentPlanMsg tpCmd ->
+        | OrderPlanMsg tpCmd ->
             match tpCmd with
             | Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)) ->
-                match state.TreatmentPlan with
+                match state.OrderPlan with
                 | InProgress
                 | Recalculating _ -> state, Cmd.none
                 | _ ->
-                    { state with TreatmentPlan = Recalculating tp },
+                    { state with OrderPlan = Recalculating tp },
                     Api.OrderPlanCmd(Api.UpdateOrderPlan(tp, Some(ctxCmd, ctx)))
                     |> createApiMsg (fun resp -> LoadOrderPlanResult(tpCmd, resp))
             | Api.UpdateOrderPlan(tp, None) ->
                 let onlySetOrderContext =
-                    state.TreatmentPlan
+                    state.OrderPlan
                     |> Deferred.map (fun st -> st.Selected.IsNone && tp.Selected.IsSome)
                     |> Deferred.defaultValue false
 
                 let tpState =
-                    match state.TreatmentPlan with
+                    match state.OrderPlan with
                     | Recalculating _ -> Recalculating tp
                     | _ -> Resolved tp
 
+                // CheckInteractions is dispatched by processApiMsg when the API response
+                // arrives, so we don't duplicate it here.
                 let cmd =
-                    if state.Page = TreatmentPlan then
-                        match state.TreatmentPlan with
+                    if state.Page = OrderPlan then
+                        match state.OrderPlan with
                         | Recalculating _ -> Cmd.none
                         | _ ->
                             if onlySetOrderContext then
@@ -791,18 +794,18 @@ module private Elmish =
                             ]
 
                 { state with
-                    Page = TreatmentPlan
-                    TreatmentPlan = tpState
+                    Page = OrderPlan
+                    OrderPlan = tpState
                 },
                 cmd
             | Api.FilterOrderPlan tp ->
-                { state with TreatmentPlan = Resolved tp }, Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
+                { state with OrderPlan = Resolved tp }, Cmd.ofMsg (LoadOrderPlanResult(tpCmd, Started))
 
         | LoadOrderPlanResult(cmd, Started) ->
             match state.Patient with
-            | None -> { state with TreatmentPlan = HasNotStartedYet }, Cmd.none
+            | None -> { state with OrderPlan = HasNotStartedYet }, Cmd.none
             | Some pat ->
-                match state.TreatmentPlan with
+                match state.OrderPlan with
                 | InProgress
                 | Recalculating _ -> state, Cmd.none
                 | HasNotStartedYet ->
@@ -811,20 +814,20 @@ module private Elmish =
                         | Api.FilterOrderPlan _ -> Api.FilterOrderPlan(OrderPlan.create pat [||])
                         | Api.UpdateOrderPlan(_, ctxOpt) -> Api.UpdateOrderPlan(OrderPlan.create pat [||], ctxOpt)
 
-                    { state with TreatmentPlan = InProgress },
-                    apiCmd |> loadTreatmentPlan (fun resp -> LoadOrderPlanResult(cmd, resp))
+                    { state with OrderPlan = InProgress },
+                    apiCmd |> loadOrderPlan (fun resp -> LoadOrderPlanResult(cmd, resp))
                 | Resolved tp ->
                     let apiCmd =
                         match cmd with
                         | Api.FilterOrderPlan _ -> Api.FilterOrderPlan tp
                         | Api.UpdateOrderPlan(_, ctxOpt) -> Api.UpdateOrderPlan(tp, ctxOpt)
 
-                    { state with TreatmentPlan = InProgress },
-                    apiCmd |> loadTreatmentPlan (fun resp -> LoadOrderPlanResult(cmd, resp))
+                    { state with OrderPlan = InProgress },
+                    apiCmd |> loadOrderPlan (fun resp -> LoadOrderPlanResult(cmd, resp))
 
         | LoadOrderPlanResult(_, Finished(Ok msg)) -> msg |> processOk
         | LoadOrderPlanResult(_, Finished(Error err)) ->
-            ({ state with TreatmentPlan = HasNotStartedYet }, Cmd.none) |> processError err
+            ({ state with OrderPlan = HasNotStartedYet }, Cmd.none) |> processError err
 
         | NutritionPlanMsg npCmd ->
             let planState =
@@ -927,7 +930,12 @@ module private Elmish =
 
         | CheckInteractions drugs ->
             if drugs.Length < 2 then
-                { state with Interactions = HasNotStartedYet }, Cmd.none
+                { state with
+                    Interactions = HasNotStartedYet
+                    SnackbarMsg = ""
+                    SnackbarOpen = false
+                },
+                Cmd.none
             else
                 { state with Interactions = InProgress },
                 Api.InteractionCmd(Api.CheckInteractions drugs)
@@ -997,9 +1005,9 @@ type private ConcreteAppEnv
         member _.OrderContext = state.OrderContext
         member _.OrderContextMsg(cmd, ctx) = OrderContextMsg(cmd, ctx) |> dispatch
 
-    interface AppEnv.ITreatmentPlan with
-        member _.TreatmentPlan = state.TreatmentPlan
-        member _.TreatmentPlanCommand cmd = TreatmentPlanMsg cmd |> dispatch
+    interface AppEnv.IOrderPlan with
+        member _.OrderPlan = state.OrderPlan
+        member _.OrderPlanCommand cmd = OrderPlanMsg cmd |> dispatch
 
     interface AppEnv.INutritionPlan with
         member _.NutritionPlan = state.NutritionPlan

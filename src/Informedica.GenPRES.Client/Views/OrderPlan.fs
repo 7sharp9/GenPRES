@@ -1,7 +1,7 @@
 namespace Views
 
 
-module TreatmentPlan =
+module OrderPlan =
 
 
     open Fable.Core
@@ -13,20 +13,20 @@ module TreatmentPlan =
 
     [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
-        let envTreatmentPlan = AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv
-        let treatmentPlan = envTreatmentPlan.TreatmentPlan
-        let treatmentPlanCommand = envTreatmentPlan.TreatmentPlanCommand
+        let envOrderPlan = AppEnv.asEnv<AppEnv.IOrderPlan> props.appEnv
+        let orderPlan = envOrderPlan.OrderPlan
+        let orderPlanCommand = envOrderPlan.OrderPlanCommand
 
-        let updateTreatmentPlan tp =
-            treatmentPlanCommand (Api.UpdateOrderPlan(tp, None))
+        let updateOrderPlan tp =
+            orderPlanCommand (Api.UpdateOrderPlan(tp, None))
 
-        let filterTreatmentPlan tp =
-            treatmentPlanCommand (Api.FilterOrderPlan tp)
+        let filterOrderPlan tp =
+            orderPlanCommand (Api.FilterOrderPlan tp)
 
         let orderContextMsg (cmd, ctx) =
-            match treatmentPlan with
+            match orderPlan with
             | Resolved tp
-            | Recalculating tp -> treatmentPlanCommand (Api.UpdateOrderPlan(tp, Some(cmd, ctx)))
+            | Recalculating tp -> orderPlanCommand (Api.UpdateOrderPlan(tp, Some(cmd, ctx)))
             | _ -> ()
 
         let localizationTerms =
@@ -38,16 +38,16 @@ module TreatmentPlan =
         // Derive modal visibility from Elmish state — if an order is selected, the modal is open.
         // This avoids duplicating tp.Selected.IsSome in local React state.
         let modalOpen =
-            match treatmentPlan with
+            match orderPlan with
             | Resolved tp
             | Recalculating tp -> tp.Selected.IsSome
             | _ -> false
 
         let handleModalClose =
             fun () ->
-                match treatmentPlan with
+                match orderPlan with
                 | Resolved tp
-                | Recalculating tp -> { tp with Selected = None } |> updateTreatmentPlan
+                | Recalculating tp -> { tp with Selected = None } |> updateOrderPlan
                 | _ -> ()
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
@@ -134,7 +134,7 @@ module TreatmentPlan =
                 )
                 |> String.concat ""
 
-            match treatmentPlan with
+            match orderPlan with
             | Resolved tp
             | Recalculating tp ->
                 tp.Scenarios
@@ -248,7 +248,7 @@ module TreatmentPlan =
         let modalStyle = ViewHelpers.modalStyle
 
         let selectOrder id =
-            match treatmentPlan with
+            match orderPlan with
             | Resolved tp
             | Recalculating tp ->
                 tp.Scenarios
@@ -262,11 +262,11 @@ module TreatmentPlan =
                             Filtered = [||]
                             Selected = Some sc
                         }
-                        |> updateTreatmentPlan
+                        |> updateOrderPlan
             | _ -> ()
 
         let filterOrders ids =
-            match treatmentPlan with
+            match orderPlan with
             | Resolved tp
             | Recalculating tp ->
                 { tp with
@@ -278,18 +278,18 @@ module TreatmentPlan =
                             tp.Scenarios
                             |> Array.filter (fun os -> os.Order |> _.Id |> (fun id -> ids |> Array.exists ((=) id)))
                 }
-                |> filterTreatmentPlan
+                |> filterOrderPlan
             | _ -> ()
 
         let selectedRows =
-            match treatmentPlan with
+            match orderPlan with
             | Resolved tp
             | Recalculating tp -> tp.Filtered |> Array.map _.Order |> Array.map _.Id
             | _ -> [||]
 
         let onDelete =
             fun () ->
-                match treatmentPlan with
+                match orderPlan with
                 | Resolved tp
                 | Recalculating tp ->
                     { tp with
@@ -298,7 +298,7 @@ module TreatmentPlan =
                             |> Array.filter (fun sc -> tp.Filtered |> Array.exists ((=) sc) |> not)
 
                     }
-                    |> updateTreatmentPlan
+                    |> updateOrderPlan
                 | _ -> ()
 
         let updateOrderScenario (ctx: OrderContext) =
@@ -345,7 +345,7 @@ module TreatmentPlan =
             |}
 
         let orderContext =
-            match treatmentPlan with
+            match orderPlan with
             | Resolved tp ->
                 tp.Selected
                 |> Option.map (fun sc -> OrderContext.fromOrderScenario tp.Patient sc |> Resolved)
@@ -357,7 +357,7 @@ module TreatmentPlan =
             | _ -> HasNotStartedYet
 
         let deleteBtn =
-            match treatmentPlan with
+            match orderPlan with
             | Resolved tp
             | Recalculating tp when tp.Filtered |> Array.length > 0 ->
                 JSX.jsx
@@ -379,7 +379,7 @@ module TreatmentPlan =
                     columns = columns
                     rows = rows
                     rowCreate = rowCreate
-                    height = "50vh"
+                    height = "calc(100vh - 240px)"
                     onRowClick = selectOrder
                     checkboxSelection = true
                     selectedRows = selectedRows

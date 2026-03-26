@@ -12,12 +12,12 @@ module SelectableList =
         (props:
             {|
                 updateSelected: string -> unit
-                items: (JSX.Element option * string * bool)[]
+                items: (JSX.Element option * string * bool * string option)[]
             |})
         =
         let items =
             props.items
-            |> Array.mapi (fun i (el, text, selected) ->
+            |> Array.mapi (fun i (el, text, selected, bgColor) ->
                 let icon =
                     match el with
                     | None -> null
@@ -28,6 +28,11 @@ module SelectableList =
                         <ListItemIcon>{el}</ListItemIcon>
                         """
 
+                let sxListItem =
+                    match bgColor with
+                    | Some color -> {| backgroundColor = color |}
+                    | None -> {| backgroundColor = "inherit" |}
+
                 JSX.jsx
                     $"""
                 import React from 'react';
@@ -37,7 +42,7 @@ module SelectableList =
                 import ListItemText from '@mui/material/ListItemText';
 
                 <React.Fragment key={i} >
-                    <ListItem value={text} >
+                    <ListItem value={text} sx={sxListItem} >
                         {icon}
                         <ListItemButton selected={selected} onClick={fun _ -> text |> props.updateSelected}>
                         <ListItemText primary={text} />

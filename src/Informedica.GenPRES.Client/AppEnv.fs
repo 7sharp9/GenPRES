@@ -21,11 +21,11 @@ type IOrderContext =
     abstract OrderContextMsg: Api.OrderContextCommand * OrderContext -> unit
 
 
-/// Treatment plan data and commands
+/// Order plan data and commands
 [<Interface>]
-type ITreatmentPlan =
-    abstract TreatmentPlan: Deferred<OrderPlan>
-    abstract TreatmentPlanCommand: Api.OrderPlanCommand -> unit
+type IOrderPlan =
+    abstract OrderPlan: Deferred<OrderPlan>
+    abstract OrderPlanCommand: Api.OrderPlanCommand -> unit
 
 
 /// Nutrition plan data and commands

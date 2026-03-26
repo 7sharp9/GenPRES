@@ -25,12 +25,12 @@ module Prescribe =
         let envOrderContext = AppEnv.asEnv<AppEnv.IOrderContext> props.appEnv
         let orderContext = envOrderContext.OrderContext
         let orderContextMsg = envOrderContext.OrderContextMsg
-        let envTreatmentPlan = AppEnv.asEnv<AppEnv.ITreatmentPlan> props.appEnv
-        let treatmentPlan = envTreatmentPlan.TreatmentPlan
-        let treatmentPlanCommand = envTreatmentPlan.TreatmentPlanCommand
+        let envOrderPlan = AppEnv.asEnv<AppEnv.IOrderPlan> props.appEnv
+        let orderPlan = envOrderPlan.OrderPlan
+        let orderPlanCommand = envOrderPlan.OrderPlanCommand
 
-        let updateTreatmentPlan tp =
-            treatmentPlanCommand (Api.UpdateOrderPlan(tp, None))
+        let updateOrderPlan tp =
+            orderPlanCommand (Api.UpdateOrderPlan(tp, None))
 
         let localizationTerms =
             (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
@@ -170,11 +170,9 @@ module Prescribe =
 
                     orderContextMsg (Api.SelectOrderScenario, ctx)
 
-                let appendScenarioToTreatmentPlan () =
-                    match treatmentPlan with
-                    | Resolved tp ->
-                        { tp with Scenarios = [| sc |] |> Array.append tp.Scenarios }
-                        |> updateTreatmentPlan
+                let appendScenarioToOrderPlan () =
+                    match orderPlan with
+                    | Resolved tp -> { tp with Scenarios = [| sc |] |> Array.append tp.Scenarios } |> updateOrderPlan
                     | _ -> ()
 
                 let item key icon prim (sec: TextBlock[][]) =
@@ -305,7 +303,7 @@ module Prescribe =
                             <Button
                                 size="small"
                                 disabled={isAnythingLoading}
-                                onClick={appendScenarioToTreatmentPlan}
+                                onClick={appendScenarioToOrderPlan}
                                 startIcon={Mui.Icons.Add}
                             >Voorschrijven</Button>
                         </CardActions>
