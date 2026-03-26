@@ -216,15 +216,14 @@ let compose (provider: IResourceProvider) : IServerApi =
         processCommand =
             fun cmd ->
                 async {
-                    try
-                        writeInfoMessage $"Processing command: {cmd |> Command.toString}"
-                        let! result = Command.processCmd env cmd
-                        writeInfoMessage $"Finished processing: {cmd |> Command.toString}"
-                        return result
-                    with ex ->
-                        writeErrorMessage $"Error: {ex}"
-                        return Error [| ex.Message |]
-                }
+                        try
+                            writeInfoMessage $"Processing command: {cmd |> Shared.Api.Command.toString}"
+                            let! result = Command.processCmd env cmd
+                            writeInfoMessage $"Finished processing command: {cmd |> Shared.Api.Command.toString}"
+                            return result
+                        with ex ->
+                            writeErrorMessage $"Error processing command: {cmd |> Shared.Api.Command.toString}\n{ex}"
+                            return Error [| ex.Message |]
         testApi = fun () -> async { return "Hello world!" }
     }
 ```
