@@ -16,7 +16,7 @@ height, or add their own padding/height compensation.
 Understanding what already exists prevents duplicating work in Steps 2–4:
 
 ```
-React.Fragment
+React.Fragment                                    ← root (cannot take sx styles)
   Box (TitleBar → AppBar position="static", ~64px tall)
   React.Fragment (SideMenu)
   Box (marginLeft for sidebar: 0px mobile / 240px desktop)
@@ -31,6 +31,7 @@ React.Fragment
                 → on mobile: returns <React.Fragment />  (no totals shown)
                 → on desktop: Components.BottomDrawer.View (isOpen = true, …)
                     → <Drawer anchor="bottom" variant="persistent"> ← position: fixed!
+  Modal (position: fixed — unaffected by layout)
 ```
 
 The 88px in `calc(100vh - 88px)` equals AppBar Toolbar height (≈ 64 px) plus `marginTop = 3`
@@ -61,22 +62,45 @@ more `position: fixed` overlay.
 
 **File**: `src/Informedica.GenPRES.Client/Pages/GenPres.fs`
 
-The outer `Box` that applies `marginLeft` for the sidebar is not currently a flex container, so
-`flex: 1` on its child Container won't work without also making the `Box` flex. The full chain
-that needs updating:
+**Important**: the `marginLeft` Box is a **sibling** of the AppBar Box inside the root
+`<React.Fragment>`. Setting `height: 100vh` on it would make the document
+`AppBar height (~64 px) + 100vh` tall, which is 64 px taller than the viewport. The browser then
+adds a window-level scrollbar for those 64 extra pixels — exactly the double-scrollbar problem
+the plan aims to eliminate.
 
-- Add `display: flex`, `flexDirection: column`, `height: 100vh`, `overflow: hidden` to the
-  **outer** `Box` (the one that applies `marginLeft` for the sidebar). The `overflow: hidden` is
-  necessary to prevent flex children from creating a double scrollbar alongside the page-box.
+The correct fix is to establish the viewport-height constraint at the **root element**:
+
+- Replace the root `<React.Fragment>` in the JSX return value with a `<Box>` that has
+  `height: 100vh`, `display: flex`, `flexDirection: column`, `overflow: hidden`.
+  This constrains the entire page — AppBar, sidebar-content Box, and Modal — to the viewport.
+  (The `<Modal>` uses `position: fixed` internally so it is unaffected by the flex layout.)
+- The TitleBar `<Box>` remains as-is; it takes its natural ~64 px height as the first flex item.
+- The `marginLeft` `<Box>` gets `flex: 1` and `overflow: hidden` (not `height: 100vh`). This
+  causes it to fill the remaining viewport height after the AppBar, completing the flex chain.
 - Replace `sxContainer` (`height = "calc(100vh - 88px)"`, `marginTop = 3`) with
   `flex: 1`, `minHeight: 0`, `display: flex`, `flexDirection: column`.
-  The `marginTop = 3` can be removed because the AppBar is `position: static` and already
-  occupies space in document flow — the flex chain handles vertical placement automatically.
+  The `marginTop = 3` can be removed because the AppBar is already in the flex flow and occupies
+  its natural height — no manual offset is needed.
 - Make `sxPageBox.overflowY = "auto"` **unconditional** for all pages (remove the per-page
   match). This also correctly enables scrolling for pages that currently fall into the
   `"hidden"` branch on desktop (e.g., EmergencyList, Settings).
-- The totals `Box` stays as-is — it is now inline flex content and takes its natural height,
+- The totals `Box` stays as-is — it is now an inline flex item that takes its natural height,
   causing `page-box` (with `flexGrow = 1`) to shrink accordingly.
+
+The resulting layout chain after the change:
+
+```
+Box (height: 100vh, display: flex, flexDirection: column, overflow: hidden)  ← root, replaces React.Fragment
+  Box (TitleBar/AppBar, natural ~64px)
+  React.Fragment (SideMenu — position: fixed drawer, unaffected)
+  Box (marginLeft, flex: 1, overflow: hidden)                                 ← was: no flex
+    Container (flex: 1, minHeight: 0, display: flex, flexDirection: column)   ← was: calc height
+      Stack (height: 100%)
+        patientBox
+        page-box (flexGrow: 1, minHeight: 0, overflowY: auto unconditional)
+        totalsBox (natural height, inline flex item)
+  Modal (position: fixed — unaffected)
+```
 
 ### Step 3: Remove per-view paddingBottom workarounds
 
@@ -135,7 +159,7 @@ continue to work independently.
 | File | Change |
 |------|--------|
 | `Components/BottomDrawer.fs` | Replace MUI `<Drawer>` with inline `<Box>`; return null when `isOpen` is false |
-| `Pages/GenPres.fs` | Outer Box: add flex column + height 100vh + overflow hidden; Container: flex 1 + minHeight 0; remove marginTop 3; unconditional overflowY auto on page-box |
+| `Pages/GenPres.fs` | Replace root `<React.Fragment>` with `<Box height:100vh flex column overflow:hidden>`; marginLeft Box: add `flex:1 overflow:hidden`; Container: flex 1 + minHeight 0; remove marginTop 3; unconditional overflowY auto on page-box |
 | `Views/OrderPlan.fs` | Remove paddingBottom; check and remove `isMobile` hook if now unused |
 | `Views/Prescribe.fs` | Remove paddingBottom only (keep `isMobile` — used elsewhere) |
 | `Views/Nutrition.fs` | Remove paddingBottom only (keep `isMobile` — used elsewhere) |
