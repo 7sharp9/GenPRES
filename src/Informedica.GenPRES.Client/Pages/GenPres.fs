@@ -45,7 +45,7 @@ module GenPres =
             ]
 
 
-        let init lang terms page : State * Cmd<Msg> =
+        let init lang terms page isMobile : State * Cmd<Msg> =
             let state =
                 {
                     SideMenuItems =
@@ -67,7 +67,7 @@ module GenPres =
                             | s -> None, s, b, None
                         )
 
-                    SideMenuIsOpen = true
+                    SideMenuIsOpen = not isMobile
                     Configuration = None
                 }
 
@@ -144,7 +144,7 @@ module GenPres =
 
         let state, dispatch =
             React.useElmish (
-                init lang localizationTerms props.page,
+                init lang localizationTerms props.page isMobile,
                 (fun msg state -> update lang localizationTerms updatePageRef.current msg state),
                 deps
             )
@@ -247,24 +247,24 @@ module GenPres =
             | Global.Pages.Parenteralia -> Views.Parenteralia.View appEnvProps
             | Global.Pages.Settings -> Views.Settings.View appEnvProps
 
-        let totalsView =
+        let totalsContent =
             match props.page with
             | Global.Pages.Prescribe ->
                 match orderContext with
                 | Resolved pr
-                | Recalculating pr -> Views.Totals.View {| intake = pr.Intake |}
-                | _ -> Unchecked.defaultof<JSX.Element>
+                | Recalculating pr -> Views.Totals.View {| intake = pr.Intake |} |> Some
+                | _ -> None
             | Global.Pages.Nutrition ->
                 match nutritionPlan with
                 | Resolved np
-                | Recalculating np -> Views.Totals.View {| intake = np.Totals |}
-                | _ -> Unchecked.defaultof<JSX.Element>
+                | Recalculating np -> Views.Totals.View {| intake = np.Totals |} |> Some
+                | _ -> None
             | Global.Pages.OrderPlan ->
                 match orderPlan with
                 | Resolved tp
-                | Recalculating tp -> Views.Totals.View {| intake = tp.Totals |}
-                | _ -> Unchecked.defaultof<JSX.Element>
-            | _ -> Unchecked.defaultof<JSX.Element>
+                | Recalculating tp -> Views.Totals.View {| intake = tp.Totals |} |> Some
+                | _ -> None
+            | _ -> None
 
         let disclaimerView =
             Views.Disclaimer.View
@@ -332,6 +332,21 @@ module GenPres =
                 marginTop = 2
             |}
 
+        let totalsView =
+            match totalsContent with
+            | Some content ->
+                JSX.jsx
+                    $"""
+                import Box from '@mui/material/Box';
+                import Container from '@mui/material/Container';
+                <Box sx={sxTotalsBar}>
+                    <Container>
+                        {content}
+                    </Container>
+                </Box>
+                """
+            | None -> Unchecked.defaultof<JSX.Element>
+
         let onCloseModal = fun () -> ()
 
         JSX.jsx
@@ -360,11 +375,7 @@ module GenPres =
                     </Stack>
                 </Container>
             </Box>
-            <Box sx={sxTotalsBar}>
-                <Container>
-                    {totalsView}
-                </Container>
-            </Box>
+            {totalsView}
             <Modal open={props.showDisclaimer} onClose={onCloseModal} >
                 <Box sx={modalStyle}>
                     {disclaimerView}

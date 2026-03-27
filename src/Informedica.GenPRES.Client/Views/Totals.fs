@@ -130,12 +130,7 @@ module Totals =
                     paddingBottom = 2
                 |}
 
-            let sxStack =
-                {|
-                    paddingTop = 2
-                    paddingBottom = 2
-                    justifyContent = "center"
-                |}
+            let sxStack = {| justifyContent = "center" |}
 
             JSX.jsx
                 $"""

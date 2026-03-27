@@ -35,7 +35,7 @@ let pageToString terms locale page =
     | OrderPlan -> Terms.``Treatment Plan`` |> getTerm
     | Formulary -> Terms.``Formulary`` |> getTerm
     | Parenteralia -> Terms.``Parenteralia`` |> getTerm
-    | Interactions -> getLocalizedTerm terms locale "Interacties" Terms.``Interactions``
+    | Interactions -> Terms.``Interactions`` |> getTerm
     | Settings -> "Instellingen"
 
 
