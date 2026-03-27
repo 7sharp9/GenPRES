@@ -190,7 +190,7 @@ module GenPres =
                 """
 
         let title =
-            let s = $"GenPRES 2023 {props.page |> Global.pageToString localizationTerms lang}"
+            let s = $"GenPRES {props.page |> Global.pageToString localizationTerms lang}"
 
             if props.isDemo then $"{s} - DEMO VERSION!" else s
 
