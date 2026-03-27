@@ -1609,7 +1609,7 @@ module Nutrition =
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <Box sx={ {| paddingBottom = (if isMobile then "16px" else "220px") |} }>
+        <Box>
             {content}
             {progress}
             {confirmDeleteDialog}

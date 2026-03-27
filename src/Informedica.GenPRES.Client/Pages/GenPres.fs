@@ -67,7 +67,7 @@ module GenPres =
                             | s -> None, s, b, None
                         )
 
-                    SideMenuIsOpen = false
+                    SideMenuIsOpen = true
                     Configuration = None
                 }
 
@@ -134,7 +134,13 @@ module GenPres =
         let updatePageRef = React.useRef props.updatePage
         updatePageRef.current <- props.updatePage
 
-        let deps = [| box props.page; box lang; box orderContext |]
+        let deps =
+            [|
+                box props.page
+                box lang
+                box localizationTerms
+                box orderContext
+            |]
 
         let state, dispatch =
             React.useElmish (
@@ -159,25 +165,17 @@ module GenPres =
             {|
                 marginTop = 3
                 paddingRight = 1
+                paddingBottom = 3
                 flexGrow = 1
                 minHeight = 0
-                overflowY =
-                    match props.page with
-                    | Global.Pages.Prescribe
-                    | Global.Pages.Nutrition
-                    | Global.Pages.OrderPlan
-                    | Global.Pages.Interactions
-                    | Global.Pages.Parenteralia
-                    | Global.Pages.Formulary -> "auto"
-                    | _ when not isMobile -> "hidden"
-                    | _ -> "auto"
+                overflowY = "auto"
             |}
 
         let appEnvProps = {| appEnv = props.appEnv |}
 
         let patientBox =
             match props.page with
-            | Global.Pages.Settings -> null
+            | Global.Pages.Settings -> Unchecked.defaultof<JSX.Element>
             | _ ->
                 let patView = Views.Patient.View appEnvProps
 
@@ -253,17 +251,20 @@ module GenPres =
             match props.page with
             | Global.Pages.Prescribe ->
                 match orderContext with
-                | Resolved pr -> Views.Totals.View {| intake = pr.Intake |}
-                | _ -> null
+                | Resolved pr
+                | Recalculating pr -> Views.Totals.View {| intake = pr.Intake |}
+                | _ -> Unchecked.defaultof<JSX.Element>
             | Global.Pages.Nutrition ->
                 match nutritionPlan with
-                | Resolved np -> Views.Totals.View {| intake = np.Totals |}
-                | _ -> null
+                | Resolved np
+                | Recalculating np -> Views.Totals.View {| intake = np.Totals |}
+                | _ -> Unchecked.defaultof<JSX.Element>
             | Global.Pages.OrderPlan ->
                 match orderPlan with
-                | Resolved tp -> Views.Totals.View {| intake = tp.Totals |}
-                | _ -> null
-            | _ -> null
+                | Resolved tp
+                | Recalculating tp -> Views.Totals.View {| intake = tp.Totals |}
+                | _ -> Unchecked.defaultof<JSX.Element>
+            | _ -> Unchecked.defaultof<JSX.Element>
 
         let disclaimerView =
             Views.Disclaimer.View
@@ -276,11 +277,60 @@ module GenPres =
 
         let sxContainer =
             {|
-                height = "calc(100vh - 88px)"
-                marginTop = 3
+                flex = 1
+                minHeight = 0
+                display = "flex"
+                flexDirection = "column"
+                paddingTop = 3
             |}
 
-        let sxStack = {| height = "100%" |}
+        let sxStack =
+            {|
+                flex = 1
+                minHeight = 0
+                display = "flex"
+                flexDirection = "column"
+            |}
+
+        let sxRoot =
+            {|
+                height = "100vh"
+                display = "flex"
+                flexDirection = "column"
+                overflow = "hidden"
+            |}
+
+        let sxTitleBarBox =
+            {|
+                flexShrink = 0
+                flexGrow = 0
+            |}
+
+        let sxSidebarMargin =
+            {|
+                marginLeft =
+                    if isMobile || not state.SideMenuIsOpen then
+                        "0px"
+                    else
+                        $"%i{Components.SideMenu.drawerWidth}px"
+            |}
+
+        let sxMarginBox =
+            {|
+                marginLeft = sxSidebarMargin.marginLeft
+                flex = 1
+                overflow = "hidden"
+                display = "flex"
+                flexDirection = "column"
+            |}
+
+        let sxTotalsBar =
+            {|
+                marginLeft = sxSidebarMargin.marginLeft
+                flexShrink = 0
+                bgcolor = Mui.Colors.Grey.``100``
+                marginTop = 2
+            |}
 
         let onCloseModal = fun () -> ()
 
@@ -295,30 +345,24 @@ module GenPres =
         import Typography from '@mui/material/Typography';
         import Modal from '@mui/material/Modal';
 
-        <React.Fragment>
-            <Box>
+        <Box sx={sxRoot}>
+            <Box sx={sxTitleBarBox}>
                 {titleBar}
             </Box>
-            <React.Fragment>
-                {sideMenu}
-            </React.Fragment>
-            <Box sx={ {|
-                          marginLeft =
-                              (if isMobile then
-                                   "0px"
-                               else
-                                   $"%i{Components.SideMenu.drawerWidth}px")
-                      |} }>
+            {sideMenu}
+            <Box sx={sxMarginBox}>
                 <Container id="page-container" sx={sxContainer} >
                     <Stack sx={sxStack}>
                         {patientBox}
                         <Box id="page-box" sx={sxPageBox}>
                             {pageView}
                         </Box>
-                        <Box>
-                            {totalsView}
-                        </Box>
                     </Stack>
+                </Container>
+            </Box>
+            <Box sx={sxTotalsBar}>
+                <Container>
+                    {totalsView}
                 </Container>
             </Box>
             <Modal open={props.showDisclaimer} onClose={onCloseModal} >
@@ -326,6 +370,5 @@ module GenPres =
                     {disclaimerView}
                 </Box>
             </Modal>
-
-        </React.Fragment>
+        </Box>
         """

@@ -316,7 +316,6 @@ module Interactions =
         let deleteLabel = Terms.``Delete`` |> getTerm "Verwijder"
         let onClickClear = fun _ -> ClearManualDrugs |> dispatch
 
-        let sxBox = {| overflowY = "auto" |}
         let sxTitle = {| fontSize = 14 |}
 
         let sxChips =
@@ -345,7 +344,7 @@ module Interactions =
         import Alert from '@mui/material/Alert';
         import Divider from '@mui/material/Divider';
 
-        <Box sx={sxBox}>
+        <Box>
             <Card>
                 <CardContent>
                     <Stack direction="column" spacing={3}>
