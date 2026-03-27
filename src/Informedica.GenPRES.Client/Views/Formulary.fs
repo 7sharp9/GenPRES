@@ -309,7 +309,7 @@ module Formulary =
         import Button from '@mui/material/Button';
         import Typography from '@mui/material/Typography';
 
-        <Box sx={ {| overflowY = "auto" |} }>
+        <Box>
                 {content}
                 {progress}
         </Box>

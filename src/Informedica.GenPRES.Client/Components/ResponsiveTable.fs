@@ -455,12 +455,20 @@ module ResponsiveTable =
                 $"""
             import {{ DataGrid }} from '@mui/x-data-grid';
 
-            <Box>
-                <Box sx={ {| marginBottom = 3 |} }>
+            <Box sx={ {|
+                          height = props.height
+                          display = "flex"
+                          flexDirection = "column"
+                      |} }>
+                <Box sx={ {|
+                              marginBottom = 3
+                              flexShrink = 0
+                          |} }>
                     {filter}
                 </Box>
                 <div style={ {|
-                                 height = props.height
+                                 flex = 1
+                                 minHeight = 0
                                  width = "100%"
                              |} }>
                     <DataGrid

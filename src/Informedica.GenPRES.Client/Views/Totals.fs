@@ -122,14 +122,23 @@ module Totals =
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         if isMobile then
+            Unchecked.defaultof<JSX.Element>
+        else
+            let sxBox =
+                {|
+                    paddingTop = 2
+                    paddingBottom = 2
+                |}
+
+            let sxStack = {| justifyContent = "center" |}
+
             JSX.jsx
                 $"""
-            import React from 'react';
-            <React.Fragment />
+            import Stack from '@mui/material/Stack';
+            import Box from '@mui/material/Box';
+            <Box sx={sxBox}>
+                <Stack sx={sxStack} direction="row" spacing={3} >
+                    {content |> withKey}
+                </Stack>
+            </Box>
             """
-        else
-            Components.BottomDrawer.View
-                {|
-                    isOpen = true
-                    content = content
-                |}

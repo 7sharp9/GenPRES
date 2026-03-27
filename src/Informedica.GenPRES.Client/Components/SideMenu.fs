@@ -67,11 +67,11 @@ module SideMenu =
             import Drawer from '@mui/material/Drawer';
 
             <Drawer
-                variant="permanent"
+                variant="persistent"
                 anchor={props.anchor}
                 sx={sxDrawer}
                 PaperProps={ {| sx = sxDrawerPaper |} }
-                open={true}
+                open={props.isOpen}
             >
             {menu}
             </Drawer>

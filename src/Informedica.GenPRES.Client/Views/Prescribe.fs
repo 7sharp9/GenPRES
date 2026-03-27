@@ -475,10 +475,7 @@ module Prescribe =
         import Modal from '@mui/material/Modal';
 
         <div>
-            <Box sx={ {|
-                          height = "100%"
-                          paddingBottom = (if isMobile then "16px" else "220px")
-                      |} }>
+            <Box>
                 {cards}
                 {progress}
             </Box>
