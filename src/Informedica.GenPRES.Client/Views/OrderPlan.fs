@@ -50,7 +50,6 @@ module OrderPlan =
                 | Recalculating tp -> { tp with Selected = None } |> updateOrderPlan
                 | _ -> ()
 
-        let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         let getTerm = Global.getLocalizedTerm localizationTerms lang
 
@@ -74,7 +73,7 @@ module OrderPlan =
                 |> box
                 {|
                     field = "route"
-                    headerName = "Route"
+                    headerName = Terms.Route |> getTerm "Route"
                     width = 150
                     filterable = true
                     sortable = true
@@ -82,7 +81,7 @@ module OrderPlan =
                 |> box
                 {|
                     field = "frequency"
-                    headerName = "Frequentie"
+                    headerName = Terms.``Order Frequency`` |> getTerm "Frequentie"
                     width = 150
                     filterable = false
                     sortable = false
@@ -379,7 +378,7 @@ module OrderPlan =
                     columns = columns
                     rows = rows
                     rowCreate = rowCreate
-                    height = "calc(100vh - 240px)"
+                    height = "100%"
                     onRowClick = selectOrder
                     checkboxSelection = true
                     selectedRows = selectedRows
@@ -405,10 +404,7 @@ module OrderPlan =
         import Box from '@mui/material/Box';
         import Modal from '@mui/material/Modal';
 
-        <Box sx={ {|
-                      height = "100%"
-                      paddingBottom = (if isMobile then "16px" else "220px")
-                  |} } >
+        <Box sx={ {| height = "100%" |} }>
             {deleteBtn}
             {responsiveTable}
             <Modal open={modalOpen} onClose={handleModalClose} >

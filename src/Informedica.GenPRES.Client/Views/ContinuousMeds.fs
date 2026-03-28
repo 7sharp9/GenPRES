@@ -280,7 +280,7 @@ module ContinuousMeds =
                      columns = columns
                      rows = rows
                      rowCreate = rowCreate
-                     height = "calc(100vh - 240px)"
+                     height = "100%"
                      onRowClick = onSelectItem
                      checkboxSelection = false
                      selectedRows = [||]
@@ -298,7 +298,7 @@ module ContinuousMeds =
                  {|
                      isOpen = printOpen
                      onClose = fun () -> setPrintOpen false
-                     title = "Continue Medicatie"
+                     title = Terms.``Continuous Medication List`` |> getTerm "Continue Medicatie"
                      children = printContent
                  |}}
         </Box>

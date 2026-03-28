@@ -307,16 +307,17 @@ module EmergencyList =
 
         JSX.jsx
             $"""
+        import Box from '@mui/material/Box';
         import React from 'react';
 
-        <React.Fragment>
+        <Box sx={ {| height = "100%" |} }>
             {Components.ResponsiveTable.View(
                  {|
                      hideFilter = false
                      columns = columns
                      rows = rows
                      rowCreate = rowCreate
-                     height = "calc(100vh - 240px)"
+                     height = "100%"
                      onRowClick = onSelectItem
                      checkboxSelection = false
                      selectedRows = [||]
@@ -334,8 +335,8 @@ module EmergencyList =
                  {|
                      isOpen = printOpen
                      onClose = fun () -> setPrintOpen false
-                     title = "Noodlijst"
+                     title = Terms.``Emergency List`` |> getTerm "Noodlijst"
                      children = printContent
                  |}}
-        </React.Fragment>
+        </Box>
         """

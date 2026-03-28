@@ -378,7 +378,7 @@ module Prescribe =
                          | _ -> None, [||]
                          |> fun (sel, items) ->
                              let isLoading = isSourceLoading FormLoading
-                             let lbl = "Vorm"
+                             let lbl = Terms.Form |> getTerm "Vorm"
 
                              if items |> Array.isEmpty then
                                  null
@@ -399,7 +399,7 @@ module Prescribe =
                              let isLoading = isSourceLoading DiluentLoading
                              let sel = pr.Filter.Diluent
                              let items = pr.Filter.Diluents
-                             let lbl = "Verdunningsvorm"
+                             let lbl = Terms.Diluent |> getTerm "Verdunningsvorm"
 
                              items |> Array.map (fun s -> s, s) |> select isLoading lbl sel diluentChange
 
@@ -416,7 +416,7 @@ module Prescribe =
 
                              let isLoading = isSourceLoading ComponentsLoading
                              let items = pr.Filter.Components
-                             let lbl = "Componenten"
+                             let lbl = Terms.Components |> getTerm "Componenten"
 
                              let sel =
                                  if pr.Filter.SelectedComponents |> Array.isEmpty then
@@ -439,7 +439,7 @@ module Prescribe =
                              let isLoading = isSourceLoading DoseTypeLoading
                              let sel = pr.Filter.DoseType |> Option.map DoseType.doseTypeToString
                              let items = pr.Filter.DoseTypes
-                             let lbl = "Doseer types"
+                             let lbl = Terms.``Dose Types`` |> getTerm "Doseer types"
 
                              items
                              |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
@@ -475,10 +475,7 @@ module Prescribe =
         import Modal from '@mui/material/Modal';
 
         <div>
-            <Box sx={ {|
-                          height = "100%"
-                          paddingBottom = (if isMobile then "16px" else "220px")
-                      |} }>
+            <Box>
                 {cards}
                 {progress}
             </Box>

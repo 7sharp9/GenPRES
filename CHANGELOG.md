@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Client (UI)**: Improve interactions management — InProgress guard prevents redundant server calls when a request is already in flight; unused `drugs` variable removed; layout and interaction flow improvements (PR #224)
 - **Client (UI)**: Fix layout overflow — replace `React.Fragment` with `Box` for correct overflow containment in universal layout (PR #229)
+
+### Fixed
+
 - **Scripts (FHIR)**: Fix `ImplementationPlan.fsx` — major rework with correct FHIR property mappings and a full end-to-end round trip from a calculated `GenOrder.Order` to `FhirMedicationRequest` and back (PR #222)
 - **Client (UI)**: Fix "Select All" in treatment plan table — rows now correctly toggle; unfiltered row search replaced with filtered-row lookup for O(n²) → O(n) improvement (PR #217)
 - **Build**: Exclude `.fsx` scripts from Fantomas automatic formatting (PR #218)

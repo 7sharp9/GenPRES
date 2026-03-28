@@ -582,9 +582,23 @@ module Nutrition =
                 isRecalculating: bool
             |})
         =
+        let context: Global.Context = React.useContext Global.context
+        let lang = context.Localization
+        let getTerm = Global.getLocalizedTerm props.localizationTerms lang
+
         let ctx = props.nutritionContext.OrderContext
         let ncId = props.nutritionContext.Id
-        let label = props.nutritionContext.Label
+
+        let label =
+            match props.nutritionContext.Category with
+            | NutritionCategory.EnteralFeeding ->
+                Terms.``Nutrition Enteral Feeding`` |> getTerm props.nutritionContext.Label
+            | NutritionCategory.EnteralSupplement ->
+                Terms.``Nutrition Enteral Supplement`` |> getTerm props.nutritionContext.Label
+            | NutritionCategory.TPN -> Terms.``Nutrition TPN`` |> getTerm props.nutritionContext.Label
+            | NutritionCategory.Lipid -> Terms.``Nutrition Lipids`` |> getTerm props.nutritionContext.Label
+            | NutritionCategory.ElectrolyteGlucose ->
+                Terms.``Nutrition Electrolytes Glucose`` |> getTerm props.nutritionContext.Label
 
         // Use a ref for the plan so that closures captured by useElmish
         // always read the latest plan, even when useElmish doesn't re-initialize
@@ -981,7 +995,7 @@ module Nutrition =
         let genericFilter =
             let sel = ctx.Filter.Generic
             let items = ctx.Filter.Generics
-            let lbl = "Samenstelling"
+            let lbl = Terms.Composition |> getTerm "Samenstelling"
             let onChange = genericChange
 
             if isMobile then
@@ -1165,7 +1179,7 @@ module Nutrition =
             else
                 let sel = ctx.Filter.Indication
                 let items = ctx.Filter.Indications
-                let lbl = "Indicatie"
+                let lbl = Terms.Indication |> getTerm "Indicatie"
 
                 if isMobile then
                     items |> Array.map (fun s -> s, s) |> filterSelect lbl sel indicationChange
@@ -1182,7 +1196,7 @@ module Nutrition =
             else
                 let sel = ctx.Filter.DoseType |> Option.map DoseType.doseTypeToString
                 let items = ctx.Filter.DoseTypes
-                let lbl = "Doseer type"
+                let lbl = Terms.``Dose Type`` |> getTerm "Doseer type"
 
                 items
                 |> Array.map (fun s -> s |> DoseType.doseTypeToString, s |> DoseType.doseTypeToDescription)
@@ -1349,6 +1363,10 @@ module Nutrition =
         let localizationTerms =
             (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
 
+        let context: Global.Context = React.useContext Global.context
+        let lang = context.Localization
+        let getTerm = Global.getLocalizedTerm localizationTerms lang
+
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
         React.useEffect (
@@ -1362,7 +1380,11 @@ module Nutrition =
 
         let progress =
             match nutritionPlan with
-            | HasNotStartedYet when patient.IsNone -> JSX.jsx $"<>Voer eerst patient gegevens in</>"
+            | HasNotStartedYet when patient.IsNone ->
+                let msg =
+                    Terms.``Patient enter patient data`` |> getTerm "Voer patient gegevens in ..."
+
+                JSX.jsx $"<>{msg}</>"
             | _ -> ViewHelpers.progressOrEmpty nutritionPlan
 
         let isRecalculating =
@@ -1439,7 +1461,7 @@ module Nutrition =
                     if not hasEnteral then
                         AddButton
                             {|
-                                label = "Enterale Voeding"
+                                label = Terms.``Nutrition Enteral Feeding`` |> getTerm "Enterale Voeding"
                                 onClick = fun () -> addContext plan NutritionCategory.EnteralFeeding
                             |}
                     else
@@ -1449,7 +1471,7 @@ module Nutrition =
                     if hasEnteral then
                         AddButton
                             {|
-                                label = "Supplement toevoegen"
+                                label = Terms.``Nutrition Add Supplement`` |> getTerm "Supplement toevoegen"
                                 onClick = fun () -> addContext plan NutritionCategory.EnteralSupplement
                             |}
                     else
@@ -1460,18 +1482,18 @@ module Nutrition =
                         if not hasTPN then
                             AddButton
                                 {|
-                                    label = "TPN"
+                                    label = Terms.``Nutrition TPN`` |> getTerm "TPN"
                                     onClick = fun () -> addContext plan NutritionCategory.TPN
                                 |}
                         if not hasLipid then
                             AddButton
                                 {|
-                                    label = "Vetten"
+                                    label = Terms.``Nutrition Lipids`` |> getTerm "Vetten"
                                     onClick = fun () -> addContext plan NutritionCategory.Lipid
                                 |}
                         AddButton
                             {|
-                                label = "Elektrolyten/Glucose"
+                                label = Terms.``Nutrition Electrolytes Glucose`` |> getTerm "Elektrolyten/Glucose"
                                 onClick = fun () -> addContext plan NutritionCategory.ElectrolyteGlucose
                             |}
                     |]
@@ -1499,7 +1521,7 @@ module Nutrition =
                                       width = "100%"
                                       overflow = "hidden"
                                   |} }>
-                            <Typography>Enterale Voeding</Typography>
+                            <Typography>{Terms.``Nutrition Enteral Feeding`` |> getTerm "Enterale Voeding"}</Typography>
                             {adminSummaries |> unbox<seq<ReactElement>> |> React.Fragment}
                         </Box>
                         """
@@ -1544,9 +1566,9 @@ module Nutrition =
                                       marginBottom = 2
                                   |} } />
                     <Stack direction="row" alignItems="center" spacing={1}>
-                        <Typography variant="h6">Parenteraal</Typography>
+                        <Typography variant="h6">{Terms.``Nutrition Parenteral Section`` |> getTerm "Parenteraal"}</Typography>
                         <Button color="primary" size="small" disabled={printDisabled} onClick={fun _ -> setPrintOpen true} startIcon={{<PrintIcon />}}>
-                            Print
+                            {Terms.Print |> getTerm "Print"}
                         </Button>
                     </Stack>
                     {parenteralSlots |> unbox<seq<ReactElement>> |> React.Fragment}
@@ -1580,15 +1602,18 @@ module Nutrition =
             import Button from '@mui/material/Button';
 
             <Dialog open={isOpen} onClose={handleCancel}>
-                <DialogTitle>Enterale voeding verwijderen</DialogTitle>
+                <DialogTitle>{Terms.``Nutrition Remove Enteral Title``
+                              |> getTerm "Enterale voeding verwijderen"}</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Als u de enterale voeding verwijdert, worden ook alle bijbehorende supplementen verwijderd. Wilt u doorgaan?
+                        {Terms.``Nutrition Remove Enteral Text``
+                         |> getTerm
+                             "Als u de enterale voeding verwijdert, worden ook alle bijbehorende supplementen verwijderd. Wilt u doorgaan?"}
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCancel}>Annuleren</Button>
-                    <Button onClick={handleConfirm} color="error">Verwijderen</Button>
+                    <Button onClick={handleCancel}>{Terms.Cancel |> getTerm "Annuleren"}</Button>
+                    <Button onClick={handleConfirm} color="error">{Terms.Delete |> getTerm "Verwijderen"}</Button>
                 </DialogActions>
             </Dialog>
             """
@@ -1609,7 +1634,7 @@ module Nutrition =
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <Box sx={ {| paddingBottom = (if isMobile then "16px" else "220px") |} }>
+        <Box>
             {content}
             {progress}
             {confirmDeleteDialog}
