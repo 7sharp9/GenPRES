@@ -335,7 +335,7 @@ module EmergencyList =
                  {|
                      isOpen = printOpen
                      onClose = fun () -> setPrintOpen false
-                     title = "Noodlijst"
+                     title = Terms.``Emergency List`` |> getTerm "Noodlijst"
                      children = printContent
                  |}}
         </Box>

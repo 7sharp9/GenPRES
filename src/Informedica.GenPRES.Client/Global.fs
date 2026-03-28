@@ -31,12 +31,11 @@ let pageToString terms locale page =
     | ContinuousMeds -> Terms.``Continuous Medication List`` |> getTerm
     | Prescribe -> Terms.``Prescribe`` |> getTerm
     | Nutrition -> Terms.``Nutrition`` |> getTerm
-    // Internal rename to OrderPlan; user-facing label remains "Treatment Plan"
     | OrderPlan -> Terms.``Treatment Plan`` |> getTerm
     | Formulary -> Terms.``Formulary`` |> getTerm
     | Parenteralia -> Terms.``Parenteralia`` |> getTerm
     | Interactions -> Terms.``Interactions`` |> getTerm
-    | Settings -> "Instellingen"
+    | Settings -> Terms.Settings |> getTerm
 
 
 type Context =

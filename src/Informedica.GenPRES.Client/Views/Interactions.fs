@@ -301,7 +301,7 @@ module Interactions =
         let autocomplete =
             Components.Autocomplete.View
                 {|
-                    label = "Medicatie"
+                    label = Terms.``Interactions Medication`` |> getTerm "Medicatie"
                     selected = None
                     values = drugNameValues
                     updateSelected =
