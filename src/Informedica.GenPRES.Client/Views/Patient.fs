@@ -238,6 +238,11 @@ module Patient =
 
                     ev?target?value |> string |> UpdateGender |> dispatch
 
+            let genderLabel = Terms.``Patient Gender`` |> getTerm "Geslacht"
+            let maleLabel = Terms.``Patient Male`` |> getTerm "Man"
+            let femaleLabel = Terms.``Patient Female`` |> getTerm "Vrouw"
+            let unknownLabel = Terms.``Patient Unknown Gender`` |> getTerm "Onbekend"
+
             JSX.jsx
                 $"""
             import RadioGroup from '@mui/material/RadioGroup';
@@ -246,7 +251,7 @@ module Patient =
             import FormLabel from '@mui/material/FormLabel';
 
             <FormControl>
-                <FormLabel id="demo-row-radio-buttons-group-label">Geslacht</FormLabel>
+                <FormLabel id="demo-row-radio-buttons-group-label">{genderLabel}</FormLabel>
                 <RadioGroup
                     row
                     aria-labelledby="demo-row-radio-buttons-group-label"
@@ -254,9 +259,9 @@ module Patient =
                     value={value}
                     onChange={changeGender}
                 >
-                    <FormControlLabel value="male" control={radio} label="Man" />
-                    <FormControlLabel value="female" control={radio} label="Vrouw" />
-                    <FormControlLabel value="other" control={radio} label="Onbekend" />
+                    <FormControlLabel value="male" control={radio} label={maleLabel} />
+                    <FormControlLabel value="female" control={radio} label={femaleLabel} />
+                    <FormControlLabel value="other" control={radio} label={unknownLabel} />
                 </RadioGroup>
             </FormControl>
             """
@@ -363,13 +368,16 @@ module Patient =
             [|
                 gender
 
+                let accessLabel = Terms.``Patient Access`` |> getTerm "Toegangen"
+                let tubeLabel = Terms.``Patient Enteral Tube`` |> getTerm "Sonde"
+
                 JSX.jsx
                     $"""
                 import Checkbox from '@mui/material/Checkbox';
                 import FormGroup from '@mui/material/FormGroup';
 
                 <Box>
-                    <FormLabel component="legend">Toegangen</FormLabel>
+                    <FormLabel component="legend">{accessLabel}</FormLabel>
                     <FormGroup row>
                         <FormControl>
                             <FormControlLabel
@@ -384,7 +392,7 @@ module Patient =
                         <FormControl>
                             <FormControlLabel
                                 control={checkBox EnteralTube ToggleET}
-                                label="Sonde" />
+                                label={tubeLabel} />
                         </FormControl>
                     </FormGroup>
                 </Box>
@@ -393,7 +401,7 @@ module Patient =
                 Patient.RenalFunction.options
                 |> Array.map (fun k -> $"{k}", $"{k}")
                 |> createSelect
-                    "Nierfunctie"
+                    (Terms.``Patient Renal Function`` |> getTerm "Nierfunctie")
                     (pat |> Option.bind Patient.getRenalFunction)
                     (fun s ->
                         handleChange ()

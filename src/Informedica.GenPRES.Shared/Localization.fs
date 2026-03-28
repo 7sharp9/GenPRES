@@ -100,6 +100,40 @@ type Terms =
     | ``Invalid password``
     | Cancel
     | Confirm
+    // Shared terms (used across multiple views)
+    | ``Dose Types``
+    | ``Dose Type``
+    | Route
+    | Indication
+    | Composition
+    | Form
+    | ``Pharmaceutical Form``
+    | Diluent
+    | Components
+    // Patient-specific terms
+    | ``Patient Male``
+    | ``Patient Female``
+    | ``Patient Unknown Gender``
+    | ``Patient Gender``
+    | ``Patient Access``
+    | ``Patient Enteral Tube``
+    | ``Patient Renal Function``
+    // Shared UI terms
+    | Print
+    | ``Not Configured``
+    // Nutrition-specific terms
+    | ``Nutrition Parenteral``
+    | ``Nutrition Parenteral Section``
+    | ``Nutrition TPN``
+    | ``Nutrition Enteral Feeding``
+    | ``Nutrition Enteral Supplement``
+    | ``Nutrition Add Supplement``
+    | ``Nutrition Lipids``
+    | ``Nutrition Electrolytes Glucose``
+    | ``Nutrition Remove Enteral Title``
+    | ``Nutrition Remove Enteral Text``
+    // Interactions
+    | ``Interactions Medication``
 
 
 module Localization =
@@ -117,6 +151,28 @@ module Localization =
         | Spanish
         | Italian
     //        | Chinees
+
+
+    /// Returns a two-letter ISO 639-1 language code for the locale.
+    let toShortCode =
+        function
+        | English -> "EN"
+        | Dutch -> "NL"
+        | French -> "FR"
+        | German -> "DE"
+        | Spanish -> "ES"
+        | Italian -> "IT"
+
+
+    /// Returns the country flag emoji for the locale.
+    let toFlag =
+        function
+        | English -> "\U0001F1EC\U0001F1E7"
+        | Dutch -> "\U0001F1F3\U0001F1F1"
+        | French -> "\U0001F1EB\U0001F1F7"
+        | German -> "\U0001F1E9\U0001F1EA"
+        | Spanish -> "\U0001F1EA\U0001F1F8"
+        | Italian -> "\U0001F1EE\U0001F1F9"
 
 
     /// Converts a `Locales` value to its human-readable display name as it
@@ -173,11 +229,11 @@ module Localization =
             | German -> 4
             | Spanish -> 5
             | Italian -> 6
-        //            | Chinees -> 7
 
         terms
         |> Array.tryFind (fun r -> r[0] = term)
         |> Option.map (fun r -> r[indx])
+        |> Option.bind (fun s -> if s |> String.isNullOrWhiteSpace then None else Some s)
         |> fun r ->
             if r.IsNone then
                 printfn $"cannot find term: {term}"

@@ -48,10 +48,14 @@ module TitleBar =
         let menuItems =
             props.languages
             |> Array.mapi (fun i l ->
+                let flag = l |> Shared.Localization.toFlag
+                let name = l |> Shared.Localization.toString
+
                 JSX.jsx
                     $"""
                 <MenuItem key={i} value={$"{l}"} onClick={onClickLangMenuItem l} >
-                    <Typography>{$"{l |> Shared.Localization.toString}"}</Typography>
+                    <Typography sx={ {| marginRight = 1 |} }>{flag}</Typography>
+                    <Typography>{name}</Typography>
                 </MenuItem>
                 """
             )
@@ -124,9 +128,18 @@ module TitleBar =
                         {$"{context.Hospital}"}
                     </Typography>
 
-                    <Box >
-                        <IconButton color="inherit" onClick={handleOpenLangMenu}>
+                    <Box sx={ {|
+                                  display = "flex"
+                                  alignItems = "center"
+                              |} } >
+                        <IconButton color="inherit" onClick={handleOpenLangMenu} sx={ {| gap = "4px" |} }>
                             {Mui.Icons.Language}
+                            <Typography component="span" sx={ {|
+                                                                  fontSize = "1.2rem"
+                                                                  lineHeight = 1
+                                                              |} }>
+                                {context.Localization |> Shared.Localization.toFlag}
+                            </Typography>
                         </IconButton>
                         <Menu
                             sx={ {| marginTop = "40px" |} }
@@ -146,9 +159,6 @@ module TitleBar =
                             {menuItems}
                         </Menu>
                     </Box>
-                    <Typography variant="body1" component="div" >
-                        {$"{context.Localization |> Shared.Localization.toString}"}
-                    </Typography>
                     <Button color="inherit">Login</Button>
                 </Toolbar>
             </AppBar>

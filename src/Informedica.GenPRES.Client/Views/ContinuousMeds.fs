@@ -298,7 +298,7 @@ module ContinuousMeds =
                  {|
                      isOpen = printOpen
                      onClose = fun () -> setPrintOpen false
-                     title = "Continue Medicatie"
+                     title = Terms.``Continuous Medication List`` |> getTerm "Continue Medicatie"
                      children = printContent
                  |}}
         </Box>
