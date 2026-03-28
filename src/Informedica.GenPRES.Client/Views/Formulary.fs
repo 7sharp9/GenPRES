@@ -254,7 +254,7 @@ module Formulary =
                          | Resolved form -> false, form.Form, form.Forms
                          | _ -> true, None, [||]
                          |> fun (isLoading, sel, items) ->
-                             let lbl = "Farmacologische Vorm"
+                             let lbl = Terms.``Pharmaceutical Form`` |> getTerm "Farmacologische Vorm"
 
                              if isMobile then
                                  items
@@ -266,7 +266,7 @@ module Formulary =
                          | Resolved form ->
                              (false, form.DoseType, form.DoseTypes)
                              |> fun (isLoading, sel, items) ->
-                                 let lbl = "Doseer types"
+                                 let lbl = Terms.``Dose Types`` |> getTerm "Doseer types"
                                  let sel = sel |> Option.map DoseType.doseTypeToString
 
                                  items

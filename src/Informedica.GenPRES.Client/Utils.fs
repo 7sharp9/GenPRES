@@ -97,10 +97,10 @@ module GoogleDocs =
 
     //https://docs.google.com/spreadsheets/d/1IbIdRUJSovg3hf8E5V-ZydMidlF_iG552vK5NotZLuM/edit?usp=sharing
     [<Literal>]
-    let dataEMLUrlId = "1IbIdRUJSovg3hf8E5V-ZydMidlF_iG552vK5NotZLuM"
+    let private dataEMLUrlId = "1IbIdRUJSovg3hf8E5V-ZydMidlF_iG552vK5NotZLuM"
 
 
-    let dataGPUrlId = "1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM"
+    let private dataGPUrlId = "1M90b_kPmANIdPFTvsDVaEGIEeQQ3md-Bt359Dmc2vIE"
 
 
     open Shared.Models

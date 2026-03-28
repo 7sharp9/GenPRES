@@ -73,7 +73,7 @@ module OrderPlan =
                 |> box
                 {|
                     field = "route"
-                    headerName = "Route"
+                    headerName = Terms.Route |> getTerm "Route"
                     width = 150
                     filterable = true
                     sortable = true
@@ -81,7 +81,7 @@ module OrderPlan =
                 |> box
                 {|
                     field = "frequency"
-                    headerName = "Frequentie"
+                    headerName = Terms.``Order Frequency`` |> getTerm "Frequentie"
                     width = 150
                     filterable = false
                     sortable = false
