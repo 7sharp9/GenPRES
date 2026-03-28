@@ -46,6 +46,8 @@ module TitleBar =
                 s |> props.switchHosp
 
         let menuItems =
+            let sxFlag = {| marginRight = 1 |}
+
             props.languages
             |> Array.mapi (fun i l ->
                 let flag = l |> Shared.Localization.toFlag
@@ -54,7 +56,7 @@ module TitleBar =
                 JSX.jsx
                     $"""
                 <MenuItem key={i} value={$"{l}"} onClick={onClickLangMenuItem l} >
-                    <Typography sx={ {| marginRight = 1 |} }>{flag}</Typography>
+                    <Typography sx={sxFlag}>{flag}</Typography>
                     <Typography>{name}</Typography>
                 </MenuItem>
                 """
@@ -71,6 +73,19 @@ module TitleBar =
                 </MenuItem>
                 """
             )
+
+        let sxLangBox =
+            {|
+                display = "flex"
+                alignItems = "center"
+            |}
+
+        let sxLangLabel =
+            {|
+                cursor = "pointer"
+                color = "inherit"
+                userSelect = "none"
+            |}
 
         JSX.jsx
             $"""
@@ -128,19 +143,13 @@ module TitleBar =
                         {$"{context.Hospital}"}
                     </Typography>
 
-                    <Box sx={ {|
-                                  display = "flex"
-                                  alignItems = "center"
-                              |} } >
-                        <IconButton color="inherit" onClick={handleOpenLangMenu} sx={ {| gap = "4px" |} }>
+                    <Box sx={sxLangBox}>
+                        <IconButton color="inherit" onClick={handleOpenLangMenu}>
                             {Mui.Icons.Language}
-                            <Typography component="span" sx={ {|
-                                                                  fontSize = "1.2rem"
-                                                                  lineHeight = 1
-                                                              |} }>
-                                {context.Localization |> Shared.Localization.toFlag}
-                            </Typography>
                         </IconButton>
+                        <Typography variant="body1" component="div" sx={sxLangLabel} onClick={handleOpenLangMenu}>
+                            {context.Localization |> Shared.Localization.toShortCode}
+                        </Typography>
                         <Menu
                             sx={ {| marginTop = "40px" |} }
                             anchorEl={anchorElLang}

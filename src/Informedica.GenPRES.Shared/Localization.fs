@@ -165,6 +165,7 @@ module Localization =
 
 
     /// Returns the country flag emoji for the locale.
+    // GB flag is used for English — acceptable for this European hospital application.
     let toFlag =
         function
         | English -> "\U0001F1EC\U0001F1E7"
