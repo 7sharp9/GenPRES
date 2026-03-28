@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Client (UI)**: Improve overall layout — responsive table rendering, sidebar initialisation, conditional totals bar, and layout design documentation update (PR #235)
+- **Scripts (GenSOLVER)**: Add `CanonKeyInvariant.fsx` — 8 unit tests + 6 FsCheck property tests for `CanonKey`; validates key normalisation, round-trip symmetry, and hash-stability invariants (PR #233)
 - **Scripts (GenSOLVER)**: Add `LRUCache.fsx` — session-level LRU cache prototype for the constraint solver; implements `LRUCache<'K,'V>` (thread-safe, O(1) get/put/evict, configurable capacity), `Solver.solveAllLRU` with canonical keys for cross-variable-name sharing, and Expecto correctness tests plus a 10-patient dosing benchmark (PR #220/221)
 - **Tests (GenSOLVER)**: Add `LRUCacheProps.fsx` — FsCheck property-based tests for the `LRUCache` module; validates cache invariants (capacity, eviction, thread-safety), get/put correctness, and stress-test properties (PR #230)
 - **Scripts (FHIR)**: Add `ImplementationPlan.fsx` — comprehensive FHIR R4 integration prototype: defines `FhirScenario` and `FhirMedicationRequest` types, implements bidirectional translation (`toFhirMedicationRequest` / `fromFhirMedicationRequest`), maps scenarios 6.1–6.6 from the interface specification, and documents the path to full `Hl7.Fhir.R4` integration (PR #215)
@@ -29,11 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Client (UI)**: Improve interactions management — InProgress guard prevents redundant server calls when a request is already in flight; unused `drugs` variable removed; layout and interaction flow improvements (PR #224)
-- **Client (UI)**: Fix layout overflow — replace `React.Fragment` with `Box` for correct overflow containment in universal layout (PR #229)
-
-### Fixed
-
+- **Client (UI)**: Fix layout overflow — replace `React.Fragment` with `Box` for correct overflow containment in universal layout; conditional totals bar rendering and duplicate padding corrections (PR #229, PR #235)
+- **Client (UI)**: Improve interactions management — InProgress guard prevents redundant server calls when a request is already in flight; unused `drugs` variable removed (PR #224)
 - **Scripts (FHIR)**: Fix `ImplementationPlan.fsx` — major rework with correct FHIR property mappings and a full end-to-end round trip from a calculated `GenOrder.Order` to `FhirMedicationRequest` and back (PR #222)
 - **Client (UI)**: Fix "Select All" in treatment plan table — rows now correctly toggle; unfiltered row search replaced with filtered-row lookup for O(n²) → O(n) improvement (PR #217)
 - **Build**: Exclude `.fsx` scripts from Fantomas automatic formatting (PR #218)
