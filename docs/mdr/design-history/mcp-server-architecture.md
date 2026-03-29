@@ -320,17 +320,13 @@ No changes are required to `GenFORM.Lib`, `GenORDER.Lib`, or any other library p
 | `Informedica.Utils.Lib` | Pure utility functions |
 | `Informedica.GenPRES.Server` | Already exposes the full API via `IServerApi`; MCP is an additional pathway, not a replacement |
 
----
-
-## Architecture Status
-
 | Component | Status |
 |-----------|--------|
 | `Informedica.MCP.Lib` placeholder | ✅ Exists in solution |
-| GenFORM MCP tool prototype script | ⬜ Not started |
-| GenORDER MCP tool prototype script | ⬜ Not started |
-| MCP server wiring prototype script | ⬜ Not started |
-| Human review of scripts | ⬜ Pending scripts |
+| GenFORM MCP tool prototype script | ✅ Added (`src/Informedica.GenFORM.Lib/Scripts/McpTools.fsx`) |
+| GenORDER MCP tool prototype script | ✅ Added (`src/Informedica.GenORDER.Lib/Scripts/McpTools.fsx`) |
+| MCP server wiring prototype script | ✅ Added (`src/Informedica.MCP.Lib/Scripts/McpServer.fsx`) |
+| Human review of scripts | ⬜ Pending review |
 | Source file migration | ⬜ Pending review |
 | stdio transport | ⬜ Not started |
 | SSE transport | ⬜ Deferred (phase 2) |
