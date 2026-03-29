@@ -25,7 +25,7 @@ Maintain this document as a reverse-chronological log of significant design chan
 | 2026-03-28 | [ADR-0009](0009-mcp-server-architecture.md) | MCP server architecture proposed |
 | 2026-03-25 | [ADR-0007](0007-clean-safe-architecture.md) | Clean SAFE architecture accepted (all 4 phases complete) |
 | 2025-12-21 | [ADR-0012](0012-resource-verification.md) | Resource requirements verified against GenFORM implementation |
-| 2024-01-01 | [ADR-0008](0008-agent-architecture.md) | Agent architecture proposed |
+| 2026-03-01 | [ADR-0008](0008-agent-architecture.md) | Agent architecture proposed |
 | 2024-01-01 | [ADR-0011](0011-universal-layout-overflow.md) | Universal layout overflow design accepted |
 | 2024-01-01 | [ADR-0010](0010-analysis-solve-order-triggers.md) | Analysis of SolveOrder trigger paths |
 | 2024-01-01 | [ADR-0006](0006-ui-order-view.md) | Quantitative order constraint navigation proposed |
