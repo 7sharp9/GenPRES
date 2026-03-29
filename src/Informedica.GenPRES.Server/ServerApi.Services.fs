@@ -359,7 +359,11 @@ DoseType : {filter.DoseType
                 |> GenOrderContext.logOrderContext logger "start eval"
                 |> GenOrderContext.evaluate logger provider
                 |> Result.map (GenOrderContext.logOrderContext logger "finish eval" >> extractServerCtx >> map)
-                |> Result.mapError Array.singleton
+                |> Result.mapError (
+                    List.map OrderLogging.formatOrderMessage
+                    >> String.concat "\n"
+                    >> Array.singleton
+                )
             with e ->
                 writeErrorMessage $"errored:\n{e}"
                 Error [| e.Message |]

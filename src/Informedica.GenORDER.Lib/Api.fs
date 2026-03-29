@@ -874,7 +874,11 @@ Scenarios: {scenarios}
         | Error e when inputHadSelections && outputIsEmpty ->
             // propagate the underlying error when getRules failed
             Error e
-        | _ when inputHadSelections && outputIsEmpty -> Error "Geen doseerregels gevonden voor het geselecteerde filter"
+        | _ when inputHadSelections && outputIsEmpty ->
+            [
+                ErrorMsg("Geen doseerregels gevonden voor het geselecteerde filter", None)
+            ]
+            |> Error
         | _ ->
             let prs =
                 match result with
