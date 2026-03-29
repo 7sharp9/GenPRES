@@ -89,7 +89,7 @@ dotnet test tests/Informedica.GenUNITS.Tests/
 - Resource loading and tests: `src/Informedica.GenForm.Lib/Api.fs` and `tests/`
 - Sheet parsers: `Mapping.fs`, `Product.fs`, `DoseRule.fs`, `SolutionRule.fs`, `RenalRule.fs`
 - Unit and BigRational helpers: `src/Informedica.GenUnits.Lib/ValueUnit.fs`
-- Sheet documentation: `docs/mdr/design-history/genpres_resource_requirements.md`
+- Sheet documentation: `docs/mdr/design-history/0003-resource-requirements.md`
 
 **Important:** an opt-in strategy is used in the `.gitignore` file — you have to specifically define what should be included instead of the other way around!
 
