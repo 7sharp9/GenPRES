@@ -6,7 +6,7 @@
 
 - <https://modelcontextprotocol.io/introduction>
 - <https://github.com/jovaneyck/fsi-mcp-server> — F# MCP server reference implementation
-- <https://github.com/modelcontextprotocol/csharp-sdk> — official .NET MCP SDK
+**Issue**: [Adding MCP servers](https://github.com/informedica/GenPRES/issues/) — issue number TBD
 - [Agent Architecture](agent-architecture.md)
 - [Clean Safe Architecture](clean-safe-architecture.md)
 
