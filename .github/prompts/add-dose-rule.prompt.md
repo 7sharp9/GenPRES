@@ -8,7 +8,7 @@ Add or modify a medication rule (dose rule, solution rule, product, etc.) in Gen
 
 ## Steps
 
-1. **Understand the sheet structure** — read `docs/mdr/design-history/genpres_resource_requirements.md` to find the relevant sheet and column names.
+1. **Understand the sheet structure** — read `docs/mdr/design-history/0003-resource-requirements.md` to find the relevant sheet and column names.
 
 2. **Locate the parser** — find the corresponding module:
    - Dose rules → `src/Informedica.GenForm.Lib/DoseRule.fs`
