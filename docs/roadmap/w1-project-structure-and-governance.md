@@ -145,7 +145,7 @@ See the sections below for detailed analysis of missing items and implementation
 - ✅ **0003-resource-requirements.md** - Resource/sheet specifications
 - ✅ **informedica-genform-lib.md** - GenForm library design
 - ✅ **informedica-genorder-lib.md** - GenOrder library design
-- ✅ **domain_constrained_option_solver_0001-system-architecture.md** - Solver architecture
+- ✅ **domain_constrained_option_solver_architecture.md** - Solver architecture
 - ✅ **order_value_logic.md** - Order value semantics
 - ✅ **0002-state-of-affairs.md** - Current implementation status
 - ✅ **0004-ui-wireframes.md** - UI design mockups
