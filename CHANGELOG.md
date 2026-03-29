@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Client (UI)**: Localise hardcoded UI strings — replaces hardcoded Dutch strings across client views with localised terms; adds new `Terms` DU cases for shared, patient, nutrition, and interaction labels; language selector now shows short language code instead of flag emoji (PR #239)
+- **Scripts (GenSOLVER)**: Add `LRUSolverIntegration.fsx` — W2 final step; session-level `SessionSolver` that integrates the LRU cache into the constraint solver with canonical name-remapping, 6 correctness tests, and a 50-patient capacity benchmark (PR #238)
 - **Client (UI)**: Improve overall layout — responsive table rendering, sidebar initialisation, conditional totals bar, and layout design documentation update (PR #235)
 - **Scripts (GenSOLVER)**: Add `CanonKeyInvariant.fsx` — 8 unit tests + 6 FsCheck property tests for `CanonKey`; validates key normalisation, round-trip symmetry, and hash-stability invariants (PR #233)
 - **Scripts (GenSOLVER)**: Add `LRUCache.fsx` — session-level LRU cache prototype for the constraint solver; implements `LRUCache<'K,'V>` (thread-safe, O(1) get/put/evict, configurable capacity), `Solver.solveAllLRU` with canonical keys for cross-variable-name sharing, and Expecto correctness tests plus a 10-patient dosing benchmark (PR #220/221)
@@ -31,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Client (UI)**: Remove hardcoded year ("2023") from application title bar (PR #238)
 - **Client (UI)**: Fix layout overflow — replace `React.Fragment` with `Box` for correct overflow containment in universal layout; conditional totals bar rendering and duplicate padding corrections (PR #229, PR #235)
 - **Client (UI)**: Improve interactions management — InProgress guard prevents redundant server calls when a request is already in flight; unused `drugs` variable removed (PR #224)
 - **Scripts (FHIR)**: Fix `ImplementationPlan.fsx` — major rework with correct FHIR property mappings and a full end-to-end round trip from a calculated `GenOrder.Order` to `FhirMedicationRequest` and back (PR #222)
