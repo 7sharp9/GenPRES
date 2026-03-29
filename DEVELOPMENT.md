@@ -307,7 +307,7 @@ GenPRES/
 - `SECURITY.md` - Security policy
 - `SUPPORT.md` - Support information
 - `WARP.md` - Warp AI agent documentation
-- `docs/mdr/design-history/architecture.md` - Technical architecture
+- `docs/mdr/design-history/0001-system-architecture.md` - Technical architecture
 - `docs/domain/` - Domain model specifications
 - `docs/user-guide/` - Multilingual user guide ([English](docs/user-guide/en/user-guide.md), [Nederlands](docs/user-guide/nl/gebruikershandleiding.md))
 
@@ -338,7 +338,7 @@ Each `Informedica.*.Lib` directory contains:
 
 For complete architectural documentation, see:
 
-- **[Architecture Overview](docs/mdr/design-history/architecture.md)**: Technical stack, server/client structure, Docker hosting, and build configuration
+- **[Architecture Overview](docs/mdr/design-history/0001-system-architecture.md)**: Technical stack, server/client structure, Docker hosting, and build configuration
 - **[Core Domain Model](docs/domain/core-domain.md)**: Transformation pipeline, constraint-based architecture, and domain concepts
 - **[GenFORM](docs/domain/genform-free-text-to-operational-rules.md)**: Free text to Operational Knowledge Rules (OKRs)
 - **[GenORDER](docs/domain/genorder-operational-rules-to-orders.md)**: OKRs to Order Scenarios

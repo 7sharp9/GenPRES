@@ -138,17 +138,17 @@ See the sections below for detailed analysis of missing items and implementation
 
 ##### Design History & Architecture (`docs/mdr/design-history/`)
 
-- ✅ **architecture.md** - High-level system architecture (SAFE Stack)
-- ✅ **change-log.md** - Design change history
+- ✅ **0001-system-architecture.md** - High-level system architecture (SAFE Stack)
+- ✅ **0013-change-log.md** - Design change history
 - ✅ **genpres_stateless_proposal.md** - Stateless session design
 - ✅ **mailbox-processor-design-proposal.md** - MailboxProcessor architecture
-- ✅ **genpres_resource_requirements.md** - Resource/sheet specifications
+- ✅ **0003-resource-requirements.md** - Resource/sheet specifications
 - ✅ **informedica-genform-lib.md** - GenForm library design
 - ✅ **informedica-genorder-lib.md** - GenOrder library design
-- ✅ **domain_constrained_option_solver_architecture.md** - Solver architecture
+- ✅ **domain_constrained_option_solver_0001-system-architecture.md** - Solver architecture
 - ✅ **order_value_logic.md** - Order value semantics
-- ✅ **state-of-affairs.md** - Current implementation status
-- ✅ **ui-wireframes.md** - UI design mockups
+- ✅ **0002-state-of-affairs.md** - Current implementation status
+- ✅ **0004-ui-wireframes.md** - UI design mockups
 - ✅ **GenPres_V20250325 - Equations.tsv** - Equation model data
 
 ##### Requirements (`docs/mdr/requirements/`)
@@ -262,8 +262,8 @@ See the sections below for detailed analysis of missing items and implementation
 
 ### Present
 
-- ✅ **docs/mdr/design-history/architecture.md** - Comprehensive SAFE Stack architecture
-- ✅ **docs/mdr/design-history/change-log.md** - Design history file exists
+- ✅ **docs/mdr/design-history/0001-system-architecture.md** - Comprehensive SAFE Stack architecture
+- ✅ **docs/mdr/design-history/0013-change-log.md** - Design history file exists
 - ✅ **docs/scenarios/** - Clinical scenarios documented (6 age groups)
 - ✅ **docs/mdr/interface/** - Interface specifications (FHIR, IHE)
 - ✅ **docs/code-reviews/** - Some code review documentation
@@ -281,7 +281,7 @@ See the sections below for detailed analysis of missing items and implementation
 - ✅ **CHANGELOG.md** - Structured release notes at root
   - Follows [Keep a Changelog](https://keepachangelog.com/) format
   - Semantic versioning aligned
-  - User-facing changes focus (complementary to design-history/change-log.md)
+  - User-facing changes focus (complementary to design-history/0013-change-log.md)
   - Clear distinction between alpha/beta/stable releases
   - Links to detailed MDR documentation
   
@@ -818,11 +818,11 @@ GenPRES2/
 ├── 📄 GOVERNANCE.md                          ✅ Exists - Project governance model
 ├── 📄 MAINTAINERS.md                         ✅ Exists - Maintainer roster
 ├── 📄 ARCHITECTURE.md                        ✅ Exists - Quick architecture reference
-│                                                      → Links to docs/mdr/design-history/architecture.md
+│                                                      → Links to docs/mdr/design-history/0001-system-architecture.md
 ├── 📄 ROADMAP.md                             ✅ Exists - Public roadmap
 │                                                      → Links to docs/roadmap/genpres-architecture-and-timeline.md
 ├── 📄 CHANGELOG.md                           ✅ Exists - User-facing release notes
-│                                                      → Separate from docs/mdr/design-history/change-log.md
+│                                                      → Separate from docs/mdr/design-history/0013-change-log.md
 ├── 📄 AUTHORS.md                             ❌ ADD - Contributors list
 ├── 📄 .editorconfig                          ❌ ADD - Editor configuration
 ├── 📄 .gitattributes                         ✅ Check if exists
@@ -910,17 +910,17 @@ GenPRES2/
 │       ├── 📄 mdr-regulations.pdf            ✅ Exists
 │       │
 │       ├── 📁 design-history/                ✅ Exists
-│       │   ├── 📄 architecture.md            ✅ Exists - Detailed architecture
-│       │   ├── 📄 change-log.md              ✅ Exists - Design changes (developer)
+│       │   ├── 📄 0001-system-architecture.md            ✅ Exists - Detailed architecture
+│       │   ├── 📄 0013-change-log.md              ✅ Exists - Design changes (developer)
 │       │   ├── 📄 genpres_stateless_proposal.md ✅ Exists
 │       │   ├── 📄 mailbox-processor-design-proposal.md ✅ Exists
-│       │   ├── 📄 genpres_resource_requirements.md ✅ Exists
+│       │   ├── 📄 0003-resource-requirements.md ✅ Exists
 │       │   ├── 📄 informedica-genform-lib.md ✅ Exists
 │       │   ├── 📄 informedica-genorder-lib.md ✅ Exists
-│       │   ├── 📄 domain_constrained_option_solver_architecture.md ✅ Exists
+│       │   ├── 📄 domain_constrained_option_solver_0001-system-architecture.md ✅ Exists
 │       │   ├── 📄 order_value_logic.md       ✅ Exists
-│       │   ├── 📄 state-of-affairs.md        ✅ Exists
-│       │   └── 📄 ui-wireframes.md           ✅ Exists
+│       │   ├── 📄 0002-state-of-affairs.md        ✅ Exists
+│       │   └── 📄 0004-ui-wireframes.md           ✅ Exists
 │       │
 │       ├── 📁 requirements/                  ✅ Exists
 │       │   ├── 📄 user-requirements.md       ✅ Exists (UR-XXX)
@@ -982,7 +982,7 @@ GenPRES2/
 │       └── 📁 change-control/                ❌ ADD - Change control process
 │           ├── 📄 change-control-procedure.md ❌ ADD - Change process
 │           ├── 📄 change-request-template.md ❌ ADD - Change request form
-│           └── 📄 change-log.md              ❌ ADD - Change tracking log
+│           └── 📄 0013-change-log.md              ❌ ADD - Change tracking log
 │
 ├── 📁 src/                                   ✅ Exists
 │   ├── 📁 Client/                            ✅ Exists
@@ -1086,8 +1086,8 @@ scripts/:
 
 Many missing root-level files should link to detailed MDR documentation:
 
-- `ARCHITECTURE.md` → `docs/mdr/design-history/architecture.md`
+- `ARCHITECTURE.md` → `docs/mdr/design-history/0001-system-architecture.md`
 - `ROADMAP.md` → `docs/roadmap/genpres-architecture-and-timeline.md`
-- `CHANGELOG.md` (user-facing) ≠ `docs/mdr/design-history/change-log.md` (developer)
+- `CHANGELOG.md` (user-facing) ≠ `docs/mdr/design-history/0013-change-log.md` (developer)
 - ADRs should reference design history files for detailed technical decisions
 

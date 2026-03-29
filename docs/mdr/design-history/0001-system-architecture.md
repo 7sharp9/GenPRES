@@ -1,4 +1,26 @@
-# GenPres Architecture Overview
+# ADR-0001: System Architecture
+
+**Date**: 2024-01-01
+**Status**: Accepted
+
+## Context
+
+GenPRES is a clinical decision support system (CDSS) for medication order management. An explicit architectural baseline is needed to guide development, onboarding, and maintenance decisions and to satisfy MDR traceability requirements for medical device software.
+
+## Decision
+
+Adopt the SAFE Stack (Saturn, Azure, Fable, Elmish) as the technology foundation for GenPRES. The system is structured as a client-server web application with all logic written in F#.
+
+## Consequences
+
+- Server-side F# domain libraries remain pure and testable independent of the UI.
+- Client code (Fable/Elmish) compiles to JavaScript and runs in the browser.
+- All medication rules and configuration are stored in Google Spreadsheets, enabling non-developer updates.
+- Docker deployment is the primary production delivery mechanism.
+
+---
+
+## Detailed Architecture
 
 This document describes the architecture of the GenPres application, a clinical decision support system (CDSS) for order management. The system is written entirely in F# and built with the SAFE Stack (Saturn, Azure, Fable, Elmish).
 

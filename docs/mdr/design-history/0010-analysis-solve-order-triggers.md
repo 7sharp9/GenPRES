@@ -1,3 +1,24 @@
+# ADR-0010: Analysis — User Actions That Trigger SolveOrder
+
+**Date**: 2026-01-01
+**Status**: Accepted
+
+## Context
+
+The `SolveOrder` command in the `OrderProcessor` pipeline is the critical path for all user-driven dose edits. A complete map of which UI actions trigger `SolveOrder` is needed to understand the scope of any change to the solving pipeline and to guide integration testing.
+
+## Decision
+
+Document all 15 UI dropdown selections that route through `UpdateOrderScenario` → `SolveOrder`, and distinguish them from navigation button actions (which use `ChangeProperty`) and scenario selection (which uses `CalcValues`).
+
+## Consequences
+
+- Developers can predict which UI actions will exercise `SolveOrder` and write targeted tests.
+- Changes to `processPipeline` or `SolveOrder` must be tested against all 15 dropdown interactions.
+- The treatment plan server path (`UpdateTreatmentPlan` → `SolveOrder`) is identified as a separate entry point requiring its own test coverage.
+
+---
+
 # Analysis: User Actions That Trigger `SolveOrder`
 
 ## Overview

@@ -89,7 +89,7 @@ dotnet test tests/Informedica.GenUNITS.Tests/
 - Resource loading and tests: `src/Informedica.GenForm.Lib/Api.fs` and `tests/`
 - Sheet parsers: `Mapping.fs`, `Product.fs`, `DoseRule.fs`, `SolutionRule.fs`, `RenalRule.fs`
 - Unit and BigRational helpers: `src/Informedica.GenUnits.Lib/ValueUnit.fs`
-- Sheet documentation: `docs/mdr/design-history/genpres_resource_requirements.md`
+- Sheet documentation: `docs/mdr/design-history/0003-resource-requirements.md`
 
 **Important:** an opt-in strategy is used in the `.gitignore` file — you have to specifically define what should be included instead of the other way around!
 
@@ -108,12 +108,12 @@ dotnet test tests/Informedica.GenUNITS.Tests/
 
 ## Resource Loading Pattern
 
-- Docs with sheet specs: `docs/mdr/design-history/genpres_resource_requirements.md`.
-- Check `genpres_resource_requirements.md` for expected sheet and column names.
+- Docs with sheet specs: `docs/mdr/design-history/0003-resource-requirements.md`.
+- Check `0003-resource-requirements.md` for expected sheet and column names.
 - Resources are loaded from Google Sheets via `Web.getDataFromSheet dataUrlId "SheetName"`.
 - Mapping helper functions use `Csv.getStringColumn` / `Csv.getFloatOptionColumn` and call getString/getFloat-style delegates.
 - The central `ResourceConfig` (in `Api.fs`) expects functions returning `GenFormResult<'T>` (alias for `Result<'T, Message list>`). Use the `*Result` variants where present (e.g., `Mapping.getRouteMapping` or `Mapping.getRouteMappingResult`) and wrap with `delay` when the signature expects a `unit -> GenFormResult<_>`.
-- To add/modify sheet mappings: adjust the mapper in the corresponding module (e.g., `Product.Reconstitution.get`, `DoseRule.get`) and update `genpres_resource_requirements.md` to reflect column names.
+- To add/modify sheet mappings: adjust the mapper in the corresponding module (e.g., `Product.Reconstitution.get`, `DoseRule.get`) and update `0003-resource-requirements.md` to reflect column names.
 - Update the mapper to read columns by name using the `get` delegate (e.g., `let get = getColumn row in get "Generic"`), parse with `BigRational.toBrs` / `getFloat` as appropriate.
 - If adding optional numeric columns, use `getFloatOptionColumn` and `Option.bind BigRational.fromFloat`.
 
@@ -378,7 +378,7 @@ FSI's `#load` directive resolves relative paths from its *include path*, **not**
 
 ## Safety, MDR and Documentation
 
-- This project targets clinical medication workflows. Any change that affects dosing, rules, parsing, or resource mapping must include: unit tests, changelog entry, and an update to `docs/mdr/design-history/genpres_resource_requirements.md` if spreadsheet columns or semantics changed.
+- This project targets clinical medication workflows. Any change that affects dosing, rules, parsing, or resource mapping must include: unit tests, changelog entry, and an update to `docs/mdr/design-history/0003-resource-requirements.md` if spreadsheet columns or semantics changed.
 - Add notes to CONTRIBUTING.md if the change introduces a new external dependency or changes deployment behavior.
 
 ## AI/LLM Usage Policy
@@ -398,7 +398,7 @@ Contributors must also disclose when code submitted in a pull request is **vibe 
 - [ ] Small, focused change with < 300 LOC modified when possible.
 - [ ] Add or update unit tests covering the change.
 - [ ] Ensure `dotnet run servertests` passes locally for affected projects.
-- [ ] Update `genpres_resource_requirements.md` if spreadsheet column names or semantics change.
+- [ ] Update `0003-resource-requirements.md` if spreadsheet column names or semantics change.
 - [ ] Use conventional commit message with scope and short description.
 
 ## Related Documentation
