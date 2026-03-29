@@ -1177,10 +1177,7 @@ module Models =
                         Csv.getStringColumn cms sl n |> String.trim
 
                     let getStringOpt n =
-                        try
-                            getString n
-                        with _ ->
-                            ""
+                        if cms |> Array.exists ((=) n) then getString n else ""
 
                     let getFloat = Csv.getFloatOptionColumn cms sl >> Option.defaultValue 0.
 

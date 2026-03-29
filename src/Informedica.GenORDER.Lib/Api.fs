@@ -870,9 +870,12 @@ Scenarios: {scenarios}
         let outputIsEmpty =
             ctx.Filter.Generics |> Array.isEmpty && ctx.Filter.Indications |> Array.isEmpty
 
-        if inputHadSelections && outputIsEmpty then
-            Error "no matching dose rules for the selected filter"
-        else
+        match result with
+        | Error e when inputHadSelections && outputIsEmpty ->
+            // propagate the underlying error when getRules failed
+            Error e
+        | _ when inputHadSelections && outputIsEmpty -> Error "Geen doseerregels gevonden voor het geselecteerde filter"
+        | _ ->
             let prs =
                 match result with
                 | Ok prs -> prs

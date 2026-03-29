@@ -83,7 +83,10 @@ module PrescriptionRule =
                     if norm >? min then
                         dl
                     else
-                        { dl with Quantity.Max = dl.Quantity.Min }
+                        { dl with
+                            PerTimeAdjust = MinMax.empty
+                            Quantity.Max = dl.Quantity.Min
+                        }
                 | _ -> dl
             // recalculate the max dose per time
             // if min adjust * adj >= max absolute, pin to max

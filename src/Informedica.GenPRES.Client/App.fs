@@ -695,7 +695,10 @@ module private Elmish =
 
             match state.BolusMedication with
             | Resolved meds ->
-                match meds |> List.tryFind (fun m -> item.EndsWith($".{m.Category}.{m.Generic}")) with
+                match
+                    meds
+                    |> List.tryFind (fun m -> item.EndsWith($".{m.Hospital}.{m.Category}.{m.Generic}"))
+                with
                 | None -> state, Cmd.none
                 | Some selected ->
                     let generic =
@@ -773,13 +776,19 @@ module private Elmish =
         | LoadOrderContextResult(_, Finished(Error err)) ->
             Logging.warning "order context error, resetting" err
 
+            let isNoRulesError =
+                err |> Array.exists (fun e -> e.ToLower().Contains("geen doseerregels"))
+
             { state with
                 OrderContext = HasNotStartedYet
                 SnackbarMsg = err |> Array.tryHead |> Option.defaultValue "Er ging iets mis"
                 SnackbarOpen = true
                 SnackbarSeverity = "warning"
             },
-            Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, OrderContext.empty))
+            if isNoRulesError then
+                Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, OrderContext.empty))
+            else
+                Cmd.none
 
 
         | OrderPlanMsg tpCmd ->
