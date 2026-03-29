@@ -1129,7 +1129,23 @@ module Models =
             }
 
 
-        let createBolus hosp indication medication minWght maxWght dose min max conc unit remark =
+        let createBolus
+            hosp
+            indication
+            medication
+            minWght
+            maxWght
+            dose
+            min
+            max
+            conc
+            unit
+            remark
+            templateGeneric
+            templateRoute
+            templateDoseType
+            templateIndication
+            =
             {
                 Hospital = hosp
                 Category = indication
@@ -1142,6 +1158,10 @@ module Models =
                 Concentration = conc
                 Unit = unit
                 Remark = remark
+                TemplateGeneric = templateGeneric
+                TemplateRoute = templateRoute
+                TemplateDoseType = templateDoseType
+                TemplateIndication = templateIndication
             }
 
 
@@ -1155,6 +1175,12 @@ module Models =
                 |> Array.map (fun sl ->
                     let getString n =
                         Csv.getStringColumn cms sl n |> String.trim
+
+                    let getStringOpt n =
+                        try
+                            getString n
+                        with _ ->
+                            ""
 
                     let getFloat = Csv.getFloatOptionColumn cms sl >> Option.defaultValue 0.
 
@@ -1170,6 +1196,10 @@ module Models =
                         (getFloat "conc")
                         (getString "unit")
                         (getString "remark")
+                        (getStringOpt "template-generic")
+                        (getStringOpt "template-route")
+                        (getStringOpt "template-dose-type")
+                        (getStringOpt "template-indication")
                 )
                 |> Array.toList
             | _ -> []

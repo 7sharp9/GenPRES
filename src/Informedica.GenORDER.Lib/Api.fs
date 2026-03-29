@@ -858,33 +858,46 @@ Scenarios: {scenarios}
 
 
     let getScenarios logger provider ctx =
+        let inputFilter = ctx.Filter
         let ctx, result = ctx |> getRules logger provider
 
-        let prs =
-            match result with
-            | Ok prs -> prs
-            | Error _ -> [||]
+        let inputHadSelections =
+            inputFilter.Generic.IsSome
+            || inputFilter.Indication.IsSome
+            || inputFilter.Route.IsSome
+            || inputFilter.DoseType.IsSome
 
-        if prs |> Array.isEmpty then
-            ctx
+        let outputIsEmpty =
+            ctx.Filter.Generics |> Array.isEmpty && ctx.Filter.Indications |> Array.isEmpty
+
+        if inputHadSelections && outputIsEmpty then
+            Error "no matching dose rules for the selected filter"
         else
-            { ctx with
-                Scenarios =
-                    // Note: different prescription rules can exist based on multiple pharmaceutical forms
-                    // and multiple solution rules
-                    prs
-                    |> evaluateRules logger
-                    |> function
-                        | [||] ->
-                            // no valid results so evaluate again
-                            // with changed product divisibility
-                            prs |> Array.map changeRuleProductsDivisible |> evaluateRules logger
-                        | results -> results
-                    |> processEvaluationResults
-                    |> filterScenariosByPreparation
-            }
-        |> updateFilterIfOneScenario
-        |> Ok
+            let prs =
+                match result with
+                | Ok prs -> prs
+                | Error _ -> [||]
+
+            if prs |> Array.isEmpty then
+                ctx
+            else
+                { ctx with
+                    Scenarios =
+                        // Note: different prescription rules can exist based on multiple pharmaceutical forms
+                        // and multiple solution rules
+                        prs
+                        |> evaluateRules logger
+                        |> function
+                            | [||] ->
+                                // no valid results so evaluate again
+                                // with changed product divisibility
+                                prs |> Array.map changeRuleProductsDivisible |> evaluateRules logger
+                            | results -> results
+                        |> processEvaluationResults
+                        |> filterScenariosByPreparation
+                }
+            |> updateFilterIfOneScenario
+            |> Ok
 
 
     let reloadResources logger provider ctx =

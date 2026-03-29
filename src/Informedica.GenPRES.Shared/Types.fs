@@ -299,6 +299,10 @@ module Types =
             Concentration: float
             Unit: string
             Remark: string
+            TemplateGeneric: string
+            TemplateRoute: string
+            TemplateDoseType: string
+            TemplateIndication: string
         }
 
     and ContinuousMedication =

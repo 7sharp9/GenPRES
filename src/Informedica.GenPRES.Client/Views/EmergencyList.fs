@@ -164,7 +164,7 @@ module EmergencyList =
                             [|
                                 {|
                                     field = "id"
-                                    value = $"{i + 1}.{m.Name}"
+                                    value = $"{i + 1}.{m.Category}.{m.Name}"
                                 |}
                                 {|
                                     field = "catagory"
