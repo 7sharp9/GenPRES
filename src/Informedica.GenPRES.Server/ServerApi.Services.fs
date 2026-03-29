@@ -284,6 +284,24 @@ module OrderContextService =
 
         let pat = ctx.Patient |> mapFromSharedPatient |> Patient.calcPMAge
 
+        let filter = ctx.Filter
+
+        $"""
+
+OrderContext filter:
+Patient: {pat |> Patient.toString}
+Indication: {filter.Indication |> Option.defaultValue ""}
+Generic: {filter.Generic |> Option.defaultValue ""}
+Route: {filter.Route |> Option.defaultValue ""}
+Shape: {filter.Form |> Option.defaultValue ""}
+DoseType : {filter.DoseType
+            |> Option.map Models.DoseType.doseTypeToString
+            |> Option.defaultValue ""}
+
+"""
+        |> writeDebugMessage
+
+
         let toServerCmd serverCtx =
             match cmd with
             | Api.UpdateOrderContext -> serverCtx |> GenOrderContext.UpdateOrderContext
@@ -328,7 +346,7 @@ module OrderContextService =
 
         match cmd with
         | Api.ReloadResources password when
-            Informedica.Utils.Lib.Env.getItem "GENPRES_RELOAD_PASSWORD"
+            Env.getItem "GENPRES_RELOAD_PASSWORD"
             |> Option.map (fun expected -> password <> expected)
             |> Option.defaultValue true
             -> // no env var = always reject
@@ -341,7 +359,11 @@ module OrderContextService =
                 |> GenOrderContext.logOrderContext logger "start eval"
                 |> GenOrderContext.evaluate logger provider
                 |> Result.map (GenOrderContext.logOrderContext logger "finish eval" >> extractServerCtx >> map)
-                |> Result.mapError Array.singleton
+                |> Result.mapError (
+                    List.map OrderLogging.formatOrderMessage
+                    >> String.concat "\n"
+                    >> Array.singleton
+                )
             with e ->
                 writeErrorMessage $"errored:\n{e}"
                 Error [| e.Message |]
