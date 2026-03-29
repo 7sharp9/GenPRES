@@ -1,4 +1,23 @@
-# Quantitativen Order Constraint Navigation
+# ADR-0006: Quantitative Order Constraint Navigation
+
+**Date**: 2024-01-01
+**Status**: Proposed
+
+## Context
+
+Quantitative variables in a medication order (dose, frequency, rate, volume) are not freely editable: they are governed by solver-derived feasible domains, defined constraints, and equation-based dependencies. A formal model is needed to determine the navigability state of each variable and to provide appropriate navigation controls.
+
+## Decision
+
+Define a deterministic, solver-driven navigation model with four navigability states (`NON_NAVIGABLE`, `STEPABLE`, `SELECTABLE`, `NAVIGABLE`) and three navigation operations (value selection, min–median–max navigation, single-value increment/decrement). State transitions are governed by the formal state tables in Sections 7, 8, and 9 of this document.
+
+## Consequences
+
+- The UI always presents controls appropriate to the variable's current feasible domain.
+- Re-anchoring after navigation is deterministic and consistent with the constraint solver.
+- The `OrderProcessor` is the single authoritative source for state recomputation after any navigation action.
+
+---
 
 - [Quantitativen Order Constraint Navigation](#quantitativen-order-constraint-navigation)
   - [1. Purpose and Scope](#1-purpose-and-scope)

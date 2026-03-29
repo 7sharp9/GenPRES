@@ -1,6 +1,23 @@
-# GenPRES UI Wireframes
+# ADR-0004: UI Wireframes
 
-**NOTE: this is a demo doc**
+**Date**: 2024-01-01
+**Status**: Accepted
+
+## Context
+
+Early in the project, the user interface flows and screen layouts needed to be sketched to guide front-end development and communicate the intended user experience to stakeholders.
+
+## Decision
+
+Produce a set of ASCII wireframes that illustrate the main UI screens: landing page, medication lookup, patient data entry, dosage results, order history, and protocols. These wireframes serve as an initial design baseline.
+
+## Consequences
+
+- Developers and designers have a shared reference for the intended UI structure.
+- The wireframes are illustrative and may diverge from the final implementation as development progresses.
+- Detailed screen-specific designs are documented separately (see [ADR-0005](0005-ui-nutrition-view.md), [ADR-0006](0006-ui-order-view.md)).
+
+---
 
 These wireframes describe the main user interface flows for GenPRES, a clinical decision support system for medication prescribing. The application is structured as a modern web app, with a focus on medication lookup, patient data entry, medication order calculation, and result display.
 

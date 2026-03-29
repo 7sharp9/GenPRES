@@ -1,6 +1,23 @@
-# The State of the Affairs of the GenPres project
+# ADR-0002: State of Affairs (December 2021)
 
-The current (i.e. 2nd of December 2021) of the GenPres project will be described in this "Wiki blog".
+**Date**: 2021-12-02
+**Status**: Superseded by [ADR-0001](0001-system-architecture.md)
+
+## Context
+
+A point-in-time record of the project status in December 2021 is needed to document the historical baseline and the known open problems that drove subsequent architectural decisions.
+
+## Decision
+
+Document the current implementation status, the challenges solved, and the remaining open problems as of December 2021 so that future contributors can understand the evolution of the project.
+
+## Consequences
+
+- Provides traceability for MDR design history requirements.
+- Identifies the three major remaining challenges: performance, data sources, and user interface.
+- Superseded by later ADRs that address each open problem.
+
+---
 
 ## Introduction
 

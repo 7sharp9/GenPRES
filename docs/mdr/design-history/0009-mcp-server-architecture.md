@@ -1,16 +1,34 @@
-# MCP Server Architecture
+# ADR-0009: MCP Server Architecture
 
 **Issue**: [Adding MCP servers](https://github.com/informedica/GenPRES/issues/)
+
+**Date**: 2026-03-28
+**Status**: Proposed
+
+## Context
+
+GenPRES exposes medication knowledge through a web API (`IServerApi`) for the Fable client and through direct F# calls for server-side composition. A third access pathway is needed to allow AI assistants to query prescription rules, dose rules, and order scenarios without duplicating domain logic.
+
+## Decision
+
+Implement MCP (Model Context Protocol) servers for `Informedica.GenFORM.Lib` and `Informedica.GenORDER.Lib` using the existing placeholder `Informedica.MCP.Lib`. The initial scope is read-only tools only. The implementation follows the scripts-first workflow: prototype in `.fsx` scripts, migrate to source files after human review.
+
+## Consequences
+
+- AI assistants (Claude Desktop, VS Code Copilot, custom agents) can query GenPRES knowledge through standard MCP tool calls.
+- No domain logic changes are needed in `GenFORM.Lib` or `GenORDER.Lib`.
+- All MCP tool calls are read-only in Phase 1; write operations require a separate ADR.
+- Every tool call must be audit-logged to satisfy MDR traceability requirements.
+- The MCP layer integrates naturally with the Agent Architecture (see [ADR-0008](0008-agent-architecture.md)) and the Clean SAFE Architecture (see [ADR-0007](0007-clean-safe-architecture.md)).
 
 **References**:
 
 - <https://modelcontextprotocol.io/introduction>
 - <https://github.com/jovaneyck/fsi-mcp-server> — F# MCP server reference implementation
-**Issue**: [Adding MCP servers](https://github.com/informedica/GenPRES/issues/) — issue number TBD
-- [Agent Architecture](agent-architecture.md)
-- [Clean Safe Architecture](clean-safe-architecture.md)
+- [ADR-0008: Agent Architecture](0008-agent-architecture.md)
+- [ADR-0007: Clean SAFE Architecture](0007-clean-safe-architecture.md)
 
-**Date**: 2026-03-28
+---
 
 ## Table of Contents
 
@@ -40,7 +58,7 @@
 
 The GenPRES system exposes medication knowledge (prescription rules, dose rules, solution rules, order contexts) through its `GenFORM` and `GenORDER` libraries. The **Model Context Protocol (MCP)** provides a standard interface for AI assistants to call external tools, making it possible to expose these libraries as AI-callable services without changing the domain logic.
 
-This ADR describes the plan to implement MCP servers for `Informedica.GenFORM.Lib` and `Informedica.GenORDER.Lib` using the existing placeholder `Informedica.MCP.Lib`, the existing `IResourceProvider` / `CachedResourceProvider` infrastructure, and the Agent Architecture already described in [agent-architecture.md](agent-architecture.md).
+This ADR describes the plan to implement MCP servers for `Informedica.GenFORM.Lib` and `Informedica.GenORDER.Lib` using the existing placeholder `Informedica.MCP.Lib`, the existing `IResourceProvider` / `CachedResourceProvider` infrastructure, and the Agent Architecture already described in [0008-agent-architecture.md](0008-agent-architecture.md).
 
 The initial scope is **read-only tools** only — no write operations that could affect running clinical workflows.
 
@@ -209,7 +227,7 @@ SSE transport can be added later to allow remote AI agents to call the server.
 
 ### Relationship to Agent Architecture
 
-The [Agent Architecture ADR](agent-architecture.md) describes wrapping domain libraries in `MailboxProcessor`-based agents to provide async, stateful, auditable access. The MCP server can reuse these agents directly:
+The [Agent Architecture ADR](0008-agent-architecture.md) describes wrapping domain libraries in `MailboxProcessor`-based agents to provide async, stateful, auditable access. The MCP server can reuse these agents directly:
 
 ```
 MCP tool call
@@ -230,7 +248,7 @@ Both paths are valid — the `IResourceProvider` interface is the stable boundar
 
 ### Relationship to Clean Safe Architecture
 
-The [Clean Safe Architecture ADR](clean-safe-architecture.md) defines the server's layered structure. The MCP server is a **new presentation layer** alongside the existing Fable.Remoting API, not a replacement:
+The [Clean Safe Architecture ADR](0007-clean-safe-architecture.md) defines the server's layered structure. The MCP server is a **new presentation layer** alongside the existing Fable.Remoting API, not a replacement:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐

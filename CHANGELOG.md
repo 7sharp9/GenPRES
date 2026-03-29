@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Client**: Refactor environment variable access to use `AppEnv` module — adds `asEnv` Fable-compatible helper (`unbox<'T>`), eliminating scattered inline environment reads; fixes `appendScenarioToTreatmentPlan` naming to remove shadowing of outer `updateTreatmentPlan`; prevents concurrent duplicate `UpdateOrderPlan` requests by checking `InProgress`/`Recalculating` state (PR #223)
-- **Docs**: Update `clean-safe-architecture.md` to reflect implemented safe-and-clean architecture state and add code-verified implementation notes (PR #227)
+- **Docs**: Update `0007-clean-safe-architecture.md` to reflect implemented safe-and-clean architecture state and add code-verified implementation notes (PR #227)
 
 ### Fixed
 
@@ -99,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GenOrder**: Fix incompatible substance concentrations causing incorrect product filtering
 - **GenOrder**: Add warning when filtering out products with incompatible units
 - **Client (UI)**: Fix date formatting — zero-padded day/month display (e.g., `01 - 03 - 2026`)
-- **Docs**: Fix 3 code-snippet bugs in `docs/mdr/design-history/agent-architecture.md`
+- **Docs**: Fix 3 code-snippet bugs in `docs/mdr/design-history/0008-agent-architecture.md`
 
 ---
 
@@ -225,7 +225,7 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 This CHANGELOG.md is the user-facing release notes. For developer-focused design changes, see:
 
-- [Design History Change Log](docs/mdr/design-history/change-log.md)
+- [Design History Change Log](docs/mdr/design-history/0013-change-log.md)
 
 The design history file tracks internal design decisions and technical changes, while this CHANGELOG focuses on user-visible changes and release information.
 
