@@ -917,7 +917,7 @@ GenPRES2/
 │       │   ├── 📄 0003-resource-requirements.md ✅ Exists
 │       │   ├── 📄 informedica-genform-lib.md ✅ Exists
 │       │   ├── 📄 informedica-genorder-lib.md ✅ Exists
-│       │   ├── 📄 domain_constrained_option_solver_0001-system-architecture.md ✅ Exists
+│       │   ├── 📄 domain_constrained_option_solver_architecture.md ✅ Exists
 │       │   ├── 📄 order_value_logic.md       ✅ Exists
 │       │   ├── 📄 0002-state-of-affairs.md        ✅ Exists
 │       │   └── 📄 0004-ui-wireframes.md           ✅ Exists
