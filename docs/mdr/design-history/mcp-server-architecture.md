@@ -119,16 +119,22 @@ The MCP layer is a **thin adapter**: it translates JSON tool calls into strongly
 The library currently contains only a stub (`Library.fs`). The plan is to replace this with:
 
 ```
+src/Informedica.GenFORM.Lib/Scripts/
+└── McpTools.fsx            — ✅ prototype script for GenFORM tools
+
+src/Informedica.GenORDER.Lib/Scripts/
+└── McpTools.fsx            — ✅ prototype script for GenORDER tools
+
 src/Informedica.MCP.Lib/
-├── Library.fs              — removed (replaced by module files below)
-├── McpTools.GenForm.fsx    — prototype script (scripts-first policy)
-├── McpTools.GenOrder.fsx   — prototype script
-├── McpServer.fs            — MCP server wiring + entry-point helpers
-├── McpTools.GenForm.fs     — tool handlers for GenFORM (after review)
-└── McpTools.GenOrder.fs    — tool handlers for GenORDER (after review)
+├── Library.fs              — stub (to be removed after review)
+├── Scripts/
+│   └── McpServer.fsx       — ✅ MCP server wiring design prototype
+├── McpServer.fs            — MCP server wiring + entry-point helpers  (after review)
+├── McpTools.GenForm.fs     — tool handlers for GenFORM               (after review)
+└── McpTools.GenOrder.fs    — tool handlers for GenORDER              (after review)
 ```
 
-> **Policy note**: Per `AGENTS.md`, new code must first be prototyped in `.fsx` scripts. The `.fs` files above are created only after the human reviewer has approved the scripted prototype.
+> **Policy note**: Per `AGENTS.md`, new code must first be prototyped in `.fsx` scripts. The prototype scripts (✅ already committed) live in each library's own `Scripts/` folder because they need `load.fsx` from the same directory to access the library's compiled DLLs and source files. The `.fs` files listed above are created inside `Informedica.MCP.Lib` only after the human reviewer has approved the scripted prototypes.
 
 ### MCP Tool Mapping
 
@@ -302,9 +308,9 @@ The only new external dependency required is the official .NET MCP SDK:
 
 | Package | Version | Use |
 |---------|---------|-----|
-| `ModelContextProtocol` | 0.2.0-preview.* | MCP server builder, tool registration, stdio/SSE transport |
+| `ModelContextProtocol` | 1.2.0 | MCP server builder, tool registration, stdio/SSE transport |
 
-> **Security check**: Before adding `ModelContextProtocol`, run the advisory database check to confirm no known vulnerabilities.
+> **Security check** (performed 2026-03-29): The `ModelContextProtocol` package at version `1.2.0` was checked against the GitHub Advisory Database — no known vulnerabilities found. Before adding this dependency, re-run the advisory check to verify it remains clean. Pin the dependency to an exact version (e.g. `1.2.0`) in `paket.dependencies` and update it deliberately rather than using a floating or wildcard specifier, to ensure reproducible builds as required by MDR traceability.
 
 The `ModelContextProtocol` package is maintained by the [modelcontextprotocol GitHub organisation](https://github.com/modelcontextprotocol/csharp-sdk), which is the official .NET implementation. The fsi-mcp-server reference uses the same package.
 
