@@ -695,15 +695,38 @@ module private Elmish =
 
             match state.BolusMedication with
             | Resolved meds ->
-                match meds |> List.tryFind (fun m -> item.EndsWith($".{m.Generic}")) with
+                match
+                    meds
+                    |> List.tryFind (fun m -> item.EndsWith($".{m.Hospital}.{m.Category}.{m.Generic}"))
+                with
                 | None -> state, Cmd.none
                 | Some selected ->
+                    let generic =
+                        if selected.TemplateGeneric = "" then
+                            selected.Generic
+                        else
+                            selected.TemplateGeneric
+
                     let ctx =
                         { OrderContext.empty with
                             Filter =
                                 { OrderContext.empty.Filter with
-                                    Generic = Some selected.Generic
-                                    Route = Some "INTRAVENEUS"
+                                    Indication =
+                                        if selected.TemplateIndication = "" then
+                                            None
+                                        else
+                                            Some selected.TemplateIndication
+                                    Generic = Some generic
+                                    Route =
+                                        if selected.TemplateRoute = "" then
+                                            Some "INTRAVENEUS"
+                                        else
+                                            Some selected.TemplateRoute
+                                    DoseType =
+                                        if selected.TemplateDoseType = "" then
+                                            None
+                                        else
+                                            Some(DoseType.doseTypeFromString selected.TemplateDoseType)
                                 }
                         }
 
@@ -751,7 +774,21 @@ module private Elmish =
 
         | LoadOrderContextResult(_, Finished(Ok msg)) -> msg |> processOk
         | LoadOrderContextResult(_, Finished(Error err)) ->
-            ({ state with OrderContext = HasNotStartedYet }, Cmd.none) |> processError err
+            Logging.warning "order context error, resetting" err
+
+            let isNoRulesError =
+                err |> Array.exists (fun e -> e.ToLower().Contains("geen doseerregels"))
+
+            { state with
+                OrderContext = HasNotStartedYet
+                SnackbarMsg = err |> Array.tryHead |> Option.defaultValue "Er ging iets mis"
+                SnackbarOpen = true
+                SnackbarSeverity = "warning"
+            },
+            if isNoRulesError then
+                Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, OrderContext.empty))
+            else
+                Cmd.none
 
 
         | OrderPlanMsg tpCmd ->
