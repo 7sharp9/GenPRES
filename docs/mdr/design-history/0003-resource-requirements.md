@@ -1,3 +1,24 @@
+# ADR-0003: Resource Requirements and Spreadsheet Schema
+
+**Date**: 2024-01-01
+**Status**: Accepted
+
+## Context
+
+GenPRES loads all medication rules, mapping tables, and configuration from Google Spreadsheets. A normative specification of required sheet names, column names, and data formats is needed to ensure consistent parsing across code changes and to support MDR traceability.
+
+## Decision
+
+Maintain a living specification document that describes every required spreadsheet sheet, its column definitions, data formats, and usage in the GenFORM library. This document is the authoritative reference for the `IResourceProvider` contract.
+
+## Consequences
+
+- Any change to a sheet name or column definition must be reflected in this document.
+- Agents and contributors must check this document before adding or modifying sheet parsers.
+- The specification is verified against the implementation; see [ADR-0012](0012-resource-verification.md) for the verification report.
+
+---
+
 # GenPRES Resource Requirements Documentation
 
 ## Overview

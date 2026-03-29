@@ -1,3 +1,25 @@
+# ADR-0011: Universal Layout for Content Overflow
+
+**Date**: 2026-01-01
+**Status**: Accepted
+
+## Context
+
+Multiple views manually added `paddingBottom: 220px` to avoid content being hidden behind the Totals bottom drawer. The drawer height is variable, making the fixed offset unreliable. Table views used hardcoded `calc(100vh - 240px)` heights that did not account for dynamic layout elements. The root cause was that the `BottomDrawer` used MUI `position: fixed`, which removed it from document flow.
+
+## Decision
+
+Replace the fixed-position `BottomDrawer` with an inline flex item at root level. Establish an unbroken flex chain from the viewport root to all scrollable content areas. Remove all `paddingBottom`, `height: calc(...)`, and per-view `overflowY` workarounds. Use a single scrollable `page-box` with unconditional `overflowY: auto`.
+
+## Consequences
+
+- New views do not need to know about AppBar height, drawer height, or add their own layout compensation.
+- No magic numbers (`calc(100vh - N px)`) anywhere in view code.
+- `BottomDrawer.fs` is now dead code (no longer imported).
+- All table views use `height: 100%` and fill available flex space automatically.
+
+---
+
 # Design History: Universal Layout for Content Overflow
 
 ## Problem

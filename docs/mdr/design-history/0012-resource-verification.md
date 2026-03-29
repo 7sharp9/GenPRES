@@ -1,11 +1,33 @@
+# ADR-0012: Resource Requirements Verification Report
+
+**Date**: 2025-12-21
+**Status**: Accepted
+
+## Context
+
+After significant development on the GenFORM library, the resource requirements specification ([ADR-0003](0003-resource-requirements.md)) needed to be validated against the actual implementation to confirm accuracy and identify any discrepancies or clarifications needed.
+
+## Decision
+
+Perform a systematic verification of every sheet and column definition in [ADR-0003](0003-resource-requirements.md) against the actual column names and parsing logic in the GenFORM source files. Document the results, including confirmed matches, clarifications added, and any deviations found.
+
+## Consequences
+
+- ADR-0003 is confirmed as highly accurate for all core sheets.
+- Minor clarifications were added (UMCU/Apotheek naming, KH abbreviation, koolhydraat usage).
+- Emergency Treatment sheets are documented as implemented in client code rather than GenFORM.Lib.
+- Future changes to sheet parsers must keep ADR-0003 in sync.
+
+---
+
 # Resource Requirements Verification Report
 
-**Date**: December 21, 2025  
+**Date**: December 21, 2025
 **Verified Against**: GenFORM.Lib implementation (commit: current)
 
 ## Summary
 
-This document records the verification of `genpres_resource_requirements.md` against the actual implementation in the GenFORM library.
+This document records the verification of `0003-resource-requirements.md` against the actual implementation in the GenFORM library.
 
 ## Verification Results
 
@@ -162,7 +184,7 @@ This verification was performed by:
 
 ## Conclusion
 
-The `genpres_resource_requirements.md` documentation is **highly accurate** and matches the implementation in GenFORM.Lib with only minor clarifications needed. All core sheets (Routes, Units, FormRoute, ValidForms, Reconstitution, DoseRules, SolutionRules, RenalRules, Enteral, Parenteral, Formulary) are correctly documented.
+The `0003-resource-requirements.md` documentation is **highly accurate** and matches the implementation in GenFORM.Lib with only minor clarifications needed. All core sheets (Routes, Units, FormRoute, ValidForms, Reconstitution, DoseRules, SolutionRules, RenalRules, Enteral, Parenteral, Formulary) are correctly documented.
 
 The Emergency Treatment sheets are documented but implemented in client code rather than the library, which has been noted in the documentation.
 

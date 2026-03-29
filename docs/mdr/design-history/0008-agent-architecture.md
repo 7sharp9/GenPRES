@@ -1,3 +1,25 @@
+# ADR-0008: Agent Architecture
+
+**Date**: 2026-03-01
+**Status**: Proposed
+
+## Context
+
+Core domain libraries (`GenFORM`, `GenORDER`, `ZIndex`, `ZForm`) expose their services through synchronous direct function calls. There is no async boundary, no built-in audit trail, and no consistent Command/Response pattern across libraries, making it hard to extend, log, or test in isolation.
+
+## Decision
+
+Wrap each domain library in a `MailboxProcessor`-based agent using `Informedica.Agents.Lib`. Each agent exposes a `Command` DU and a `Response` DU. All inter-library and server communication uses `Agent.postAndAsyncReply`. Prototype Command/Response DUs and agent creation code in `.fsx` scripts before migrating to source files.
+
+## Consequences
+
+- All domain library interactions gain an async boundary and a natural audit trail.
+- Serialised access via `MailboxProcessor` removes the need for explicit locking in `CachedResourceProvider`.
+- New operations require only adding a case to the `Command` DU—no changes to multiple call sites.
+- Integration with the MCP server (see [ADR-0009](0009-mcp-server-architecture.md)) is simplified: tool handlers become wrappers around `Agent.postAndAsyncReply`.
+
+---
+
 # Agent Architecture Design
 
 ## Overview

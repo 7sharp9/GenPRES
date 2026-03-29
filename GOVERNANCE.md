@@ -291,7 +291,7 @@ All changes follow change control process:
 5. Documentation update
 6. Change log entry
 
-**See**: `docs/mdr/design-history/change-log.md`
+**See**: `docs/mdr/design-history/0013-change-log.md`
 
 ### Post-Market Surveillance
 
