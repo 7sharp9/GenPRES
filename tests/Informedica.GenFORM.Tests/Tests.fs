@@ -306,6 +306,136 @@ module Tests =
                 ]
 
 
+    module AdjustDoseLimitTests =
+
+        let mkLimit v u =
+            Limit.Inclusive(ValueUnit.singleWithUnit u v)
+
+        let mg = Units.Mass.milliGram
+        let mgPerKg = Units.Mass.milliGram |> Units.per Units.Weight.kiloGram
+        let kg = Units.Weight.kiloGram
+
+        let pat15kg =
+            { Patient.patient with Weight = Some(ValueUnit.singleWithUnit kg 15N) }
+
+        let tests =
+            testList
+                "adjustDoseLimitToPatient tests"
+                [
+                    test "no change when adjust min * adj < absolute max" {
+                        let dl =
+                            { DoseLimit.limit with
+                                AdjustUnit = Some kg
+                                DoseUnit = mg
+                                Quantity =
+                                    {
+                                        Min = None
+                                        Max = Some(mkLimit 100N mg)
+                                    }
+                                QuantityAdjust =
+                                    {
+                                        Min = Some(mkLimit 1N mgPerKg)
+                                        Max = None
+                                    }
+                            }
+
+                        let result = dl |> PrescriptionRule.adjustDoseLimitToPatient None pat15kg
+
+                        result.QuantityAdjust
+                        |> Expect.notEqual "adjust should be preserved" MinMax.empty
+                    }
+
+                    test "pins to max when adjust min * adj >= absolute max" {
+                        let dl =
+                            { DoseLimit.limit with
+                                AdjustUnit = Some kg
+                                DoseUnit = mg
+                                Quantity =
+                                    {
+                                        Min = None
+                                        Max = Some(mkLimit 10N mg)
+                                    }
+                                QuantityAdjust =
+                                    {
+                                        Min = Some(mkLimit 1N mgPerKg)
+                                        Max = None
+                                    }
+                            }
+
+                        let result = dl |> PrescriptionRule.adjustDoseLimitToPatient None pat15kg
+
+                        result.QuantityAdjust |> Expect.equal "adjust should be cleared" MinMax.empty
+
+                        result.Quantity.Min
+                        |> Expect.equal "min should be pinned to max" result.Quantity.Max
+                    }
+
+                    test "no change when adjust max * adj > absolute min" {
+                        let dl =
+                            { DoseLimit.limit with
+                                AdjustUnit = Some kg
+                                DoseUnit = mg
+                                Quantity =
+                                    {
+                                        Min = Some(mkLimit 10N mg)
+                                        Max = None
+                                    }
+                                QuantityAdjust =
+                                    {
+                                        Min = None
+                                        Max = Some(mkLimit 1N mgPerKg)
+                                    }
+                            }
+
+                        let result = dl |> PrescriptionRule.adjustDoseLimitToPatient None pat15kg
+
+                        result.QuantityAdjust
+                        |> Expect.notEqual "adjust should be preserved" MinMax.empty
+                    }
+
+                    test "pins to min when adjust max * adj <= absolute min" {
+                        let dl =
+                            { DoseLimit.limit with
+                                AdjustUnit = Some kg
+                                DoseUnit = mg
+                                Quantity =
+                                    {
+                                        Min = Some(mkLimit 20N mg)
+                                        Max = None
+                                    }
+                                QuantityAdjust =
+                                    {
+                                        Min = None
+                                        Max = Some(mkLimit 1N mgPerKg)
+                                    }
+                            }
+
+                        let result = dl |> PrescriptionRule.adjustDoseLimitToPatient None pat15kg
+
+                        result.QuantityAdjust |> Expect.equal "adjust should be cleared" MinMax.empty
+
+                        result.Quantity.Max
+                        |> Expect.equal "max should be pinned to min" result.Quantity.Min
+                    }
+
+                    test "no change when no adjust unit" {
+                        let dl =
+                            { DoseLimit.limit with
+                                DoseUnit = mg
+                                Quantity =
+                                    {
+                                        Min = Some(mkLimit 10N mg)
+                                        Max = Some(mkLimit 100N mg)
+                                    }
+                            }
+
+                        let result = dl |> PrescriptionRule.adjustDoseLimitToPatient None pat15kg
+
+                        result |> Expect.equal "should be unchanged" dl
+                    }
+                ]
+
+
     module PatientCategoryTests =
 
 
@@ -1080,6 +1210,7 @@ module Tests =
             "GenForm Tests"
             [
                 DoseLimitTests.tests
+                AdjustDoseLimitTests.tests
                 PatientCategoryTests.tests
                 DoseTypeTests.tests
                 LimitTargetTests.tests
