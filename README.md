@@ -11,7 +11,7 @@ This project is initially aimed at the Dutch medical setting, but can easily be 
 
 ---
 
-![genpresdemo](docs/pcm%20example.gif)
+![genpresdemo](docs/readme.gif)
 
 ---
 
