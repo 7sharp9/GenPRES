@@ -1640,19 +1640,26 @@ module Medication =
                         orbDto.Dose.PerTimeAdjust.Constraints
                         |> setMinMaxConstraints true dl.PerTimeAdjust
 
+            // when there is exactly one component and no orderable-level dose,
+            // use the single component's dose as the orderable dose
+            let dose =
+                match med.Dose, med.Components with
+                | None, [ single ] -> single.Dose
+                | _ -> med.Dose
+
             match med.OrderType with
             | AnyOrder
             | ProcessOrder -> ()
-            | ContinuousOrder -> med.Dose |> setOrbDoseRate
-            | OnceOrder -> med.Dose |> setOrbDoseQty true
+            | ContinuousOrder -> dose |> setOrbDoseRate
+            | OnceOrder -> dose |> setOrbDoseQty true
             | OnceTimedOrder ->
-                med.Dose |> setOrbDoseRate
-                med.Dose |> setOrbDoseQty true
-            | DiscontinuousOrder -> med.Dose |> setOrbDoseQty false
+                dose |> setOrbDoseRate
+                dose |> setOrbDoseQty true
+            | DiscontinuousOrder -> dose |> setOrbDoseQty false
             | TimedOrder ->
                 orbDto |> setTimedOrderConstraints med
-                med.Dose |> setOrbDoseRate
-                med.Dose |> setOrbDoseQty false
+                dose |> setOrbDoseRate
+                dose |> setOrbDoseQty false
 
         /// Create and configure the Orderable DTO with all constraints
         let createOrderableDto (med: Medication) =
