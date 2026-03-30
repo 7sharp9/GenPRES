@@ -1240,3 +1240,41 @@ MedicationTexts.adenosinDayOne
     | Error _ -> "fail" |> failwith
     | Ok med -> [ CalcMinMax ] |> HelperFunctions.run None med
 |> ignore
+
+
+"""
+Id: 0b404ef4-22c2-46fd-b553-77818e64ed0b
+Name: natriumbenzoaat/natriumfenylacetaat
+Quantity:
+Quantities:
+Route: INTRAVENEUS
+OrderType: OnceTimedOrder
+Adjust: 17 kg
+Frequencies:
+Time: 90 min - 120 min
+Dose:
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: natriumbenzoaat/natriumfenylacetaat
+	Form: natriumbenzoaat/natriumfenylacetaat
+	Quantities:
+	Divisible:
+	Dose:
+	Solution:
+	Substances:
+
+		Name: natriumbenzoaat
+		Quantities:
+		Concentrations:
+		Dose: natriumbenzoaat, [dun] mg, [qty-adj] 250 mg/kg/dosis
+		Solution:
+
+		Name: natriumfenylacetaat
+		Quantities:
+		Concentrations:
+		Dose: natriumfenylacetaat, [dun] mg, [qty-adj] 250 mg/kg/dosis
+		Solution:
+"""
+|> Medication.fromString

@@ -543,7 +543,10 @@ module DoseRule =
             match doseType with
             | NoDoseType -> false
             | Once _ -> true
-            | OnceTimed _ -> dd.MaxTime.IsSome && dd.TimeUnit |> String.notEmpty
+            | OnceTimed _ ->
+                (dd.MaxTime.IsSome && dd.TimeUnit |> String.notEmpty)
+                || dd.MaxRate.IsSome
+                || dd.MaxRateAdj.IsSome
             | Discontinuous _ -> dd.Frequencies |> Array.length > 0 && dd.FreqUnit |> String.notEmpty
             | Timed _ ->
                 dd.Frequencies |> Array.length > 0
@@ -561,8 +564,11 @@ module DoseRule =
                 | Once _ -> []
                 | OnceTimed _ ->
                     [
-                        missing dd.MaxTime.IsSome "MaxTime is missing"
-                        missing (dd.TimeUnit |> String.notEmpty) "TimeUnit is missing"
+                        missing
+                            ((dd.MaxTime.IsSome && dd.TimeUnit |> String.notEmpty)
+                             || dd.MaxRate.IsSome
+                             || dd.MaxRateAdj.IsSome)
+                            "MaxTime (with TimeUnit) or MaxRate or MaxRateAdj is missing"
                     ]
                     |> List.choose id
                 | Discontinuous _ ->
