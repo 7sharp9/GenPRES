@@ -132,6 +132,7 @@
 
 # Add documentation
 !/docs/
+!/docs/readme.gif
 !/docs/roadmap/
 !/docs/*.xlsx
 !/docs/code-reviews/
