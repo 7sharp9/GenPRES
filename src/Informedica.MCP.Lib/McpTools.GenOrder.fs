@@ -21,8 +21,9 @@ module GenOrderTools =
         {
             AgeMonths: float option
             WeightKg: float option
-            BsaM2: float option
+            HeightCm: float option
             Sex: string option
+            Department: string option
             Generic: string option
             Indication: string option
             Route: string option
@@ -93,12 +94,19 @@ module GenOrderTools =
 
     // ── Helpers ─────────────────────────────────────────────────────────────
 
+    let parseGender (s: string) =
+        match s.ToLowerInvariant() with
+        | "male" -> Some Gender.Male
+        | "female" -> Some Gender.Female
+        | _ -> None
+
+
     let buildPatient (input: CreateOrderContextInput) : Patient.Patient =
         let pat = Patient.patient
 
         let pat =
             match input.AgeMonths with
-            | Some a -> pat |> Patient.setAge [ Patient.Optics.Months(int a) ]
+            | Some a -> pat |> Patient.setAge [ Patient.Optics.Months(a |> Math.Round |> int) ]
             | None -> pat
 
         let pat =
@@ -106,7 +114,17 @@ module GenOrderTools =
             | Some w -> pat |> Patient.setWeight (decimal w |> Kilogram |> Some)
             | None -> pat
 
-        pat |> Patient.setDepartment (Some "ICK")
+        let pat =
+            match input.HeightCm with
+            | Some h -> pat |> Patient.setHeight (int h |> Centimeter |> Some)
+            | None -> pat
+
+        let pat =
+            match input.Sex |> Option.bind parseGender with
+            | Some g -> pat |> Patient.setGender g
+            | None -> pat
+
+        pat |> Patient.setDepartment (input.Department |> Option.orElse (Some "ICK"))
 
 
     // ── Tool handler functions ──────────────────────────────────────────────
@@ -117,8 +135,9 @@ module GenOrderTools =
                 {
                     AgeMonths = input.AgeMonths
                     WeightKg = input.WeightKg
-                    BsaM2 = None
+                    HeightCm = None
                     Sex = None
+                    Department = None
                     Generic = input.Generic
                     Indication = input.Indication
                     Route = input.Route
@@ -255,7 +274,11 @@ module GenOrderTools =
                 }
 
 
-    let getOrderScenarios (provider: IResourceProvider) (input: CreateOrderContextInput) : OrderScenarioOutput[] =
+    let getOrderScenarios
+        (provider: IResourceProvider)
+        (input: CreateOrderContextInput)
+        : Result<OrderScenarioOutput[], string>
+        =
         let patient = buildPatient input
         let ctx = OrderContext.create OrderLogging.noOp provider patient
 
@@ -286,7 +309,7 @@ module GenOrderTools =
             OrderContext.UpdateOrderContext ctx
             |> OrderContext.evaluate OrderLogging.noOp provider
         with
-        | Error _ -> [||]
+        | Error e -> Error $"Failed to evaluate order context: {e}"
         | Ok cmd ->
             let result = cmd |> OrderContext.Command.get
 
@@ -319,3 +342,4 @@ module GenOrderTools =
                     Summary = summary
                 }
             )
+            |> Ok

@@ -69,15 +69,15 @@ module GenFormTools =
             Form: string option
             Route: string
             Solutions: string[]
-            MaxConcentration: float option
-            MinConcentration: float option
         }
 
     type RenalRuleOutput =
         {
             Generic: string
             Route: string
-            AdjustmentFactor: float option
+            Indication: string
+            Source: string
+            DoseReduction: string
             Comment: string
         }
 
@@ -125,16 +125,27 @@ module GenFormTools =
             Form = sr.Form
             Route = sr.Route
             Solutions = sr.Diluents |> Array.map _.Generic
-            MaxConcentration = None
-            MinConcentration = None
         }
 
 
     let renalRuleToOutput (rr: RenalRule) : RenalRuleOutput =
+        let doseReduction =
+            rr.RenalLimits
+            |> Array.tryHead
+            |> Option.map (fun rl ->
+                match rl.DoseReduction with
+                | DoseReduction.Absolute -> "absolute"
+                | DoseReduction.Relative -> "relative"
+                | DoseReduction.NoReduction -> "none"
+            )
+            |> Option.defaultValue ""
+
         {
             Generic = rr.Generic
             Route = rr.Route
-            AdjustmentFactor = None
+            Indication = rr.Indication
+            Source = rr.Source
+            DoseReduction = doseReduction
             Comment = rr |> sprintf "%A" |> (fun s -> s.[.. min 200 (s.Length - 1)])
         }
 

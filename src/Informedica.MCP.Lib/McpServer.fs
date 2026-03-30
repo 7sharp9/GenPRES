@@ -28,7 +28,7 @@ module McpHelpers =
 /// MCP server wiring: attributed tool type definitions for GenFORM tools.
 /// Each static method delegates to the corresponding GenFormTools handler.
 [<McpServerToolType>]
-type GenFormMcpTools(provider: IResourceProvider) =
+type GenFormMcpTools() =
 
     static let mutable _provider: IResourceProvider option = None
 
@@ -123,7 +123,7 @@ type GenFormMcpTools(provider: IResourceProvider) =
 /// MCP server wiring: attributed tool type definitions for GenORDER tools.
 /// Each static method delegates to the corresponding GenOrderTools handler.
 [<McpServerToolType>]
-type GenOrderMcpTools(provider: IResourceProvider) =
+type GenOrderMcpTools() =
 
     static let mutable _provider: IResourceProvider option = None
 
@@ -202,8 +202,9 @@ type GenOrderMcpTools(provider: IResourceProvider) =
         (
             [<Description("Patient age in months")>] ageMonths: Nullable<float>,
             [<Description("Patient body weight in kg")>] weightKg: Nullable<float>,
-            [<Description("Patient body surface area in m²")>] bsaM2: Nullable<float>,
-            [<Description("Patient sex: 'male', 'female', or 'any'")>] sex: string,
+            [<Description("Patient height in cm (used to calculate BSA)")>] heightCm: Nullable<float>,
+            [<Description("Patient sex: 'male' or 'female'")>] sex: string,
+            [<Description("Hospital department (e.g. 'ICK', 'NEO'). Defaults to 'ICK' if omitted.")>] department: string,
             [<Description("Generic drug name to pre-filter on")>] generic: string,
             [<Description("Clinical indication to pre-filter on")>] indication: string,
             [<Description("Administration route to pre-filter on")>] route: string,
@@ -213,8 +214,9 @@ type GenOrderMcpTools(provider: IResourceProvider) =
             {
                 AgeMonths = McpHelpers.optFloat ageMonths
                 WeightKg = McpHelpers.optFloat weightKg
-                BsaM2 = McpHelpers.optFloat bsaM2
+                HeightCm = McpHelpers.optFloat heightCm
                 Sex = McpHelpers.optStr sex
+                Department = McpHelpers.optStr department
                 Generic = McpHelpers.optStr generic
                 Indication = McpHelpers.optStr indication
                 Route = McpHelpers.optStr route
@@ -231,8 +233,9 @@ type GenOrderMcpTools(provider: IResourceProvider) =
         (
             [<Description("Patient age in months")>] ageMonths: Nullable<float>,
             [<Description("Patient body weight in kg")>] weightKg: Nullable<float>,
-            [<Description("Patient body surface area in m²")>] bsaM2: Nullable<float>,
-            [<Description("Patient sex: 'male', 'female', or 'any'")>] sex: string,
+            [<Description("Patient height in cm (used to calculate BSA)")>] heightCm: Nullable<float>,
+            [<Description("Patient sex: 'male' or 'female'")>] sex: string,
+            [<Description("Hospital department (e.g. 'ICK', 'NEO'). Defaults to 'ICK' if omitted.")>] department: string,
             [<Description("Generic drug name")>] generic: string,
             [<Description("Clinical indication")>] indication: string,
             [<Description("Administration route")>] route: string,
@@ -242,16 +245,18 @@ type GenOrderMcpTools(provider: IResourceProvider) =
             {
                 AgeMonths = McpHelpers.optFloat ageMonths
                 WeightKg = McpHelpers.optFloat weightKg
-                BsaM2 = McpHelpers.optFloat bsaM2
+                HeightCm = McpHelpers.optFloat heightCm
                 Sex = McpHelpers.optStr sex
+                Department = McpHelpers.optStr department
                 Generic = McpHelpers.optStr generic
                 Indication = McpHelpers.optStr indication
                 Route = McpHelpers.optStr route
                 Form = McpHelpers.optStr form
             }
 
-        GenOrderTools.getOrderScenarios GenOrderMcpTools.Provider input
-        |> McpHelpers.toJson
+        match GenOrderTools.getOrderScenarios GenOrderMcpTools.Provider input with
+        | Ok scenarios -> McpHelpers.toJson scenarios
+        | Error msg -> McpHelpers.toJson {| Error = msg |}
 
 
 /// MCP server builder and startup helpers.
