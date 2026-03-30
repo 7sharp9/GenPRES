@@ -42,6 +42,9 @@ open Informedica.GenSolver.Lib
 /// Thread-safe LRU cache backed by a LinkedList + Dictionary.
 type LRUCache<'K, 'V when 'K : equality>(capacity: int) =
 
+    do
+        if capacity <= 0 then
+            invalidArg "capacity" "LRUCache capacity must be > 0."
     let dict = Dictionary<'K, LinkedListNode<struct ('K * 'V)>>()
     let list = LinkedList<struct ('K * 'V)>()
     let mutable hits = 0
