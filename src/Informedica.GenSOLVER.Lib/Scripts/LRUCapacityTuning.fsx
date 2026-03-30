@@ -111,12 +111,7 @@ module Solver =
 
     let canonKey (eqs: Equation.T list) =
         eqs
-        |> List.map (fun eq ->
-            eq
-            |> Equation.toVars
-            |> List.map (fun v -> Variable.getName v |> Variable.Name.toString)
-            |> String.concat ","
-        )
+        |> List.map CanonKey.ofEquation
         |> String.concat ";"
 
     let solveAllLRU onlyMinMax notify (cache: LRUCache<string, Equation.T list>) eqs =
