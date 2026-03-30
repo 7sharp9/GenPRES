@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Client (UI)**: Add templating fields for emergency list — facilitates switching to prescribe mode for an emergency medication; adds `EmergencyTemplate` fields to shared models and wires through server API and client app (PR #243)
+- **Client (UI)**: Add templating fields for emergency list — facilitates switching to prescribe mode for an emergency medication; adds template fields (`TemplateGeneric`, `TemplateRoute`, `TemplateDoseType`, `TemplateIndication`) to shared models and wires through server API and client app (PR #243)
 - **GenFORM**: Resolve `min adj to max` constraints for patient — `PrescriptionRule.fs` now handles the adjustment of minimum doses relative to maximum constraints; 131 new test cases added to `Informedica.GenFORM.Tests` (PR #243)
 - **Docs**: Add ADR for template-based prescribing — new design decision document describing the emergency medication prescribing template approach (PR #245)
 - **Build/CI**: Add comprehensive Copilot instructions and prompt files — `.github/copilot-instructions.md` updated with full project guidance; four reusable prompt files added for `add-dose-rule`, `fix-failing-test`, `new-fsx-script`, and `review-pr` workflows (PR #247)
