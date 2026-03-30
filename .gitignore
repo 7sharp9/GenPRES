@@ -237,6 +237,8 @@
 !/src/Informedica.MCP.Lib/
 !/src/Informedica.MCP.Lib/Scripts/
 !/src/Informedica.MCP.Lib/Notebooks/
+# Informedica.MCP.Server
+!/src/Informedica.MCP.Server/
 # Informedica.FHIR.Lib
 !/src/Informedica.FHIR.Lib/
 !/src/Informedica.FHIR.Lib/Scripts/
