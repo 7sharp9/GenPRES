@@ -729,7 +729,7 @@ module private Elmish =
                                     Generic = Some generic
                                     Route =
                                         if selected.TemplateRoute = "" then
-                                            Some "INTRAVENEUS"
+                                            None
                                         else
                                             Some selected.TemplateRoute
                                     DoseType =
