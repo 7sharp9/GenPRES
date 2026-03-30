@@ -234,9 +234,13 @@ module ResponsiveTable =
                         actions: ReactElement option
                     |}[]
                         -> unit) option
+                selectedFilter: string[] option
+                onFilterChange: (string[] -> unit) option
             |})
         =
-        let state, setState = React.useState [||]
+        let localState, setLocalState = React.useState [||]
+        let state = props.selectedFilter |> Option.defaultValue localState
+        let setState = props.onFilterChange |> Option.defaultValue setLocalState
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
