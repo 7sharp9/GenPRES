@@ -30,8 +30,8 @@
 // =============================================================
 
 #r "nuget: FsCheck, 2.16.6"
-#r "nuget: Expecto, 10.2.3"
-#r "nuget: Expecto.FsCheck, 10.2.3"
+#r "nuget: Expecto, 9.0.4"
+#r "nuget: Expecto.FsCheck, 9.0.4"
 
 open System
 open System.Collections.Generic
