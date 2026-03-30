@@ -40,7 +40,7 @@ let createScenarios (ctx: OrderContext) =
     let getRules filter =
         { ctx with Filter = filter }
         |> OrderContext.getRules OrderLogging.noOp provider
-        |> fun (ctx, res) -> ctx, res |> GenFormResult.get
+        |> fun (ctx, res) -> ctx, res |> Result.get
 
     let noEval ctx =
         let g = ctx.Filter.Generic
@@ -56,7 +56,7 @@ let createScenarios (ctx: OrderContext) =
                 ctx
                 |> OrderContext.UpdateOrderContext
                 |> OrderContext.evaluate OrderLogging.noOp provider
-                |> GenFormResult.get
+                |> Result.get
                 |> OrderContext.Command.get
 
             if ctx.Scenarios |> Array.isEmpty |> not then
@@ -316,7 +316,7 @@ module Order =
 let dro =
     Patient.newBorn
     |> Api.getPrescriptionRules provider
-    |> GenFormResult.get
+    |> Result.get
     |> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "MM met BMF")
     |> Array.head
     |> Medication.fromRule Logging.noOp
@@ -329,7 +329,7 @@ dro.Dose
 let ord =
     Patient.newBorn
     |> Api.getPrescriptionRules provider
-    |> GenFormResult.get
+    |> Result.get
     |> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "MM met BMF")
     |> Array.head
     |> Medication.fromRule Logging.noOp
@@ -344,7 +344,7 @@ ord |> Order.printTable ConsoleTables.Format.Minimal
 Patient.teenager
 |> Patient.setWeight (33m |> Kilogram |> Some)
 |> Api.getPrescriptionRules provider
-|> GenFormResult.get
+|> Result.get
 |> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "piperacilline/tazobactam")
 |> Array.head
 |> Medication.fromRule Logging.noOp
@@ -358,7 +358,7 @@ Patient.teenager
 Patient.teenager
 |> Patient.setWeight (33m |> Kilogram |> Some)
 |> Api.getPrescriptionRules provider
-|> GenFormResult.get
+|> Result.get
 |> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "noradrenaline")
 |> Array.head
 |> Medication.fromRule Logging.noOp
@@ -376,6 +376,6 @@ Patient.infant
 |> OrderContext.UpdateOrderContext
 |> OrderContext.evaluate OrderLogging.noOp provider
 |> fun res ->
-    let ctx = res |> GenFormResult.get |> OrderContext.Command.get
+    let ctx = res |> Result.get |> OrderContext.Command.get
 
     ctx.Scenarios |> Array.item 0 |> _.Order |> Order.print |> ignore

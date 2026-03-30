@@ -75,7 +75,9 @@ module ValueUnit =
 
                 failwith $"Cannot collect the ValueUnit array to a single ValueUnit, values: [{details}]"
 
-            vus |> Array.collect (toBase >> getValue) |> withUnit u |> toUnit |> Some
+            let result = vus |> Array.collect (toBase >> getValue) |> withUnit u |> toUnit
+
+            if result |> isEmpty then None else result |> Some
 
 
     /// <summary>
