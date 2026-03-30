@@ -107,9 +107,11 @@ let makeSumEq lhs rhs1 rhs2 (vals: BigRational array) =
 /// Generate a non-empty, lowercase alphabetic identifier token (3–8 chars)
 /// suitable for use as a variable name segment.
 let genToken : Gen<string> =
-    Gen.choose (97, 122)               // 'a'..'z'
-    |> Gen.arrayOfLength 5
-    |> Gen.map (fun cs -> String(cs |> Array.map char))
+    Gen.choose (3, 8)
+    |> Gen.bind (fun len ->
+        Gen.arrayOfLength len (Gen.choose (97, 122))   // 'a'..'z'
+        |> Gen.map (fun cs -> String(cs |> Array.map char))
+    )
 
 /// Generate a list of n distinct tokens.
 let genDistinctTokens (n: int) : Gen<string list> =
