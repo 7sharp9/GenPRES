@@ -43,6 +43,8 @@ module private Elmish =
             SnackbarSeverity: string
             ServerStatus: Deferred<bool>
             ServerError: string option
+            EmergencyListFilter: string[]
+            ContinuousMedsFilter: string[]
         }
 
 
@@ -60,6 +62,8 @@ module private Elmish =
         | LoadProducts of AsyncOperationStatus<Result<Product list, string>>
         | OnSelectContinuousMedicationItem of string
         | OnSelectEmergencyListItem of string
+        | UpdateEmergencyListFilter of string[]
+        | UpdateContinuousMedsFilter of string[]
 
         | OrderContextMsg of Api.OrderContextCommand * OrderContext
         | LoadOrderContextResult of Api.OrderContextCommand * ApiResponse
@@ -373,6 +377,8 @@ module private Elmish =
             SnackbarSeverity = "error"
             ServerStatus = HasNotStartedYet
             ServerError = None
+            EmergencyListFilter = [||]
+            ContinuousMedsFilter = [||]
         }
 
 
@@ -561,6 +567,8 @@ module private Elmish =
                 NutritionPlan = HasNotStartedYet
                 Formulary = { Formulary.empty with Patient = pat } |> Resolved
                 Parenteralia = Parenteralia.empty |> Resolved
+                EmergencyListFilter = [||]
+                ContinuousMedsFilter = [||]
             },
             Cmd.batch
                 [
@@ -690,6 +698,10 @@ module private Elmish =
                     Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, ctx))
             | _ -> state, Cmd.none
 
+        | UpdateEmergencyListFilter filter -> { state with EmergencyListFilter = filter }, Cmd.none
+
+        | UpdateContinuousMedsFilter filter -> { state with ContinuousMedsFilter = filter }, Cmd.none
+
         | OnSelectEmergencyListItem item ->
             Logging.log "selected emergency list item" item
 
@@ -719,7 +731,7 @@ module private Elmish =
                                     Generic = Some generic
                                     Route =
                                         if selected.TemplateRoute = "" then
-                                            Some "INTRAVENEUS"
+                                            None
                                         else
                                             Some selected.TemplateRoute
                                     DoseType =
@@ -1074,12 +1086,19 @@ type private ConcreteAppEnv
     interface AppEnv.IBolusMedication with
         member _.BolusMedication = bm
         member _.OnSelectBolusMedicationItem s = OnSelectEmergencyListItem s |> dispatch
+        member _.BolusMedicationFilter = state.EmergencyListFilter
+        member _.OnBolusMedicationFilterChange f = UpdateEmergencyListFilter f |> dispatch
 
     interface AppEnv.IContinuousMedication with
         member _.ContinuousMedication = cm
 
         member _.OnSelectContinuousMedicationItem s =
             OnSelectContinuousMedicationItem s |> dispatch
+
+        member _.ContinuousMedicationFilter = state.ContinuousMedsFilter
+
+        member _.OnContinuousMedicationFilterChange f =
+            UpdateContinuousMedsFilter f |> dispatch
 
 
 [<Literal>]

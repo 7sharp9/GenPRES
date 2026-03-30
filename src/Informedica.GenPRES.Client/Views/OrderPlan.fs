@@ -386,6 +386,8 @@ module OrderPlan =
                     showToolbar = true
                     showFooter = true
                     onPrint = None
+                    selectedFilter = None
+                    onFilterChange = None
                 |}
 
         let orderView =

@@ -15,6 +15,8 @@ module ContinuousMeds =
         let envContinuous = AppEnv.asEnv<AppEnv.IContinuousMedication> props.appEnv
         let interventions = envContinuous.ContinuousMedication
         let onSelectItem = envContinuous.OnSelectContinuousMedicationItem
+        let filterState = envContinuous.ContinuousMedicationFilter
+        let onFilterChange = envContinuous.OnContinuousMedicationFilterChange
 
         let localizationTerms =
             (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
@@ -292,6 +294,8 @@ module ContinuousMeds =
                              setPrintData filteredRows
                              setPrintOpen true
                          )
+                     selectedFilter = Some filterState
+                     onFilterChange = Some onFilterChange
                  |}
              )}
             {ViewHelpers.PrintView.PrintDialog

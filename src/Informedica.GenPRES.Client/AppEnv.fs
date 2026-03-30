@@ -75,6 +75,8 @@ type IResources =
 type IBolusMedication =
     abstract BolusMedication: Deferred<Intervention list>
     abstract OnSelectBolusMedicationItem: string -> unit
+    abstract BolusMedicationFilter: string[]
+    abstract OnBolusMedicationFilterChange: string[] -> unit
 
 
 /// Continuous medication list (computed)
@@ -82,3 +84,5 @@ type IBolusMedication =
 type IContinuousMedication =
     abstract ContinuousMedication: Deferred<Intervention list>
     abstract OnSelectContinuousMedicationItem: string -> unit
+    abstract ContinuousMedicationFilter: string[]
+    abstract OnContinuousMedicationFilterChange: string[] -> unit
