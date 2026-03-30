@@ -22,6 +22,7 @@ module PrescriptionRule =
                     pat |> Patient.calcBSA
                 |> Option.get
             // recalculate the max dose per administration
+            // if min adjust * adj >= max absolute, pin to max
             match
                 dl.Quantity.Max |> Option.map Limit.getValueUnit, dl.QuantityAdjust.Min |> Option.map Limit.getValueUnit
             with
@@ -36,7 +37,25 @@ module PrescriptionRule =
                         Quantity.Min = dl.Quantity.Max
                     }
             | _ -> dl
+            // if max adjust * adj <= min absolute, pin to min
+            |> fun dl ->
+                match
+                    dl.Quantity.Min |> Option.map Limit.getValueUnit,
+                    dl.QuantityAdjust.Max |> Option.map Limit.getValueUnit
+                with
+                | Some min, Some max ->
+                    let max = max * adj
+
+                    if max >? min then
+                        dl
+                    else
+                        { dl with
+                            QuantityAdjust = MinMax.empty
+                            Quantity.Max = dl.Quantity.Min
+                        }
+                | _ -> dl
             // recalculate the max dose per administration with the freq
+            // if min adjust * adj / freq >= max absolute, pin to max
             |> fun dl ->
                 match
                     dl.Quantity.Max |> Option.map Limit.getValueUnit,
@@ -51,7 +70,26 @@ module PrescriptionRule =
                     else
                         { dl with Quantity.Min = dl.Quantity.Max }
                 | _ -> dl
+            // if max adjust * adj / freq <= min absolute, pin to min
+            |> fun dl ->
+                match
+                    dl.Quantity.Min |> Option.map Limit.getValueUnit,
+                    freq,
+                    dl.PerTimeAdjust.Max |> Option.map Limit.getValueUnit
+                with
+                | Some min, Some freq, Some max ->
+                    let norm = adj * max / freq
+
+                    if norm >? min then
+                        dl
+                    else
+                        { dl with
+                            PerTimeAdjust = MinMax.empty
+                            Quantity.Max = dl.Quantity.Min
+                        }
+                | _ -> dl
             // recalculate the max dose per time
+            // if min adjust * adj >= max absolute, pin to max
             |> fun dl ->
                 match
                     dl.PerTime.Max |> Option.map Limit.getValueUnit,
@@ -68,7 +106,25 @@ module PrescriptionRule =
                             PerTime.Min = dl.PerTime.Max
                         }
                 | _ -> dl
+            // if max adjust * adj <= min absolute, pin to min
+            |> fun dl ->
+                match
+                    dl.PerTime.Min |> Option.map Limit.getValueUnit,
+                    dl.PerTimeAdjust.Max |> Option.map Limit.getValueUnit
+                with
+                | Some min, Some max ->
+                    let max = max * adj
+
+                    if max >? min then
+                        dl
+                    else
+                        { dl with
+                            PerTimeAdjust = MinMax.empty
+                            PerTime.Max = dl.PerTime.Min
+                        }
+                | _ -> dl
             // recalculate the max dose rate
+            // if min adjust * adj >= max absolute, pin to max
             |> fun dl ->
                 match
                     dl.Rate.Max |> Option.map Limit.getValueUnit, dl.RateAdjust.Min |> Option.map Limit.getValueUnit
@@ -82,6 +138,22 @@ module PrescriptionRule =
                         { dl with
                             RateAdjust = MinMax.empty
                             Rate.Min = dl.Rate.Max
+                        }
+                | _ -> dl
+            // if max adjust * adj <= min absolute, pin to min
+            |> fun dl ->
+                match
+                    dl.Rate.Min |> Option.map Limit.getValueUnit, dl.RateAdjust.Max |> Option.map Limit.getValueUnit
+                with
+                | Some min, Some max ->
+                    let max = max * adj
+
+                    if max >? min then
+                        dl
+                    else
+                        { dl with
+                            RateAdjust = MinMax.empty
+                            Rate.Max = dl.Rate.Min
                         }
                 | _ -> dl
 

@@ -1,13 +1,31 @@
-# Clean Safe Architecture
+# ADR-0007: Clean SAFE Architecture
 
 **Issue**: [Safe Clean Architecture #194](https://github.com/informedica/GenPRES/issues/194)
+
+**Date**: 2026-03-25
+**Status**: Accepted
+
+## Context
+
+The original `ServerApi.fs` grew to ~1 400 lines of mixed concerns: route handling, business logic, data access, and mapping all co-located. This violated separation of concerns, made unit testing without I/O difficult, and made the codebase hard to navigate.
+
+## Decision
+
+Migrate the server to a **Clean SAFE Architecture** using the **Tagless Final** pattern (records of functions as ports) and an explicit **Composition Root**. The server is split into cohesive focused files: `Ports.fs`, `Services.fs`, `Mappers.fs`, `Adapters.fs`, `AgentAdapters.fs`, `Command.fs`, `ApiImpl.fs`, and `CompositionRoot.fs`.
+
+## Consequences
+
+- All four migration phases are complete (✅).
+- Domain libraries (`GenOrder`, `GenForm`, `GenSolver`) remain pure and unchanged.
+- Stub adapters allow unit testing without any I/O.
+- The next investigation focuses on vertical slice architecture (see Architecture Status Table).
 
 **References**:
 - <https://rdeneau.gitbook.io/safe-clean-architecture/architecture/2-principles>
 - <https://blog.ploeh.dk/2020/03/02/impureim-sandwich/>
 - <https://github.com/rdeneau/gitbook-safe-clean-archi>
 
-**Date**: 2026-03-25 (updated from original 2026-03-22)
+---
 
 ## Table of Contents
 

@@ -234,9 +234,18 @@ module ResponsiveTable =
                         actions: ReactElement option
                     |}[]
                         -> unit) option
+                // These two props must always be paired: both Some or both None.
+                // Mixing them (one Some, one None) will cause filter changes to be silently discarded.
+                selectedFilter: string[] option
+                onFilterChange: (string[] -> unit) option
             |})
         =
-        let state, setState = React.useState [||]
+        let localState, setLocalState = React.useState [||]
+
+        let state, setState =
+            match props.selectedFilter, props.onFilterChange with
+            | Some f, Some cb -> f, cb
+            | _ -> localState, setLocalState
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 

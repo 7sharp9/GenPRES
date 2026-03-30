@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Scripts (GenSOLVER)**: Add `LRUSolverIntegration.fsx` — W2 final integration step for the LRU cache: variable-name remapping on cache hit, `SessionSolver` injectable module with `warmUp`, 6 correctness tests, capacity tuning benchmark across 8 capacity values, and a documented migration path to `Solver.fs` integration (PR #237/238)
-- **Client (UI)**: Localize hardcoded UI strings — replace hardcoded Dutch strings across all client views with localized terms using the existing localization system; add new `Terms` DU cases for shared, patient, nutrition, and interaction labels (PR #239)
+- **Client (UI)**: Localise hardcoded UI strings — replaces hardcoded Dutch strings across client views with localised terms; adds new `Terms` DU cases for shared, patient, nutrition, and interaction labels; language selector now shows short language code instead of flag emoji (PR #239)
+- **Scripts (GenSOLVER)**: Add `LRUSolverIntegration.fsx` — W2 final step; session-level `SessionSolver` that integrates the LRU cache into the constraint solver with canonical name-remapping, 6 correctness tests, and a 50-patient capacity benchmark (PR #238)
 - **Client (UI)**: Improve overall layout — responsive table rendering, sidebar initialisation, conditional totals bar, and layout design documentation update (PR #235)
 - **Scripts (GenSOLVER)**: Add `CanonKeyInvariant.fsx` — 8 unit tests + 6 FsCheck property tests for `CanonKey`; validates key normalisation, round-trip symmetry, and hash-stability invariants (PR #233)
 - **Scripts (GenSOLVER)**: Add `LRUCache.fsx` — session-level LRU cache prototype for the constraint solver; implements `LRUCache<'K,'V>` (thread-safe, O(1) get/put/evict, configurable capacity), `Solver.solveAllLRU` with canonical keys for cross-variable-name sharing, and Expecto correctness tests plus a 10-patient dosing benchmark (PR #220/221)
@@ -29,10 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Client**: Refactor environment variable access to use `AppEnv` module — adds `asEnv` Fable-compatible helper (`unbox<'T>`), eliminating scattered inline environment reads; fixes `appendScenarioToTreatmentPlan` naming to remove shadowing of outer `updateTreatmentPlan`; prevents concurrent duplicate `UpdateOrderPlan` requests by checking `InProgress`/`Recalculating` state (PR #223)
-- **Docs**: Update `clean-safe-architecture.md` to reflect implemented safe-and-clean architecture state and add code-verified implementation notes (PR #227)
+- **Docs**: Update `0007-clean-safe-architecture.md` to reflect implemented safe-and-clean architecture state and add code-verified implementation notes (PR #227)
 
 ### Fixed
 
+- **Client (UI)**: Remove hardcoded year ("2023") from application title bar (PR #238)
 - **Client (UI)**: Fix layout overflow — replace `React.Fragment` with `Box` for correct overflow containment in universal layout; conditional totals bar rendering and duplicate padding corrections (PR #229, PR #235)
 - **Client (UI)**: Remove hardcoded year from app title — '2023' removed from `GenPres.fs`; title now reads 'GenPRES \<page\>' without a stale year (PR #237)
 - **Client (UI)**: Replace confusing language flag emoji with short language code in title bar language selector (PR #239)
@@ -100,7 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GenOrder**: Fix incompatible substance concentrations causing incorrect product filtering
 - **GenOrder**: Add warning when filtering out products with incompatible units
 - **Client (UI)**: Fix date formatting — zero-padded day/month display (e.g., `01 - 03 - 2026`)
-- **Docs**: Fix 3 code-snippet bugs in `docs/mdr/design-history/agent-architecture.md`
+- **Docs**: Fix 3 code-snippet bugs in `docs/mdr/design-history/0008-agent-architecture.md`
 
 ---
 
@@ -226,7 +227,7 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 This CHANGELOG.md is the user-facing release notes. For developer-focused design changes, see:
 
-- [Design History Change Log](docs/mdr/design-history/change-log.md)
+- [Design History Change Log](docs/mdr/design-history/0013-change-log.md)
 
 The design history file tracks internal design decisions and technical changes, while this CHANGELOG focuses on user-visible changes and release information.
 

@@ -17,6 +17,8 @@ module EmergencyList =
         let envBolus = AppEnv.asEnv<AppEnv.IBolusMedication> props.appEnv
         let interventions = envBolus.BolusMedication
         let onSelectItem = envBolus.OnSelectBolusMedicationItem
+        let filterState = envBolus.BolusMedicationFilter
+        let onFilterChange = envBolus.OnBolusMedicationFilterChange
 
         let localizationTerms =
             (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
@@ -164,7 +166,7 @@ module EmergencyList =
                             [|
                                 {|
                                     field = "id"
-                                    value = $"{i + 1}.{m.Name}"
+                                    value = $"{i + 1}.{m.Hospital}.{m.Category}.{m.Name}"
                                 |}
                                 {|
                                     field = "catagory"
@@ -329,6 +331,8 @@ module EmergencyList =
                              setPrintData filteredRows
                              setPrintOpen true
                          )
+                     selectedFilter = Some filterState
+                     onFilterChange = Some onFilterChange
                  |}
              )}
             {ViewHelpers.PrintView.PrintDialog

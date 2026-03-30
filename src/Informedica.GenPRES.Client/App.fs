@@ -43,6 +43,8 @@ module private Elmish =
             SnackbarSeverity: string
             ServerStatus: Deferred<bool>
             ServerError: string option
+            EmergencyListFilter: string[]
+            ContinuousMedsFilter: string[]
         }
 
 
@@ -60,6 +62,8 @@ module private Elmish =
         | LoadProducts of AsyncOperationStatus<Result<Product list, string>>
         | OnSelectContinuousMedicationItem of string
         | OnSelectEmergencyListItem of string
+        | UpdateEmergencyListFilter of string[]
+        | UpdateContinuousMedsFilter of string[]
 
         | OrderContextMsg of Api.OrderContextCommand * OrderContext
         | LoadOrderContextResult of Api.OrderContextCommand * ApiResponse
@@ -373,6 +377,8 @@ module private Elmish =
             SnackbarSeverity = "error"
             ServerStatus = HasNotStartedYet
             ServerError = None
+            EmergencyListFilter = [||]
+            ContinuousMedsFilter = [||]
         }
 
 
@@ -561,6 +567,8 @@ module private Elmish =
                 NutritionPlan = HasNotStartedYet
                 Formulary = { Formulary.empty with Patient = pat } |> Resolved
                 Parenteralia = Parenteralia.empty |> Resolved
+                EmergencyListFilter = [||]
+                ContinuousMedsFilter = [||]
             },
             Cmd.batch
                 [
@@ -690,20 +698,47 @@ module private Elmish =
                     Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, ctx))
             | _ -> state, Cmd.none
 
+        | UpdateEmergencyListFilter filter -> { state with EmergencyListFilter = filter }, Cmd.none
+
+        | UpdateContinuousMedsFilter filter -> { state with ContinuousMedsFilter = filter }, Cmd.none
+
         | OnSelectEmergencyListItem item ->
             Logging.log "selected emergency list item" item
 
             match state.BolusMedication with
             | Resolved meds ->
-                match meds |> List.tryFind (fun m -> item.EndsWith($".{m.Generic}")) with
+                match
+                    meds
+                    |> List.tryFind (fun m -> item.EndsWith($".{m.Hospital}.{m.Category}.{m.Generic}"))
+                with
                 | None -> state, Cmd.none
                 | Some selected ->
+                    let generic =
+                        if selected.TemplateGeneric = "" then
+                            selected.Generic
+                        else
+                            selected.TemplateGeneric
+
                     let ctx =
                         { OrderContext.empty with
                             Filter =
                                 { OrderContext.empty.Filter with
-                                    Generic = Some selected.Generic
-                                    Route = Some "INTRAVENEUS"
+                                    Indication =
+                                        if selected.TemplateIndication = "" then
+                                            None
+                                        else
+                                            Some selected.TemplateIndication
+                                    Generic = Some generic
+                                    Route =
+                                        if selected.TemplateRoute = "" then
+                                            None
+                                        else
+                                            Some selected.TemplateRoute
+                                    DoseType =
+                                        if selected.TemplateDoseType = "" then
+                                            None
+                                        else
+                                            Some(DoseType.doseTypeFromString selected.TemplateDoseType)
                                 }
                         }
 
@@ -751,7 +786,21 @@ module private Elmish =
 
         | LoadOrderContextResult(_, Finished(Ok msg)) -> msg |> processOk
         | LoadOrderContextResult(_, Finished(Error err)) ->
-            ({ state with OrderContext = HasNotStartedYet }, Cmd.none) |> processError err
+            Logging.warning "order context error, resetting" err
+
+            let isNoRulesError =
+                err |> Array.exists (fun e -> e.ToLower().Contains("geen doseerregels"))
+
+            { state with
+                OrderContext = HasNotStartedYet
+                SnackbarMsg = err |> Array.tryHead |> Option.defaultValue "Er ging iets mis"
+                SnackbarOpen = true
+                SnackbarSeverity = "warning"
+            },
+            if isNoRulesError then
+                Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, OrderContext.empty))
+            else
+                Cmd.none
 
 
         | OrderPlanMsg tpCmd ->
@@ -1037,12 +1086,19 @@ type private ConcreteAppEnv
     interface AppEnv.IBolusMedication with
         member _.BolusMedication = bm
         member _.OnSelectBolusMedicationItem s = OnSelectEmergencyListItem s |> dispatch
+        member _.BolusMedicationFilter = state.EmergencyListFilter
+        member _.OnBolusMedicationFilterChange f = UpdateEmergencyListFilter f |> dispatch
 
     interface AppEnv.IContinuousMedication with
         member _.ContinuousMedication = cm
 
         member _.OnSelectContinuousMedicationItem s =
             OnSelectContinuousMedicationItem s |> dispatch
+
+        member _.ContinuousMedicationFilter = state.ContinuousMedsFilter
+
+        member _.OnContinuousMedicationFilterChange f =
+            UpdateContinuousMedsFilter f |> dispatch
 
 
 [<Literal>]
