@@ -1029,9 +1029,18 @@ module DoseRule =
 
 
     let useAdjust (dr: DoseRule) =
-        dr.ComponentLimits
-        |> Array.collect _.SubstanceLimits
-        |> Array.exists DoseLimit.useAdjust
+        let substUseAdj =
+            dr.ComponentLimits
+            |> Array.collect _.SubstanceLimits
+            |> Array.exists DoseLimit.useAdjust
+
+        let compUseAdj =
+            dr.ComponentLimits |> Array.choose _.Limit |> Array.exists DoseLimit.useAdjust
+
+        let formUseAdj =
+            dr.FormLimit |> Option.map DoseLimit.useAdjust |> Option.defaultValue false
+
+        substUseAdj || compUseAdj || formUseAdj
 
 
     let rec getNormDose (dr: DoseRule) =
