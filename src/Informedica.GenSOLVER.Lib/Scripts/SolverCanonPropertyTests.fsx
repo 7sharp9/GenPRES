@@ -155,21 +155,29 @@ let p1_stability =
 // ------------------------------------------------------------------
 
 let p2_nameInvariance =
-    testProperty "P2: renaming all variables preserves canonical key" (fun () ->
-        let vals = [| 1N; 2N; 3N; 4N; 5N |]
+    testProperty "P2: renaming all variables preserves canonical key" (fun
+        (NonEmptyString result1)
+        (NonEmptyString a1)
+        (NonEmptyString b1)
+        (NonEmptyString result2)
+        (NonEmptyString a2)
+        (NonEmptyString b2)
+        ->
+            let vals = [| 1N; 2N; 3N; 4N; 5N |]
 
-        // Original names
-        let eq1 = makeProductEq "result" "factorA" "factorB" vals
+            // Original names
+            let eq1 = makeProductEq result1 a1 b1 vals
 
-        // Completely different variable names, same structure + values
-        let eq2 = makeProductEq "output" "inputX" "inputY" vals
+            // Completely different variable names, same structure + values
+            let eq2 = makeProductEq result2 a2 b2 vals
 
-        match eq1, eq2 with
-        | h1 :: _, h2 :: _ ->
-            let k1 = CanonKey.ofEquation h1
-            let k2 = CanonKey.ofEquation h2
-            k1 = k2
-        | _ -> true // vacuously true if empty (shouldn't happen)
+            match eq1, eq2 with
+            | h1 :: _, h2 :: _ ->
+                let k1 = CanonKey.ofEquation h1
+                let k2 = CanonKey.ofEquation h2
+                k1 = k2
+            // If equation generation unexpectedly fails, the property should fail
+            | _ -> false
     )
 
 
