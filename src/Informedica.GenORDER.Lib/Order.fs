@@ -3903,13 +3903,24 @@ module Order =
                                             ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar
                                         ]
 
+                                    // orderable dose rate adjust
+                                    ord.Orderable
+                                    |> Orderable.Print.doseRateAdjustTo printMd 3
+                                    |> wrap Alert [ ord.Orderable.Dose.RateAdjust |> RateAdjust.toOrdVar ]
+
                                     if ord.Orderable.Dose.RateAdjust |> RateAdjust.isSolved then
                                         ord.Orderable.Dose
                                         |> Dose.Print.doseRateAdjustConstraints 3
                                         |> withParens
                                         |> Valid
-                                else if ord.Orderable.Dose.Rate |> Rate.isSolved then
-                                    ord.Orderable.Dose |> Dose.Print.doseRateConstraints 3 |> withParens |> Valid
+                                else
+                                    // orderable dose rate
+                                    ord.Orderable
+                                    |> Orderable.Print.doseRateTo printMd -1
+                                    |> wrap Alert [ ord.Orderable.Dose.Rate |> Rate.toOrdVar ]
+
+                                    if ord.Orderable.Dose.Rate |> Rate.isSolved then
+                                        ord.Orderable.Dose |> Dose.Print.doseRateConstraints 3 |> withParens |> Valid
                             |]
                         |]
                     else
@@ -4222,7 +4233,12 @@ module Order =
                                 else if i = 0 then
                                     ord.Orderable
                                     |> Orderable.Print.doseQuantityTo printMd -1
-                                    |> wrap Alert [ ord.Orderable.Dose.Quantity |> Quantity.toOrdVar ]
+                                    |> wrap
+                                        Alert
+                                        [
+                                            ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
+                                            ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar
+                                        ]
                                 else
                                     "" |> Valid
 
