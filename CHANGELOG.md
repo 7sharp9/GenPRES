@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Client (UI)**: Add templating fields for emergency list — facilitates switching to prescribe mode for an emergency medication; adds template fields (`TemplateGeneric`, `TemplateRoute`, `TemplateDoseType`, `TemplateIndication`) to shared models and wires through server API and client app (PR #243)
+- **GenFORM**: Resolve `min adj to max` constraints for patient — `PrescriptionRule.fs` now handles the adjustment of minimum doses relative to maximum constraints; 131 new test cases added to `Informedica.GenFORM.Tests` (PR #243)
+- **Docs**: Add ADR for template-based prescribing — new design decision document describing the emergency medication prescribing template approach (PR #245)
+- **Build/CI**: Add comprehensive Copilot instructions and prompt files — `.github/copilot-instructions.md` updated with full project guidance; four reusable prompt files added for `add-dose-rule`, `fix-failing-test`, `new-fsx-script`, and `review-pr` workflows (PR #247)
 - **Client (UI)**: Localise hardcoded UI strings — replaces hardcoded Dutch strings across client views with localised terms; adds new `Terms` DU cases for shared, patient, nutrition, and interaction labels; language selector now shows short language code instead of flag emoji (PR #239)
 - **Scripts (GenSOLVER)**: Add `LRUSolverIntegration.fsx` — W2 final step; session-level `SessionSolver` that integrates the LRU cache into the constraint solver with canonical name-remapping, 6 correctness tests, and a 50-patient capacity benchmark (PR #238)
 - **Client (UI)**: Improve overall layout — responsive table rendering, sidebar initialisation, conditional totals bar, and layout design documentation update (PR #235)
@@ -28,13 +32,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Docs**: Restructure `docs/mdr/design-history/` as numbered ADRs with consistent naming — all design-history documents renamed with `0001`–`0013` prefixes for discoverability and traceability (PR #245)
+- **Docs (MCP)**: Update MCP server architecture document — fix file structure listing and pin `ModelContextProtocol` to version `1.2.0` (PR #241)
 - **Client**: Refactor environment variable access to use `AppEnv` module — adds `asEnv` Fable-compatible helper (`unbox<'T>`), eliminating scattered inline environment reads; fixes `appendScenarioToTreatmentPlan` naming to remove shadowing of outer `updateTreatmentPlan`; prevents concurrent duplicate `UpdateOrderPlan` requests by checking `InProgress`/`Recalculating` state (PR #223)
 - **Docs**: Update `0007-clean-safe-architecture.md` to reflect implemented safe-and-clean architecture state and add code-verified implementation notes (PR #227)
 
 ### Fixed
 
+- **GenFORM / Build**: Fix build failure caused by incompatible message error types (PR #243)
 - **Client (UI)**: Remove hardcoded year ("2023") from application title bar (PR #238)
 - **Client (UI)**: Fix layout overflow — replace `React.Fragment` with `Box` for correct overflow containment in universal layout; conditional totals bar rendering and duplicate padding corrections (PR #229, PR #235)
+- **Client (UI)**: Remove hardcoded year from app title — '2023' removed from `GenPres.fs`; title now reads 'GenPRES \<page\>' without a stale year (PR #237)
+- **Client (UI)**: Replace confusing language flag emoji with short language code in title bar language selector (PR #239)
 - **Client (UI)**: Improve interactions management — InProgress guard prevents redundant server calls when a request is already in flight; unused `drugs` variable removed (PR #224)
 - **Scripts (FHIR)**: Fix `ImplementationPlan.fsx` — major rework with correct FHIR property mappings and a full end-to-end round trip from a calculated `GenOrder.Order` to `FhirMedicationRequest` and back (PR #222)
 - **Client (UI)**: Fix "Select All" in treatment plan table — rows now correctly toggle; unfiltered row search replaced with filtered-row lookup for O(n²) → O(n) improvement (PR #217)
