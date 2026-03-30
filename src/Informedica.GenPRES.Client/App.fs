@@ -567,6 +567,8 @@ module private Elmish =
                 NutritionPlan = HasNotStartedYet
                 Formulary = { Formulary.empty with Patient = pat } |> Resolved
                 Parenteralia = Parenteralia.empty |> Resolved
+                EmergencyListFilter = [||]
+                ContinuousMedsFilter = [||]
             },
             Cmd.batch
                 [
