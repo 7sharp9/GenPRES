@@ -365,7 +365,6 @@ module ResponsiveTable =
 
         let onSelectionChange =
             fun selectionModel ->
-                Logging.log "selectionModel" selectionModel
                 let selType: string = selectionModel?``type``
                 let ids: string[] = emitJsExpr selectionModel?ids "Array.from($0)"
 

@@ -67,7 +67,8 @@ module Slider =
         >
             {labelDisplay}
             <Slider
-                aria-label="percentage"
+                aria-labelledby={props.label}
+                name={props.label}
                 value={props.value}
                 min={props.min}
                 max={props.max}

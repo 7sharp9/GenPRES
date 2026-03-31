@@ -246,10 +246,11 @@ module SimpleSelect =
                                                  minWidth = props.minWidth |> Option.defaultValue 150
                                                  maxWidth = "100%"
                                              |} }>
-            <InputLabel id={props.label}>{props.label}</InputLabel>
+            <InputLabel id={props.label + "-label"}>{props.label}</InputLabel>
             <Select
-            labelId={props.label}
+            labelId={props.label + "-label"}
             id={props.label}
+            name={props.label}
             value={props.selected |> Option.defaultValue ""}
             onChange={handleChange}
             label={props.label}

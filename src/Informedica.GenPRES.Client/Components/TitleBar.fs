@@ -42,7 +42,6 @@ module TitleBar =
         let onClickHospMenuItem s =
             fun () ->
                 handleCloseHospMenu ()
-                printfn $"setting hosptital to: {s}"
                 s |> props.switchHosp
 
         let menuItems =

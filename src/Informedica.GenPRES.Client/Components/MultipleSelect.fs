@@ -77,10 +77,11 @@ module MultipleSelect =
                                                  minWidth = 150
                                                  maxWidth = 400
                                              |} }>
-            <InputLabel id={props.label}>{props.label}</InputLabel>
+            <InputLabel id={props.label + "-label"}>{props.label}</InputLabel>
             <Select
-            labelId={props.label}
+            labelId={props.label + "-label"}
             id={props.label}
+            name={props.label}
             value={props.selected}
             onChange={handleChange}
             label={props.label}
