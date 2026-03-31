@@ -558,8 +558,15 @@ module OrderProcessor =
                 // norm dose calc needs all values calculated, see adenosine 10 kg example
                 if ord |> hasNormDose && ord.Orderable.Components |> List.length <= 2 then
                     {
-                        Name = "solve-order: ensure-values-1"
-                        Guard = (_.HasValues >> not)
+                        Name = "solve-order: ensure-dose-values-1"
+                        Guard =
+                            fun _ ->
+                                [
+                                    ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
+                                    ord.Orderable.Dose.Rate |> Rate.toOrdVar
+                                ]
+                                |> List.exists OrderVariable.hasValues
+                                |> not
                         Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2)
                     }
 

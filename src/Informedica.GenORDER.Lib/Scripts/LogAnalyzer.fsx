@@ -868,6 +868,11 @@ module LogAnalyzer =
             printfn "Report saved to: %s" outputPath
 
 
+let file = ""
+let path = $"{__SOURCE_DIRECTORY__}/../../Informedica.GenPRES.Server/data/logs/{file}"
+LogAnalyzer.analyzeFile path
+
+
 // CLI entry point
 let args = Environment.GetCommandLineArgs()
 
