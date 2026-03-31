@@ -170,7 +170,12 @@ open Informedica.Utils.Lib
 
 let prune incr n =
     let rec loop m incr (xs: BigRational[]) =
-        let filtered = xs |> Array.filter (fun x -> (x / (incr * m)).Denominator = 1I)
+        let mn = xs |> Array.min
+        let mx = xs |> Array.max
+
+        let filtered =
+            xs
+            |> Array.filter (fun x -> x = mn || x = mx || (x / (incr * m)).Denominator = 1I)
 
         if filtered |> Array.length <= n then
             filtered
