@@ -3594,6 +3594,7 @@ module Order =
                 // - orderable dose rate
                 [
                     yield! ord.Orderable.Components |> List.map (_.OrderableQuantity >> Quantity.toOrdVar)
+                    ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
                     ord.Orderable.Dose.Rate |> Rate.toOrdVar
                 ]
                 |> List.map (fun ovar ->
