@@ -412,7 +412,7 @@ module OrderProcessor =
         {
             IsConstraintsNotApplied: bool
             HasValues: bool
-            DoseHasValues: bool
+            CanSetNormDose: bool
             DoseIsSolved: bool
             OrderIsSolved: bool
             IsCleared: bool
@@ -433,12 +433,14 @@ module OrderProcessor =
         {
             IsConstraintsNotApplied = ord |> areAllConstraintsNotApplied
             HasValues = ord |> hasValues
-            DoseHasValues =
+            CanSetNormDose =
                 [
-                    ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
-                    ord.Orderable.Dose.Rate |> Rate.toOrdVar
+                    if ord.Schedule |> Schedule.hasTime then
+                        ord.Orderable.Dose.Rate |> Rate.toOrdVar
+                    if ord.Schedule.IsContinuous |> not then
+                        ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
                 ]
-                |> List.exists OrderVariable.hasValues
+                |> List.forall OrderVariable.hasValues
             DoseIsSolved = ord |> doseIsSolved
             OrderIsSolved = ord |> isSolved
             IsCleared = ord |> isCleared
@@ -566,7 +568,7 @@ module OrderProcessor =
                 if ord |> hasNormDose && ord.Orderable.Components |> List.length <= 2 then
                     {
                         Name = "solve-order: ensure-dose-values-1"
-                        Guard = _.DoseHasValues >> not
+                        Guard = _.CanSetNormDose >> not
                         Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2)
                     }
 
