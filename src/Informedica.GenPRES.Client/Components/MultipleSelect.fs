@@ -82,7 +82,6 @@ module MultipleSelect =
             labelId={props.label + "-label"}
             id={props.label}
             name={props.label}
-            inputProps={ {| ``aria-label`` = props.label |} }
             value={props.selected}
             onChange={handleChange}
             label={props.label}

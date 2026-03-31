@@ -251,7 +251,6 @@ module SimpleSelect =
             labelId={props.label + "-label"}
             id={props.label}
             name={props.label}
-            inputProps={ {| ``aria-label`` = props.label |} }
             value={props.selected |> Option.defaultValue ""}
             onChange={handleChange}
             label={props.label}

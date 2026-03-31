@@ -35,8 +35,8 @@ module GenPres =
             [
                 LifeSupport
                 ContinuousMeds
-                Prescribe
                 Nutrition
+                Prescribe
                 OrderPlan
                 Interactions
                 Formulary
@@ -57,8 +57,8 @@ module GenPres =
                             match p |> pageToString terms lang with
                             | s when p = LifeSupport -> Mui.Icons.FireExtinguisher |> Some, s, b, None
                             | s when p = ContinuousMeds -> Mui.Icons.Vaccines |> Some, s, b, None
-                            | s when p = Prescribe -> Mui.Icons.Message |> Some, s, b, None
                             | s when p = Nutrition -> Mui.Icons.LocalDiningIcon |> Some, s, b, None
+                            | s when p = Prescribe -> Mui.Icons.Message |> Some, s, b, None
                             | s when p = OrderPlan -> Mui.Icons.SummarizeIcon |> Some, s, b, None
                             | s when p = Interactions -> Mui.Icons.WarningAmber |> Some, s, b, None
                             | s when p = Formulary -> Mui.Icons.LocalPharmacy |> Some, s, b, None
