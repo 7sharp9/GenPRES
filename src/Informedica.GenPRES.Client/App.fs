@@ -249,7 +249,6 @@ module private Elmish =
                             None
                             dep
 
-                    Logging.log "parsed: " patient
                     patient
                 | _, Some(Route.Int days) ->
                     let weight, height, gaWeeks, gaDays, dep = parsePatientParams paramsMap
@@ -663,8 +662,6 @@ module private Elmish =
             state, Cmd.none
 
         | OnSelectContinuousMedicationItem item ->
-            Logging.log $"selected continuous medication item" item
-
             match state.ContinuousMedication with
             | Resolved meds ->
                 match meds |> List.tryFind (fun m -> item.EndsWith($".{m.Medication}")) with
@@ -703,8 +700,6 @@ module private Elmish =
         | UpdateContinuousMedsFilter filter -> { state with ContinuousMedsFilter = filter }, Cmd.none
 
         | OnSelectEmergencyListItem item ->
-            Logging.log "selected emergency list item" item
-
             match state.BolusMedication with
             | Resolved meds ->
                 match

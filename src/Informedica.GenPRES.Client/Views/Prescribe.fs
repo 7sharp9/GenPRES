@@ -91,8 +91,6 @@ module Prescribe =
             | _ -> ()
 
         let componentsChange cs =
-            Logging.log "componentsChange" cs
-
             match orderContext with
             | Resolved prctx ->
                 setLoadingSource (Some ComponentsLoading)
