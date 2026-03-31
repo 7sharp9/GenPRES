@@ -240,7 +240,7 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 This CHANGELOG.md is the user-facing release notes. For developer-focused design changes, see:
 
-- [Design History Change Log](docs/mdr/design-history/0013-change-log.md)
+- [Design History Change Log](docs/mdr/design-history/0000-change-log.md)
 
 The design history file tracks internal design decisions and technical changes, while this CHANGELOG focuses on user-visible changes and release information.
 
