@@ -169,21 +169,27 @@ let max =
 open Informedica.Utils.Lib
 
 let prune incr n =
-    let rec loop m incr (xs: BigRational[]) =
-        let filtered = xs |> Array.filter (fun x -> (x / (incr * m)).Denominator = 1I)
+    let rec loop mn mx m incr (xs: BigRational[]) =
+        let filtered =
+            xs
+            |> Array.filter (fun x -> x = mn || x = mx || (x / (incr * m)).Denominator = 1I)
 
-        if filtered |> Array.length <= n then
+        if filtered |> Array.length <= (max n 2) then
             filtered
         else
-            loop (m + 1N) incr xs
+            loop mn mx (m + 1N) incr xs
 
     fun vu ->
         let u = vu |> ValueUnit.getUnit
 
         let v =
             match incr |> Option.map ValueUnit.getBaseValue with
-            | Some [| incr |] -> vu |> ValueUnit.convertTo u |> ValueUnit.getValue |> loop 1N incr
-            | _ -> vu |> ValueUnit.getValue |> Array.prune n //Constants.PRUNE
+            | Some [| incr |] ->
+                let xs = vu |> ValueUnit.convertTo u |> ValueUnit.getValue |> Array.distinct
+                let mn = xs |> Array.min
+                let mx = xs |> Array.max
+                xs |> loop mn mx 1N incr
+            | _ -> vu |> ValueUnit.getValue |> Array.prune n
 
         vu |> ValueUnit.setValue v
 
