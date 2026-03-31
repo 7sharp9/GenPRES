@@ -856,7 +856,6 @@ module Tests =
 
                                     test "prune with increment keeps result within n elements" {
                                         let values = [| yield 3N; yield! [| 5N .. 5N .. 100N |]; yield 107N |]
-
                                         let incrVu = Units.Volume.milliLiter |> ValueUnit.singleWithValue 5N |> Some
 
                                         let result =
