@@ -121,6 +121,7 @@ module OrderLogging =
                 [
                     typeof<OrderMessage>, formatOrderMessage
                     typeof<SolverMessage>, SolverLogging.formatSolverMessage
+                    typeof<Informedica.GenForm.Lib.Types.Message>, Informedica.GenForm.Lib.FormLogging.formatMessage
                 ]
 
         match baseLogger with
@@ -134,6 +135,7 @@ module OrderLogging =
             [
                 typeof<OrderMessage>, formatOrderMessage
                 typeof<SolverMessage>, SolverLogging.formatSolverMessage
+                typeof<Informedica.GenForm.Lib.Types.Message>, Informedica.GenForm.Lib.FormLogging.formatMessage
             ]
         |> Logging.createFile path
 
@@ -143,6 +145,7 @@ module OrderLogging =
             [
                 typeof<OrderMessage>, formatOrderMessage
                 typeof<SolverMessage>, SolverLogging.formatSolverMessage
+                typeof<Informedica.GenForm.Lib.Types.Message>, Informedica.GenForm.Lib.FormLogging.formatMessage
             ]
         |> Logging.createConsole
 
