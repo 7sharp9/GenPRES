@@ -818,18 +818,18 @@ module Tests =
                                         try
                                             let vs = xs |> create
 
-                                            vs |> validVals
-                                            || xs |> Array.exists (fun x -> x <= 0N)
-                                            || xs |> Array.distinct |> Array.length <> xs.Length
-                                            || (xs
-                                                |> Array.filter (fun x -> x > 0N)
-                                                |> Array.distinct
-                                                |> ValueUnit.create Units.Count.times
-                                                |> ValueUnit.removeBigRationalMultiples
-                                                |> ValueUnit.valueCount) < (xs
-                                                                            |> Array.filter (fun x -> x > 0N)
-                                                                            |> Array.distinct
-                                                                            |> Array.length)
+                                            let clean = xs |> Array.filter (fun x -> x > 0N) |> Array.distinct
+
+                                            if
+                                                clean.Length = xs.Length
+                                                && (clean
+                                                    |> ValueUnit.create Units.Count.times
+                                                    |> ValueUnit.removeBigRationalMultiples
+                                                    |> ValueUnit.valueCount) = clean.Length
+                                            then
+                                                vs |> validVals
+                                            else
+                                                true
                                         with _ ->
                                             xs |> Array.isEmpty
                                     |> Generators.testProp "only valid value sets can be created"
