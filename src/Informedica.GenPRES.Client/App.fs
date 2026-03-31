@@ -788,6 +788,7 @@ module private Elmish =
 
             { state with
                 OrderContext = HasNotStartedYet
+                Page = if isNoRulesError then LifeSupport else state.Page
                 SnackbarMsg = err |> Array.tryHead |> Option.defaultValue "Er ging iets mis"
                 SnackbarOpen = true
                 SnackbarSeverity = "warning"
