@@ -3589,8 +3589,14 @@ module Order =
             let mutable flag = false
 
             let ovars =
-                ord
-                |> toOrdVars
+                // only use the natural incremented variables
+                // - component orderable quantities
+                // - orderable dose rate
+                [
+                    yield! ord.Orderable.Components |> List.map (_.OrderableQuantity >> Quantity.toOrdVar)
+                    ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
+                    ord.Orderable.Dose.Rate |> Rate.toOrdVar
+                ]
                 |> List.map (fun ovar ->
                     if
                         flag
