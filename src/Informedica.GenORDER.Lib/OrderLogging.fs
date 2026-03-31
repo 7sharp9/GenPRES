@@ -109,11 +109,8 @@ module OrderLogging =
             match orderMsg with
             | OrderException ex -> ex |> printOrderException
             | OrderEventMessage evt -> evt |> printOrderEvent
-        (*
-        | :? Logging.SolverMessage as solverMsg ->
-            // Delegate to solver logging for solver messages
-            SolverLogging.formatSolverMessage solverMsg
-        *)
+        | :? Informedica.GenForm.Lib.Types.Message as formMsg ->
+            Informedica.GenForm.Lib.FormLogging.formatMessage formMsg
         | _ -> $"Unknown message type: {msg.GetType().Name}"
 
 
