@@ -36,6 +36,7 @@ module Autocomplete =
             // then add the label, avoiding Fable 5 interpolation issue: https://github.com/fable-compiler/Fable/issues/3999
             let parsCopy = emitJsExpr pars "Object.assign({}, $0)"
             parsCopy?label <- props.label
+            parsCopy?name <- props.label
 
             JSX.jsx
                 """

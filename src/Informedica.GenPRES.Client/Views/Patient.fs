@@ -198,12 +198,14 @@ module Patient =
             | Some v -> hghts |> Array.tryFind ((=) (int v))
             | None -> None
 
-        let checkBox item ev =
+        let checkBox (name: string) item ev =
             JSX.jsx
                 $"""
             import Checkbox from '@mui/material/Checkbox';
 
             <Checkbox
+                id={name}
+                name={name}
                 checked={patient
                          |> Option.map (fun p -> p.Access |> List.exists ((=) item))
                          |> Option.defaultValue false}
@@ -381,17 +383,17 @@ module Patient =
                     <FormGroup row>
                         <FormControl>
                             <FormControlLabel
-                                control={checkBox CVL ToggleCVL}
+                                control={checkBox "access-cvl" CVL ToggleCVL}
                                 label="CVL" />
                         </FormControl>
                         <FormControl>
                             <FormControlLabel
-                                control={checkBox PVL TogglePVL}
+                                control={checkBox "access-pvl" PVL TogglePVL}
                                 label="PVL" />
                         </FormControl>
                         <FormControl>
                             <FormControlLabel
-                                control={checkBox EnteralTube ToggleET}
+                                control={checkBox "access-et" EnteralTube ToggleET}
                                 label={tubeLabel} />
                         </FormControl>
                     </FormGroup>

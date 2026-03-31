@@ -112,6 +112,8 @@ module Settings =
                 </DialogTitle>
                 <DialogContent>
                     <TextField
+                        id="settings-password"
+                        name="password"
                         autoFocus={true}
                         margin="dense"
                         label={Terms.Password |> getTerm "Password"}
