@@ -868,8 +868,8 @@ module LogAnalyzer =
             printfn "Report saved to: %s" outputPath
 
 
-let file = ""
-let path = $"{__SOURCE_DIRECTORY__}/../../Informedica.GenPRES.Server/data/logs/{file}"
+let file = "genpres_OrderContext_2026_03_31_09_37_47_79a2"
+let path = $"{__SOURCE_DIRECTORY__}/../../Informedica.GenPRES.Server/data/logs/{file}.log"
 LogAnalyzer.analyzeFile path
 
 

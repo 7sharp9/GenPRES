@@ -816,13 +816,84 @@ module Tests =
                                 [
                                     fun xs ->
                                         try
-                                            xs |> create |> validVals
+                                            let vs = xs |> create
+
+                                            vs |> validVals
+                                            || xs |> Array.exists (fun x -> x <= 0N)
+                                            || xs |> Array.distinct |> Array.length <> xs.Length
+                                            || (xs
+                                                |> Array.filter (fun x -> x > 0N)
+                                                |> Array.distinct
+                                                |> ValueUnit.create Units.Count.times
+                                                |> ValueUnit.removeBigRationalMultiples
+                                                |> ValueUnit.valueCount) < (xs
+                                                                            |> Array.filter (fun x -> x > 0N)
+                                                                            |> Array.distinct
+                                                                            |> Array.length)
                                         with _ ->
-                                            if xs |> Array.isEmpty || xs |> Array.distinct = [| 0N |] then
-                                                true
-                                            else
-                                                xs |> create |> validVals |> not
+                                            xs |> Array.isEmpty
                                     |> Generators.testProp "only valid value sets can be created"
+                                ]
+
+                            testList
+                                "prune"
+                                [
+                                    test "prune with increment retains min and max when not multiples of incr*m" {
+                                        let values = [| yield 3N; yield! [| 5N .. 5N .. 100N |]; yield 107N |]
+                                        let incrVu = Units.Volume.milliLiter |> ValueUnit.singleWithValue 5N |> Some
+
+                                        let result =
+                                            Units.Volume.milliLiter
+                                            |> ValueUnit.withValue values
+                                            |> ValueSet.create
+                                            |> ValueSet.prune incrVu 5
+                                            |> fun (ValueSet vu) -> vu |> ValueUnit.getValue
+
+                                        result |> Array.min |> Expect.equal "min should be 3" 3N
+                                        result |> Array.max |> Expect.equal "max should be 107" 107N
+                                    }
+
+                                    test "prune with increment keeps result within n elements" {
+                                        let values = [| yield 3N; yield! [| 5N .. 5N .. 100N |]; yield 107N |]
+                                        let incrVu = Units.Volume.milliLiter |> ValueUnit.singleWithValue 5N |> Some
+
+                                        let result =
+                                            Units.Volume.milliLiter
+                                            |> ValueUnit.withValue values
+                                            |> ValueSet.create
+                                            |> ValueSet.prune incrVu 5
+                                            |> fun (ValueSet vu) -> vu |> ValueUnit.getValue
+
+                                        result |> Array.length <= 5 |> Expect.isTrue "should be <= 5 elements"
+                                    }
+
+                                    test "prune without increment retains min and max" {
+                                        let values = [| 3N; 7N; 11N; 15N; 19N; 23N; 27N; 31N; 35N; 39N |]
+
+                                        let result =
+                                            Units.Volume.milliLiter
+                                            |> ValueUnit.withValue values
+                                            |> ValueSet.create
+                                            |> ValueSet.prune None 4
+                                            |> fun (ValueSet vu) -> vu |> ValueUnit.getValue
+
+                                        result |> Array.min |> Expect.equal "min should be 3" 3N
+                                        result |> Array.max |> Expect.equal "max should be 39" 39N
+                                    }
+
+                                    test "prune with 2 elements returns both" {
+                                        let values = [| 3N; 107N |]
+                                        let incrVu = Units.Volume.milliLiter |> ValueUnit.singleWithValue 5N |> Some
+
+                                        let result =
+                                            Units.Volume.milliLiter
+                                            |> ValueUnit.withValue values
+                                            |> ValueSet.create
+                                            |> ValueSet.prune incrVu 5
+                                            |> fun (ValueSet vu) -> vu |> ValueUnit.getValue
+
+                                        result |> Expect.equal "should return both elements" [| 3N; 107N |]
+                                    }
                                 ]
 
                             testList
@@ -2059,6 +2130,8 @@ module Tests =
                                 }
 
                             ]
+
+                        ValueSetTests.tests
                     ]
 
 

@@ -170,7 +170,13 @@ open Informedica.Utils.Lib
 
 let prune incr n =
     let rec loop m incr (xs: BigRational[]) =
-        let filtered = xs |> Array.filter (fun x -> (x / (incr * m)).Denominator = 1I)
+        let mn = xs |> Array.min
+        let mx = xs |> Array.max
+        let filtered =
+            xs
+            |> Array.filter (fun x ->
+                x = mn || x = mx || (x / (incr * m)).Denominator = 1I
+            )
 
         if filtered |> Array.length <= n then
             filtered
@@ -197,3 +203,94 @@ Units.Volume.milliLiter
 |> prune10 50
 |> ValueUnit.getValue
 |> Array.length
+
+
+#r "nuget: Expecto, 9.0.4"
+
+open Expecto
+open Expecto.Flip
+
+
+let pruneTests =
+    testList "ValueSet.prune retains min and max" [
+        test "prune with increment retains min and max when they are not multiples of incr*m" {
+            // values: 3, 5, 10, 15, 20, ..., 100, 107
+            // min=3 and max=107 are not multiples of 5
+            let values = [| yield 3N; yield! [| 5N .. 5N .. 100N |]; yield 107N |]
+            let incrVu =
+                Units.Volume.milliLiter
+                |> ValueUnit.singleWithValue 5N
+                |> Some
+
+            let result =
+                Units.Volume.milliLiter
+                |> ValueUnit.withValue values
+                |> prune incrVu 5
+                |> ValueUnit.getValue
+
+            result |> Array.min |> Expect.equal "min should be 3" 3N
+            result |> Array.max |> Expect.equal "max should be 107" 107N
+        }
+
+        test "prune with increment keeps result within n elements" {
+            let values = [| 3N; yield! [| 5N .. 5N .. 100N |]; 107N |]
+            let incrVu =
+                Units.Volume.milliLiter
+                |> ValueUnit.singleWithValue 5N
+                |> Some
+
+            let result =
+                Units.Volume.milliLiter
+                |> ValueUnit.withValue values
+                |> prune incrVu 5
+                |> ValueUnit.getValue
+
+            result |> Array.length <= 5
+            |> Expect.isTrue "should be <= 5 elements"
+        }
+
+        test "prune without increment retains min and max" {
+            let values = [| 3N; 7N; 11N; 15N; 19N; 23N; 27N; 31N; 35N; 39N |]
+
+            let result =
+                Units.Volume.milliLiter
+                |> ValueUnit.withValue values
+                |> prune None 4
+                |> ValueUnit.getValue
+
+            result |> Array.min |> Expect.equal "min should be 3" 3N
+            result |> Array.max |> Expect.equal "max should be 39" 39N
+        }
+
+        test "prune with 2 elements returns both" {
+            let values = [| 3N; 107N |]
+            let incrVu =
+                Units.Volume.milliLiter
+                |> ValueUnit.singleWithValue 5N
+                |> Some
+
+            let result =
+                Units.Volume.milliLiter
+                |> ValueUnit.withValue values
+                |> prune incrVu 5
+                |> ValueUnit.getValue
+
+            result |> Expect.equal "should return both elements" [| 3N; 107N |]
+        }
+
+        test "original prune10 test still works" {
+            let result =
+                Units.Volume.milliLiter
+                |> ValueUnit.withValue [| 5N .. 5N .. 1000N |]
+                |> prune10 50
+                |> ValueUnit.getValue
+
+            result |> Array.length <= 50
+            |> Expect.isTrue "should be <= 50 elements"
+            result |> Array.min |> Expect.equal "min should be 5" 5N
+            result |> Array.max |> Expect.equal "max should be 1000" 1000N
+        }
+    ]
+
+
+pruneTests |> runTestsWithCLIArgs [] [||]
