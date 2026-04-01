@@ -139,7 +139,7 @@ See the sections below for detailed analysis of missing items and implementation
 ##### Design History & Architecture (`docs/mdr/design-history/`)
 
 - ✅ **0001-system-architecture.md** - High-level system architecture (SAFE Stack)
-- ✅ **0013-change-log.md** - Design change history
+- ✅ **0000-change-log.md** - Design change history
 - ✅ **genpres_stateless_proposal.md** - Stateless session design
 - ✅ **mailbox-processor-design-proposal.md** - MailboxProcessor architecture
 - ✅ **0003-resource-requirements.md** - Resource/sheet specifications
@@ -263,7 +263,7 @@ See the sections below for detailed analysis of missing items and implementation
 ### Present
 
 - ✅ **docs/mdr/design-history/0001-system-architecture.md** - Comprehensive SAFE Stack architecture
-- ✅ **docs/mdr/design-history/0013-change-log.md** - Design history file exists
+- ✅ **docs/mdr/design-history/0000-change-log.md** - Design history file exists
 - ✅ **docs/scenarios/** - Clinical scenarios documented (6 age groups)
 - ✅ **docs/mdr/interface/** - Interface specifications (FHIR, IHE)
 - ✅ **docs/code-reviews/** - Some code review documentation
@@ -281,7 +281,7 @@ See the sections below for detailed analysis of missing items and implementation
 - ✅ **CHANGELOG.md** - Structured release notes at root
   - Follows [Keep a Changelog](https://keepachangelog.com/) format
   - Semantic versioning aligned
-  - User-facing changes focus (complementary to design-history/0013-change-log.md)
+  - User-facing changes focus (complementary to design-history/0000-change-log.md)
   - Clear distinction between alpha/beta/stable releases
   - Links to detailed MDR documentation
   
@@ -822,7 +822,7 @@ GenPRES2/
 ├── 📄 ROADMAP.md                             ✅ Exists - Public roadmap
 │                                                      → Links to docs/roadmap/genpres-architecture-and-timeline.md
 ├── 📄 CHANGELOG.md                           ✅ Exists - User-facing release notes
-│                                                      → Separate from docs/mdr/design-history/0013-change-log.md
+│                                                      → Separate from docs/mdr/design-history/0000-change-log.md
 ├── 📄 AUTHORS.md                             ❌ ADD - Contributors list
 ├── 📄 .editorconfig                          ❌ ADD - Editor configuration
 ├── 📄 .gitattributes                         ✅ Check if exists
@@ -911,7 +911,7 @@ GenPRES2/
 │       │
 │       ├── 📁 design-history/                ✅ Exists
 │       │   ├── 📄 0001-system-architecture.md            ✅ Exists - Detailed architecture
-│       │   ├── 📄 0013-change-log.md              ✅ Exists - Design changes (developer)
+│       │   ├── 📄 0000-change-log.md              ✅ Exists - Design changes (developer)
 │       │   ├── 📄 genpres_stateless_proposal.md ✅ Exists
 │       │   ├── 📄 mailbox-processor-design-proposal.md ✅ Exists
 │       │   ├── 📄 0003-resource-requirements.md ✅ Exists
@@ -1088,6 +1088,6 @@ Many missing root-level files should link to detailed MDR documentation:
 
 - `ARCHITECTURE.md` → `docs/mdr/design-history/0001-system-architecture.md`
 - `ROADMAP.md` → `docs/roadmap/genpres-architecture-and-timeline.md`
-- `CHANGELOG.md` (user-facing) ≠ `docs/mdr/design-history/0013-change-log.md` (developer)
+- `CHANGELOG.md` (user-facing) ≠ `docs/mdr/design-history/0000-change-log.md` (developer)
 - ADRs should reference design history files for detailed technical decisions
 

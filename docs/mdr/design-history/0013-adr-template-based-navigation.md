@@ -1,4 +1,4 @@
-# ADR: Template-Based Navigation to Prescribe View
+# ADR-0013: Template-Based Navigation to Prescribe View
 
 **Date**: 2026-03-29
 
