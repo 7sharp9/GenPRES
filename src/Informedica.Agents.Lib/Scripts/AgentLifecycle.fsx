@@ -90,6 +90,8 @@ type AgentRegistry() =
 
     /// Create and register a named agent backed by <c>processor</c>.
     member _.Register<'Req, 'Reply>(name: string, processor: 'Req -> 'Reply) : ManagedAgent<'Req, 'Reply> =
+        if stopped then
+            invalidOp $"Cannot register agent '%s{name}' after AgentRegistry has been stopped."
         let a = new ManagedAgent<'Req, 'Reply>(name, processor)
         agents.Add(a)
         a
