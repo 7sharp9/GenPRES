@@ -85,7 +85,7 @@ type ManagedAgent<'Req, 'Reply>(name: string, processor: 'Req -> 'Reply) =
 ///   ...
 type AgentRegistry() =
 
-    let agents = System.Collections.Generic.List<IDisposable>()
+    let agents = System.Collections.Generic.List<{| Name: string; Disposable: IDisposable |}>()
     let mutable stopped = false
 
     /// Create and register a named agent backed by <c>processor</c>.
@@ -93,7 +93,7 @@ type AgentRegistry() =
         if stopped then
             invalidOp $"Cannot register agent '%s{name}' after AgentRegistry has been stopped."
         let a = new ManagedAgent<'Req, 'Reply>(name, processor)
-        agents.Add(a)
+        agents.Add({| Name = name; Disposable = a |})
         a
 
     /// Number of agents registered in this registry.
@@ -112,9 +112,9 @@ type AgentRegistry() =
             |> Array.rev
             |> Array.iter (fun d ->
                 try
-                    d.Dispose()
+                    d.Disposable.Dispose()
                 with ex ->
-                    printfn $"[AgentRegistry] Error stopping agent: %s{ex.Message}")
+                    printfn $"[AgentRegistry] Error stopping agent '%s{d.Name}': %s{ex.Message}")
 
     interface IDisposable with
         member this.Dispose() = this.StopAll()
@@ -168,8 +168,6 @@ type AgentRegistry() =
 // 4. Tests — validate naming, request-reply, and lifecycle
 // -----------------------------------------------------------------
 
-#r "nuget: Expecto, 9.0.4"
-
 open Expecto
 open Expecto.Flip
 
@@ -208,7 +206,7 @@ let lifecycleTests =
             a.Stop()
 
             // second Stop must not throw
-            (fun () -> a.Stop()) |> Expect.notThrows "double Stop should not throw"
+            a.Stop() // second Stop must not throw
         }
 
         test "AgentRegistry — AgentCount reflects registrations" {
@@ -240,15 +238,26 @@ let lifecycleTests =
             let registry = new AgentRegistry()
             let _a = registry.Register<EchoReq, EchoReply>("idem-reg", echoProcessor)
             registry.StopAll()
-            (fun () -> registry.StopAll()) |> Expect.notThrows "double StopAll should not throw"
+            registry.StopAll() // second StopAll must not throw
         }
 
         test "AgentRegistry — use binding disposes automatically" {
-            let registry = new AgentRegistry()
-            let a = registry.Register<EchoReq, EchoReply>("scoped", echoProcessor)
-            (registry :> IDisposable).Dispose()
-            registry.IsStopped |> Expect.isTrue "registry stopped"
-            a.IsDisposed |> Expect.isTrue "agent disposed"
+            let mutable agentRef = Unchecked.defaultof<ManagedAgent<EchoReq, EchoReply>>
+
+            do
+                use registry = new AgentRegistry()
+                let a = registry.Register<EchoReq, EchoReply>("scoped", echoProcessor)
+                agentRef <- a
+                a.IsDisposed |> Expect.isFalse "agent alive inside use scope"
+
+            agentRef.IsDisposed |> Expect.isTrue "agent disposed after use scope exit"
+        }
+
+        test "AgentRegistry — registered agent preserves name through registry" {
+            use registry = new AgentRegistry()
+            let a = registry.Register<EchoReq, EchoReply>("named-agent", echoProcessor)
+            a.Name |> Expect.equal "name should be preserved" "named-agent"
+            a.Request("test") |> Expect.equal "should still reply" "echo: test"
         }
 
     ]
