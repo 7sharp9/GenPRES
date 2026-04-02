@@ -1,7 +1,7 @@
 # ADR-0004: UI Wireframes
 
 **Date**: 2024-01-01
-**Status**: Updated 2026-04-02 (see issue #270)
+**Status**: Accepted
 
 ## Context
 
