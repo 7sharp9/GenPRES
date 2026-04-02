@@ -137,13 +137,13 @@ type AgentRegistry() =
 //        type Response = Formulary of ... | Parenteralia of ...
 //        let processor (provider: IResourceProvider) (cmd: Command) : Response = ...
 //        let create (provider: IResourceProvider) =
-//            ManagedAgent.Create("Formulary", processor provider)
+//            new ManagedAgent<FormularyAgent.Command, FormularyAgent.Response>("Formulary", processor provider)
 //
 //    // In Informedica.GenOrder.Lib:
 //    module OrderContextAgent =
 //        ...
 //        let create logger provider =
-//            ManagedAgent.Create("OrderContext", processor logger provider)
+//            new ManagedAgent<OrderContextAgent.Command, OrderContextAgent.Response>("OrderContext", processor logger provider)
 //
 //    // In ServerApi.CompositionRoot (thin wiring only):
 //    let compose provider =
