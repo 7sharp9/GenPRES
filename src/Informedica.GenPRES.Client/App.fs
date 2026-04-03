@@ -687,7 +687,10 @@ module private Elmish =
                 meds
                 |> List.tryFind (fun m -> item.EndsWith($".{m.Medication}"))
                 |> Option.map (fun m -> selectMedicationItem m.Generic m.Indication "INTRAVENEUS" m.DoseType state)
-                |> Option.defaultValue (state, Cmd.none)
+                |> Option.defaultWith (fun () ->
+                    Logging.warning $"could not find continuous medication with item: {item}" item
+                    state, Cmd.none
+                )
             | _ -> state, Cmd.none
 
         | UpdateEmergencyListFilter filter -> { state with EmergencyListFilter = filter }, Cmd.none
