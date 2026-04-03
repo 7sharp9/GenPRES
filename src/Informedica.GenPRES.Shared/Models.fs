@@ -1021,26 +1021,6 @@ module Models =
             calcIntervention "" "reanimatie" "tube lengte nasaal" "15 + leeftijd / 2" formula textfn
 
 
-        let calcFluidBolus wght =
-            let d, _ =
-                if wght < 3. then
-                    calcDoseVol wght 20. 1. 0. 1000.
-                else
-                    calcDoseVol wght 10. 1. 0. 500.
-
-            { Intervention.emptyIntervention with
-                Category = "reanimatie"
-                Name = "vaatvulling"
-                SubstanceDose = Some d
-                SubstanceDoseUnit = "ml"
-                SubstanceMaxDose = Some 500.
-                SubstanceDoseText = $"%s{d |> toStr} ml NaCl 0.9%%"
-                SubstanceDoseAdjust = d / wght |> Math.fixPrecision 1 |> Some
-                SubstanceDoseAdjustUnit = "ml/kg"
-                Text = if wght < 3. then "20 ml/kg" else "10 ml/kg (max 500 ml)"
-            }
-
-
         let joules = [ 1; 2; 3; 5; 7; 10; 20; 30; 50; 70; 100; 150 ] |> List.map float
 
 
@@ -1268,10 +1248,6 @@ module Models =
                         (fun w -> w * 1.5 + 5.5)
                         (fun f -> $"%s{f |> toStr} cm")
                         weight.Value
-                    // fluid bolus
-                    if weight |> Option.isSome then
-                        calcFluidBolus weight.Value
-
                 ]
             else
                 [
@@ -1292,9 +1268,6 @@ module Models =
                             bolusMed
                             |> List.filter (fun m -> m.Generic = "adrenaline")
                             |> List.map (calcBolusMedication weight.Value)
-                    // fluid bolus
-                    if weight |> Option.isSome then
-                        calcFluidBolus weight.Value
                     // defibrillation
                     if weight |> Option.isSome then
                         calcDefib weight.Value

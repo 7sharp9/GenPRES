@@ -3849,6 +3849,12 @@ module Order =
 
             let itms = sns |> Array.filter String.notEmpty |> Array.choose findItem
 
+            let cmpName =
+                ord.Orderable.Components
+                |> List.tryHead
+                |> Option.map (_.Name >> Name.toString)
+                |> Option.defaultValue ""
+
             let withParens s =
                 if s |> String.isNullOrWhiteSpace then s else $"({s})"
 
@@ -3889,6 +3895,9 @@ module Order =
                     if itms |> Array.isEmpty then
                         [|
                             [|
+                                if cmpName |> String.notEmpty then
+                                    cmpName |> Valid
+
                                 // the orderable dose quantity
                                 ord.Orderable
                                 |> Orderable.Print.doseQuantityTo printMd -1
@@ -4293,6 +4302,9 @@ module Order =
                     if itms |> Array.isEmpty then
                         [|
                             [|
+                                if cmpName |> String.notEmpty then
+                                    cmpName |> Valid
+
                                 orbQty
 
                                 ord.Orderable
