@@ -456,6 +456,26 @@ module private Elmish =
             },
             cmd
 
+        let selectMedicationItem generic indication route doseType state =
+            let nonEmpty s = if s = "" then None else Some s
+
+            let ctx =
+                { OrderContext.empty with
+                    Filter =
+                        { OrderContext.empty.Filter with
+                            Indication = indication |> nonEmpty
+                            Generic = Some generic
+                            Route = route |> nonEmpty
+                            DoseType = doseType |> nonEmpty |> Option.map DoseType.doseTypeFromString
+                        }
+                }
+
+            { state with
+                Page = Prescribe
+                OrderContext = ctx |> Resolved
+            },
+            Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, ctx))
+
         match msg with
         | CloseSnackbar ->
             { state with
@@ -664,35 +684,10 @@ module private Elmish =
         | OnSelectContinuousMedicationItem item ->
             match state.ContinuousMedication with
             | Resolved meds ->
-                match meds |> List.tryFind (fun m -> item.EndsWith($".{m.Medication}")) with
-                | None ->
-                    Logging.warning $"could not find continuous medication with item: {item}" item
-                    state, Cmd.none
-                | Some selected ->
-                    let ctx =
-                        { OrderContext.empty with
-                            Filter =
-                                { OrderContext.empty.Filter with
-                                    Indication =
-                                        if selected.Indication = "" then
-                                            None
-                                        else
-                                            Some selected.Indication
-                                    Generic = Some selected.Generic
-                                    Route = Some "INTRAVENEUS"
-                                    DoseType =
-                                        if selected.DoseType = "" then
-                                            None
-                                        else
-                                            Some(DoseType.doseTypeFromString selected.DoseType)
-                                }
-                        }
-
-                    { state with
-                        Page = Prescribe
-                        OrderContext = ctx |> Resolved
-                    },
-                    Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, ctx))
+                meds
+                |> List.tryFind (fun m -> item.EndsWith($".{m.Medication}"))
+                |> Option.map (fun m -> selectMedicationItem m.Generic m.Indication "INTRAVENEUS" m.DoseType state)
+                |> Option.defaultValue (state, Cmd.none)
             | _ -> state, Cmd.none
 
         | UpdateEmergencyListFilter filter -> { state with EmergencyListFilter = filter }, Cmd.none
@@ -702,46 +697,18 @@ module private Elmish =
         | OnSelectEmergencyListItem item ->
             match state.BolusMedication with
             | Resolved meds ->
-                match
-                    meds
-                    |> List.tryFind (fun m -> item.EndsWith($".{m.Hospital}.{m.Category}.{m.Generic}"))
-                with
-                | None -> state, Cmd.none
-                | Some selected ->
+                meds
+                |> List.tryFind (fun m -> item.EndsWith($".{m.Hospital}.{m.Category}.{m.Generic}"))
+                |> Option.map (fun m ->
                     let generic =
-                        if selected.TemplateGeneric = "" then
-                            selected.Generic
+                        if m.TemplateGeneric = "" then
+                            m.Generic
                         else
-                            selected.TemplateGeneric
+                            m.TemplateGeneric
 
-                    let ctx =
-                        { OrderContext.empty with
-                            Filter =
-                                { OrderContext.empty.Filter with
-                                    Indication =
-                                        if selected.TemplateIndication = "" then
-                                            None
-                                        else
-                                            Some selected.TemplateIndication
-                                    Generic = Some generic
-                                    Route =
-                                        if selected.TemplateRoute = "" then
-                                            None
-                                        else
-                                            Some selected.TemplateRoute
-                                    DoseType =
-                                        if selected.TemplateDoseType = "" then
-                                            None
-                                        else
-                                            Some(DoseType.doseTypeFromString selected.TemplateDoseType)
-                                }
-                        }
-
-                    { state with
-                        Page = Prescribe
-                        OrderContext = ctx |> Resolved
-                    },
-                    Cmd.ofMsg (OrderContextMsg(Api.UpdateOrderContext, ctx))
+                    selectMedicationItem generic m.TemplateIndication m.TemplateRoute m.TemplateDoseType state
+                )
+                |> Option.defaultValue (state, Cmd.none)
             | _ -> state, Cmd.none
 
         | LoadProducts Started ->
