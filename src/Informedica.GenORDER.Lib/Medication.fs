@@ -1245,7 +1245,7 @@ module Medication =
     let create (pat: Patient) au dose (dr: DoseRule) (sr: SolutionRule option) =
         { template with
             Id = Guid.NewGuid().ToString()
-            Name = dr.Generic |> String.toLower
+            Name = dr.Generic
             Components = dr.ComponentLimits |> createComponents sr
             Quantities = None
             Frequencies = dr.Frequencies
