@@ -20,7 +20,7 @@ module ViewHelpers =
             {|
                 updateSelected = if isEmpty then ignore else dispatch
                 label = lbl
-                selected = selected
+                selected = if isEmpty then None else selected
                 values = xs
                 isLoading = isLoading
                 disabled = disabled || isEmpty
