@@ -4226,6 +4226,8 @@ module Order =
                             |]
                         |]
                     else
+                        let admDoseQty = ord.Orderable |> Orderable.Print.doseQuantityTo printMd -1
+
                         itms
                         |> Array.mapi (fun i itm ->
                             [|
@@ -4245,17 +4247,17 @@ module Order =
                                     else
                                         "" |> Valid
                                         "" |> Valid
-                                else if i = 0 then
-                                    ord.Orderable
-                                    |> Orderable.Print.doseQuantityTo printMd -1
-                                    |> wrap
-                                        Alert
-                                        [
-                                            ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
-                                            ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar
-                                        ]
-                                else
-                                    "" |> Valid
+                                else if admDoseQty |> String.notEmpty then
+                                    if i = 0 then
+                                        admDoseQty
+                                        |> wrap
+                                            Alert
+                                            [
+                                                ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
+                                                ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar
+                                            ]
+                                    else
+                                        "" |> Valid
 
                                 let itmQty = itm |> Orderable.Item.Print.orderableQuantityTo printMd 3
 
