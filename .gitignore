@@ -59,6 +59,7 @@
 !/.husky/commit-msg
 !/.husky/task-runner.json
 !/.husky/scripts/
+!/.husky/scripts/format-staged.sh
 
 # Add github folder
 !/.github
