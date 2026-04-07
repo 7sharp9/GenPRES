@@ -18,7 +18,7 @@ Introduce a two-phase staged value expansion in the order processing pipeline fo
 
 ### The Problem
 
-When processing an OnceTimed order (e.g., IV kaliumchloride with schedule time 60-120 min for a 31 kg patient), the existing `minIncrMaxToValues` function expands all variables (component quantities, dose quantity, dose rate) from min/incr/max ranges to discrete value sets in a single pass.
+When processing a OnceTimed order (e.g., IV kaliumchloride with schedule time 60-120 min for a 31 kg patient), the existing `minIncrMaxToValues` function expands all variables (component quantities, dose quantity, dose rate) from min/incr/max ranges to discrete value sets in a single pass.
 
 For OnceTimed and Timed orders, the equation `dos_qty = dos_rte * sch_tme` creates a three-way relationship between dose quantity, dose rate, and schedule time. When the solver expands rate values, each rate value interacts with each possible time value to produce dose quantity combinations. Across multiple substances (e.g., kaliumchloride concentrate with kalium, chloor, kaliumchloride substances plus glucose 5% diluent with glucose, energie, koolhydraat substances), the cross-product explodes.
 
@@ -149,7 +149,7 @@ After staged expansion, the kaliumchloride order shows:
 
 ## Implementation
 
-### Files Modified
+### Files to Modify
 
 | File | Change |
 |---|---|

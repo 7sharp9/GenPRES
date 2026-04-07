@@ -398,7 +398,7 @@ module Helpers =
                     if usePrintTable then ord |> printOrderTable else ord
             | cmd :: rest ->
                 match ord with
-                | Error(_, msgs) -> failwith $"Errors occured: {msgs}"
+                | Error(_, msgs) -> failwith $"Errors occurred: {msgs}"
                 | Ok ord ->
                     if usePrintTable then
                         ord |> Ok |> printOrderTable |> ignore
