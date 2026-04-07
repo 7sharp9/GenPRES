@@ -26,6 +26,8 @@ open Informedica.GenOrder.Lib.Types
 
 
 let path = Environment.CurrentDirectory |> Path.combineWith "staged_expansion.log"
+// Clear the log file on each run
+System.IO.File.WriteAllText(path, "")
 let fileLogger = OrderLogging.createFileLogger path
 
 
@@ -657,6 +659,73 @@ match kaliumFullResult with
     ord |> Informedica.GenOrder.Lib.Order.printTable ConsoleTables.Format.MarkDown
 | Ok ord ->
     printfn "\n=== RESULT: CalcValues succeeded ==="
+    ord |> Informedica.GenOrder.Lib.Order.printTable ConsoleTables.Format.MarkDown
+
+
+printfn "\n\n=== TEST 5: Kaliumchloride OnceTimed — CalcMinMax + CalcValues + SetMedianDoseRate + SolveOrder ==="
+printfn "This tests selecting a median dose rate value and solving the order\n"
+
+let kaliumDoseRateResult =
+    TestMedications.kaliumchlorideOnceTimed
+    |> Medication.fromString
+    |> function
+        | Error errs -> failwith $"Failed to parse medication: {errs}"
+        | Ok med ->
+            // Step 1: CalcMinMax (may error on set-normdose, that's expected)
+            let calcMinMaxResult =
+                [ CalcMinMax ]
+                |> Helpers.run (Some fileLogger) med
+
+            let ordAfterCalcMinMax =
+                match calcMinMaxResult with
+                | Error(ord, _) ->
+                    printfn "CalcMinMax had errors (expected), continuing..."
+                    ord
+                | Ok ord -> ord
+
+            // Step 2: CalcValues (two-phase expansion)
+            let ordAfterCalcValues =
+                ordAfterCalcMinMax
+                |> CalcValues
+                |> OrderProcessor.processPipelineStaged fileLogger
+                |> function
+                    | Error(ord, msgs) ->
+                        printfn "CalcValues had errors: %A" msgs
+                        ord
+                    | Ok ord ->
+                        printfn "CalcValues succeeded"
+                        ord
+
+            printfn "\n--- Order after CalcValues (before dose rate selection) ---"
+            ordAfterCalcValues |> Informedica.GenOrder.Lib.Order.printTable ConsoleTables.Format.MarkDown
+
+            // Step 3: SetMedianOrderableDoseRate
+            let ordAfterSetRate =
+                ChangeProperty(ordAfterCalcValues, SetMedianOrderableDoseRate)
+                |> OrderProcessor.processPipelineStaged fileLogger
+                |> function
+                    | Error(ord, msgs) ->
+                        printfn "SetMedianOrderableDoseRate had errors: %A" msgs
+                        ord
+                    | Ok ord ->
+                        printfn "SetMedianOrderableDoseRate succeeded"
+                        ord
+
+            printfn "\n--- Order after SetMedianOrderableDoseRate ---"
+            ordAfterSetRate |> Informedica.GenOrder.Lib.Order.printTable ConsoleTables.Format.MarkDown
+
+            // Step 4: SolveOrder
+            ordAfterSetRate
+            |> SolveOrder
+            |> OrderProcessor.processPipelineStaged fileLogger
+
+match kaliumDoseRateResult with
+| Error(ord, msgs) ->
+    printfn "\n=== RESULT: SolveOrder completed with errors ==="
+    msgs |> List.iter (printfn "  Error: %A")
+    ord |> Informedica.GenOrder.Lib.Order.printTable ConsoleTables.Format.MarkDown
+| Ok ord ->
+    printfn "\n=== RESULT: SolveOrder succeeded ==="
     ord |> Informedica.GenOrder.Lib.Order.printTable ConsoleTables.Format.MarkDown
 
 
