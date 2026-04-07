@@ -75,7 +75,7 @@ In both cases, the dose quantity is constrained before rate expansion occurs, pr
 
 Staged expansion (`skipRate = true`) applies when:
 
-```
+```text
 Schedule.hasTime = true AND Schedule.isContinuous = false
 ```
 
