@@ -69,7 +69,7 @@ module StateFingerprint =
     ///
     /// The fingerprint is based on every variable's name + value range string,
     /// which is stable under equation reordering but sensitive to any bound change.
-    let ofEquations (eqs: Equation.T list) : StateFingerprint =
+    let ofEquations (eqs: Types.Equation list) : StateFingerprint =
         eqs
         |> List.collect Equation.toVars
         |> List.sortBy (Variable.getName >> Variable.Name.toString)
@@ -80,7 +80,7 @@ module StateFingerprint =
         )
         |> String.concat ";"
         // FNV-1a 32-bit — deterministic, fast, no System.Security.Cryptography needed
-        |> (fun s -> s |> Seq.fold (fun h c -> (h ^^^ int c) * 16777619) 2166136261)
+        |> (fun s -> s |> Seq.fold (fun h c -> (h ^^^ int c) * 16777619) (int 0x811C9DC5u))
         |> StateFingerprint
 
     let value (StateFingerprint h) = h
@@ -126,7 +126,7 @@ module ConvergenceTracker =
             Width        : BigRational option
         }
 
-    let private widthOf (v: Variable.T) : BoundWidth =
+    let private widthOf (v: Types.Variable) : BoundWidth =
         let name = v |> Variable.getName |> Variable.Name.toString
         let vr   = v |> Variable.getValueRange
 
@@ -160,7 +160,7 @@ module ConvergenceTracker =
     /// Update tracker with the current equation state.
     /// Returns `PotentialStall` if any variable has not improved for
     /// `StallThreshold` consecutive steps.
-    let update (n: int) (eqs: Equation.T list) (tracker: T) : TrackResult =
+    let update (n: int) (eqs: Types.Equation list) (tracker: T) : TrackResult =
         let widths = eqs |> List.collect Equation.toVars |> List.map widthOf
 
         let stalled =
@@ -195,8 +195,8 @@ module DetectingLoop =
 
     [<RequireQualifiedAccess>]
     type SolverOutcome =
-        | Solved   of Equation.T list
-        | HardStop of reason: TerminationReason * equations: Equation.T list
+        | Solved   of Types.Equation list
+        | HardStop of reason: TerminationReason * equations: Types.Equation list
 
     /// Solve **eqs** with cycle-detection and convergence monitoring.
     ///
@@ -204,16 +204,21 @@ module DetectingLoop =
     ///   onlyMinIncrMax  — mirror of the standard solver flag
     ///   stallThreshold  — steps without improvement before a stall warning
     ///   log             — solver logger (use Logger.noOp if no logging needed)
-    let solve (onlyMinIncrMax: bool) (stallThreshold: int) (log: Informedica.Logging.Lib.Logger) (eqs: Equation.T list) : SolverOutcome =
+    let solve (onlyMinIncrMax: bool) (stallThreshold: int) (log: Informedica.Logging.Lib.Logger) (eqs: Types.Equation list) : SolverOutcome =
 
         let detector = CycleDetector.create ()
         let tracker  = ConvergenceTracker.create stallThreshold
 
-        let rec loop (n: int) (que: Equation.T list) (acc: Equation.T list) =
+        let rec loop (n: int) (que: Types.Equation list) (acc: Types.Equation list) =
+
+            // If the queue is empty, all equations have been processed — done
+            match que with
+            | [] -> SolverOutcome.Solved acc
+            | _ ->
 
             // Hard-count guard kept as a final safety net
             if n > (que @ acc |> List.length) * Constants.MAX_LOOP_COUNT then
-                HardStop(TerminationReason.HardLimit n, que @ acc)
+                SolverOutcome.HardStop(TerminationReason.HardLimit n, que @ acc)
 
             else
 
@@ -221,21 +226,16 @@ module DetectingLoop =
             let fp = que @ acc |> StateFingerprint.ofEquations
             match detector |> CycleDetector.check n fp with
             | CycleCheckResult.CycleDetected (firstStep, _) ->
-                HardStop(TerminationReason.CycleDetected(firstStep, n), que @ acc)
+                SolverOutcome.HardStop(TerminationReason.CycleDetected(firstStep, n), que @ acc)
 
             | CycleCheckResult.Fresh ->
 
             // Convergence / stall detection
             match tracker |> ConvergenceTracker.update n (que @ acc) with
             | ConvergenceTracker.TrackResult.PotentialStall info ->
-                HardStop(TerminationReason.PotentialStall(info.Step, info.StalledVariables), que @ acc)
+                SolverOutcome.HardStop(TerminationReason.PotentialStall(info.Step, info.StalledVariables), que @ acc)
 
             | ConvergenceTracker.TrackResult.Progressing ->
-
-            match que with
-            | [] -> SolverOutcome.Solved acc
-
-            | _ ->
                 // Sort the queue by equation complexity (cheapest first)
                 let sortedQue = que |> Solver.sortQue onlyMinIncrMax |> List.map snd
 
