@@ -227,7 +227,7 @@ NUGET
       System.Text.Json (>= 6.0.10)
     FSharpPlus (1.7)
       FSharp.Core (>= 6.0.6)
-    FsToolkit.ErrorHandling (5.1)
+    FsToolkit.ErrorHandling (5.2)
       FSharp.Core (>= 9.0.300)
     Giraffe (8.2)
       FSharp.Core (>= 6.0)

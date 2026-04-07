@@ -29,7 +29,7 @@ nuget Fake.IO.FileSystem 6.1.3
 nuget FSharp.Data
 nuget HtmlAgilityPack 1.12.3
 nuget FParsec
-nuget FsToolkit.ErrorHandling 5.1.0
+nuget FsToolkit.ErrorHandling 5.2.0
 nuget MathNet.Numerics.FSharp
 nuget Microsoft.Net.Test.Sdk 18.3.0
 nuget Validus
