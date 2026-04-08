@@ -13,6 +13,16 @@ module Command =
                 let! result = env.interaction.getDrugNames ()
                 return result |> Result.map (List.toArray >> DrugNamesLoaded >> InteractionResp)
             }
+        | LogAnalyzerCmd ListLogFiles ->
+            async {
+                let! result = env.logAnalyzer.listLogFiles ()
+                return result |> Result.map (LogFilesListed >> LogAnalyzerResp)
+            }
+        | LogAnalyzerCmd(AnalyzeLogFile fileName) ->
+            async {
+                let! result = env.logAnalyzer.analyzeLogFile fileName
+                return result |> Result.map (LogFileAnalyzed >> LogAnalyzerResp)
+            }
         | _ ->
             match env.requireLoaded () with
             | Some msgs -> async { return Error msgs }

@@ -14,6 +14,7 @@ module Api =
         | ParenteraliaCmd of Parenteralia
         | NutritionPlanCmd of NutritionPlanCommand
         | InteractionCmd of InteractionCommand
+        | LogAnalyzerCmd of LogAnalyzerCommand
 
     and OrderContextCommand =
         | UpdateOrderContext
@@ -58,6 +59,10 @@ module Api =
         | AddNutritionContext of NutritionPlan * NutritionCategory
         | RemoveNutritionContext of NutritionPlan * string
 
+    and LogAnalyzerCommand =
+        | ListLogFiles
+        | AnalyzeLogFile of fileName: string
+
     and InteractionCommand =
         | CheckInteractions of string list
         | GetDrugNames
@@ -69,6 +74,7 @@ module Api =
         | ParenteraliaResp of Parenteralia
         | NutritionPlanResp of NutritionPlanResponse
         | InteractionResp of InteractionResponse
+        | LogAnalyzerResp of LogAnalyzerResponse
 
     and OrderContextResponse = OrderContextResult of OrderContext
 
@@ -79,6 +85,10 @@ module Api =
     and NutritionPlanResponse =
         | NutritionPlanInitialised of NutritionPlan
         | NutritionPlanUpdated of NutritionPlan
+
+    and LogAnalyzerResponse =
+        | LogFilesListed of LogFileInfo[]
+        | LogFileAnalyzed of string
 
     and InteractionResponse =
         | InteractionsChecked of DrugInteraction[]
@@ -136,6 +146,8 @@ module Api =
             | NutritionPlanCmd(RemoveNutritionContext _) -> "RemoveNutritionContext"
             | InteractionCmd(CheckInteractions _) -> "CheckInteractions"
             | InteractionCmd GetDrugNames -> "GetDrugNames"
+            | LogAnalyzerCmd ListLogFiles -> "ListLogFiles"
+            | LogAnalyzerCmd(AnalyzeLogFile f) -> $"AnalyzeLogFile %s{f}"
 
 
     /// Defines how routes are generated on server and mapped from the client

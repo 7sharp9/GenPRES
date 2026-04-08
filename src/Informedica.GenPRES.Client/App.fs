@@ -45,6 +45,8 @@ module private Elmish =
             ServerError: string option
             EmergencyListFilter: string[]
             ContinuousMedsFilter: string[]
+            LogFiles: Deferred<LogFileInfo[]>
+            LogAnalysisReport: Deferred<string>
         }
 
 
@@ -91,6 +93,11 @@ module private Elmish =
         | CloseSnackbar
         | CheckServer of AsyncOperationStatus<Result<string, exn>>
         | DismissServerError
+
+        | ListLogFiles
+        | LoadLogFilesResult of ApiResponse
+        | AnalyzeLogFile of string
+        | LoadLogAnalysisResult of ApiResponse
 
 
     and ApiResponse = AsyncOperationStatus<Result<Api.Response, string[]>>
@@ -156,6 +163,9 @@ module private Elmish =
             { newState with Interactions = Resolved interactions }, Cmd.none
         | Api.InteractionResp(Api.DrugNamesLoaded names) ->
             { state with InteractionDrugNames = Resolved names }, Cmd.none
+        | Api.LogAnalyzerResp(Api.LogFilesListed files) -> { state with LogFiles = Resolved files }, Cmd.none
+        | Api.LogAnalyzerResp(Api.LogFileAnalyzed report) ->
+            { state with LogAnalysisReport = Resolved report }, Cmd.none
 
 
     let loadOrderContext resp =
@@ -378,6 +388,8 @@ module private Elmish =
             ServerError = None
             EmergencyListFilter = [||]
             ContinuousMedsFilter = [||]
+            LogFiles = HasNotStartedYet
+            LogAnalysisReport = HasNotStartedYet
         }
 
 
@@ -513,6 +525,29 @@ module private Elmish =
             |> Cmd.fromAsync
 
         | DismissServerError -> { state with ServerError = None }, Cmd.none
+
+        | ListLogFiles ->
+            { state with LogFiles = InProgress }, Api.LogAnalyzerCmd Api.ListLogFiles |> createApiMsg LoadLogFilesResult
+
+        | LoadLogFilesResult(Finished(Ok resp)) -> processOk resp
+
+        | LoadLogFilesResult(Finished(Error err)) ->
+            ({ state with LogFiles = HasNotStartedYet }, Cmd.none) |> processError err
+
+        | LoadLogFilesResult Started -> state, Cmd.none
+
+        | AnalyzeLogFile fileName ->
+            { state with LogAnalysisReport = InProgress },
+            Api.LogAnalyzerCmd(Api.AnalyzeLogFile fileName)
+            |> createApiMsg LoadLogAnalysisResult
+
+        | LoadLogAnalysisResult(Finished(Ok resp)) -> processOk resp
+
+        | LoadLogAnalysisResult(Finished(Error err)) ->
+            ({ state with LogAnalysisReport = HasNotStartedYet }, Cmd.none)
+            |> processError err
+
+        | LoadLogAnalysisResult Started -> state, Cmd.none
 
         | AcceptDisclaimer -> { state with ShowDisclaimer = false }, Cmd.none
 
@@ -1048,6 +1083,12 @@ type private ConcreteAppEnv
     interface AppEnv.IResources with
         member _.ReloadResources pw =
             OrderContextMsg(Api.ReloadResources pw, OrderContext.empty) |> dispatch
+
+    interface AppEnv.ILogAnalyzer with
+        member _.LogFiles = state.LogFiles
+        member _.LogAnalysisReport = state.LogAnalysisReport
+        member _.ListLogFiles() = ListLogFiles |> dispatch
+        member _.AnalyzeLogFile fileName = AnalyzeLogFile fileName |> dispatch
 
     interface AppEnv.IBolusMedication with
         member _.BolusMedication = bm

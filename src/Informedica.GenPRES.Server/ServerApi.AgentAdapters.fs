@@ -457,6 +457,19 @@ module AgentAdapters =
                     getDrugNames = fun () -> postAsync interactionAgent InteractionCommand.GetNames extractDrugNames
                 }
 
+            logAnalyzer =
+                {
+                    listLogFiles =
+                        fun () ->
+                            async {
+                                try
+                                    return Ok(LogAnalyzer.listLogFiles ())
+                                with ex ->
+                                    return Error [| ex.Message |]
+                            }
+                    analyzeLogFile = fun fileName -> async { return LogAnalyzer.analyzeFile fileName }
+                }
+
             requireLoaded =
                 fun () ->
                     let info = provider.GetResourceInfo()
