@@ -216,7 +216,12 @@ module Variable =
             /// </remarks>
             let calcOpt op incr1 incr2 =
                 match incr1, incr2 with
-                | Some(Increment i1), Some(Increment i2) -> calc op i1 i2
+                | Some(Increment i1), Some(Increment i2) ->
+                    // set a cap on the number of increments to
+                    // avoid a value overflow
+                    let c1 = i1 |> ValueUnit.getValue |> Array.length
+                    let c2 = i2 |> ValueUnit.getValue |> Array.length
+                    if c1 > 10 / (max c2 1) then None else calc op i1 i2
                 | _ -> None
 
 
@@ -2892,7 +2897,14 @@ module Variable =
             match vr1, vr2 with
             | Unrestricted, Unrestricted -> unrestricted
             | ValSet s1, ValSet s2 ->
-                if not onlyMinIncrMax || s1 |> ValueSet.count = 1 && s2 |> ValueSet.count = 1 then
+                let c1 = s1 |> ValueSet.count
+                let c2 = s2 |> ValueSet.count
+
+                if
+                    (not onlyMinIncrMax
+                     && (c1 = 1 || c2 = 1 || c1 <= Constants.MAX_CALC_COUNT / (max c2 1)))
+                    || (onlyMinIncrMax && c1 = 1 && c2 = 1)
+                then
                     ValueSet.calc op s1 s2 |> ValSet
                 else
                     let min1, max1 = vr1 |> getMin, vr1 |> getMax
