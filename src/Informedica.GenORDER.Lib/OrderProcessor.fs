@@ -304,14 +304,14 @@ module OrderProcessor =
         // small helpers to clarify post-processing after property changes
         let solveAndToValues minTime =
             solveMinMax "Process Cleared Order" true logger
-            >> Result.map (minIncrMaxToValues true minTime logger)
+            >> Result.map (minIncrMaxToValues true minTime false logger)
 
         let defaultInc = 100
 
         let solveIncrIncrAndToValues minTime =
             solveMinMax "Process Cleared Order" true logger
             >> Result.bind (increaseIncrements logger defaultInc defaultInc)
-            >> Result.map (minIncrMaxToValues true minTime logger)
+            >> Result.map (minIncrMaxToValues true minTime false logger)
 
         let logUnmatched (kind: string) =
             $"===> no match for {kind} cleared " |> writeWarningMessage
@@ -514,11 +514,11 @@ module OrderProcessor =
 
         let increaseIncrementStep ord = ord |> increaseIncrements logger 10 10
 
-        let calcValuesStep useMax ord =
-            ord |> minIncrMaxToValues useMax true logger |> Ok
+        let calcValuesStep useMax skipRate ord =
+            ord |> minIncrMaxToValues useMax true skipRate logger |> Ok
 
-        let reCalcValuesStep useMax ord =
-            ord |> minIncrMaxToValues useMax false logger |> Ok
+        let reCalcValuesStep useMax skipRate ord =
+            ord |> minIncrMaxToValues useMax false skipRate logger |> Ok
 
         let solveStep ord =
             solveOrder "Solve Order Step" true logger ord
@@ -566,10 +566,13 @@ module OrderProcessor =
                 }
                 // norm dose calc needs all values calculated, see adenosine 10 kg example
                 if ord |> hasNormDose && ord.Orderable.Components |> List.length <= 2 then
+                    let hasTimeNotContinuous =
+                        ord.Schedule |> Schedule.hasTime && ord.Schedule |> Schedule.isContinuous |> not
+
                     {
                         Name = "solve-order: ensure-dose-values-1"
                         Guard = _.CanSetNormDose >> not
-                        Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2)
+                        Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2) hasTimeNotContinuous
                     }
 
                     {
@@ -594,15 +597,23 @@ module OrderProcessor =
             let guard (os: OrderState) =
                 ord.Orderable.Components |> List.length <= 2
                 && os.DoseIsSolved |> not
-                && os.OrderIsSolved |> not //&&
-            //os.HasValues |> not
+                && os.OrderIsSolved |> not
+
+            let hasTimeNotContinuous =
+                ord.Schedule |> Schedule.hasTime && ord.Schedule |> Schedule.isContinuous |> not
+
             [
-                // { Name = "calc-values: increase-increments"; Guard = guard; Run = increaseIncrementStep }
                 {
-                    Name = "calc-values: calc-values"
+                    Name = "calc-values: calc-qty-values"
                     Guard = guard
-                    Run = calcValuesStep false
+                    Run = calcValuesStep false hasTimeNotContinuous
                 }
+                if hasTimeNotContinuous then
+                    {
+                        Name = "calc-values: calc-rate-values"
+                        Guard = guard
+                        Run = calcValuesStep false false
+                    }
             ]
             |> runPipeline ord
 
@@ -616,7 +627,7 @@ module OrderProcessor =
                 {
                     Name = "solve-order: ensure-values-1"
                     Guard = (_.HasValues >> not)
-                    Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2)
+                    Run = calcValuesStep (ord.Orderable.Components |> List.length <= 2) false
                 }
                 {
                     Name = "solve-order: final-solve"
@@ -634,6 +645,9 @@ module OrderProcessor =
         | ReCalcValues ord ->
             let useMax = ord.Orderable.Components |> List.length <= 2
 
+            let hasTimeNotContinuous =
+                ord.Schedule |> Schedule.hasTime && ord.Schedule |> Schedule.isContinuous |> not
+
             [
                 {
                     Name = "recalc-values: apply-calculated-constraints"
@@ -641,10 +655,16 @@ module OrderProcessor =
                     Run = applyCalculatedConstraintsStep
                 }
                 {
-                    Name = "recalc-values: calc-values"
+                    Name = "recalc-values: calc-qty-values"
                     Guard = (fun _ -> true)
-                    Run = reCalcValuesStep useMax
+                    Run = reCalcValuesStep useMax hasTimeNotContinuous
                 }
+                if hasTimeNotContinuous then
+                    {
+                        Name = "recalc-values: calc-rate-values"
+                        Guard = (fun _ -> true)
+                        Run = reCalcValuesStep useMax false
+                    }
                 {
                     Name = "recalc-values: final-solve"
                     Guard = (_.OrderIsSolved >> not)
