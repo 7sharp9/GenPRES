@@ -302,16 +302,19 @@ module OrderProcessor =
     /// values and solving the order again
     let processClearedOrder logger ord =
         // small helpers to clarify post-processing after property changes
-        let solveAndToValues minTime =
+        let solveAndToValues minTime skipRate =
             solveMinMax "Process Cleared Order" true logger
-            >> Result.map (minIncrMaxToValues true minTime false logger)
+            >> Result.map (minIncrMaxToValues true minTime skipRate logger)
 
         let defaultInc = 100
 
-        let solveIncrIncrAndToValues minTime =
+        let solveIncrIncrAndToValues minTime skipRate =
             solveMinMax "Process Cleared Order" true logger
             >> Result.bind (increaseIncrements logger defaultInc defaultInc)
-            >> Result.map (minIncrMaxToValues true minTime false logger)
+            >> Result.map (minIncrMaxToValues true minTime skipRate logger)
+
+        let hasTimeNotContinuous =
+            ord.Schedule |> Schedule.hasTime && ord.Schedule |> Schedule.isContinuous |> not
 
         let logUnmatched (kind: string) =
             $"===> no match for {kind} cleared " |> writeWarningMessage
@@ -324,7 +327,7 @@ module OrderProcessor =
             | RateCleared ->
                 "Rate or Time cleared" |> Events.OrderScenario |> Logging.logInfo logger
 
-                ord |> processClearedRate |> solveAndToValues true
+                ord |> processClearedRate |> solveAndToValues true false
             | _ ->
                 logUnmatched "continuous"
                 ord |> solveOrder "Process Cleared Order" true logger
@@ -337,10 +340,7 @@ module OrderProcessor =
                 |> Events.OrderScenario
                 |> Logging.logInfo logger
 
-                ord
-                |> processClearedDose
-                // solve min/max, increase increments, and min/incr/max to values
-                |> solveIncrIncrAndToValues true
+                ord |> processClearedDose |> solveIncrIncrAndToValues true false
             | _ ->
                 logUnmatched "discontinuous"
                 ord |> solveOrder "Process Cleared Order" true logger
@@ -351,17 +351,14 @@ module OrderProcessor =
             | TimeCleared ->
                 "Rate or Time cleared" |> Events.OrderScenario |> Logging.logInfo logger
 
-                ord |> processClearedRate |> solveAndToValues false
+                ord |> processClearedRate |> solveAndToValues false hasTimeNotContinuous
             | DosePerTimeCleared
             | DoseQuantityCleared ->
                 "Dose per time or quantity cleared"
                 |> Events.OrderScenario
                 |> Logging.logInfo logger
 
-                ord
-                |> processClearedDose
-                // solve min/max, increase increments, and min/incr/max to values
-                |> solveIncrIncrAndToValues false
+                ord |> processClearedDose |> solveIncrIncrAndToValues false hasTimeNotContinuous
             | _ ->
                 logUnmatched "timed"
                 ord |> solveOrder "Process Cleared Order" true logger
@@ -564,7 +561,7 @@ module OrderProcessor =
                     Guard = (fun _ -> true)
                     Run = setCalculatedConstraintsStep
                 }
-                // norm dose calc needs all values calculated, see adenosine 10 kg example
+                // norm dose calc needs dose qty values; for timed orders rate is deferred (staged expansion)
                 if ord |> hasNormDose && ord.Orderable.Components |> List.length <= 2 then
                     let hasTimeNotContinuous =
                         ord.Schedule |> Schedule.hasTime && ord.Schedule |> Schedule.isContinuous |> not
