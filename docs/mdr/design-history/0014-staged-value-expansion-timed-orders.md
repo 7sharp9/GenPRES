@@ -49,16 +49,25 @@ Value explosion can occur at two levels of the system:
 
 **Defense 1** is a domain-aware optimization: it knows which variable orderings avoid explosion for specific order types. **Defense 2** is a domain-independent safety net: it protects against any cartesian product overflow regardless of the source. Together they provide defense-in-depth.
 
-### Existing Safeguards (Pre-ADR)
+### Existing Safeguard (Pre-ADR)
 
-Before this ADR, two safeguards already existed:
+Before this ADR, one safeguard already existed:
 
 | Safeguard | Location | Threshold | Limitation |
 |---|---|---|---|
-| `Increment.calcOpt` cap | Variable.fs:220-224 | `c1 * c2 > 10` → return `None` | Only applies to **increment** calculations, not value sets |
 | `ValueSet.create` hard limit | Variable.fs:970 | `> MAX_CALC_COUNT²` (250,000) → raise `ValueSetOverflow` | Fires **after** the cartesian product is computed; raises an error that terminates the solve |
 
 The `ValueSet.create` limit is a last-resort error, not a graceful fallback. When it fires, the entire solve fails and the order cannot be calculated.
+
+### New Safeguards (This ADR)
+
+This ADR introduces three new defenses (in addition to the existing hard limit):
+
+| Safeguard | Location | Threshold | Behavior |
+|---|---|---|---|
+| Staged value expansion | `Order.fs`, `OrderProcessor.fs` | N/A (structural) | Expands dose qty before rate for timed orders |
+| `ValueRange.calc` cartesian product cap | Variable.fs:2900-2908 | `c1 * c2 > MAX_CALC_COUNT` (500) | Falls back to min/max bounds |
+| `Increment.calcOpt` cap | Variable.fs:220-224 | `c1 * c2 > 10` → return `None` | Prevents increment explosion |
 
 ---
 
@@ -197,7 +206,9 @@ After staged expansion, the kaliumchloride order shows:
 - Component dose qty: 14.5; 15; 15.5; 16; 16.5; 17 mL (6 values)
 - Substance dose qty adj: 0.47; 0.48; 0.5; 0.52; 0.53; 0.55 mmol/kg (within 0.45-0.55 mmol/kg constraint)
 
-### Implementation
+### Implementation (Planned)
+
+> **Note**: Part 1 is proposed but not yet implemented in source files. The changes below describe the planned implementation validated in the prototype script.
 
 #### Files to Modify
 
@@ -311,7 +322,10 @@ Add a size guard in `ValueRange.calc` (Variable.fs:2900-2902) that checks the co
     let c1 = s1 |> ValueSet.count
     let c2 = s2 |> ValueSet.count
 
-    if (not onlyMinIncrMax && (c1 = 1 || c2 = 1 || c1 * c2 <= Constants.MAX_CALC_COUNT))
+    if (not onlyMinIncrMax
+        && (c1 = 1
+            || c2 = 1
+            || c1 <= Constants.MAX_CALC_COUNT / (max c2 1)))
        || (onlyMinIncrMax && c1 = 1 && c2 = 1) then
         ValueSet.calc op s1 s2 |> ValSet
     else
@@ -323,18 +337,20 @@ Add a size guard in `ValueRange.calc` (Variable.fs:2900-2902) that checks the co
         | _ -> create min None max None
 ```
 
+Note: The guard uses `c1 <= MAX_CALC_COUNT / (max c2 1)` instead of `c1 * c2 <= MAX_CALC_COUNT` to avoid `int32` overflow. Division-based comparison is always safe regardless of input sizes.
+
 #### Logic Explanation
 
-The condition `(not onlyMinIncrMax && (c1 = 1 || c2 = 1 || c1 * c2 <= Constants.MAX_CALC_COUNT))` means:
+The condition `(not onlyMinIncrMax && (c1 = 1 || c2 = 1 || c1 <= Constants.MAX_CALC_COUNT / (max c2 1)))` means:
 
 - When in full value mode (`onlyMinIncrMax=false`):
   - If either operand has exactly 1 value → always safe to compute (result = other operand's size)
-  - If the combined product is ≤ 500 → compute the cartesian product
+  - If the combined product is ≤ 500 → compute the cartesian product (using overflow-safe division check)
   - Otherwise → fall back to min/max bounds
 - When in min/max mode (`onlyMinIncrMax=true`):
   - Only compute cartesian product when both operands have exactly 1 value (existing behavior preserved)
 
-#### Why MIN_CALC_COUNT (500) as Threshold
+#### Why MAX_CALC_COUNT (500) as Threshold
 
 - The existing `Increment.calcOpt` uses a threshold of 10 for increments
 - The existing `ValueSet.create` uses `MAX_CALC_COUNT²` (250,000) as a hard error limit

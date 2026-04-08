@@ -221,7 +221,7 @@ module Variable =
                     // avoid a value overflow
                     let c1 = i1 |> ValueUnit.getValue |> Array.length
                     let c2 = i2 |> ValueUnit.getValue |> Array.length
-                    if c1 * c2 > 10 then None else calc op i1 i2
+                    if c1 > 10 / (max c2 1) then None else calc op i1 i2
                 | _ -> None
 
 
@@ -2901,7 +2901,8 @@ module Variable =
                 let c2 = s2 |> ValueSet.count
 
                 if
-                    (not onlyMinIncrMax && (c1 = 1 || c2 = 1 || c1 * c2 <= Constants.MAX_CALC_COUNT))
+                    (not onlyMinIncrMax
+                     && (c1 = 1 || c2 = 1 || c1 <= Constants.MAX_CALC_COUNT / (max c2 1)))
                     || (onlyMinIncrMax && c1 = 1 && c2 = 1)
                 then
                     ValueSet.calc op s1 s2 |> ValSet
