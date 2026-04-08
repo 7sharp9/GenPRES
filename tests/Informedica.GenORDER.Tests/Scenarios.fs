@@ -1086,6 +1086,78 @@ Components:
 """
 
 
+// Kaliumchloride OnceTimed scenario that previously caused
+// ValueSetOverflow (746,839 values) without staged expansion
+let kaliumchlorideOnceTimedText =
+    """
+Id: c829b3ef-0dbe-4ed4-ac36-1260414d39b5
+Name: kaliumchloride
+Quantity:
+Quantities:
+Route: INTRAVENEUS
+OrderType: OnceTimedOrder
+Adjust: 31 kg
+Frequencies:
+Time: 60 min - 120 min
+Dose: [dun] ml
+Div:
+DoseCount: 1 x
+Components:
+
+	Name: kaliumchloride
+	Form: concentraat voor oplossing voor infusie
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: kalium
+		Quantities:
+		Concentrations: 1 mmol/ml
+		Dose:
+		Solution:
+
+		Name: chloor
+		Quantities:
+		Concentrations: 1 mmol/ml
+		Dose:
+		Solution:
+
+		Name: kaliumchloride
+		Quantities:
+		Concentrations: 1 mmol/ml
+		Dose: kaliumchloride, [dun] mmol, [qty-adj] 0.5 mmol/kg/dosis
+		Solution:  [conc] 0.5 mmol/ml
+
+	Name: gluc 5%
+	Form: vloeistof
+	Quantities: 1 ml
+	Divisible: 10
+	Dose:
+	Solution:
+	Substances:
+
+		Name: glucose
+		Quantities:
+		Concentrations: 0.05 g/ml
+		Dose:
+		Solution:
+
+		Name: energie
+		Quantities:
+		Concentrations: 0.2 kCal/ml
+		Dose:
+		Solution:
+
+		Name: koolhydraat
+		Quantities:
+		Concentrations: 0.05 g/ml
+		Dose:
+		Solution:
+"""
+
+
 /// Fully populated medication for testing all Medication fields
 let fullMedication =
     let volUnit = Units.Volume.milliLiter

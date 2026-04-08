@@ -3577,9 +3577,10 @@ module Order =
     /// </summary>
     /// <param name="useMaxNumberOfValues">Whether to use max number of values or restrict the number of values</param>
     /// <param name="minTime">Whether to minimize the time before processing</param>
+    /// <param name="skipRate">Whether to skip the orderable dose rate variable (for staged expansion of timed orders)</param>
     /// <param name="logger">The logger</param>
     /// <param name="ord">The Order</param>
-    let minIncrMaxToValues useMaxNumberOfValues minTime logger ord =
+    let minIncrMaxToValues useMaxNumberOfValues minTime skipRate logger ord =
         let mutable isSolved = false
 
         let rec loop ord =
@@ -3591,11 +3592,13 @@ module Order =
             let ovars =
                 // only use the natural incremented variables
                 // - component orderable quantities
-                // - orderable dose rate
+                // - orderable dose quantity
+                // - orderable dose rate (unless skipRate is true)
                 [
                     yield! ord.Orderable.Components |> List.map (_.OrderableQuantity >> Quantity.toOrdVar)
                     ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
-                    ord.Orderable.Dose.Rate |> Rate.toOrdVar
+                    if not skipRate then
+                        ord.Orderable.Dose.Rate |> Rate.toOrdVar
                 ]
                 |> List.map (fun ovar ->
                     if

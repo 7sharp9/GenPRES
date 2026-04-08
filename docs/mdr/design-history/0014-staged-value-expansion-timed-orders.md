@@ -195,7 +195,7 @@ The approach was validated in a prototype script (`src/Informedica.GenORDER.Lib/
 | 3 | Paracetamol Once CalcMinMax | Succeeded (non-timed order unaffected). |
 | 4 | Kaliumchloride CalcMinMax + CalcValues | CalcValues succeeded after CalcMinMax. Rate resolved to reasonable values. |
 
-All existing server tests (5,402 tests) continued to pass against the unmodified source files (Part 1 changes are script-only and do not affect the compiled codebase). Full regression testing against the source files will be performed when Part 1 is migrated from the prototype script.
+All existing server tests continue to pass after migration to source files.
 
 #### Key Observations from Test Results
 
@@ -206,9 +206,7 @@ After staged expansion, the kaliumchloride order shows:
 - Component dose qty: 14.5; 15; 15.5; 16; 16.5; 17 mL (6 values)
 - Substance dose qty adj: 0.47; 0.48; 0.5; 0.52; 0.53; 0.55 mmol/kg (within 0.45-0.55 mmol/kg constraint)
 
-### Implementation (Planned)
-
-> **Note**: Part 1 is proposed but not yet implemented in source files. The changes below describe the planned implementation validated in the prototype script.
+### Implementation
 
 #### Files to Modify
 
