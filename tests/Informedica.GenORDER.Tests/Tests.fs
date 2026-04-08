@@ -129,18 +129,6 @@ module Pipeline =
                     | Error msg -> failwith $"Failed to create order: {msg}"
                     | Ok ord -> ord
 
-    let private rateHasValues (ord: Order) =
-        ord.Orderable.Dose.Rate
-        |> OrderVariable.Rate.toOrdVar
-        |> (_.Variable)
-        |> Variable.hasValues
-
-    let private rateIsMinIncrMax (ord: Order) =
-        ord.Orderable.Dose.Rate
-        |> OrderVariable.Rate.toOrdVar
-        |> (_.Variable)
-        |> Variable.isMinIncrMax
-
     [<Tests>]
     let guard_and_run_order_tests =
         testList
@@ -216,12 +204,16 @@ module Pipeline =
                     let res = OrderProcessor.processPipeline noLogger (CalcValues ordAfterCalcMinMax)
 
                     match res with
-                    | Ok _
-                    | Error _ ->
-                        // The key assertion: no ValueSetOverflow should occur.
+                    | Ok _ -> true |> Expect.isTrue "CalcValues succeeded"
+                    | Error(_, msgs) ->
                         // CalcValues may produce errors (e.g. empty value sets from
                         // pre-existing set-normdose issues), but it must not overflow.
-                        true |> Expect.isTrue "CalcValues completed without overflow"
+                        msgs
+                        |> List.exists (fun m ->
+                            let s = $"%A{m}"
+                            s.Contains("ValueSetOverflow")
+                        )
+                        |> Expect.isFalse "CalcValues should not have ValueSetOverflow"
                 }
 
                 test "paracetamol suppository (non-timed) is unaffected by staged expansion" {
