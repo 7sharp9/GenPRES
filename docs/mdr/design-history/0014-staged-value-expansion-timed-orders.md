@@ -186,7 +186,7 @@ Same treatment as CalcValues — two-phase expansion for timed orders.
 
 #### Prototype Script
 
-The approach was validated in `src/Informedica.GenORDER.Lib/Scripts/StagedExpansion.fsx` with the following test cases:
+The approach was validated in a prototype script (`src/Informedica.GenORDER.Lib/Scripts/StagedExpansion.fsx`) using module shadowing — not by modifying source files. The following test cases were run against the shadowed implementation:
 
 | Test | Scenario | Result |
 |---|---|---|
@@ -195,7 +195,7 @@ The approach was validated in `src/Informedica.GenORDER.Lib/Scripts/StagedExpans
 | 3 | Paracetamol Once CalcMinMax | Succeeded (non-timed order unaffected). |
 | 4 | Kaliumchloride CalcMinMax + CalcValues | CalcValues succeeded after CalcMinMax. Rate resolved to reasonable values. |
 
-All existing server tests (5402 tests) continue to pass.
+All existing server tests (5,402 tests) continued to pass against the unmodified source files (Part 1 changes are script-only and do not affect the compiled codebase). Full regression testing against the source files will be performed when Part 1 is migrated from the prototype script.
 
 #### Key Observations from Test Results
 
