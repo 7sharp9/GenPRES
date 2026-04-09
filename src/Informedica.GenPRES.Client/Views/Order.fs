@@ -1193,6 +1193,12 @@ module Order =
         let content =
             let createNav = ViewHelpers.createNav dispatch
 
+            let contentSx =
+                {|
+                    paddingX = (if isMobile then 1.5 else 2)
+                    paddingY = (if isMobile then 1 else 2)
+                |}
+
             JSX.jsx
                 $"""
             import CardHeader from '@mui/material/CardHeader';
@@ -1207,10 +1213,7 @@ module Order =
                 title={displayOrder |> showOrderName}
                 slotProps={ {| title = {| variant = "h6" |} |} }
             ></CardHeader>
-            <CardContent sx={ {|
-                                  paddingX = (if isMobile then 1.5 else 2)
-                                  paddingY = (if isMobile then 1 else 2)
-                              |} }>
+            <CardContent sx={contentSx}>
                 <Stack direction={"column"} spacing={if isMobile then 1.5 else 3} >
                     {match displayOrder with
                      | Some ord ->

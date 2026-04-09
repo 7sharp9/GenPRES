@@ -75,17 +75,20 @@ module ResponsiveTable =
                                         paddingX = 1.5
                                     |}
 
+                                let headerTypoSx =
+                                    {|
+                                        fontWeight = 600
+                                        lineHeight = 1.4
+                                        color = b
+                                    |}
+
                                 JSX.jsx
                                     $"""
                                 import Typography from '@mui/material/Typography';
                                 import Box from '@mui/material/Box';
 
                                 <Box sx={headerBoxSx} >
-                                    <Typography variant="subtitle2" sx={ {|
-                                                                             fontWeight = 600
-                                                                             lineHeight = 1.4
-                                                                             color = b
-                                                                         |} } >
+                                    <Typography variant="subtitle2" sx={headerTypoSx} >
                                         {s}
                                     </Typography>
                                 </Box>
@@ -99,23 +102,31 @@ module ResponsiveTable =
                                         | Some h -> $"{h.headerName.ToLower()}: "
                                         | None -> $"{cell.field}: "
 
+                                let stackSx = {| paddingY = 0.5 |}
+
+                                let labelSx =
+                                    {|
+                                        minWidth = 80
+                                        lineHeight = 1.4
+                                        color = Mui.Colors.Grey.``900``
+                                    |}
+
+                                let valueSx =
+                                    {|
+                                        lineHeight = 1.4
+                                        color = b
+                                    |}
+
                                 JSX.jsx
                                     $"""
                                 import Stack from '@mui/material/Stack';
                                 import Typography from '@mui/material/Typography';
 
-                                <Stack direction="row" spacing={1} sx={ {| paddingY = 0.5 |} } >
-                                    <Typography variant="body2" sx={ {|
-                                                                         minWidth = 80
-                                                                         lineHeight = 1.4
-                                                                         color = Mui.Colors.Grey.``900``
-                                                                     |} } >
+                                <Stack direction="row" spacing={1} sx={stackSx} >
+                                    <Typography variant="body2" sx={labelSx} >
                                         {h}
                                     </Typography>
-                                    <Typography variant="body2" sx={ {|
-                                                                         lineHeight = 1.4
-                                                                         color = b
-                                                                     |} } >
+                                    <Typography variant="body2" sx={valueSx} >
                                         {s}
                                     </Typography>
                                 </Stack>
@@ -146,10 +157,13 @@ module ResponsiveTable =
                         | None -> null
 
                     let divider =
+                        let dividerSx = {| borderColor = Mui.Colors.Grey.``300`` |}
+
                         JSX.jsx
                             $"""
                         import Divider from '@mui/material/Divider';
-                        <Divider sx={ {| borderColor = Mui.Colors.Grey.``300`` |} } />
+
+                        <Divider sx={dividerSx} />
                         """
                         |> toReact
 
@@ -163,16 +177,19 @@ module ResponsiveTable =
                             ``&:last-child`` = {| paddingBottom = bottomPad |}
                         |}
 
+                    let gridItemSx =
+                        {|
+                            width = "100%"
+                            mb = 0.5
+                        |}
+
                     JSX.jsx
                         $"""
                     import Card from '@mui/material/Card';
                     import CardContent from '@mui/material/CardContent';
                     import Stack from '@mui/material/Stack';
 
-                    <Grid item sx={ {|
-                                        width = "100%"
-                                        mb = 0.5
-                                    |} } >
+                    <Grid item sx={gridItemSx} >
                         <Card raised={true} onClick={handleClick} sx={ {| cursor = "pointer" |} } >
                             <CardContent sx={contentSx} >
                                 <Stack spacing={0} divider={divider} >
@@ -434,18 +451,23 @@ module ResponsiveTable =
                             """
                         | None -> null
 
+                    let toolbarSx = {| justifyContent = "flex-start" |}
+
+                    let printOptionsSx =
+                        {|
+                            hideFooter = true
+                            hideToolbar = true
+                        |}
+
                     JSX.jsx
                         $"""
                     import {{ GridToolbarContainer, GridToolbarColumnsButton, GridToolbarFilterButton, GridToolbarDensitySelector, GridToolbarExport }} from '@mui/x-data-grid';
 
-                    <GridToolbarContainer sx={ {| justifyContent = "flex-start" |} }>
+                    <GridToolbarContainer sx={toolbarSx}>
                         <GridToolbarColumnsButton />
                         <GridToolbarFilterButton />
                         <GridToolbarDensitySelector />
-                        <GridToolbarExport printOptions={ {|
-                                                              hideFooter = true
-                                                              hideToolbar = true
-                                                          |} } />
+                        <GridToolbarExport printOptions={printOptionsSx} />
                         {printButton}
                     </GridToolbarContainer>
                     """
@@ -467,26 +489,35 @@ module ResponsiveTable =
                 else
                     createObj []
 
+            let containerSx =
+                {|
+                    height = props.height
+                    display = "flex"
+                    flexDirection = "column"
+                |}
+
+            let filterBoxSx =
+                {|
+                    marginBottom = 3
+                    flexShrink = 0
+                |}
+
+            let gridWrapperStyle =
+                {|
+                    flex = 1
+                    minHeight = 0
+                    width = "100%"
+                |}
+
             JSX.jsx
                 $"""
             import {{ DataGrid }} from '@mui/x-data-grid';
 
-            <Box sx={ {|
-                          height = props.height
-                          display = "flex"
-                          flexDirection = "column"
-                      |} }>
-                <Box sx={ {|
-                              marginBottom = 3
-                              flexShrink = 0
-                          |} }>
+            <Box sx={containerSx}>
+                <Box sx={filterBoxSx}>
                     {filter}
                 </Box>
-                <div style={ {|
-                                 flex = 1
-                                 minHeight = 0
-                                 width = "100%"
-                             |} }>
+                <div style={gridWrapperStyle}>
                     <DataGrid
                         sx={stripedSx}
                         showToolbar={props.showToolbar}

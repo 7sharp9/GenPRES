@@ -219,6 +219,21 @@ module ContinuousMeds =
         let printTableRows = makePrintTableRows printData
 
         let printContent =
+            let printTableSx =
+                {|
+                    tableLayout = "fixed"
+                    width = "100%"
+                |}
+
+            let hdrCell w =
+                {|
+                    fontWeight = "bold"
+                    width = w
+                |}
+
+            let hdr15 = hdrCell "15%"
+            let hdr20 = hdrCell "20%"
+
             JSX.jsx
                 $"""
             import Table from '@mui/material/Table';
@@ -229,36 +244,15 @@ module ContinuousMeds =
 
             <React.Fragment>
                 {patientHeader}
-                <Table size="small" sx={ {|
-                                             tableLayout = "fixed"
-                                             width = "100%"
-                                         |} }>
+                <Table size="small" sx={printTableSx}>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "15%"
-                                            |} }>Categorie</TableCell>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "20%"
-                                            |} }>Medicatie</TableCell>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "15%"
-                                            |} }>Hoeveelheid</TableCell>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "15%"
-                                            |} }>Oplossing</TableCell>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "20%"
-                                            |} }>Dosering</TableCell>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "15%"
-                                            |} }>Advies</TableCell>
+                            <TableCell sx={hdr15}>Categorie</TableCell>
+                            <TableCell sx={hdr20}>Medicatie</TableCell>
+                            <TableCell sx={hdr15}>Hoeveelheid</TableCell>
+                            <TableCell sx={hdr15}>Oplossing</TableCell>
+                            <TableCell sx={hdr20}>Dosering</TableCell>
+                            <TableCell sx={hdr15}>Advies</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>

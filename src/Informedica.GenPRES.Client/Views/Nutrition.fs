@@ -286,6 +286,71 @@ module Nutrition =
             ``& .MuiFormControl-root`` = {| width = "100%" |}
         |}
 
+    let private flexEndSx = {| alignItems = "flex-end" |}
+
+    let private alignCenterSx = {| alignItems = "center" |}
+
+    let private boldCellSx = {| fontWeight = "bold" |}
+
+    let private autoMarginSx = {| marginLeft = "auto" |}
+
+    let private flexOverflowSx =
+        {|
+            display = "flex"
+            alignItems = "center"
+            width = "100%"
+            overflow = "hidden"
+        |}
+
+    let private printSectionHeaderSx =
+        {|
+            fontWeight = "bold"
+            backgroundColor = "#f5f5f5"
+            padding = "4px 8px"
+            borderRadius = 1
+        |}
+
+    let private printSectionHeaderMb1Sx =
+        {|
+            fontWeight = "bold"
+            backgroundColor = "#f5f5f5"
+            padding = "4px 8px"
+            borderRadius = 1
+            marginBottom = 1
+        |}
+
+    let private printSectionHeaderMb2Sx =
+        {|
+            fontWeight = "bold"
+            backgroundColor = "#f5f5f5"
+            padding = "4px 8px"
+            borderRadius = 1
+            marginBottom = 2
+        |}
+
+    let private removeButtonSx =
+        {|
+            marginLeft = "auto"
+            display = "inline-flex"
+            alignItems = "center"
+            cursor = "pointer"
+            padding = "4px"
+            borderRadius = "50%"
+            ``&:hover`` = {| backgroundColor = "rgba(0, 0, 0, 0.04)" |}
+        |}
+
+    let private addButtonSx =
+        {|
+            marginTop = 1
+            marginBottom = 1
+        |}
+
+    let private dividerSx =
+        {|
+            marginTop = 2
+            marginBottom = 2
+        |}
+
 
     let private renderAdminSummary (key: string) (name: string) (blocks: TextBlock[]) =
         let typoSx =
@@ -294,15 +359,18 @@ module Nutrition =
                 color = "text.secondary"
             |}
 
+        let boxSx =
+            {|
+                display = "inline"
+                marginLeft = 1
+            |}
+
         JSX.jsx
             $"""
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <Box key={key} sx={ {|
-                                display = "inline"
-                                marginLeft = 1
-                            |} }>
+        <Box key={key} sx={boxSx}>
             <Typography variant="body2" sx={typoSx}>
                 {name}:
             </Typography>
@@ -345,18 +413,15 @@ module Nutrition =
 
                 match scenario with
                 | None ->
+                    let mb2Sx = {| marginBottom = 2 |}
+
                     JSX.jsx
                         $"""
                     import Box from '@mui/material/Box';
                     import Typography from '@mui/material/Typography';
 
-                    <Box key={nc.Id} sx={ {| marginBottom = 2 |} }>
-                        <Typography variant="subtitle1" sx={ {|
-                                                                 fontWeight = "bold"
-                                                                 backgroundColor = "#f5f5f5"
-                                                                 padding = "4px 8px"
-                                                                 borderRadius = 1
-                                                             |} }>
+                    <Box key={nc.Id} sx={mb2Sx}>
+                        <Typography variant="subtitle1" sx={printSectionHeaderSx}>
                             {nc.Label}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
@@ -398,16 +463,19 @@ module Nutrition =
                             let fixPrec2 = Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 2
                             let time = ord.Schedule.Time |> OrderVariable.displayStringFormatted fixPrec2
 
+                            let rateBoxSx =
+                                {|
+                                    display = "flex"
+                                    gap = 3
+                                    marginTop = 2
+                                |}
+
                             JSX.jsx
                                 $"""
                             import Typography from '@mui/material/Typography';
                             import Box from '@mui/material/Box';
 
-                            <Box sx={ {|
-                                          display = "flex"
-                                          gap = 3
-                                          marginTop = 2
-                                      |} }>
+                            <Box sx={rateBoxSx}>
                                 <Typography variant="body2">
                                     Pompsnelheid: <strong>{rate}</strong>
                                 </Typography>
@@ -430,13 +498,7 @@ module Nutrition =
                     import TableHead from '@mui/material/TableHead';
 
                     <Box key={nc.Id} sx={ {| marginBottom = 3 |} }>
-                        <Typography variant="subtitle1" sx={ {|
-                                                                 fontWeight = "bold"
-                                                                 marginBottom = 1
-                                                                 backgroundColor = "#f5f5f5"
-                                                                 padding = "4px 8px"
-                                                                 borderRadius = 1
-                                                             |} }>
+                        <Typography variant="subtitle1" sx={printSectionHeaderMb1Sx}>
                             {nc.Label} - {orderableName}
                         </Typography>
                         <Table size="small" sx={tableSx}>
@@ -450,8 +512,8 @@ module Nutrition =
                             <TableBody>
                                 {componentRows |> unbox<seq<ReactElement>> |> React.Fragment}
                                 <TableRow>
-                                    <TableCell colSpan={2} sx={ {| fontWeight = "bold" |} }>Totaal volume</TableCell>
-                                    <TableCell align="right" sx={ {| fontWeight = "bold" |} }>{totalVolume}</TableCell>
+                                    <TableCell colSpan={2} sx={boldCellSx}>Totaal volume</TableCell>
+                                    <TableCell align="right" sx={boldCellSx}>{totalVolume}</TableCell>
                                     <TableCell />
                                 </TableRow>
                             </TableBody>
@@ -529,13 +591,7 @@ module Nutrition =
                 import TableBody from '@mui/material/TableBody';
 
                 <Box sx={ {| marginTop = 2 |} }>
-                    <Typography variant="subtitle1" sx={ {|
-                                                             fontWeight = "bold"
-                                                             marginBottom = 1
-                                                             backgroundColor = "#f5f5f5"
-                                                             padding = "4px 8px"
-                                                             borderRadius = 1
-                                                         |} }>
+                    <Typography variant="subtitle1" sx={printSectionHeaderMb1Sx}>
                         Totalen
                     </Typography>
                     <Table size="small" sx={tableSx}>
@@ -552,13 +608,7 @@ module Nutrition =
             import Typography from '@mui/material/Typography';
 
             <React.Fragment>
-                <Typography variant="subtitle1" sx={ {|
-                                                         fontWeight = "bold"
-                                                         backgroundColor = "#f5f5f5"
-                                                         padding = "4px 8px"
-                                                         borderRadius = 1
-                                                         marginBottom = 2
-                                                     |} }>
+                <Typography variant="subtitle1" sx={printSectionHeaderMb2Sx}>
                     INFUUS AFSPRAKEN CENTRAAL VENEUZE CATHETERS
                 </Typography>
                 {ViewHelpers.PrintView.PatientHeader {| weightKg = weightKg |}}
@@ -885,7 +935,7 @@ module Nutrition =
                         $"""
                     import Grid from '@mui/material/Grid';
                     import Box from '@mui/material/Box';
-                    <Grid container spacing={{2}} sx={ {| alignItems = "flex-end" |} }>
+                    <Grid container spacing={{2}} sx={flexEndSx}>
                         <Grid size={halfSize}>
                             <Box sx={cellSx}>
                                 {qtyControl}
@@ -1054,7 +1104,7 @@ module Nutrition =
                     $"""
                 import Grid from '@mui/material/Grid';
                 import Box from '@mui/material/Box';
-                <Grid container spacing={{2}} sx={ {| alignItems = "flex-end" |} }>
+                <Grid container spacing={{2}} sx={flexEndSx}>
                     <Grid size={halfSize}>
                         <Box sx={cellSx}>
                             {frequencyControl}
@@ -1101,7 +1151,7 @@ module Nutrition =
                     $"""
                 import Grid from '@mui/material/Grid';
                 import Box from '@mui/material/Box';
-                <Grid container spacing={{2}} sx={ {| alignItems = "flex-end" |} }>
+                <Grid container spacing={{2}} sx={flexEndSx}>
                     <Grid size={halfSize}>
                         <Box sx={cellSx}>
                             {rateDisplay}
@@ -1247,15 +1297,7 @@ module Nutrition =
                 <Box
                     component="span"
                     onClick={handleClick}
-                    sx={ {|
-                             marginLeft = "auto"
-                             display = "inline-flex"
-                             alignItems = "center"
-                             cursor = "pointer"
-                             padding = "4px"
-                             borderRadius = "50%"
-                             ``&:hover`` = {| backgroundColor = "rgba(0, 0, 0, 0.04)" |}
-                         |} }
+                    sx={removeButtonSx}
                 >
                     <DeleteIcon fontSize="small" />
                 </Box>
@@ -1277,15 +1319,10 @@ module Nutrition =
                 import Typography from '@mui/material/Typography';
                 import Box from '@mui/material/Box';
 
-                <Box sx={ {|
-                              display = "flex"
-                              alignItems = "center"
-                              width = "100%"
-                              overflow = "hidden"
-                          |} }>
+                <Box sx={flexOverflowSx}>
                     <Typography>{props.nutritionContext.Label}</Typography>
                     {adminSummary}
-                    <Box sx={ {| marginLeft = "auto" |} }>
+                    <Box sx={autoMarginSx}>
                         {removeButton}
                     </Box>
                 </Box>
@@ -1324,7 +1361,7 @@ module Nutrition =
 
             <Box>
                 <Divider>
-                    <Stack direction="row" spacing={{1}} sx={ {| alignItems = "center" |} }>
+                    <Stack direction="row" spacing={{1}} sx={alignCenterSx}>
                         <Typography variant="caption">{props.nutritionContext.Label}</Typography>
                         {removeButton}
                     </Stack>
@@ -1352,10 +1389,7 @@ module Nutrition =
             size="small"
             startIcon={{ <AddIcon /> }}
             onClick={fun _ -> props.onClick ()}
-            sx={ {|
-                     marginTop = 1
-                     marginBottom = 1
-                 |} }
+            sx={addButtonSx}
         >
             {props.label}
         </Button>
@@ -1524,12 +1558,7 @@ module Nutrition =
                         import Typography from '@mui/material/Typography';
                         import Box from '@mui/material/Box';
 
-                        <Box sx={ {|
-                                      display = "flex"
-                                      alignItems = "center"
-                                      width = "100%"
-                                      overflow = "hidden"
-                                  |} }>
+                        <Box sx={flexOverflowSx}>
                             <Typography>{Terms.``Nutrition Enteral Feeding`` |> getTerm "Enterale Voeding"}</Typography>
                             {adminSummaries |> unbox<seq<ReactElement>> |> React.Fragment}
                         </Box>
@@ -1570,11 +1599,8 @@ module Nutrition =
 
                 <Stack direction="column" spacing={1}>
                     {enteralAccordion}
-                    <Divider sx={ {|
-                                      marginTop = 2
-                                      marginBottom = 2
-                                  |} } />
-                    <Stack direction="row" sx={ {| alignItems = "center" |} } spacing={1}>
+                    <Divider sx={dividerSx} />
+                    <Stack direction="row" sx={alignCenterSx} spacing={1}>
                         <Typography variant="h6">{Terms.``Nutrition Parenteral Section`` |> getTerm "Parenteraal"}</Typography>
                         <Button color="primary" size="small" disabled={printDisabled} onClick={fun _ -> setPrintOpen true} startIcon={{<PrintIcon />}}>
                             {Terms.Print |> getTerm "Print"}

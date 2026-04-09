@@ -202,6 +202,12 @@ module ViewHelpers =
                 gap = 2
             |}
 
+        let backdropSx =
+            {|
+                color = "#fff"
+                zIndex = 9999
+            |}
+
         JSX.jsx
             $"""
         import Backdrop from '@mui/material/Backdrop';
@@ -210,10 +216,7 @@ module ViewHelpers =
         import Typography from '@mui/material/Typography';
 
         <Backdrop
-            sx={ {|
-                     color = "#fff"
-                     zIndex = 9999
-                 |} }
+            sx={backdropSx}
             open={isOpen}>
             <Box sx={backdropBoxSx}>
                 <CircularProgress color="inherit" />
@@ -289,6 +292,13 @@ module ViewHelpers =
                 let pad (n: int) = if n < 10 then $"0{n}" else $"{n}"
                 $"{pad dt.Day} - {pad dt.Month} - {dt.Year}"
 
+            let patientTableSx =
+                {|
+                    tableLayout = "fixed"
+                    width = "100%"
+                    marginBottom = 3
+                |}
+
             JSX.jsx
                 $"""
             import Table from '@mui/material/Table';
@@ -296,11 +306,7 @@ module ViewHelpers =
             import TableRow from '@mui/material/TableRow';
             import TableCell from '@mui/material/TableCell';
 
-            <Table size="small" sx={ {|
-                                         tableLayout = "fixed"
-                                         width = "100%"
-                                         marginBottom = 3
-                                     |} }>
+            <Table size="small" sx={patientTableSx}>
                 <TableBody>
                     <TableRow>
                         <TableCell sx={headerCellSx}>D.D.</TableCell>
@@ -339,16 +345,19 @@ module ViewHelpers =
 
         [<JSX.Component>]
         let PatientSignature () =
+            let signatureSx =
+                {|
+                    marginTop = 4
+                    borderTop = "1px solid #ccc"
+                    paddingTop = 2
+                |}
+
             JSX.jsx
                 $"""
             import Box from '@mui/material/Box';
             import Typography from '@mui/material/Typography';
 
-            <Box sx={ {|
-                          marginTop = 4
-                          borderTop = "1px solid #ccc"
-                          paddingTop = 2
-                      |} }>
+            <Box sx={signatureSx}>
                 <Typography variant="body2">Paraaf arts:</Typography>
             </Box>
             """
@@ -368,6 +377,12 @@ module ViewHelpers =
 
             let isOpen = props.isOpen
 
+            let titleSx =
+                {|
+                    marginLeft = 2
+                    flex = 1
+                |}
+
             JSX.jsx
                 $"""
             import Dialog from '@mui/material/Dialog';
@@ -386,10 +401,7 @@ module ViewHelpers =
                             <IconButton edge="start" color="inherit" onClick={fun _ -> props.onClose ()} aria-label="close">
                                 <CloseIcon />
                             </IconButton>
-                            <Typography sx={ {|
-                                                 marginLeft = 2
-                                                 flex = 1
-                                             |} } variant="h6" component="div">
+                            <Typography sx={titleSx} variant="h6" component="div">
                                 {props.title}
                             </Typography>
                             <Button color="inherit" onClick={handlePrint} startIcon={{ <PrintIcon /> }}>

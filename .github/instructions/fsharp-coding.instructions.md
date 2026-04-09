@@ -634,6 +634,46 @@ module Prescription =
 - Mock external dependencies in tests
 - Keep boundaries thin and map exceptions to domain errors at the edge
 
+### Fable JSX Interpolated Strings
+- Never create anonymous records directly inline inside JSX interpolated strings (`$"""..."""`)
+- Extract all `sx` prop objects and other anonymous records to named `let` bindings before the JSX template
+- Reuse shared style bindings across components by placing them at the module level (e.g., `let private flexEndSx = {| alignItems = "flex-end" |}`)
+- Place one-off style bindings as local `let` bindings just before the JSX expression that uses them
+- Exception: trivial single-property records (e.g., `{| marginBottom = 2 |}`) may remain inline if they appear only once
+
+```fsharp
+// Bad - inline anonymous record in JSX string
+JSX.jsx
+    $"""
+    <Grid container sx={ {|
+                              alignItems = "flex-end"
+                              gap = 2
+                          |} }>
+        <Typography sx={ {| fontWeight = "bold" |} }>Title</Typography>
+    </Grid>
+    """
+
+// Good - extracted to named bindings
+let gridSx =
+    {|
+        alignItems = "flex-end"
+        gap = 2
+    |}
+
+let boldSx = {| fontWeight = "bold" |}
+
+JSX.jsx
+    $"""
+    <Grid container sx={gridSx}>
+        <Typography sx={boldSx}>Title</Typography>
+    </Grid>
+    """
+
+// Good - shared styles at module level for reuse across components
+let private flexEndSx = {| alignItems = "flex-end" |}
+let private boldCellSx = {| fontWeight = "bold" |}
+```
+
 ## References
 - F# for Fun and Profit: Domain Modeling and Railway Oriented Programming — [https://fsharpforfunandprofit.com/](https://fsharpforfunandprofit.com/)
 - Domain Modeling Made Functional (Scott Wlaschin) — [https://pragprog.com/titles/swdddf/domain-modeling-made-functional/](https://pragprog.com/titles/swdddf/domain-modeling-made-functional/)

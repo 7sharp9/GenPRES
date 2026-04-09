@@ -260,6 +260,22 @@ module EmergencyList =
         let printTableRows = makePrintTableRows printData
 
         let printContent =
+            let printTableSx =
+                {|
+                    tableLayout = "fixed"
+                    width = "100%"
+                |}
+
+            let hdrCell w =
+                {|
+                    fontWeight = "bold"
+                    width = w
+                |}
+
+            let hdr15 = hdrCell "15%"
+            let hdr20 = hdrCell "20%"
+            let hdr25 = hdrCell "25%"
+
             JSX.jsx
                 $"""
             import Table from '@mui/material/Table';
@@ -270,32 +286,14 @@ module EmergencyList =
 
             <React.Fragment>
                 {patientHeader}
-                <Table size="small" sx={ {|
-                                             tableLayout = "fixed"
-                                             width = "100%"
-                                         |} }>
+                <Table size="small" sx={printTableSx}>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "15%"
-                                            |} }>Categorie</TableCell>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "20%"
-                                            |} }>Interventie</TableCell>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "25%"
-                                            |} }>Berekend</TableCell>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "25%"
-                                            |} }>Bereiding</TableCell>
-                            <TableCell sx={ {|
-                                                fontWeight = "bold"
-                                                width = "15%"
-                                            |} }>Advies</TableCell>
+                            <TableCell sx={hdr15}>Categorie</TableCell>
+                            <TableCell sx={hdr20}>Interventie</TableCell>
+                            <TableCell sx={hdr25}>Berekend</TableCell>
+                            <TableCell sx={hdr25}>Bereiding</TableCell>
+                            <TableCell sx={hdr15}>Advies</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>

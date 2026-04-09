@@ -236,6 +236,12 @@ module SimpleSelect =
                 {| ``& .MuiSelect-icon`` = {| visibility = if endAdornment.IsNone then "visible" else "hidden" |} |}
                 |> box
 
+        let formControlSx =
+            {|
+                minWidth = props.minWidth |> Option.defaultValue 150
+                maxWidth = "100%"
+            |}
+
         JSX.jsx
             $"""
         import InputLabel from '@mui/material/InputLabel';
@@ -243,10 +249,7 @@ module SimpleSelect =
         import FormControl from '@mui/material/FormControl';
         import Select from '@mui/material/Select';
 
-        <FormControl variant="standard" sx={ {|
-                                                 minWidth = props.minWidth |> Option.defaultValue 150
-                                                 maxWidth = "100%"
-                                             |} }>
+        <FormControl variant="standard" sx={formControlSx}>
             <InputLabel id={props.label + "-label"}>{props.label}</InputLabel>
             <Select
             labelId={props.label + "-label"}
