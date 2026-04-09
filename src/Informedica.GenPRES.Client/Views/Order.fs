@@ -1205,7 +1205,7 @@ module Order =
             <CardHeader
                 sx = {headerSx}
                 title={displayOrder |> showOrderName}
-                titleTypographyProps={ {| variant = "h6" |} }
+                slotProps={ {| title = {| variant = "h6" |} |} }
             ></CardHeader>
             <CardContent sx={ {|
                                   paddingX = (if isMobile then 1.5 else 2)

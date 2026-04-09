@@ -34,20 +34,33 @@ module Totals =
     let private typoGraphy (items: TextItem[]) =
         let variant = "body2"
 
+        let normalSx =
+            {|
+                display = "inline"
+                color = Mui.Colors.Grey.``700``
+            |}
+
+        let boldSx =
+            {|
+                display = "inline"
+                color = Mui.Colors.BlueGrey.``700``
+            |}
+
+        let boxSx = {| display = "inline" |}
+
         let print item =
             match item with
             | Normal s ->
                 JSX.jsx
                     $"""
-                <Typography variant={variant} color={Mui.Colors.Grey.``700``} display="inline">{s}</Typography>
+                <Typography variant={variant} sx={normalSx}>{s}</Typography>
                 """
             | Bold s ->
                 JSX.jsx
                     $"""
                 <Typography
-                color={Mui.Colors.BlueGrey.``700``}
                 variant={variant}
-                display="inline"
+                sx={boldSx}
                 >
                 <strong> {s} </strong>
                 </Typography>
@@ -56,9 +69,8 @@ module Totals =
                 JSX.jsx
                     $"""
                 <Typography
-                color={Mui.Colors.Grey.``700``}
                 variant={variant}
-                display="inline"
+                sx={normalSx}
                 >
                 {s}
                 </Typography>
@@ -69,7 +81,7 @@ module Totals =
         import Typography from '@mui/material/Typography';
         import Box from '@mui/material/Box';
 
-        <Box display="inline" >
+        <Box sx={boxSx}>
             {items |> Array.map print |> unbox<seq<ReactElement>> |> React.Fragment}
         </Box>
         """
