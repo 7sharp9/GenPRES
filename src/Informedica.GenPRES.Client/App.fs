@@ -648,12 +648,10 @@ module private Elmish =
                 { state with Page = page }, retryDrugNames
             else
                 let loadCmds =
-                    [
-                        match page with
-                        | Formulary -> Cmd.ofMsg (LoadFormulary Started)
-                        | Parenteralia -> Cmd.ofMsg (LoadParenteralia Started)
-                        | _ -> ()
-                    ]
+                    match page with
+                    | Formulary -> [ Cmd.ofMsg (LoadFormulary Started) ]
+                    | Parenteralia -> [ Cmd.ofMsg (LoadParenteralia Started) ]
+                    | _ -> []
 
                 { state with Page = page }, Cmd.batch (retryDrugNames :: loadCmds)
 

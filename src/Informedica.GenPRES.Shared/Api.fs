@@ -61,8 +61,8 @@ module Api =
 
     and LogAnalyzerCommand =
         | ValidatePassword of password: string
-        | ListLogFiles of password: string
-        | AnalyzeLogFile of password: string * fileName: string
+        | ListLogFiles of token: string
+        | AnalyzeLogFile of token: string * fileName: string
 
     and InteractionCommand =
         | CheckInteractions of string list
