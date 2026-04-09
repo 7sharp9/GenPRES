@@ -40,6 +40,23 @@ module TitleBar =
         // Login dialog state
         let loginDialogOpen, setLoginDialogOpen = React.useState false
         let password, setPassword = React.useState ""
+        let loginError, setLoginError = React.useState false
+        let loginAttempted = React.useRef false
+
+        // Close dialog on successful login
+        React.useEffect (
+            fun () ->
+                if loginAttempted.current then
+                    if props.isAuthenticated then
+                        loginAttempted.current <- false
+                        setLoginDialogOpen false
+                        setPassword ""
+                        setLoginError false
+                    else
+                        loginAttempted.current <- false
+                        setLoginError true
+            , [| box props.isAuthenticated |]
+        )
 
         let onClickLangMenuItem l =
             fun () ->
@@ -57,15 +74,16 @@ module TitleBar =
                     props.onLogout ()
                 else
                     setPassword ""
+                    setLoginError false
                     setLoginDialogOpen true
 
         let handleLoginClose = fun _ -> setLoginDialogOpen false
 
         let handleLoginConfirm =
             fun _ ->
+                loginAttempted.current <- true
+                setLoginError false
                 props.onLogin password
-                setLoginDialogOpen false
-                setPassword ""
 
         let handleLoginKeyDown (e: Browser.Types.KeyboardEvent) =
             if e.key = "Enter" then
@@ -215,7 +233,11 @@ module TitleBar =
                         fullWidth={true}
                         variant="outlined"
                         value={password}
-                        onChange={fun (e: Browser.Types.Event) -> setPassword (e.target?value: string)}
+                        error={loginError}
+                        helperText={if loginError then "Invalid password" else ""}
+                        onChange={fun (e: Browser.Types.Event) ->
+                                      setPassword (e.target?value: string)
+                                      setLoginError false}
                         onKeyDown={handleLoginKeyDown}
                     />
                 </DialogContent>

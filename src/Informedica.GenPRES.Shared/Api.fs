@@ -88,7 +88,7 @@ module Api =
         | NutritionPlanUpdated of NutritionPlan
 
     and LogAnalyzerResponse =
-        | PasswordValidated of bool
+        | PasswordValidated of isValid: bool * token: string
         | LogFilesListed of LogFileInfo[]
         | LogFileAnalyzed of string
 

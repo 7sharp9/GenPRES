@@ -25,6 +25,7 @@ module Settings =
         let orderContext = (AppEnv.asEnv<AppEnv.IOrderContext> props.appEnv).OrderContext
 
         let logAnalyzer = (AppEnv.asEnv<AppEnv.ILogAnalyzer> props.appEnv)
+        let auth = (AppEnv.asEnv<AppEnv.IAuthentication> props.appEnv)
 
         let localizationTerms =
             (AppEnv.asEnv<AppEnv.ILocalization> props.appEnv).LocalizationTerms
@@ -51,8 +52,13 @@ module Settings =
                | Resolved _ -> false
                | _ -> true
 
-        // Load log files on mount
-        React.useEffect ((fun () -> logAnalyzer.ListLogFiles()), [||])
+        // Load log files on mount only when authenticated
+        React.useEffect (
+            fun () ->
+                if auth.IsAuthenticated then
+                    logAnalyzer.ListLogFiles()
+            , [||]
+        )
 
         React.useEffect (
             fun () ->

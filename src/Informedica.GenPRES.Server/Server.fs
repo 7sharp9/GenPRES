@@ -43,7 +43,7 @@ GENPRES_DEBUG={tryGetEnv "GENPRES_DEBUG" |> Option.defaultValue "i"}
 GENPRES_PASSWORD={if tryGetEnv "GENPRES_PASSWORD" |> Option.isSome then
                       "***"
                   else
-                      "NOT SET (reload disabled)"}
+                      "NOT SET (admin operations disabled)"}
 
 === System Info ===
 

@@ -14,6 +14,22 @@ module Command =
         |> Option.defaultValue false
 
 
+    let private generateToken () =
+        match Env.getItem "GENPRES_PASSWORD" with
+        | None -> ""
+        | Some secret ->
+            use hmac =
+                new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secret))
+
+            hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes("genpres-auth"))
+            |> System.Convert.ToBase64String
+
+
+    let private validateToken (token: string) =
+        let expected = generateToken ()
+        expected <> "" && token = expected
+
+
     let processCmd (env: AppEnv) cmd =
         match cmd with
         | InteractionCmd GetDrugNames ->
@@ -22,18 +38,24 @@ module Command =
                 return result |> Result.map (List.toArray >> DrugNamesLoaded >> InteractionResp)
             }
         | LogAnalyzerCmd(ValidatePassword password) ->
-            async { return Ok(validatePassword password |> PasswordValidated |> LogAnalyzerResp) }
-        | LogAnalyzerCmd(ListLogFiles password) ->
-            if not (validatePassword password) then
-                async { return Error [| "Invalid password" |] }
+            async {
+                if validatePassword password then
+                    let token = generateToken ()
+                    return Ok(PasswordValidated(true, token) |> LogAnalyzerResp)
+                else
+                    return Ok(PasswordValidated(false, "") |> LogAnalyzerResp)
+            }
+        | LogAnalyzerCmd(ListLogFiles token) ->
+            if not (validateToken token) then
+                async { return Error [| "Invalid token" |] }
             else
                 async {
                     let! result = env.logAnalyzer.listLogFiles ()
                     return result |> Result.map (LogFilesListed >> LogAnalyzerResp)
                 }
-        | LogAnalyzerCmd(AnalyzeLogFile(password, fileName)) ->
-            if not (validatePassword password) then
-                async { return Error [| "Invalid password" |] }
+        | LogAnalyzerCmd(AnalyzeLogFile(token, fileName)) ->
+            if not (validateToken token) then
+                async { return Error [| "Invalid token" |] }
             else
                 async {
                     let! result = env.logAnalyzer.analyzeLogFile fileName

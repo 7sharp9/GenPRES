@@ -46,7 +46,7 @@ module private Elmish =
             EmergencyListFilter: string[]
             ContinuousMedsFilter: string[]
             IsAuthenticated: bool
-            AuthPassword: string
+            AuthToken: string
             LogFiles: Deferred<LogFileInfo[]>
             LogAnalysisReport: Deferred<string>
         }
@@ -169,13 +169,17 @@ module private Elmish =
             { newState with Interactions = Resolved interactions }, Cmd.none
         | Api.InteractionResp(Api.DrugNamesLoaded names) ->
             { state with InteractionDrugNames = Resolved names }, Cmd.none
-        | Api.LogAnalyzerResp(Api.PasswordValidated isValid) ->
+        | Api.LogAnalyzerResp(Api.PasswordValidated(isValid, token)) ->
             if isValid then
-                { state with IsAuthenticated = true }, Cmd.none
+                { state with
+                    IsAuthenticated = true
+                    AuthToken = token
+                },
+                Cmd.none
             else
                 { state with
                     IsAuthenticated = false
-                    AuthPassword = ""
+                    AuthToken = ""
                     SnackbarMsg = "Invalid password"
                     SnackbarOpen = true
                     SnackbarSeverity = "error"
@@ -407,7 +411,7 @@ module private Elmish =
             EmergencyListFilter = [||]
             ContinuousMedsFilter = [||]
             IsAuthenticated = false
-            AuthPassword = ""
+            AuthToken = ""
             LogFiles = HasNotStartedYet
             LogAnalysisReport = HasNotStartedYet
         }
@@ -547,7 +551,7 @@ module private Elmish =
         | DismissServerError -> { state with ServerError = None }, Cmd.none
 
         | Login password ->
-            { state with AuthPassword = password },
+            state,
             Api.LogAnalyzerCmd(Api.ValidatePassword password)
             |> createApiMsg LoadLoginResult
 
@@ -556,7 +560,7 @@ module private Elmish =
         | LoadLoginResult(Finished(Error err)) ->
             ({ state with
                 IsAuthenticated = false
-                AuthPassword = ""
+                AuthToken = ""
              },
              Cmd.none)
             |> processError err
@@ -566,15 +570,16 @@ module private Elmish =
         | Logout ->
             { state with
                 IsAuthenticated = false
-                AuthPassword = ""
+                AuthToken = ""
                 LogFiles = HasNotStartedYet
                 LogAnalysisReport = HasNotStartedYet
+                Page = if state.Page = Settings then LifeSupport else state.Page
             },
             Cmd.none
 
         | ListLogFiles ->
             { state with LogFiles = InProgress },
-            Api.LogAnalyzerCmd(Api.ListLogFiles state.AuthPassword)
+            Api.LogAnalyzerCmd(Api.ListLogFiles state.AuthToken)
             |> createApiMsg LoadLogFilesResult
 
         | LoadLogFilesResult(Finished(Ok resp)) -> processOk resp
@@ -586,7 +591,7 @@ module private Elmish =
 
         | AnalyzeLogFile fileName ->
             { state with LogAnalysisReport = InProgress },
-            Api.LogAnalyzerCmd(Api.AnalyzeLogFile(state.AuthPassword, fileName))
+            Api.LogAnalyzerCmd(Api.AnalyzeLogFile(state.AuthToken, fileName))
             |> createApiMsg LoadLogAnalysisResult
 
         | LoadLogAnalysisResult(Finished(Ok resp)) -> processOk resp
@@ -637,6 +642,8 @@ module private Elmish =
                         Cmd.ofMsg (LoadOrderContextResult(Api.UpdateOrderContext, Started))
                         retryDrugNames
                     ]
+            else if page = Settings && not state.IsAuthenticated then
+                state, Cmd.none
             else if page = Settings then
                 { state with Page = page }, retryDrugNames
             else
