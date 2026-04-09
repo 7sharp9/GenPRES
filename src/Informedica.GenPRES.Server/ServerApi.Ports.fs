@@ -40,6 +40,13 @@ type InteractionPort =
     }
 
 
+type LogAnalyzerPort =
+    {
+        listLogFiles: unit -> Async<Result<Shared.Types.LogFileInfo[], string[]>>
+        analyzeLogFile: string -> Async<Result<string, string[]>>
+    }
+
+
 type AppEnv =
     {
         formulary: FormularyPort
@@ -47,5 +54,6 @@ type AppEnv =
         orderPlan: OrderPlanPort
         nutritionPlan: NutritionPlanPort
         interaction: InteractionPort
+        logAnalyzer: LogAnalyzerPort
         requireLoaded: unit -> string[] option
     }

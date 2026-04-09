@@ -12,12 +12,12 @@ module SelectableList =
         (props:
             {|
                 updateSelected: string -> unit
-                items: (JSX.Element option * string * bool * string option)[]
+                items: (JSX.Element option * string * bool * string option * bool)[]
             |})
         =
         let items =
             props.items
-            |> Array.mapi (fun i (el, text, selected, bgColor) ->
+            |> Array.mapi (fun i (el, text, selected, bgColor, disabled) ->
                 let icon =
                     match el with
                     | None -> null
@@ -44,7 +44,7 @@ module SelectableList =
                 <React.Fragment key={i} >
                     <ListItem value={text} sx={sxListItem} >
                         {icon}
-                        <ListItemButton selected={selected} onClick={fun _ -> text |> props.updateSelected}>
+                        <ListItemButton selected={selected} disabled={disabled} onClick={fun _ -> text |> props.updateSelected}>
                         <ListItemText primary={text} />
                         </ListItemButton>
                     </ListItem>

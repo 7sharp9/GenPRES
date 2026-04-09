@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Logging.fs" />
+    <Compile Include="LogAnalyzer.fs" />
     <Compile Include="ServerApi.Mappers.fs" />
     <Compile Include="ServerApi.Ports.fs" />
     <Compile Include="ServerApi.Services.fs" />
