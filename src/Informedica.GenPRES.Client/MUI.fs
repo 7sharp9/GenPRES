@@ -974,7 +974,7 @@ module TypoGraphy =
 
         <Typography
             variant={v}
-            display="inline"
+            sx={ {| display = "inline" |} }
             >
             {text}
         </Typography>
@@ -987,7 +987,7 @@ module TypoGraphy =
 
         <Typography
             variant={v}
-            display="inline"
+            sx={ {| display = "inline" |} }
             >
             <strong>{text}</strong>
         </Typography>
@@ -999,10 +999,12 @@ module TypoGraphy =
         import Typography from "@mui/material/Typography";
 
         <Typography
-            backgroundColor={bc}
-            color={fc}
             variant={v}
-            display="inline"
+            sx={ {|
+                     backgroundColor = bc
+                     color = fc
+                     display = "inline"
+                 |} }
             >
             {text}
         </Typography>
@@ -1014,10 +1016,12 @@ module TypoGraphy =
         import Typography from "@mui/material/Typography";
 
         <Typography
-            backgroundColor={bc}
-            color={fc}
             variant={v}
-            display="inline"
+            sx={ {|
+                     backgroundColor = bc
+                     color = fc
+                     display = "inline"
+                 |} }
             >
             <strong>{text}</strong>
         </Typography>
@@ -1033,16 +1037,56 @@ module TypoGraphy =
                 | Warning items -> items, Colors.Orange.``700``, true
                 | Alert items -> items, Colors.Red.``700``, true
 
-            let warningSx =
+            let normalSx =
                 if hasWarning then
                     {|
+                        display = "inline"
+                        color = Colors.Grey.``700``
                         textDecoration = "underline double"
                         textDecorationColor = color
                         textUnderlineOffset = "3px"
                     |}
                     |> box
                 else
-                    {| |} |> box
+                    {|
+                        display = "inline"
+                        color = Colors.Grey.``700``
+                    |}
+                    |> box
+
+            let boldSx =
+                if hasWarning then
+                    {|
+                        display = "inline"
+                        color = color
+                        textDecoration = "underline double"
+                        textDecorationColor = color
+                        textUnderlineOffset = "3px"
+                    |}
+                    |> box
+                else
+                    {|
+                        display = "inline"
+                        color = color
+                    |}
+                    |> box
+
+            let italicSx =
+                if hasWarning then
+                    {|
+                        display = "inline"
+                        color = Colors.Grey.``600``
+                        textDecoration = "underline double"
+                        textDecorationColor = color
+                        textUnderlineOffset = "3px"
+                    |}
+                    |> box
+                else
+                    {|
+                        display = "inline"
+                        color = Colors.Grey.``600``
+                    |}
+                    |> box
 
             items
             |> Array.map (fun item ->
@@ -1050,15 +1094,13 @@ module TypoGraphy =
                 | Normal s ->
                     JSX.jsx
                         $"""
-                    <Typography color={Colors.Grey.``700``} display="inline" sx={warningSx}>{s}</Typography>
+                    <Typography sx={normalSx}>{s}</Typography>
                     """
                 | Bold s ->
                     JSX.jsx
                         $"""
                     <Typography
-                    color={color}
-                    display="inline"
-                    sx={warningSx}
+                    sx={boldSx}
                     >
                     <strong> {s} </strong>
                     </Typography>
@@ -1067,9 +1109,7 @@ module TypoGraphy =
                     JSX.jsx
                         $"""
                     <Typography
-                    color={Colors.Grey.``600``}
-                    display="inline"
-                    sx={warningSx}
+                    sx={italicSx}
                     >
                     <strong>{s}</strong>
                     </Typography>
@@ -1081,7 +1121,7 @@ module TypoGraphy =
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <Box display="inline" >
+        <Box sx={ {| display = "inline" |} }>
             {textBlock |> print |> unbox<seq<ReactElement>> |> React.Fragment}
         </Box>
         """

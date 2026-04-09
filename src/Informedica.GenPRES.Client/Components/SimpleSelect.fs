@@ -36,11 +36,12 @@ module SimpleSelect =
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
 
-        let menuProps =
+        let selectSlotProps =
             if isMobile then
-                {| PaperProps = {| style = {| maxHeight = 400 |} |} |} |> box |> Some
+                {| menu = {| slotProps = {| paper = {| style = {| maxHeight = 400 |} |} |} |} |}
+                |> box
             else
-                None
+                {| |} |> box
 
         let handleChange =
             fun ev ->
@@ -257,7 +258,7 @@ module SimpleSelect =
             disabled={props.disabled}
             endAdornment={endAdornment}
             sx={sx}
-            MenuProps={menuProps}
+            slotProps={selectSlotProps}
             >
                 {items}
             </Select>

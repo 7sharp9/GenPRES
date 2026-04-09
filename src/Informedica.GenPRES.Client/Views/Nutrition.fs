@@ -288,13 +288,22 @@ module Nutrition =
 
 
     let private renderAdminSummary (key: string) (name: string) (blocks: TextBlock[]) =
+        let typoSx =
+            {|
+                display = "inline"
+                color = "text.secondary"
+            |}
+
         JSX.jsx
             $"""
         import Box from '@mui/material/Box';
         import Typography from '@mui/material/Typography';
 
-        <Box key={key} display="inline" sx={ {| marginLeft = 1 |} }>
-            <Typography display="inline" variant="body2" color="text.secondary">
+        <Box key={key} sx={ {|
+                                display = "inline"
+                                marginLeft = 1
+                            |} }>
+            <Typography variant="body2" sx={typoSx}>
                 {name}:
             </Typography>
             {blocks
@@ -876,7 +885,7 @@ module Nutrition =
                         $"""
                     import Grid from '@mui/material/Grid';
                     import Box from '@mui/material/Box';
-                    <Grid container spacing={{2}} alignItems="flex-end">
+                    <Grid container spacing={{2}} sx={ {| alignItems = "flex-end" |} }>
                         <Grid size={halfSize}>
                             <Box sx={cellSx}>
                                 {qtyControl}
@@ -1045,7 +1054,7 @@ module Nutrition =
                     $"""
                 import Grid from '@mui/material/Grid';
                 import Box from '@mui/material/Box';
-                <Grid container spacing={{2}} alignItems="flex-end">
+                <Grid container spacing={{2}} sx={ {| alignItems = "flex-end" |} }>
                     <Grid size={halfSize}>
                         <Box sx={cellSx}>
                             {frequencyControl}
@@ -1092,7 +1101,7 @@ module Nutrition =
                     $"""
                 import Grid from '@mui/material/Grid';
                 import Box from '@mui/material/Box';
-                <Grid container spacing={{2}} alignItems="flex-end">
+                <Grid container spacing={{2}} sx={ {| alignItems = "flex-end" |} }>
                     <Grid size={halfSize}>
                         <Box sx={cellSx}>
                             {rateDisplay}
@@ -1315,7 +1324,7 @@ module Nutrition =
 
             <Box>
                 <Divider>
-                    <Stack direction="row" spacing={{1}} alignItems="center">
+                    <Stack direction="row" spacing={{1}} sx={ {| alignItems = "center" |} }>
                         <Typography variant="caption">{props.nutritionContext.Label}</Typography>
                         {removeButton}
                     </Stack>
@@ -1565,7 +1574,7 @@ module Nutrition =
                                       marginTop = 2
                                       marginBottom = 2
                                   |} } />
-                    <Stack direction="row" alignItems="center" spacing={1}>
+                    <Stack direction="row" sx={ {| alignItems = "center" |} } spacing={1}>
                         <Typography variant="h6">{Terms.``Nutrition Parenteral Section`` |> getTerm "Parenteraal"}</Typography>
                         <Button color="primary" size="small" disabled={printDisabled} onClick={fun _ -> setPrintOpen true} startIcon={{<PrintIcon />}}>
                             {Terms.Print |> getTerm "Print"}

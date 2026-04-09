@@ -230,18 +230,33 @@ module Interactions =
         let planChips =
             planDrugs
             |> List.toArray
-            |> Array.map (fun drug -> PlanDrugChip {| drug = drug |})
+            |> Array.map (fun drug ->
+                JSX.jsx
+                    $"""
+                <Chip
+                    key={drug}
+                    label={drug}
+                    color="primary"
+                    variant="outlined"
+                />
+                """
+            )
 
         let manualChips =
             state.ManualDrugs
             |> List.filter (fun d -> planDrugs |> List.contains d |> not)
             |> List.toArray
             |> Array.map (fun drug ->
-                DrugChip
-                    {|
-                        drug = drug
-                        onDelete = fun () -> RemoveDrug drug |> dispatch
-                    |}
+                let onDelete = fun _ -> RemoveDrug drug |> dispatch
+
+                JSX.jsx
+                    $"""
+                <Chip
+                    key={drug}
+                    label={drug}
+                    onDelete={onDelete}
+                />
+                """
             )
 
         let chipList = Array.append planChips manualChips
@@ -353,7 +368,7 @@ module Interactions =
                             {titleLabel}
                         </Typography>
 
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack direction="row" spacing={1} sx={ {| alignItems = "center" |} }>
                             {autocomplete}
                         </Stack>
 

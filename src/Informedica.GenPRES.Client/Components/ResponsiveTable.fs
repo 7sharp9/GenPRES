@@ -81,10 +81,11 @@ module ResponsiveTable =
                                 import Box from '@mui/material/Box';
 
                                 <Box sx={headerBoxSx} >
-                                    <Typography variant="subtitle2" color={b} sx={ {|
-                                                                                       fontWeight = 600
-                                                                                       lineHeight = 1.4
-                                                                                   |} } >
+                                    <Typography variant="subtitle2" sx={ {|
+                                                                             fontWeight = 600
+                                                                             lineHeight = 1.4
+                                                                             color = b
+                                                                         |} } >
                                         {s}
                                     </Typography>
                                 </Box>
@@ -104,10 +105,17 @@ module ResponsiveTable =
                                 import Typography from '@mui/material/Typography';
 
                                 <Stack direction="row" spacing={1} sx={ {| paddingY = 0.5 |} } >
-                                    <Typography minWidth={80} variant="body2" color={Mui.Colors.Grey.``900``} sx={ {| lineHeight = 1.4 |} } >
+                                    <Typography variant="body2" sx={ {|
+                                                                         minWidth = 80
+                                                                         lineHeight = 1.4
+                                                                         color = Mui.Colors.Grey.``900``
+                                                                     |} } >
                                         {h}
                                     </Typography>
-                                    <Typography color={b} variant="body2" sx={ {| lineHeight = 1.4 |} } >
+                                    <Typography variant="body2" sx={ {|
+                                                                         lineHeight = 1.4
+                                                                         color = b
+                                                                     |} } >
                                         {s}
                                     </Typography>
                                 </Stack>

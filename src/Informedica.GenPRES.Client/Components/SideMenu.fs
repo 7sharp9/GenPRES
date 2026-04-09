@@ -31,7 +31,7 @@ module SideMenu =
             |> SelectableList.View
 
         if props.isMobile then
-            let sxDrawerPaper = {| width = drawerWidth |}
+            let drawerSlotProps = {| paper = {| sx = {| width = drawerWidth |} |} |}
 
             JSX.jsx
                 $"""
@@ -42,7 +42,7 @@ module SideMenu =
                     anchor={props.anchor}
                     open={props.isOpen}
                     onClose={props.toggle}
-                    PaperProps={ {| sx = sxDrawerPaper |} }
+                    slotProps={drawerSlotProps}
                 >
                 {menu}
                 </Drawer>
@@ -55,11 +55,17 @@ module SideMenu =
                     flexShrink = 0
                 |}
 
-            let sxDrawerPaper =
+            let drawerSlotProps =
                 {|
-                    width = drawerWidth
-                    boxSizing = "border-box"
-                    top = "64px"
+                    paper =
+                        {|
+                            sx =
+                                {|
+                                    width = drawerWidth
+                                    boxSizing = "border-box"
+                                    top = "64px"
+                                |}
+                        |}
                 |}
 
             JSX.jsx
@@ -70,7 +76,7 @@ module SideMenu =
                 variant="persistent"
                 anchor={props.anchor}
                 sx={sxDrawer}
-                PaperProps={ {| sx = sxDrawerPaper |} }
+                slotProps={drawerSlotProps}
                 open={props.isOpen}
             >
             {menu}
