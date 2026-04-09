@@ -5,6 +5,14 @@ module Command =
 
     open Shared.Api
 
+    open Informedica.Utils.Lib
+
+
+    let private validatePassword (password: string) =
+        Env.getItem "GENPRES_PASSWORD"
+        |> Option.map (fun expected -> password = expected)
+        |> Option.defaultValue false
+
 
     let processCmd (env: AppEnv) cmd =
         match cmd with
@@ -13,16 +21,24 @@ module Command =
                 let! result = env.interaction.getDrugNames ()
                 return result |> Result.map (List.toArray >> DrugNamesLoaded >> InteractionResp)
             }
-        | LogAnalyzerCmd ListLogFiles ->
-            async {
-                let! result = env.logAnalyzer.listLogFiles ()
-                return result |> Result.map (LogFilesListed >> LogAnalyzerResp)
-            }
-        | LogAnalyzerCmd(AnalyzeLogFile fileName) ->
-            async {
-                let! result = env.logAnalyzer.analyzeLogFile fileName
-                return result |> Result.map (LogFileAnalyzed >> LogAnalyzerResp)
-            }
+        | LogAnalyzerCmd(ValidatePassword password) ->
+            async { return Ok(validatePassword password |> PasswordValidated |> LogAnalyzerResp) }
+        | LogAnalyzerCmd(ListLogFiles password) ->
+            if not (validatePassword password) then
+                async { return Error [| "Invalid password" |] }
+            else
+                async {
+                    let! result = env.logAnalyzer.listLogFiles ()
+                    return result |> Result.map (LogFilesListed >> LogAnalyzerResp)
+                }
+        | LogAnalyzerCmd(AnalyzeLogFile(password, fileName)) ->
+            if not (validatePassword password) then
+                async { return Error [| "Invalid password" |] }
+            else
+                async {
+                    let! result = env.logAnalyzer.analyzeLogFile fileName
+                    return result |> Result.map (LogFileAnalyzed >> LogAnalyzerResp)
+                }
         | _ ->
             match env.requireLoaded () with
             | Some msgs -> async { return Error msgs }

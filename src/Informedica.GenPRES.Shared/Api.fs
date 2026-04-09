@@ -60,8 +60,9 @@ module Api =
         | RemoveNutritionContext of NutritionPlan * string
 
     and LogAnalyzerCommand =
-        | ListLogFiles
-        | AnalyzeLogFile of fileName: string
+        | ValidatePassword of password: string
+        | ListLogFiles of password: string
+        | AnalyzeLogFile of password: string * fileName: string
 
     and InteractionCommand =
         | CheckInteractions of string list
@@ -87,6 +88,7 @@ module Api =
         | NutritionPlanUpdated of NutritionPlan
 
     and LogAnalyzerResponse =
+        | PasswordValidated of bool
         | LogFilesListed of LogFileInfo[]
         | LogFileAnalyzed of string
 
@@ -146,8 +148,9 @@ module Api =
             | NutritionPlanCmd(RemoveNutritionContext _) -> "RemoveNutritionContext"
             | InteractionCmd(CheckInteractions _) -> "CheckInteractions"
             | InteractionCmd GetDrugNames -> "GetDrugNames"
-            | LogAnalyzerCmd ListLogFiles -> "ListLogFiles"
-            | LogAnalyzerCmd(AnalyzeLogFile f) -> $"AnalyzeLogFile %s{f}"
+            | LogAnalyzerCmd(ValidatePassword _) -> "ValidatePassword"
+            | LogAnalyzerCmd(ListLogFiles _) -> "ListLogFiles"
+            | LogAnalyzerCmd(AnalyzeLogFile(_, f)) -> $"AnalyzeLogFile %s{f}"
 
 
     /// Defines how routes are generated on server and mapped from the client

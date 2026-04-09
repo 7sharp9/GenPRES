@@ -20,7 +20,7 @@ module GenPres =
 
         type State =
             {
-                SideMenuItems: (JSX.Element option * string * bool * string option)[]
+                SideMenuItems: (JSX.Element option * string * bool * string option * bool)[]
                 SideMenuIsOpen: bool
                 Configuration: Configuration Option
             }
@@ -55,16 +55,16 @@ module GenPres =
                             let b = p = page
 
                             match p |> pageToString terms lang with
-                            | s when p = LifeSupport -> Mui.Icons.FireExtinguisher |> Some, s, b, None
-                            | s when p = ContinuousMeds -> Mui.Icons.Vaccines |> Some, s, b, None
-                            | s when p = Nutrition -> Mui.Icons.LocalDiningIcon |> Some, s, b, None
-                            | s when p = Prescribe -> Mui.Icons.Message |> Some, s, b, None
-                            | s when p = OrderPlan -> Mui.Icons.SummarizeIcon |> Some, s, b, None
-                            | s when p = Interactions -> Mui.Icons.WarningAmber |> Some, s, b, None
-                            | s when p = Formulary -> Mui.Icons.LocalPharmacy |> Some, s, b, None
-                            | s when p = Parenteralia -> Mui.Icons.Bloodtype |> Some, s, b, None
-                            | s when p = Settings -> Mui.Icons.Settings |> Some, s, b, None
-                            | s -> None, s, b, None
+                            | s when p = LifeSupport -> Mui.Icons.FireExtinguisher |> Some, s, b, None, false
+                            | s when p = ContinuousMeds -> Mui.Icons.Vaccines |> Some, s, b, None, false
+                            | s when p = Nutrition -> Mui.Icons.LocalDiningIcon |> Some, s, b, None, false
+                            | s when p = Prescribe -> Mui.Icons.Message |> Some, s, b, None, false
+                            | s when p = OrderPlan -> Mui.Icons.SummarizeIcon |> Some, s, b, None, false
+                            | s when p = Interactions -> Mui.Icons.WarningAmber |> Some, s, b, None, false
+                            | s when p = Formulary -> Mui.Icons.LocalPharmacy |> Some, s, b, None, false
+                            | s when p = Parenteralia -> Mui.Icons.Bloodtype |> Some, s, b, None, false
+                            | s when p = Settings -> Mui.Icons.Settings |> Some, s, b, None, false
+                            | s -> None, s, b, None, false
                         )
 
                     SideMenuIsOpen = not isMobile
@@ -90,11 +90,11 @@ module GenPres =
                 { state with
                     SideMenuItems =
                         state.SideMenuItems
-                        |> Array.map (fun (icon, item, _, bg) ->
+                        |> Array.map (fun (icon, item, _, bg, dis) ->
                             if item = s then
-                                icon, item, true, bg
+                                icon, item, true, bg, dis
                             else
-                                icon, item, false, bg
+                                icon, item, false, bg, dis
                         )
                 },
                 Cmd.none
@@ -130,9 +130,13 @@ module GenPres =
         let orderContext = (AppEnv.asEnv<AppEnv.IOrderContext> props.appEnv).OrderContext
         let orderPlan = (AppEnv.asEnv<AppEnv.IOrderPlan> props.appEnv).OrderPlan
         let nutritionPlan = (AppEnv.asEnv<AppEnv.INutritionPlan> props.appEnv).NutritionPlan
+        let auth = AppEnv.asEnv<AppEnv.IAuthentication> props.appEnv
 
         let updatePageRef = React.useRef props.updatePage
         updatePageRef.current <- props.updatePage
+
+        let isAuthRef = React.useRef auth.IsAuthenticated
+        isAuthRef.current <- auth.IsAuthenticated
 
         let deps =
             [|
@@ -142,10 +146,16 @@ module GenPres =
                 box orderContext
             |]
 
+        let guardedUpdatePage page =
+            if page = Global.Pages.Settings && not isAuthRef.current then
+                ()
+            else
+                updatePageRef.current page
+
         let state, dispatch =
             React.useElmish (
                 init lang localizationTerms props.page isMobile,
-                (fun msg state -> update lang localizationTerms updatePageRef.current msg state),
+                (fun msg state -> update lang localizationTerms guardedUpdatePage msg state),
                 deps
             )
 
@@ -204,6 +214,9 @@ module GenPres =
                     hospitals = props.hospitals
                     switchLang = props.switchLang
                     switchHosp = props.switchHosp
+                    isAuthenticated = auth.IsAuthenticated
+                    onLogin = auth.Login
+                    onLogout = auth.Logout
                 |}
 
         let interactions = (AppEnv.asEnv<AppEnv.IInteractions> props.appEnv).Interactions
@@ -214,14 +227,17 @@ module GenPres =
             | _ -> false
 
         let interactionsIndex = pages |> List.tryFindIndex ((=) Global.Pages.Interactions)
+        let settingsIndex = pages |> List.tryFindIndex ((=) Global.Pages.Settings)
 
         let menuItems =
             state.SideMenuItems
-            |> Array.mapi (fun idx (icon, text, sel, _) ->
+            |> Array.mapi (fun idx (icon, text, sel, _, _) ->
                 if Some idx = interactionsIndex && hasInteractions then
-                    icon, text, sel, Some "#fff4e5"
+                    icon, text, sel, Some "#fff4e5", false
+                elif Some idx = settingsIndex && not auth.IsAuthenticated then
+                    icon, text, false, None, true
                 else
-                    icon, text, sel, None
+                    icon, text, sel, None, false
             )
 
         let sideMenu =

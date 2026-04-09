@@ -1056,13 +1056,14 @@ let listLogFiles () =
         [||]
     else
         Directory.GetFiles(logDir, "*.log")
+        |> Array.filter (fun path -> fileNamePattern.IsMatch(Path.GetFileName(path)))
         |> Array.map (fun path ->
             let fi = FileInfo(path)
 
             {|
                 FileName = fi.Name
                 SizeBytes = fi.Length
-                CreatedAt = fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+                LastModifiedAt = fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
                 LastWriteTime = fi.LastWriteTime
             |}
         )
@@ -1071,7 +1072,7 @@ let listLogFiles () =
             {
                 Shared.Types.LogFileInfo.FileName = f.FileName
                 SizeBytes = f.SizeBytes
-                CreatedAt = f.CreatedAt
+                LastModifiedAt = f.LastModifiedAt
             }
             : Shared.Types.LogFileInfo
         )

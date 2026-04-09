@@ -576,5 +576,5 @@ module Types =
         {
             FileName: string
             SizeBytes: int64
-            CreatedAt: string
+            LastModifiedAt: string
         }

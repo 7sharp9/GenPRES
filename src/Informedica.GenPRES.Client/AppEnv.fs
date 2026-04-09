@@ -70,6 +70,14 @@ type IResources =
     abstract ReloadResources: string -> unit
 
 
+/// Authentication state and commands
+[<Interface>]
+type IAuthentication =
+    abstract IsAuthenticated: bool
+    abstract Login: string -> unit
+    abstract Logout: unit -> unit
+
+
 /// Log analyzer data and commands
 [<Interface>]
 type ILogAnalyzer =

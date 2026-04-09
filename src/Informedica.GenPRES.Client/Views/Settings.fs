@@ -158,7 +158,7 @@ module Settings =
                                 sx={ {| cursor = "pointer" |} }>
                                 <TableCell>{f.FileName}</TableCell>
                                 <TableCell align="right">{sizeText}</TableCell>
-                                <TableCell>{f.CreatedAt}</TableCell>
+                                <TableCell>{f.LastModifiedAt}</TableCell>
                             </TableRow>
                             """
                     )

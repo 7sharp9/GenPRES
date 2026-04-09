@@ -346,7 +346,7 @@ DoseType : {filter.DoseType
 
         match cmd with
         | Api.ReloadResources password when
-            Env.getItem "GENPRES_RELOAD_PASSWORD"
+            Env.getItem "GENPRES_PASSWORD"
             |> Option.map (fun expected -> password <> expected)
             |> Option.defaultValue true
             -> // no env var = always reject

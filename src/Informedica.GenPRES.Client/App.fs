@@ -45,6 +45,8 @@ module private Elmish =
             ServerError: string option
             EmergencyListFilter: string[]
             ContinuousMedsFilter: string[]
+            IsAuthenticated: bool
+            AuthPassword: string
             LogFiles: Deferred<LogFileInfo[]>
             LogAnalysisReport: Deferred<string>
         }
@@ -93,6 +95,10 @@ module private Elmish =
         | CloseSnackbar
         | CheckServer of AsyncOperationStatus<Result<string, exn>>
         | DismissServerError
+
+        | Login of password: string
+        | LoadLoginResult of ApiResponse
+        | Logout
 
         | ListLogFiles
         | LoadLogFilesResult of ApiResponse
@@ -163,6 +169,18 @@ module private Elmish =
             { newState with Interactions = Resolved interactions }, Cmd.none
         | Api.InteractionResp(Api.DrugNamesLoaded names) ->
             { state with InteractionDrugNames = Resolved names }, Cmd.none
+        | Api.LogAnalyzerResp(Api.PasswordValidated isValid) ->
+            if isValid then
+                { state with IsAuthenticated = true }, Cmd.none
+            else
+                { state with
+                    IsAuthenticated = false
+                    AuthPassword = ""
+                    SnackbarMsg = "Invalid password"
+                    SnackbarOpen = true
+                    SnackbarSeverity = "error"
+                },
+                Cmd.none
         | Api.LogAnalyzerResp(Api.LogFilesListed files) -> { state with LogFiles = Resolved files }, Cmd.none
         | Api.LogAnalyzerResp(Api.LogFileAnalyzed report) ->
             { state with LogAnalysisReport = Resolved report }, Cmd.none
@@ -388,6 +406,8 @@ module private Elmish =
             ServerError = None
             EmergencyListFilter = [||]
             ContinuousMedsFilter = [||]
+            IsAuthenticated = false
+            AuthPassword = ""
             LogFiles = HasNotStartedYet
             LogAnalysisReport = HasNotStartedYet
         }
@@ -526,8 +546,36 @@ module private Elmish =
 
         | DismissServerError -> { state with ServerError = None }, Cmd.none
 
+        | Login password ->
+            { state with AuthPassword = password },
+            Api.LogAnalyzerCmd(Api.ValidatePassword password)
+            |> createApiMsg LoadLoginResult
+
+        | LoadLoginResult(Finished(Ok resp)) -> processOk resp
+
+        | LoadLoginResult(Finished(Error err)) ->
+            ({ state with
+                IsAuthenticated = false
+                AuthPassword = ""
+             },
+             Cmd.none)
+            |> processError err
+
+        | LoadLoginResult Started -> state, Cmd.none
+
+        | Logout ->
+            { state with
+                IsAuthenticated = false
+                AuthPassword = ""
+                LogFiles = HasNotStartedYet
+                LogAnalysisReport = HasNotStartedYet
+            },
+            Cmd.none
+
         | ListLogFiles ->
-            { state with LogFiles = InProgress }, Api.LogAnalyzerCmd Api.ListLogFiles |> createApiMsg LoadLogFilesResult
+            { state with LogFiles = InProgress },
+            Api.LogAnalyzerCmd(Api.ListLogFiles state.AuthPassword)
+            |> createApiMsg LoadLogFilesResult
 
         | LoadLogFilesResult(Finished(Ok resp)) -> processOk resp
 
@@ -538,7 +586,7 @@ module private Elmish =
 
         | AnalyzeLogFile fileName ->
             { state with LogAnalysisReport = InProgress },
-            Api.LogAnalyzerCmd(Api.AnalyzeLogFile fileName)
+            Api.LogAnalyzerCmd(Api.AnalyzeLogFile(state.AuthPassword, fileName))
             |> createApiMsg LoadLogAnalysisResult
 
         | LoadLogAnalysisResult(Finished(Ok resp)) -> processOk resp
@@ -592,7 +640,15 @@ module private Elmish =
             else if page = Settings then
                 { state with Page = page }, retryDrugNames
             else
-                { state with Page = page }, retryDrugNames
+                let loadCmds =
+                    [
+                        match page with
+                        | Formulary -> Cmd.ofMsg (LoadFormulary Started)
+                        | Parenteralia -> Cmd.ofMsg (LoadParenteralia Started)
+                        | _ -> ()
+                    ]
+
+                { state with Page = page }, Cmd.batch (retryDrugNames :: loadCmds)
 
         | UpdatePatient pat ->
             let pat = pat |> applyNormalValues state.NormalValues
@@ -1083,6 +1139,11 @@ type private ConcreteAppEnv
     interface AppEnv.IResources with
         member _.ReloadResources pw =
             OrderContextMsg(Api.ReloadResources pw, OrderContext.empty) |> dispatch
+
+    interface AppEnv.IAuthentication with
+        member _.IsAuthenticated = state.IsAuthenticated
+        member _.Login password = Login password |> dispatch
+        member _.Logout() = Logout |> dispatch
 
     interface AppEnv.ILogAnalyzer with
         member _.LogFiles = state.LogFiles
