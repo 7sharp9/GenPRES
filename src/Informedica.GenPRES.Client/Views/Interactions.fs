@@ -108,60 +108,6 @@ module Interactions =
 
 
     [<JSX.Component>]
-    let private InteractionRow
-        (props:
-            {|
-                index: int
-                interaction: DrugInteraction
-            |})
-        =
-        let cls1, cls2 = props.interaction.Name
-        let classText = $"%s{cls1} / %s{cls2}"
-
-        JSX.jsx
-            $"""
-        <TableRow key={props.index}>
-            <TableCell>{props.interaction.Drug1}</TableCell>
-            <TableCell>{props.interaction.Drug2}</TableCell>
-            <TableCell>{classText}</TableCell>
-        </TableRow>
-        """
-
-
-    [<JSX.Component>]
-    let private DrugChip
-        (props:
-            {|
-                drug: string
-                onDelete: unit -> unit
-            |})
-        =
-        let onDelete = fun _ -> props.onDelete ()
-
-        JSX.jsx
-            $"""
-        <Chip
-            key={props.drug}
-            label={props.drug}
-            onDelete={onDelete}
-        />
-        """
-
-
-    [<JSX.Component>]
-    let private PlanDrugChip (props: {| drug: string |}) =
-        JSX.jsx
-            $"""
-        <Chip
-            key={props.drug}
-            label={props.drug}
-            color="primary"
-            variant="outlined"
-        />
-        """
-
-
-    [<JSX.Component>]
     let View (props: {| appEnv: obj |}) =
         let envInteractions = AppEnv.asEnv<AppEnv.IInteractions> props.appEnv
         let interactions = envInteractions.Interactions
@@ -273,11 +219,17 @@ module Interactions =
                 let rows =
                     interactionRows
                     |> Array.mapi (fun i interaction ->
-                        InteractionRow
-                            {|
-                                index = i
-                                interaction = interaction
-                            |}
+                        let cls1, cls2 = interaction.Name
+                        let classText = $"%s{cls1} / %s{cls2}"
+
+                        JSX.jsx
+                            $"""
+                        <TableRow key={i}>
+                            <TableCell>{interaction.Drug1}</TableCell>
+                            <TableCell>{interaction.Drug2}</TableCell>
+                            <TableCell>{classText}</TableCell>
+                        </TableRow>
+                        """
                     )
 
                 JSX.jsx
@@ -354,7 +306,6 @@ module Interactions =
         import TableContainer from '@mui/material/TableContainer';
         import TableHead from '@mui/material/TableHead';
         import TableRow from '@mui/material/TableRow';
-        import Paper from '@mui/material/Paper';
         import CircularProgress from '@mui/material/CircularProgress';
         import Alert from '@mui/material/Alert';
         import Divider from '@mui/material/Divider';

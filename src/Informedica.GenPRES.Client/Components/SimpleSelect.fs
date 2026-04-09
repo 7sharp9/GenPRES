@@ -90,7 +90,7 @@ module SimpleSelect =
         let navigationSx =
             {|
                 display = "flex"
-                felxDirection = "column"
+                flexDirection = "column"
                 alignItems = "center"
             |}
 
