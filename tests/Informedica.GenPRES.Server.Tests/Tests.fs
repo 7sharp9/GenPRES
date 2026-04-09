@@ -419,6 +419,11 @@ module StubAdapterTests =
                         checkInteractions = fun _ -> async { return Ok [] }
                         getDrugNames = fun () -> async { return Ok [] }
                     }
+                logAnalyzer =
+                    {
+                        listLogFiles = fun () -> async { return Ok [||] }
+                        analyzeLogFile = fun _ -> async { return Ok "" }
+                    }
                 requireLoaded = fun () -> None
             }
 
@@ -445,6 +450,11 @@ module StubAdapterTests =
                     {
                         checkInteractions = fun _ -> async { return Error [| "not loaded" |] }
                         getDrugNames = fun () -> async { return Error [| "not loaded" |] }
+                    }
+                logAnalyzer =
+                    {
+                        listLogFiles = fun () -> async { return Ok [||] }
+                        analyzeLogFile = fun _ -> async { return Ok "" }
                     }
                 requireLoaded = fun () -> Some msgs
             }

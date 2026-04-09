@@ -570,3 +570,11 @@ module Types =
             PatientCategory: string option
             Markdown: string
         }
+
+
+    type LogFileInfo =
+        {
+            FileName: string
+            SizeBytes: int64
+            LastModifiedAt: string
+        }

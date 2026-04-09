@@ -45,6 +45,10 @@ module private Elmish =
             ServerError: string option
             EmergencyListFilter: string[]
             ContinuousMedsFilter: string[]
+            IsAuthenticated: bool
+            AuthToken: string
+            LogFiles: Deferred<LogFileInfo[]>
+            LogAnalysisReport: Deferred<string>
         }
 
 
@@ -91,6 +95,15 @@ module private Elmish =
         | CloseSnackbar
         | CheckServer of AsyncOperationStatus<Result<string, exn>>
         | DismissServerError
+
+        | Login of password: string
+        | LoadLoginResult of ApiResponse
+        | Logout
+
+        | ListLogFiles
+        | LoadLogFilesResult of ApiResponse
+        | AnalyzeLogFile of string
+        | LoadLogAnalysisResult of ApiResponse
 
 
     and ApiResponse = AsyncOperationStatus<Result<Api.Response, string[]>>
@@ -156,6 +169,25 @@ module private Elmish =
             { newState with Interactions = Resolved interactions }, Cmd.none
         | Api.InteractionResp(Api.DrugNamesLoaded names) ->
             { state with InteractionDrugNames = Resolved names }, Cmd.none
+        | Api.LogAnalyzerResp(Api.PasswordValidated(isValid, token)) ->
+            if isValid then
+                { state with
+                    IsAuthenticated = true
+                    AuthToken = token
+                },
+                Cmd.none
+            else
+                { state with
+                    IsAuthenticated = false
+                    AuthToken = ""
+                    SnackbarMsg = "Invalid password"
+                    SnackbarOpen = true
+                    SnackbarSeverity = "error"
+                },
+                Cmd.none
+        | Api.LogAnalyzerResp(Api.LogFilesListed files) -> { state with LogFiles = Resolved files }, Cmd.none
+        | Api.LogAnalyzerResp(Api.LogFileAnalyzed report) ->
+            { state with LogAnalysisReport = Resolved report }, Cmd.none
 
 
     let loadOrderContext resp =
@@ -378,6 +410,10 @@ module private Elmish =
             ServerError = None
             EmergencyListFilter = [||]
             ContinuousMedsFilter = [||]
+            IsAuthenticated = false
+            AuthToken = ""
+            LogFiles = HasNotStartedYet
+            LogAnalysisReport = HasNotStartedYet
         }
 
 
@@ -514,6 +550,58 @@ module private Elmish =
 
         | DismissServerError -> { state with ServerError = None }, Cmd.none
 
+        | Login password ->
+            state,
+            Api.LogAnalyzerCmd(Api.ValidatePassword password)
+            |> createApiMsg LoadLoginResult
+
+        | LoadLoginResult(Finished(Ok resp)) -> processOk resp
+
+        | LoadLoginResult(Finished(Error err)) ->
+            ({ state with
+                IsAuthenticated = false
+                AuthToken = ""
+             },
+             Cmd.none)
+            |> processError err
+
+        | LoadLoginResult Started -> state, Cmd.none
+
+        | Logout ->
+            { state with
+                IsAuthenticated = false
+                AuthToken = ""
+                LogFiles = HasNotStartedYet
+                LogAnalysisReport = HasNotStartedYet
+                Page = if state.Page = Settings then LifeSupport else state.Page
+            },
+            Cmd.none
+
+        | ListLogFiles ->
+            { state with LogFiles = InProgress },
+            Api.LogAnalyzerCmd(Api.ListLogFiles state.AuthToken)
+            |> createApiMsg LoadLogFilesResult
+
+        | LoadLogFilesResult(Finished(Ok resp)) -> processOk resp
+
+        | LoadLogFilesResult(Finished(Error err)) ->
+            ({ state with LogFiles = HasNotStartedYet }, Cmd.none) |> processError err
+
+        | LoadLogFilesResult Started -> state, Cmd.none
+
+        | AnalyzeLogFile fileName ->
+            { state with LogAnalysisReport = InProgress },
+            Api.LogAnalyzerCmd(Api.AnalyzeLogFile(state.AuthToken, fileName))
+            |> createApiMsg LoadLogAnalysisResult
+
+        | LoadLogAnalysisResult(Finished(Ok resp)) -> processOk resp
+
+        | LoadLogAnalysisResult(Finished(Error err)) ->
+            ({ state with LogAnalysisReport = HasNotStartedYet }, Cmd.none)
+            |> processError err
+
+        | LoadLogAnalysisResult Started -> state, Cmd.none
+
         | AcceptDisclaimer -> { state with ShowDisclaimer = false }, Cmd.none
 
         | UpdateLanguage lang ->
@@ -554,10 +642,18 @@ module private Elmish =
                         Cmd.ofMsg (LoadOrderContextResult(Api.UpdateOrderContext, Started))
                         retryDrugNames
                     ]
+            else if page = Settings && not state.IsAuthenticated then
+                state, Cmd.none
             else if page = Settings then
                 { state with Page = page }, retryDrugNames
             else
-                { state with Page = page }, retryDrugNames
+                let loadCmds =
+                    match page with
+                    | Formulary -> [ Cmd.ofMsg (LoadFormulary Started) ]
+                    | Parenteralia -> [ Cmd.ofMsg (LoadParenteralia Started) ]
+                    | _ -> []
+
+                { state with Page = page }, Cmd.batch (retryDrugNames :: loadCmds)
 
         | UpdatePatient pat ->
             let pat = pat |> applyNormalValues state.NormalValues
@@ -1048,6 +1144,17 @@ type private ConcreteAppEnv
     interface AppEnv.IResources with
         member _.ReloadResources pw =
             OrderContextMsg(Api.ReloadResources pw, OrderContext.empty) |> dispatch
+
+    interface AppEnv.IAuthentication with
+        member _.IsAuthenticated = state.IsAuthenticated
+        member _.Login password = Login password |> dispatch
+        member _.Logout() = Logout |> dispatch
+
+    interface AppEnv.ILogAnalyzer with
+        member _.LogFiles = state.LogFiles
+        member _.LogAnalysisReport = state.LogAnalysisReport
+        member _.ListLogFiles() = ListLogFiles |> dispatch
+        member _.AnalyzeLogFile fileName = AnalyzeLogFile fileName |> dispatch
 
     interface AppEnv.IBolusMedication with
         member _.BolusMedication = bm

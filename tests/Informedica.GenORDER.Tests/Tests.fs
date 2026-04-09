@@ -116,6 +116,19 @@ module Pipeline =
     let private countValues (o: Order) =
         o |> toOrdVars |> List.filter OrderVariable.hasValues |> List.length
 
+    let private mkOnceTimedOrder () =
+        Scenarios.kaliumchlorideOnceTimedText
+        |> Medication.fromString
+        |> function
+            | Error errs -> failwith $"Failed to parse kaliumchloride OnceTimed: {errs}"
+            | Ok med ->
+                med
+                |> Medication.toOrderDto
+                |> Dto.fromDto
+                |> function
+                    | Error msg -> failwith $"Failed to create order: {msg}"
+                    | Ok ord -> ord
+
     [<Tests>]
     let guard_and_run_order_tests =
         testList
@@ -156,6 +169,73 @@ module Pipeline =
                     match res with
                     | Ok _ -> true |> Expect.isTrue "calc minmax ok"
                     | Error(o, _) -> (box o) |> Expect.isNotNull "Order returned with error"
+                }
+            ]
+
+    [<Tests>]
+    let staged_expansion_tests =
+        testList
+            "staged value expansion for timed orders"
+            [
+                test "CalcMinMax for kaliumchloride OnceTimed completes without overflow" {
+                    let ord = mkOnceTimedOrder ()
+                    let res = OrderProcessor.processPipeline noLogger (CalcMinMax ord)
+
+                    match res with
+                    | Ok _ -> true |> Expect.isTrue "CalcMinMax succeeded"
+                    | Error(_, msgs) ->
+                        msgs
+                        |> List.exists (fun m ->
+                            let s = $"%A{m}"
+                            s.Contains("ValueSetOverflow")
+                        )
+                        |> Expect.isFalse "should not have ValueSetOverflow"
+                }
+
+                test "CalcValues for kaliumchloride OnceTimed completes without overflow" {
+                    let ord = mkOnceTimedOrder ()
+
+                    let ordAfterCalcMinMax =
+                        OrderProcessor.processPipeline noLogger (CalcMinMax ord)
+                        |> function
+                            | Ok o -> o
+                            | Error(o, _) -> o
+
+                    let res = OrderProcessor.processPipeline noLogger (CalcValues ordAfterCalcMinMax)
+
+                    match res with
+                    | Ok _ -> true |> Expect.isTrue "CalcValues succeeded"
+                    | Error(_, msgs) ->
+                        // CalcValues may produce errors (e.g. empty value sets from
+                        // pre-existing set-normdose issues), but it must not overflow.
+                        msgs
+                        |> List.exists (fun m ->
+                            let s = $"%A{m}"
+                            s.Contains("ValueSetOverflow")
+                        )
+                        |> Expect.isFalse "CalcValues should not have ValueSetOverflow"
+                }
+
+                test "paracetamol suppository (non-timed) is unaffected by staged expansion" {
+                    let ord =
+                        Scenarios.pcmSupp
+                        |> Medication.toOrderDto
+                        |> Dto.fromDto
+                        |> function
+                            | Error msg -> failwith $"{msg}"
+                            | Ok o -> o
+
+                    let res = OrderProcessor.processPipeline noLogger (CalcMinMax ord)
+
+                    match res with
+                    | Ok _ -> true |> Expect.isTrue "non-timed order unaffected"
+                    | Error(_, msgs) ->
+                        msgs
+                        |> List.exists (fun m ->
+                            let s = $"%A{m}"
+                            s.Contains("ValueSetOverflow")
+                        )
+                        |> Expect.isFalse "non-timed order should not have ValueSetOverflow"
                 }
             ]
 

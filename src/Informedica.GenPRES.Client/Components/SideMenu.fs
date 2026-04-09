@@ -19,7 +19,7 @@ module SideMenu =
                 isMobile: bool
                 toggle: unit -> unit
                 menuClick: string -> unit
-                items: (JSX.Element option * string * bool * string option)[]
+                items: (JSX.Element option * string * bool * string option * bool)[]
             |})
         =
 

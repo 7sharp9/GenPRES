@@ -19,6 +19,9 @@ module TitleBar =
                 hospitals: Deferred<string[]>
                 switchLang: Shared.Localization.Locales -> unit
                 switchHosp: string -> unit
+                isAuthenticated: bool
+                onLogin: string -> unit
+                onLogout: unit -> unit
             |})
         =
 
@@ -34,6 +37,27 @@ module TitleBar =
         let handleOpenLangMenu = fun ev -> ev?currentTarget |> setAnchorElLang
         let handleCloseLangMenu = fun _ -> setAnchorElLang None
 
+        // Login dialog state
+        let loginDialogOpen, setLoginDialogOpen = React.useState false
+        let password, setPassword = React.useState ""
+        let loginError, setLoginError = React.useState false
+        let loginAttempted = React.useRef false
+
+        // Close dialog on successful login
+        React.useEffect (
+            fun () ->
+                if loginAttempted.current then
+                    if props.isAuthenticated then
+                        loginAttempted.current <- false
+                        setLoginDialogOpen false
+                        setPassword ""
+                        setLoginError false
+                    else
+                        loginAttempted.current <- false
+                        setLoginError true
+            , [| box props.isAuthenticated |]
+        )
+
         let onClickLangMenuItem l =
             fun () ->
                 handleCloseLangMenu ()
@@ -43,6 +67,27 @@ module TitleBar =
             fun () ->
                 handleCloseHospMenu ()
                 s |> props.switchHosp
+
+        let handleLoginClick =
+            fun _ ->
+                if props.isAuthenticated then
+                    props.onLogout ()
+                else
+                    setPassword ""
+                    setLoginError false
+                    setLoginDialogOpen true
+
+        let handleLoginClose = fun _ -> setLoginDialogOpen false
+
+        let handleLoginConfirm =
+            fun _ ->
+                loginAttempted.current <- true
+                setLoginError false
+                props.onLogin password
+
+        let handleLoginKeyDown (e: Browser.Types.KeyboardEvent) =
+            if e.key = "Enter" then
+                handleLoginConfirm ()
 
         let menuItems =
             let sxFlag = {| marginRight = 1 |}
@@ -86,6 +131,8 @@ module TitleBar =
                 userSelect = "none"
             |}
 
+        let loginButtonText = if props.isAuthenticated then "Logout" else "Login"
+
         JSX.jsx
             $"""
         import AppBar from '@mui/material/AppBar';
@@ -97,6 +144,11 @@ module TitleBar =
         import MenuIcon from '@mui/icons-material/Menu';
         import Menu from '@mui/material/Menu';
         import MenuItem from '@mui/material/MenuItem';
+        import Dialog from '@mui/material/Dialog';
+        import DialogTitle from '@mui/material/DialogTitle';
+        import DialogContent from '@mui/material/DialogContent';
+        import DialogActions from '@mui/material/DialogActions';
+        import TextField from '@mui/material/TextField';
 
         <Box sx={ {| flexGrow = 1 |} }>
             <AppBar position="static">
@@ -167,8 +219,32 @@ module TitleBar =
                             {menuItems}
                         </Menu>
                     </Box>
-                    <Button color="inherit">Login</Button>
+                    <Button color="inherit" onClick={handleLoginClick}>{loginButtonText}</Button>
                 </Toolbar>
             </AppBar>
+            <Dialog open={loginDialogOpen} onClose={handleLoginClose}>
+                <DialogTitle>{"Login"}</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus={true}
+                        margin="dense"
+                        label="Password"
+                        type="password"
+                        fullWidth={true}
+                        variant="outlined"
+                        value={password}
+                        error={loginError}
+                        helperText={if loginError then "Invalid password" else ""}
+                        onChange={fun (e: Browser.Types.Event) ->
+                                      setPassword (e.target?value: string)
+                                      setLoginError false}
+                        onKeyDown={handleLoginKeyDown}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleLoginClose}>{"Cancel"}</Button>
+                    <Button onClick={handleLoginConfirm} variant="contained">{"Login"}</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
         """

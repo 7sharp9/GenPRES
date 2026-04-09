@@ -70,6 +70,23 @@ type IResources =
     abstract ReloadResources: string -> unit
 
 
+/// Authentication state and commands
+[<Interface>]
+type IAuthentication =
+    abstract IsAuthenticated: bool
+    abstract Login: string -> unit
+    abstract Logout: unit -> unit
+
+
+/// Log analyzer data and commands
+[<Interface>]
+type ILogAnalyzer =
+    abstract LogFiles: Deferred<LogFileInfo[]>
+    abstract LogAnalysisReport: Deferred<string>
+    abstract ListLogFiles: unit -> unit
+    abstract AnalyzeLogFile: string -> unit
+
+
 /// Bolus/emergency medication list (computed)
 [<Interface>]
 type IBolusMedication =
