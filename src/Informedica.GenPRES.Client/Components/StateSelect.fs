@@ -53,6 +53,12 @@ module StateSelect =
             </IconButton>
             """
 
+        let formControlSx =
+            {|
+                margin = 1
+                minWidth = 120
+            |}
+
         JSX.jsx
             $"""
         import InputLabel from '@mui/material/InputLabel';
@@ -61,10 +67,7 @@ module StateSelect =
         import Select from '@mui/material/Select';
 
         <div>
-        <FormControl variant="standard" sx={ {|
-                                                 margin = 1
-                                                 minWidth = 120
-                                             |} }>
+        <FormControl variant="standard" sx={formControlSx}>
             <InputLabel id="demo-simple-select-standard-label">{props.label}</InputLabel>
             <Select
             labelId="demo-simple-select-standard-label"

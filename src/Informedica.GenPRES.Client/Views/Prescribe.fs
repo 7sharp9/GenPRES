@@ -173,6 +173,40 @@ module Prescribe =
                     | Resolved tp -> { tp with Scenarios = [| sc |] |> Array.append tp.Scenarios } |> updateOrderPlan
                     | _ -> ()
 
+                let cellSx =
+                    {|
+                        paddingTop = 1
+                        paddingRight = 2
+                    |}
+
+                let tableContainerSx = {| overflowX = "auto" |}
+
+                let tableSx =
+                    {|
+                        tableLayout = "auto"
+                        width = "auto"
+                    |}
+
+                let tableRowSx =
+                    {|
+                        border = 0
+                        ``& td`` = {| borderBottom = 0 |}
+                    |}
+
+                let headerSx =
+                    {|
+                        backgroundColor = Mui.Styles.headerBgColor
+                        padding = 1
+                        borderRadius = 1
+                    |}
+
+                let listSx =
+                    {|
+                        width = "100%"
+                        maxWidth = 1200
+                        bgcolor = Mui.Colors.Grey.``50``
+                    |}
+
                 let item key icon prim (sec: TextBlock[][]) =
                     let rows =
                         let cells row =
@@ -180,10 +214,7 @@ module Prescribe =
                             |> Array.mapi (fun i cell ->
                                 JSX.jsx
                                     $"""
-                                    <TableCell key={i} sx = { {|
-                                                                  paddingTop = 1
-                                                                  paddingRight = 2
-                                                              |} }>
+                                    <TableCell key={i} sx={cellSx}>
                                         {cell |> Mui.TypoGraphy.fromTextBlock}
                                     </TableCell>
                                     """
@@ -213,16 +244,10 @@ module Prescribe =
                         <ListItemIcon>
                             {icon}
                         </ListItemIcon>
-                        <TableContainer sx={ {| overflowX = "auto" |} } >
-                            <Table padding="none" size="small" sx={ {|
-                                                                        tableLayout = "auto"
-                                                                        width = "auto"
-                                                                    |} } >
+                        <TableContainer sx={tableContainerSx} >
+                            <Table padding="none" size="small" sx={tableSx} >
                                 <TableBody>
-                                    <TableRow sx={ {|
-                                                       border = 0
-                                                       ``& td`` = {| borderBottom = 0 |}
-                                                   |} } >
+                                    <TableRow sx={tableRowSx} >
                                         <TableCell >
                                             {prim}
                                         </TableCell>
@@ -238,18 +263,10 @@ module Prescribe =
                     JSX.jsx
                         $"""
                     <React.Fragment>
-                        <Typography variant="h6" sx={ {|
-                                                          backgroundColor = Mui.Styles.headerBgColor
-                                                          padding = 1
-                                                          borderRadius = 1
-                                                      |} } >
+                        <Typography variant="h6" sx={headerSx} >
                             {caption}
                         </Typography>
-                        <List sx={ {|
-                                       width = "100%"
-                                       maxWidth = 1200
-                                       bgcolor = Mui.Colors.Grey.``50``
-                                   |} }>
+                        <List sx={listSx}>
                             {[|
                                  item "prescription" Mui.Icons.Notes (Terms.``Prescribe Prescription`` |> getTerm "Voorschrift") sc.Prescription
                                  if sc.Preparation |> Array.length > 0 then

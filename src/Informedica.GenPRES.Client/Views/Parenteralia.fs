@@ -133,6 +133,12 @@ module Parenteralia =
         let stackDirection = if isMobile then "column" else "row"
 
         let content =
+            let subtitleSx =
+                {|
+                    fontSize = 14
+                    pb = 2
+                |}
+
             JSX.jsx
                 $"""
             import CardContent from '@mui/material/CardContent';
@@ -141,10 +147,7 @@ module Parenteralia =
             import Paper from '@mui/material/Paper';
 
             <CardContent>
-                <Typography sx={ {|
-                                     fontSize = 14
-                                     pb = 2
-                                 |} } color="text.secondary" gutterBottom>
+                <Typography sx={subtitleSx} color="text.secondary" gutterBottom>
                     {Terms.Formulary |> getTerm "Parenteralia"}
                 </Typography>
                 <Stack direction={stackDirection} spacing={3} >

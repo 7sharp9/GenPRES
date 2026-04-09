@@ -8,6 +8,7 @@ applyTo: "**/*.fs,**/*.fsx"
 ## General F# Guidelines
 
 ### Code Style and Formatting
+
 - Use 4 spaces for indentation (no tabs)
 - Keep lines under 120 characters when possible
 - Use 2 newlines to separate top-level constructs (types, modules, functions)
@@ -56,6 +57,7 @@ The following tokens are reserved as keywords for future expansion of F#:
 - virtual
 
 Additional style guidance:
+
 - Namespace and opens:
   - Place `namespace` (or a single top-level `module`) at the top of the file.
   - Keep `open` statements minimal and as close as possible to where they’re needed; prefer local `open` inside modules over file-wide opens.
@@ -66,6 +68,7 @@ Additional style guidance:
   - Use `[<RequireQualifiedAccess>]` on DUs and modules to reduce name collisions and make call sites explicit.
 
 ### Documentation and Comments
+
 - Use `///` for XML documentation comments that appear in IntelliSense popups
 - Use `//` for regular comments that document code internally but don't appear in popups
 - XML documentation should be used for:
@@ -118,6 +121,7 @@ let private processData input =
 ```
 
 ### Type Definitions
+
 - Define types at the module level before functions that use them
 - Use discriminated unions for modeling domain concepts
 - Prefer records over tuples for data with multiple fields
@@ -152,6 +156,7 @@ type Patient = {
 Do not make types or functions private, unless explicitly mentioned in a comment or being told to.
 
 ### Type and Module Shadowing Pattern
+
 - Create specific modules for each domain type that shadow the type name
 - Define the type first at the top level, then create a module with the same name
 - This enables clean API usage like `Patient.create ...`
@@ -196,6 +201,7 @@ let patientRes =
 ```
 
 #### Benefits of Type Shadowing
+
 - Discoverability: IntelliSense shows both type and related functions together
 - Consistency: Follows .NET and F# core library patterns (`List`, `Map`, etc.)
 - Type Safety: Explicit return types in module functions ensure correctness
@@ -203,6 +209,7 @@ let patientRes =
 - Encapsulation: Private constructors + smart constructors enforce invariants
 
 ### Function Design
+
 - Keep functions small and focused on a single responsibility
 - Use partial application and currying effectively
 - Prefer immutable data structures
@@ -229,6 +236,7 @@ let handleQuery fetchById fetchByName = function
 ```
 
 ### Error Handling
+
 - Use `Result<'T,'Error>` for operations that can fail
   - Use exceptions only for unexpected or unrecoverable errors (system failures, programming errors)
 - Avoid throwing exceptions in business logic
@@ -271,6 +279,7 @@ module AsyncResult =
 ```
 
 ### Module Organization
+
 - Group related functionality in modules
 - Use explicit module declarations
 - Keep modules focused and cohesive
@@ -283,6 +292,7 @@ module AsyncResult =
 - Use `[<RequireQualifiedAccess>]` for DUs and modules to keep call sites explicit
 
 ### Assembly and Project Structure
+
 - Prefer SDK-style projects; avoid manual `AssemblyInfo.fs` in new projects
 - Centralize common settings in `Directory.Build.props` and enable SourceLink
 - Use semantic versioning via git tags with MinVer or Nerdbank.GitVersioning
@@ -292,6 +302,7 @@ module AsyncResult =
 - Enable deterministic builds and repository metadata for traceability
 
 Example SourceLink setup (Directory.Build.props):
+
 ```xml
 <Project>
   <PropertyGroup>
@@ -307,6 +318,7 @@ Example SourceLink setup (Directory.Build.props):
 ```
 
 If you need explicit attributes, you can still include an `AssemblyInfo.fs`:
+
 ```fsharp
 [<assembly: AssemblyTitleAttribute("Informedica.GenSolver.Lib")>]
 [<assembly: AssemblyProductAttribute("Informedica.GenSolver.Lib")>]
@@ -316,12 +328,14 @@ do ()
 ```
 
 Tooling and quality gates:
+
 - Enforce formatting with Fantomas (configure via `.editorconfig` or `fantomas-config.json`)
 - Use FSharpLint for code smells and consistency
 - Treat warnings as errors in libraries; use pragmas sparingly
 - Add BenchmarkDotNet projects for hot paths
 
 ### Units of Measure
+
 - Define units of measure for all physical quantities
 - Use consistent unit handling patterns across libraries
 - Ensure calculations preserve unit safety
@@ -339,6 +353,7 @@ module Dose =
 ```
 
 ### Testing
+
 - Write unit tests for all public functions
 - Use property-based testing for complex logic
 - Test edge cases and error conditions
@@ -349,7 +364,8 @@ module Dose =
 - Avoid `DateTime.Now` in tests; inject time via an `IClock`/provider
 - Add golden tests for serialization/deserialization stability
 
-Example preferred test setup
+Example preferred test setup:
+
 ```fsharp
 open Expecto
 open Expecto.Flip
@@ -375,6 +391,7 @@ test "Example test" {
 ```
 
 #### Testing Framework and Structure
+
 - Use Expecto as the primary testing framework
 - Use `runTestsInAssemblyWithCLIArgs [] argv` in Main.fs for test discovery
 - Organize tests in nested modules that mirror the library structure
@@ -407,6 +424,7 @@ testTask "async workflow returns Ok" {
 ```
 
 #### Test Naming and Documentation
+
 - Use descriptive test names with backticks for complex scenarios
 - Include expected behavior in test names
 - Use both `test` and `testCase` syntax consistently
@@ -423,6 +441,7 @@ test "``calculateDosage should return correct dose for paracetamol``" {
 ```
 
 #### Property-Based Testing
+
 - Use FsCheck integration through Expecto for property-based tests
 - Configure custom generators for domain-specific types
 - Set appropriate test counts for thorough coverage
@@ -449,6 +468,7 @@ testPropertyWithConfig config "round-trip serialization" <| fun input ->
 ```
 
 #### Assertion Patterns
+
 - Use `Expect.equal` with descriptive failure messages
 - Use `Expect.isTrue` and `Expect.isFalse` for boolean assertions
 - Use `Expect.throws` for exception testing
@@ -467,6 +487,7 @@ someCondition
 ```
 
 #### Data-Driven Testing
+
 - Use lists or arrays of test cases for parameterized testing
 - Create helper functions for common test patterns
 - Use `for` loops in `testList` for generating multiple similar tests
@@ -487,6 +508,7 @@ testList "parameterized tests" [
 ```
 
 #### Testing Complex Scenarios
+
 - Test "there and back again" scenarios for serialization/deserialization
 - Test boundary conditions and edge cases explicitly
 - Create specific tests for error conditions and validation
@@ -504,6 +526,7 @@ test "there and back again, simple dto" {
 ```
 
 #### Test Utilities and Helpers
+
 - Create reusable helper functions for common test setup
 - Use consistent patterns for test data creation
 - Create custom generators for complex domain types
@@ -518,6 +541,7 @@ let createTestPatient name age =
 ```
 
 #### Integration and System Testing
+
 - Separate unit tests from integration tests
 - Use TestServer for API testing when applicable
 - Mock external dependencies appropriately
@@ -525,6 +549,7 @@ let createTestPatient name age =
 - Make time and randomness explicit dependencies (inject IClock/IRng) for deterministic tests
 
 #### Performance and Mathematical Testing
+
 - Use appropriate precision for floating-point comparisons
 - Test mathematical operations with edge cases (zero, negative, infinity)
 - Include performance benchmarks for critical algorithms (BenchmarkDotNet)
@@ -541,6 +566,7 @@ test "floating point comparison with tolerance" {
 ```
 
 ### Documentation
+
 - Use XML documentation for public APIs
 - Include examples in documentation when helpful
 - Document complex algorithms or business rules
@@ -548,6 +574,7 @@ test "floating point comparison with tolerance" {
 - Consider literate programming or script-based samples for runnable docs when appropriate
 
 ### Performance Considerations
+
 - Use sequences (`seq`) for large datasets that don't need to be fully materialized
 - Consider `async`/`task` for I/O operations
 - Profile before optimizing
@@ -560,6 +587,7 @@ test "floating point comparison with tolerance" {
 - Ensure tail recursion or use folds to avoid stack growth
 
 ### Logging and Observability
+
 - Implement structured logging throughout the application
 - Use dependency injection for logger instances
 - Log at appropriate levels (Debug, Info, Warning, Error)
@@ -568,6 +596,7 @@ test "floating point comparison with tolerance" {
 - Avoid logging PII; redact sensitive data (especially in medical contexts)
 
 ### Configuration Management
+
 - Use environment variables for configuration
 - Provide sensible defaults for optional settings
 - Separate development, test, and production configurations
@@ -578,6 +607,7 @@ test "floating point comparison with tolerance" {
 ## Project-Specific Guidelines
 
 ### Domain Modeling
+
 - Model the domain using F# types before implementing logic
 - Use units of measure for quantities (mg, kg, ml, etc.)
 - Make illegal states unrepresentable through type design
@@ -599,6 +629,7 @@ module Prescription =
 ```
 
 ### API Design
+
 - Use Railway Oriented Programming for complex workflows
 - Validate inputs at API boundaries
 - Return structured errors with helpful messages
@@ -607,6 +638,7 @@ module Prescription =
 - Provide Result/AsyncResult helpers and computation expressions to simplify composition
 
 ### Data Access Patterns
+
 - Separate data models from business logic
 - Use mapping functions between different representations (DTO ↔ Domain)
 - Implement caching strategies for expensive data operations
@@ -614,6 +646,7 @@ module Prescription =
 - Keep persistence concerns out of domain types; map at boundaries
 
 ### Solver Pattern (for Mathematical Libraries)
+
 - Separate constraint definition from solving logic
 - Use variable and equation abstractions for mathematical modeling
 - Implement logging and debugging capabilities for complex algorithms
@@ -621,6 +654,7 @@ module Prescription =
 - Provide reproducibility via explicit seed/control of randomness
 
 ### Code Generation
+
 - Use code generation for repetitive data access code
 - Generate types from external schemas when appropriate
 - Maintain generated code in separate files
@@ -628,13 +662,56 @@ module Prescription =
 - Keep generated code isolated from handwritten domain code
 
 ### Dependencies
+
 - Minimize external dependencies
 - Prefer pure functions over stateful operations
 - Use dependency injection for external services
 - Mock external dependencies in tests
 - Keep boundaries thin and map exceptions to domain errors at the edge
 
+### Fable JSX Interpolated Strings
+
+- Never create anonymous records directly inline inside JSX interpolated strings (`$"""..."""`)
+- Extract all `sx` prop objects and other anonymous records to named `let` bindings before the JSX template
+- Reuse shared style bindings across components by placing them at the module level (e.g., `let private flexEndSx = {| alignItems = "flex-end" |}`)
+- Place one-off style bindings as local `let` bindings just before the JSX expression that uses them
+- Exception: trivial single-property records (e.g., `{| marginBottom = 2 |}`) may remain inline if they appear only once
+
+```fsharp
+// Bad - inline anonymous record in JSX string
+JSX.jsx
+    $"""
+    <Grid container sx={ {|
+                              alignItems = "flex-end"
+                              gap = 2
+                          |} }>
+        <Typography sx={ {| fontWeight = "bold" |} }>Title</Typography>
+    </Grid>
+    """
+
+// Good - extracted to named bindings
+let gridSx =
+    {|
+        alignItems = "flex-end"
+        gap = 2
+    |}
+
+let boldSx = {| fontWeight = "bold" |}
+
+JSX.jsx
+    $"""
+    <Grid container sx={gridSx}>
+        <Typography sx={boldSx}>Title</Typography>
+    </Grid>
+    """
+
+// Good - shared styles at module level for reuse across components
+let private flexEndSx = {| alignItems = "flex-end" |}
+let private boldCellSx = {| fontWeight = "bold" |}
+```
+
 ## References
+
 - F# for Fun and Profit: Domain Modeling and Railway Oriented Programming — [https://fsharpforfunandprofit.com/](https://fsharpforfunandprofit.com/)
 - Domain Modeling Made Functional (Scott Wlaschin) — [https://pragprog.com/titles/swdddf/domain-modeling-made-functional/](https://pragprog.com/titles/swdddf/domain-modeling-made-functional/)
 - Official F# Style Guide — [https://learn.microsoft.com/dotnet/fsharp/style-guide/](https://learn.microsoft.com/dotnet/fsharp/style-guide/)

@@ -994,34 +994,40 @@ module TypoGraphy =
         """
 
     let createWithColors bc fc v text =
+        let colorSx =
+            {|
+                backgroundColor = bc
+                color = fc
+                display = "inline"
+            |}
+
         JSX.jsx
             $"""
         import Typography from "@mui/material/Typography";
 
         <Typography
             variant={v}
-            sx={ {|
-                     backgroundColor = bc
-                     color = fc
-                     display = "inline"
-                 |} }
+            sx={colorSx}
             >
             {text}
         </Typography>
         """
 
     let createStrongWithColors bc fc v text =
+        let colorSx =
+            {|
+                backgroundColor = bc
+                color = fc
+                display = "inline"
+            |}
+
         JSX.jsx
             $"""
         import Typography from "@mui/material/Typography";
 
         <Typography
             variant={v}
-            sx={ {|
-                     backgroundColor = bc
-                     color = fc
-                     display = "inline"
-                 |} }
+            sx={colorSx}
             >
             <strong>{text}</strong>
         </Typography>

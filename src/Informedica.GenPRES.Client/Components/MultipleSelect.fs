@@ -66,6 +66,12 @@ module MultipleSelect =
 
         let selectSx = Mui.Styles.selectIconVisibilitySx (isClear && not props.isLoading)
 
+        let formControlSx =
+            {|
+                minWidth = 150
+                maxWidth = 400
+            |}
+
         JSX.jsx
             $"""
         import InputLabel from '@mui/material/InputLabel';
@@ -73,10 +79,7 @@ module MultipleSelect =
         import FormControl from '@mui/material/FormControl';
         import Select from '@mui/material/Select';
 
-        <FormControl variant="standard" sx={ {|
-                                                 minWidth = 150
-                                                 maxWidth = 400
-                                             |} }>
+        <FormControl variant="standard" sx={formControlSx}>
             <InputLabel id={props.label + "-label"}>{props.label}</InputLabel>
             <Select
             labelId={props.label + "-label"}

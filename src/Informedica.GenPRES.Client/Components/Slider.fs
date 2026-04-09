@@ -52,16 +52,19 @@ module Slider =
                 </Typography>
                 """
 
+        let boxSx =
+            {|
+                width = 250
+                paddingX = 2
+            |}
+
         JSX.jsx
             $"""
         import Box from '@mui/material/Box';
         import Slider from '@mui/material/Slider';
 
-        <Box 
-            sx={ {|
-                     width = 250
-                     paddingX = 2
-                 |} }
+        <Box
+            sx={boxSx}
             onClick={stopPropagation}
             onMouseDown={stopPropagation}
         >

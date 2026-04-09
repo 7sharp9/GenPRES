@@ -129,17 +129,20 @@ module Settings =
         let analysisBackdrop =
             ViewHelpers.backdropProgress isAnalyzing "Analyzing log file..."
 
+        let centeringSx =
+            {|
+                display = "flex"
+                justifyContent = "center"
+                p = 4
+            |}
+
         // Log file table content
         let logFileTable =
             match logAnalyzer.LogFiles with
             | InProgress ->
                 JSX.jsx
                     $"""
-                    <Box sx={ {|
-                                  display = "flex"
-                                  justifyContent = "center"
-                                  p = 4
-                              |} }>
+                    <Box sx={centeringSx}>
                         <CircularProgress />
                     </Box>
                     """
@@ -194,33 +197,50 @@ module Settings =
             | InProgress ->
                 JSX.jsx
                     $"""
-                    <Box sx={ {|
-                                  display = "flex"
-                                  justifyContent = "center"
-                                  p = 4
-                              |} }>
+                    <Box sx={centeringSx}>
                         <CircularProgress />
                     </Box>
                     """
             | Resolved report ->
+                let reportBoxSx =
+                    {|
+                        overflow = "auto"
+                        maxHeight = "70vh"
+                    |}
+
+                let preStyle =
+                    {|
+                        whiteSpace = "pre-wrap"
+                        wordBreak = "break-word"
+                        fontFamily = "monospace"
+                        fontSize = "0.8rem"
+                        margin = 0
+                    |}
+
                 JSX.jsx
                     $"""
-                    <Box sx={ {|
-                                  overflow = "auto"
-                                  maxHeight = "70vh"
-                              |} }>
-                        <pre style={ {|
-                                         whiteSpace = "pre-wrap"
-                                         wordBreak = "break-word"
-                                         fontFamily = "monospace"
-                                         fontSize = "0.8rem"
-                                         margin = 0
-                                     |} }>
+                    <Box sx={reportBoxSx}>
+                        <pre style={preStyle}>
                             {report}
                         </pre>
                     </Box>
                     """
             | _ -> JSX.jsx $"""<Typography>No report available.</Typography>"""
+
+        let buttonRowSx =
+            {|
+                display = "flex"
+                gap = 2
+                mb = 3
+            |}
+
+        let logHeaderSx =
+            {|
+                display = "flex"
+                alignItems = "center"
+                gap = 1
+                mb = 1
+            |}
 
         JSX.jsx
             $"""
@@ -246,11 +266,7 @@ module Settings =
             <Typography variant="h6" sx={ {| mb = 2 |} }>
                 {Terms.Settings |> getTerm "Settings"}
             </Typography>
-            <Box sx={ {|
-                          display = "flex"
-                          gap = 2
-                          mb = 3
-                      |} }>
+            <Box sx={buttonRowSx}>
                 <Button
                     variant="contained"
                     disabled={isLoading}
@@ -296,12 +312,7 @@ module Settings =
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Box sx={ {|
-                          display = "flex"
-                          alignItems = "center"
-                          gap = 1
-                          mb = 1
-                      |} }>
+            <Box sx={logHeaderSx}>
                 <Typography variant="subtitle1">{"Log Files"}</Typography>
                 <IconButton size="small" onClick={handleRefreshLogs} title="Refresh">
                     {refreshIcon}

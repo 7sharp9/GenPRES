@@ -133,6 +133,16 @@ module TitleBar =
 
         let loginButtonText = if props.isAuthenticated then "Logout" else "Login"
 
+        let flexGrowSx = {| flexGrow = 1 |}
+        let menuIconSx = {| marginRight = 2 |}
+        let menuSx = {| marginTop = "40px" |}
+
+        let topRightOrigin =
+            {|
+                vertical = "top"
+                horizontal = "right"
+            |}
+
         JSX.jsx
             $"""
         import AppBar from '@mui/material/AppBar';
@@ -150,7 +160,7 @@ module TitleBar =
         import DialogActions from '@mui/material/DialogActions';
         import TextField from '@mui/material/TextField';
 
-        <Box sx={ {| flexGrow = 1 |} }>
+        <Box sx={flexGrowSx}>
             <AppBar position="static">
                 <Toolbar>
                     <IconButton
@@ -158,13 +168,13 @@ module TitleBar =
                         edge="start"
                         color="inherit"
                         aria-label="menu"
-                        sx={ {| marginRight = 2 |} }
+                        sx={menuIconSx}
                         onClick={props.toggleSideMenu}
                         >
                         <MenuIcon />
 
                     </IconButton>
-                    <Typography variant="body1" component="div" sx={ {| flexGrow = 1 |} }>
+                    <Typography variant="body1" component="div" sx={flexGrowSx}>
                         {props.title}
                     </Typography>
 
@@ -173,17 +183,11 @@ module TitleBar =
                             {Mui.Icons.LocalHospital}
                         </IconButton>
                         <Menu
-                            sx={ {| marginTop = "40px" |} }
+                            sx={menuSx}
                             anchorEl={anchorElHosp}
-                            anchorOrigin={ {|
-                                               vertical = "top"
-                                               horizontal = "right"
-                                           |} }
+                            anchorOrigin={topRightOrigin}
                             keepMounted
-                            transformOrigin={ {|
-                                                  vertical = "top"
-                                                  horizontal = "right"
-                                              |} }
+                            transformOrigin={topRightOrigin}
                             open={anchorElHosp.IsSome}
                             onClose={handleCloseHospMenu}
                         >
@@ -202,17 +206,11 @@ module TitleBar =
                             {context.Localization |> Shared.Localization.toShortCode}
                         </Typography>
                         <Menu
-                            sx={ {| marginTop = "40px" |} }
+                            sx={menuSx}
                             anchorEl={anchorElLang}
-                            anchorOrigin={ {|
-                                               vertical = "top"
-                                               horizontal = "right"
-                                           |} }
+                            anchorOrigin={topRightOrigin}
                             keepMounted
-                            transformOrigin={ {|
-                                                  vertical = "top"
-                                                  horizontal = "right"
-                                              |} }
+                            transformOrigin={topRightOrigin}
                             open={anchorElLang.IsSome}
                             onClose={handleCloseLangMenu}
                         >
