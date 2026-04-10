@@ -173,6 +173,10 @@ module Prescribe =
                     | Resolved tp -> { tp with Scenarios = [| sc |] |> Array.append tp.Scenarios } |> updateOrderPlan
                     | _ -> ()
 
+                let handleEditClick () =
+                    setModalOpen true
+                    onClick sc
+
                 let cellSx =
                     {|
                         paddingTop = 1
@@ -310,9 +314,7 @@ module Prescribe =
                             <Button
                                 size="small"
                                 disabled={isAnythingLoading}
-                                onClick={fun () ->
-                                             setModalOpen true
-                                             onClick sc}
+                                onClick={handleEditClick}
                                 startIcon={Mui.Icons.CalculateIcon}
                             >{Edit |> getTerm "bewerken"}</Button>
                             <Button

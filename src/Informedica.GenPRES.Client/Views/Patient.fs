@@ -199,6 +199,10 @@ module Patient =
             | None -> None
 
         let checkBox (name: string) item ev =
+            let handleAccessChange _ =
+                handleChange ()
+                ev |> dispatch
+
             JSX.jsx
                 $"""
             import Checkbox from '@mui/material/Checkbox';
@@ -209,9 +213,7 @@ module Patient =
                 checked={patient
                          |> Option.map (fun p -> p.Access |> List.exists ((=) item))
                          |> Option.defaultValue false}
-                onChange={fun _ ->
-                              handleChange ()
-                              ev |> dispatch} >
+                onChange={handleAccessChange} >
             </Checkbox>
             """
 
