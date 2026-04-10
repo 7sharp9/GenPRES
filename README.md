@@ -77,15 +77,12 @@ docker build -t [USERNAME]/genpres .
 ```
 
 **Note**: this will build using the local processor architecture.
-Convenience wrapper: `./docker-local.sh`.
 
 To build on macOS (M1/M2/Apple Silicon) and still want to publish for AMD64 (x86_64):
 
 ```bash
 docker build --platform linux/amd64 -t [USERNAME]/genpres .
 ```
-
-Convenience wrapper: `./docker-amd64.sh`.
 
 To run the Docker image locally, inject `GENPRES_URL_ID` and (for admin
 operations) `GENPRES_PASSWORD` at runtime:
@@ -97,17 +94,17 @@ docker run -it -p 8080:8085 \
   [USERNAME]/genpres
 ```
 
-Convenience wrapper: `./docker-run.sh` — sources `.env`, validates that
-both `GENPRES_URL_ID` and `GENPRES_PASSWORD` are set, and runs the
-container with the right flags.
-
 For production deployments use a Docker / Kubernetes secret rather than
 passing the value on the command line. Open a browser to
 <http://localhost:8080> to view the site.
 
-See [Helper Shell Scripts](DEVELOPMENT.md#helper-shell-scripts) in
-DEVELOPMENT.md for the full list of local development and deployment
-scripts (debug/prod run modes, Docker, tests, hooks).
+> **Tip**: If you find yourself typing these commands often, see
+> [Helper Shell Scripts](DEVELOPMENT.md#helper-shell-scripts) in
+> DEVELOPMENT.md for ready-to-paste templates of `docker-local.sh`,
+> `docker-amd64.sh`, and `docker-run.sh`. These are *local-only*
+> convenience wrappers — they are not committed to the repo, and the
+> opt-in `.gitignore` strategy deliberately keeps them untracked so
+> each developer can customize them.
 
 ## User Documentation
 
