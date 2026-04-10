@@ -36,8 +36,19 @@ COPY --from=app-build /workspace/deploy /app
 ENV GENPRES_LOG=0
 ENV GENPRES_PROD="1"
 ENV GENPRES_DEBUG="0"
-ARG GENPRES_URL_ARG
-ENV GENPRES_URL_ID=$GENPRES_URL_ARG
+
+# SECURITY: GENPRES_URL_ID is a proprietary FAIR asset and MUST NOT be
+# baked into the published image. Inject it at container runtime instead, e.g.:
+#
+#   docker run -e GENPRES_URL_ID="<your_url_id>" \
+#              -e GENPRES_PASSWORD="<your_admin_password>" \
+#              -p 8080:8085 halcwb/genpres
+#
+# Or via a Docker / Kubernetes secret. The server fails closed (no admin
+# operations) when GENPRES_PASSWORD is unset, and refuses to start when
+# GENPRES_URL_ID is unset.
+ENV GENPRES_URL_ID=
+ENV GENPRES_PASSWORD=
 
 WORKDIR /app
 EXPOSE 8085

@@ -67,9 +67,15 @@ For the canonical and up-to-date development toolchain requirements
 
 **Example Docker Usage:**
 
+The proprietary `GENPRES_URL_ID` is **not** baked into the image. It must be
+injected at container runtime, preferably via a Docker or Kubernetes secret.
+
 ```bash
-docker build --build-arg GENPRES_URL_ARG="your_secret_url_id" -t halcwb/genpres .
-docker run -it -p 8080:8085 halcwb/genpres
+docker build -t halcwb/genpres .
+docker run -it -p 8080:8085 \
+  -e GENPRES_URL_ID="your_url_id" \
+  -e GENPRES_PASSWORD="your_admin_password" \
+  halcwb/genpres
 ```
 
 ---

@@ -346,8 +346,24 @@ DoseType : {filter.DoseType
 
         match cmd with
         | Api.ReloadResources password when
+            // SECURITY: constant-time password comparison via
+            // CryptographicOperations.FixedTimeEquals to avoid leaking the
+            // password through per-character timing. `FixedTimeEquals` returns
+            // false (without short-circuiting) when the byte arrays differ in
+            // length, so it is safe with variable-length passwords.
+            // Default-reject (fail-closed) when GENPRES_PASSWORD is unset.
+            // TODO(D4 follow-up): migrate ReloadResources to the HMAC token
+            // system used by LogAnalyzerCmd so this command no longer needs
+            // the raw password on the wire.
             Env.getItem "GENPRES_PASSWORD"
-            |> Option.map (fun expected -> password <> expected)
+            |> Option.map (fun expected ->
+                not (
+                    System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                        System.Text.Encoding.UTF8.GetBytes(password: string),
+                        System.Text.Encoding.UTF8.GetBytes(expected: string)
+                    )
+                )
+            )
             |> Option.defaultValue true
             -> // no env var = always reject
             Error [| "Invalid password" |]

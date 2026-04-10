@@ -68,10 +68,12 @@ For Windows users, see the environment variable setup section above for PowerShe
 
 ### Deployment using Docker
 
-This will create a production ready Docker image:
+This will create a production ready Docker image. **The proprietary
+`GENPRES_URL_ID` is no longer baked into the image** — it must be injected
+at container runtime.
 
 ```bash
-docker build --build-arg GENPRES_URL_ARG="your_secret_url_id" -t [USERNAME]/genpres .
+docker build -t [USERNAME]/genpres .
 ```
 
 **Note**: this will build using the local processor architecture.
@@ -79,16 +81,22 @@ docker build --build-arg GENPRES_URL_ARG="your_secret_url_id" -t [USERNAME]/genp
 To build on macOS (M1/M2/Apple Silicon) and still want to publish for AMD64 (x86_64):
 
 ```bash
-docker build --build-arg GENPRES_URL_ARG="your_secret_url_id" --platform linux/amd64 -t [USERNAME]/genpres .
+docker build --platform linux/amd64 -t [USERNAME]/genpres .
 ```
 
-To run the Docker image locally:
+To run the Docker image locally, inject `GENPRES_URL_ID` and (for admin
+operations) `GENPRES_PASSWORD` at runtime:
 
 ```bash
-docker run -it -p 8080:8085 [USERNAME]/genpres
+docker run -it -p 8080:8085 \
+  -e GENPRES_URL_ID="your_url_id" \
+  -e GENPRES_PASSWORD="your_admin_password" \
+  [USERNAME]/genpres
 ```
 
-Open a browser to <http://localhost:8080> to view the site.
+For production deployments use a Docker / Kubernetes secret rather than
+passing the value on the command line. Open a browser to
+<http://localhost:8080> to view the site.
 
 ## User Documentation
 

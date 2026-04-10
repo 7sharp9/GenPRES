@@ -1361,3 +1361,64 @@ module Tests =
                     performanceTests
                     orderingTests
                 ]
+
+
+    module JsonSecurity =
+
+        // SECURITY regression tests for `Informedica.Utils.Lib.Json`. These
+        // guard the `TypeNameHandling = None` default — see the SECURITY
+        // comment in src/Informedica.Utils.Lib/Json.fs. Newtonsoft.Json's
+        // `Auto` / `All` / `Objects` modes honour `$type` properties in
+        // incoming JSON and can instantiate arbitrary types via known gadget
+        // chains, leading to remote code execution if any caller ever passes
+        // attacker-controlled JSON to `deSerialize`.
+
+        type Marker = { Value: string }
+
+
+        [<Tests>]
+        let tests =
+            testList
+                "Json security defaults"
+                [
+
+                    test "deSerialize<obj> ignores `$type` (TypeNameHandling.None contract)" {
+                        // With TypeNameHandling = None, Newtonsoft must ignore
+                        // the `$type` discriminator entirely and deserialize
+                        // into a generic JObject, not into a List<string>.
+                        // Under TypeNameHandling = Auto (the dangerous setting
+                        // we are guarding against) this same payload would
+                        // instantiate a System.Collections.Generic.List<string>.
+                        let payload =
+                            """{"$type":"System.Collections.Generic.List`1[[System.String, System.Private.CoreLib]], System.Private.CoreLib","$values":["a","b"]}"""
+
+                        let result: obj = Informedica.Utils.Lib.Json.deSerialize<obj> payload
+
+                        let typeName = result.GetType().FullName
+
+                        Expect.isFalse
+                            (typeName.Contains("List`1"))
+                            $"Expected Newtonsoft to ignore `$type`; got concrete type '{typeName}'. This means TypeNameHandling has been changed away from None — see SECURITY comment in src/Informedica.Utils.Lib/Json.fs."
+                    }
+
+                    test "round-trip of a plain record preserves data" {
+                        let original: Marker = { Value = "round-trip" }
+
+                        let restored: Marker =
+                            original
+                            |> Informedica.Utils.Lib.Json.serialize
+                            |> Informedica.Utils.Lib.Json.deSerialize<Marker>
+
+                        Expect.equal restored original "round-trip should be lossless"
+                    }
+
+                    test "serialized output does not include `$type` metadata" {
+                        let original: Marker = { Value = "no-type-tag" }
+
+                        let json = Informedica.Utils.Lib.Json.serialize original
+
+                        Expect.isFalse
+                            (json.Contains("$type"))
+                            "serialized output must not contain `$type` (would re-enable gadget chains for any consumer)"
+                    }
+                ]

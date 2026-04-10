@@ -78,8 +78,10 @@ dotnet test tests/Informedica.GenUNITS.Tests/
 
 ### Docker
 
-- `docker build --build-arg GENPRES_URL_ARG="your_secret_url_id" -t halcwb/genpres .`
-- `docker run -it -p 8080:8085 halcwb/genpres`
+The proprietary `GENPRES_URL_ID` is **not** baked into the image any more. Inject it (and `GENPRES_PASSWORD` for admin operations) at container runtime, ideally via a Docker / Kubernetes secret.
+
+- `docker build -t halcwb/genpres .`
+- `docker run -it -p 8080:8085 -e GENPRES_URL_ID="your_url_id" -e GENPRES_PASSWORD="your_admin_password" halcwb/genpres`
 - `dotnet run DockerRun` - Run pre-built Docker image
 
 ## Key Code Locations

@@ -39,8 +39,18 @@ module Json =
         let converters = System.Collections.Generic.List<JsonConverter>()
         converters.Add(BigRationalConverter())
 
+        // SECURITY: TypeNameHandling MUST remain `None`. Newtonsoft.Json's `Auto`
+        // (and `All`/`Objects`) honour `$type` properties in incoming JSON and
+        // can instantiate arbitrary types via known gadget chains, leading to
+        // remote code execution if any caller ever passes attacker-controlled
+        // JSON to `deSerialize`. See:
+        //   - https://github.com/JamesNK/Newtonsoft.Json/issues/2457
+        //   - "Friday the 13th: JSON Attacks" (Black Hat 2017)
+        // If a future use case genuinely needs polymorphic deserialization,
+        // opt in *locally* with a `SerializationBinder` allow-list — never by
+        // changing this default.
         JsonSerializerSettings(
-            TypeNameHandling = TypeNameHandling.Auto,
+            TypeNameHandling = TypeNameHandling.None,
             NullValueHandling = NullValueHandling.Ignore,
             Converters = converters
         )

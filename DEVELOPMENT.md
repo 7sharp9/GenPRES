@@ -478,7 +478,24 @@ GENPRES_URL_ID=<your-url-id>   # Google Sheets data URL ID (required)
 GENPRES_LOG=i                  # Logging level: 0=off, d=debug, i=info, w=warning, e=error
 GENPRES_PROD=0                 # Production mode: 0=demo (safe default), 1=production data
 GENPRES_DEBUG=1                # Debug mode: 0=off, 1=on
+GENPRES_PASSWORD=<password>    # Admin password — see policy below
 ```
+
+#### Password policy
+
+`GENPRES_PASSWORD` gates all admin operations (settings page, log analysis,
+resource reload). The server enforces a length policy at startup:
+
+- **Development (`GENPRES_PROD=0`)**: any value is accepted, including the
+  trivial `genpres` used by some local setups. Convenient for development;
+  unsafe anywhere else.
+- **Production (`GENPRES_PROD=1`)**: the server **refuses to start** when
+  `GENPRES_PASSWORD` is missing or shorter than 16 characters. Generate a
+  strong value with a CSPRNG, e.g. `openssl rand -base64 32`, and inject it
+  via a secret store (Docker secret, Kubernetes secret, vault, ...).
+
+Never reuse a development password in production. Never commit a real
+password to the repository — `.env` is gitignored.
 
 #### How It Works
 
@@ -495,7 +512,7 @@ This means you can always override `.env` values by setting an environment varia
 - **Shell**: Source `.env` manually with `set -a; source .env; set +a` before running commands.
 - **F# scripts (FSI)**: Scripts call `Informedica.Utils.Lib.Env.loadDotEnv()` which searches upward for `.env` from the current directory.
 - **IDEs (Rider, VS Code)**: The `Env.loadDotEnv()` call in scripts ensures variables are available even when the IDE doesn't inherit shell environment.
-- **Docker**: Source `.env` before `docker build` to pass `GENPRES_URL_ID` as a build argument.
+- **Docker**: Inject `GENPRES_URL_ID` (and `GENPRES_PASSWORD` for admin operations) at *container runtime*, not at build time. Example: `docker run -e GENPRES_URL_ID="$GENPRES_URL_ID" -e GENPRES_PASSWORD="$GENPRES_PASSWORD" -p 8080:8085 halcwb/genpres`. For production, use a Docker or Kubernetes secret. **Do not** use `--build-arg`: the value would be persisted as image metadata and visible to anyone who can pull the image.
 
 #### Common Environment Variable Issues
 
