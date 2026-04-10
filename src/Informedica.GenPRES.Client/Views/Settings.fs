@@ -114,6 +114,10 @@ module Settings =
             if e.key = "Enter" then
                 handleConfirm ()
 
+        let handlePasswordChange (e: Browser.Types.Event) =
+            setPassword (e.target?value: string)
+            setPasswordError false
+
         let handleRefreshLogs = fun _ -> logAnalyzer.ListLogFiles()
 
         let handleFileClick (fileName: string) =
@@ -292,9 +296,7 @@ module Settings =
                         fullWidth={true}
                         variant="outlined"
                         value={password}
-                        onChange={fun (e: Browser.Types.Event) ->
-                                      setPassword (e.target?value: string)
-                                      setPasswordError false}
+                        onChange={handlePasswordChange}
                         error={passwordError}
                         helperText={if passwordError then
                                         Terms.``Invalid password`` |> getTerm "Invalid password"

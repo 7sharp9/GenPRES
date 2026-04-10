@@ -676,6 +676,8 @@ module Prescription =
 - Reuse shared style bindings across components by placing them at the module level (e.g., `let private flexEndSx = {| alignItems = "flex-end" |}`)
 - Place one-off style bindings as local `let` bindings just before the JSX expression that uses them
 - Exception: trivial single-property records (e.g., `{| marginBottom = 2 |}`) may remain inline if they appear only once
+- Never inline non-trivial lambdas (event handlers like `onChange`, `onClick`, `onSubmit`) inside JSX interpolated strings — extract them to named `let` bindings before the JSX template
+- Trivial one-line lambdas that just dispatch a message (e.g., `fun _ -> Close \|> dispatch`) may remain inline; multi-line lambdas, lambdas with type annotations, or lambdas accessing `e.target`/`e.currentTarget` must be extracted
 
 ```fsharp
 // Bad - inline anonymous record in JSX string
@@ -708,6 +710,38 @@ JSX.jsx
 // Good - shared styles at module level for reuse across components
 let private flexEndSx = {| alignItems = "flex-end" |}
 let private boldCellSx = {| fontWeight = "bold" |}
+```
+
+```fsharp
+// Bad - non-trivial lambda inlined in JSX string
+JSX.jsx
+    $"""
+    <TextField
+        value={password}
+        onChange={fun (e: Browser.Types.Event) ->
+                      setPassword (e.target?value: string)
+                      setLoginError false}
+    />
+    """
+
+// Good - extracted to a named handler
+let handlePasswordChange (e: Browser.Types.Event) =
+    setPassword (e.target?value: string)
+    setLoginError false
+
+JSX.jsx
+    $"""
+    <TextField
+        value={password}
+        onChange={handlePasswordChange}
+    />
+    """
+
+// Acceptable - trivial dispatch lambda may remain inline
+JSX.jsx
+    $"""
+    <Button onClick={fun _ -> Close |> dispatch}>Close</Button>
+    """
 ```
 
 ## References
