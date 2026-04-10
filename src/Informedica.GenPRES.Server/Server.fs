@@ -51,17 +51,28 @@ let password =
 // so the full proprietary Sheet ID never lands in startup logs / screenshots
 // / bug reports while still giving operators enough of a fingerprint to
 // confirm the right ID is loaded.
+//
+// The full display string (including the `***` prefix) is built here, NOT in
+// the format string below — otherwise the unset path renders as
+// `***NOT SET` (misleading) and a hypothetically-short ID (≤ 5 chars) would
+// be printed verbatim, defeating the redaction goal. Real Google Sheet IDs
+// are always > 30 characters; the `<redacted>` branch is purely defensive.
 let urlId =
     tryGetEnv "GENPRES_URL_ID"
     |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
-    |> Option.map (fun s -> if s.Length > 5 then s.Substring(s.Length - 5) else s)
-    |> Option.defaultValue "NO GENPRES_URL_ID"
+    |> Option.map (fun s ->
+        if s.Length > 5 then
+            $"***{s.Substring(s.Length - 5)}"
+        else
+            "***<redacted>"
+    )
+    |> Option.defaultValue "NOT SET"
 
 
 $"""
 
 === Environmental variables ===
-GENPRES_URL_ID = ***{urlId}
+GENPRES_URL_ID = {urlId}
 GENPRES_LOG ={tryGetEnv "GENPRES_LOG" |> Option.defaultValue "0"}
 GENPRES_PROD = {tryGetEnv "GENPRES_PROD" |> Option.defaultValue "0"}
 GENPRES_DEBUG = {tryGetEnv "GENPRES_DEBUG" |> Option.defaultValue "i"}

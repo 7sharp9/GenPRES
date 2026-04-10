@@ -351,11 +351,24 @@ DoseType : {filter.DoseType
             // password through per-character timing. `FixedTimeEquals` returns
             // false (without short-circuiting) when the byte arrays differ in
             // length, so it is safe with variable-length passwords.
-            // Default-reject (fail-closed) when GENPRES_PASSWORD is unset.
+            //
+            // The `Option.filter (IsNullOrWhiteSpace >> not)` step is essential:
+            // `Env.getItem` returns `Some ""` when an env var is set but empty,
+            // which is exactly what `Dockerfile` does with `ENV GENPRES_PASSWORD=`
+            // for Plesk-style runtime injection. Without the filter,
+            // `FixedTimeEquals(getBytes(""), getBytes(""))` would evaluate to
+            // `true` and an empty-string ReloadResources request would
+            // authenticate. The filter coerces empty/whitespace to `None`, so
+            // the fail-closed `Option.defaultValue true` branch fires.
+            //
+            // Default-reject (fail-closed) when GENPRES_PASSWORD is unset, empty,
+            // or whitespace-only. Mirrors `Server.fs` `validateProductionPassword`.
+            //
             // TODO(D4 follow-up): migrate ReloadResources to the HMAC token
             // system used by LogAnalyzerCmd so this command no longer needs
             // the raw password on the wire.
             Env.getItem "GENPRES_PASSWORD"
+            |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
             |> Option.map (fun expected ->
                 not (
                     System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
@@ -365,7 +378,7 @@ DoseType : {filter.DoseType
                 )
             )
             |> Option.defaultValue true
-            -> // no env var = always reject
+            -> // no env var (or empty/whitespace) = always reject
             Error [| "Invalid password" |]
         | _ ->
             try
