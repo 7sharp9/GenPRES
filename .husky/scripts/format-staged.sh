@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Auto-format staged F# files with Fantomas and re-stage them
 #
 # WARNING: If a developer stages only specific hunks of a file (git add -p),

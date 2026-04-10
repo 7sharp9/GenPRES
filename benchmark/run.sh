@@ -1,1 +1,2 @@
-sudo dotnet run -c Release $@
+#!/usr/bin/env bash
+sudo dotnet run -c Release "$@"

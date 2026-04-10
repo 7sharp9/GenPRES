@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # debugTests - Run all test projects with debug mode
 # Usage: ./debugTests.sh
