@@ -346,11 +346,17 @@ DoseType : {filter.DoseType
 
         match cmd with
         | Api.ReloadResources password when
-            // SECURITY: constant-time password comparison via
-            // CryptographicOperations.FixedTimeEquals to avoid leaking the
-            // password through per-character timing. `FixedTimeEquals` returns
-            // false (without short-circuiting) when the byte arrays differ in
-            // length, so it is safe with variable-length passwords.
+            // SECURITY: use CryptographicOperations.FixedTimeEquals so equal-
+            // length password comparisons do not leak information through
+            // per-byte timing differences. Per .NET docs, FixedTimeEquals
+            // SHORT-CIRCUITS and returns `false` immediately when the byte
+            // arrays differ in length — fixed-time behavior is only
+            // guaranteed for equal-length inputs. The byte length of
+            // `expected` may therefore leak through wall-clock timing of
+            // length-mismatch rejections; this is acceptable for now because
+            // the production startup check enforces a ≥ 16-character
+            // GENPRES_PASSWORD and the proper fix is to drop raw-password-
+            // on-the-wire entirely (see TODO(D4 follow-up) below).
             //
             // The `Option.filter (IsNullOrWhiteSpace >> not)` step is essential:
             // `Env.getItem` returns `Some ""` when an env var is set but empty,
@@ -361,8 +367,10 @@ DoseType : {filter.DoseType
             // authenticate. The filter coerces empty/whitespace to `None`, so
             // the fail-closed `Option.defaultValue true` branch fires.
             //
-            // Default-reject (fail-closed) when GENPRES_PASSWORD is unset, empty,
-            // or whitespace-only. Mirrors `Server.fs` `validateProductionPassword`.
+            // Default-reject (fail-closed) when GENPRES_PASSWORD is unset,
+            // empty, or whitespace-only. Mirrors `Server.fs`
+            // `validateProductionPassword` and `ServerApi.Command.fs`
+            // `validatePassword`.
             //
             // TODO(D4 follow-up): migrate ReloadResources to the HMAC token
             // system used by LogAnalyzerCmd so this command no longer needs
