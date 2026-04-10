@@ -62,7 +62,7 @@ let urlId =
     |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
     |> Option.map (fun s ->
         if s.Length > 5 then
-            $"***{s.Substring(s.Length - 5)}"
+            $"***%s{s.Substring(s.Length - 5)}"
         else
             "***<redacted>"
     )
@@ -126,7 +126,7 @@ let private validateProductionPassword () =
                  See DEVELOPMENT.md → Password policy."
         | Some pwd when pwd.Length < minProductionPasswordLength ->
             failwith
-                $"GENPRES_PROD=1 but GENPRES_PASSWORD is shorter than {minProductionPasswordLength} characters. \
+                $"GENPRES_PROD=1 but GENPRES_PASSWORD is shorter than %i{minProductionPasswordLength} characters. \
                  Refusing to start in production with a weak admin password. \
                  Generate a stronger one with `openssl rand -base64 32`. \
                  See DEVELOPMENT.md → Password policy."

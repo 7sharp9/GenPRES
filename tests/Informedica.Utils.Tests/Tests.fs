@@ -1398,7 +1398,7 @@ module Tests =
 
                         Expect.isFalse
                             (typeName.Contains("List`1"))
-                            $"Expected Newtonsoft to ignore `$type`; got concrete type '{typeName}'. This means TypeNameHandling has been changed away from None — see SECURITY comment in src/Informedica.Utils.Lib/Json.fs."
+                            $"Expected Newtonsoft to ignore `$type`; got concrete type '%s{typeName}'. This means TypeNameHandling has been changed away from None — see SECURITY comment in src/Informedica.Utils.Lib/Json.fs."
                     }
 
                     test "round-trip of a plain record preserves data" {
