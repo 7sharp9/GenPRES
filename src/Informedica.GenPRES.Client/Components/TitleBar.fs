@@ -122,7 +122,10 @@ module TitleBar =
             {|
                 display = "flex"
                 alignItems = "center"
+                marginLeft = 2
             |}
+
+        let loginButtonSx = {| marginLeft = 2 |}
 
         let sxLangLabel =
             {|
@@ -132,6 +135,12 @@ module TitleBar =
             |}
 
         let loginButtonText = if props.isAuthenticated then "Logout" else "Login"
+
+        let loginButtonIcon =
+            if props.isAuthenticated then
+                Mui.Icons.Logout
+            else
+                Mui.Icons.Login
 
         let flexGrowSx = {| flexGrow = 1 |}
         let menuIconSx = {| marginRight = 2 |}
@@ -217,7 +226,7 @@ module TitleBar =
                             {menuItems}
                         </Menu>
                     </Box>
-                    <Button color="inherit" onClick={handleLoginClick}>{loginButtonText}</Button>
+                    <Button color="inherit" onClick={handleLoginClick} startIcon={loginButtonIcon} sx={loginButtonSx}>{loginButtonText}</Button>
                 </Toolbar>
             </AppBar>
             <Dialog open={loginDialogOpen} onClose={handleLoginClose}>

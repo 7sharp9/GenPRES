@@ -351,6 +351,22 @@ module Icons =
         <LocalHospital />
     """
 
+    [<JSX.Component>]
+    let Login =
+        JSX.jsx
+            $"""
+        import LoginIcon from '@mui/icons-material/Login';
+        <LoginIcon />
+    """
+
+    [<JSX.Component>]
+    let Logout =
+        JSX.jsx
+            $"""
+        import LogoutIcon from '@mui/icons-material/Logout';
+        <LogoutIcon />
+    """
+
     let PsychologyIcon =
         JSX.jsx
             $"""
