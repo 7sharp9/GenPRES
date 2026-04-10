@@ -88,6 +88,177 @@ The `Run` target starts two long-running processes **in parallel**:
 
 Output from both processes is printed concurrently with colour-coded prefixes (`server:`, `client:`).
 
+### Helper Shell Scripts
+
+The project uses a small number of bash helper scripts to wrap common `dotnet run`, `docker build`, `docker run`, and Fantomas-hook invocations. They fall into **two categories**:
+
+1. **Tracked scripts** — committed to the repo. Available immediately after `git clone`.
+2. **Optional local scripts** — recipes you can paste into your working copy as a personal convenience. They are deliberately **not** committed: the opt-in `.gitignore` strategy (`*` followed by explicit `!path` allow-lines) excludes them so each developer can keep their own variants without polluting the repo.
+
+Common conventions for both categories:
+
+- Every script starts with `#!/usr/bin/env bash` so it stays portable across Linux and macOS.
+- After creating a local script, mark it executable: `chmod +x scriptname.sh`.
+- Run from the **repo root** (e.g. `./debug.sh`), with the single exception of `benchmark/run.sh`, which is invoked from the `benchmark/` directory.
+- Scripts that use environment variables source the repo-root `.env` file via `set -a; source .env; set +a`. See [Environment Configuration](#environment-configuration) for what `.env` contains and how the priority order works.
+
+#### Tracked scripts (in the repo)
+
+These three scripts ship with the repository and are listed explicitly in `.gitignore` with `!` allow-entries.
+
+- **`debugTests.sh`** — sources `.env`, then iterates through eight test projects (`Utils`, `Agents`, `Logging`, `GenUnits`, `GenCore`, `GenSolver`, `GenForm`, `GenOrder`, plus the `Server` test project) and runs each with `dotnet run --project <proj> -- --debug --summary --sequenced`. Exits non-zero on the first failure. Similar to `dotnet run ServerTests` but with per-project isolation, debug output, and forced sequential execution — useful when chasing flaky tests or test interactions. The project list is hardcoded; if you add a new test project, update both this script and the `ServerTests` FAKE target.
+- **`benchmark/run.sh`** — runs `sudo dotnet run -c Release "$@"`. Must be invoked from the `benchmark/` directory; it does not `cd` for you. The `sudo` is required because some BenchmarkDotNet diagnostics need elevated privileges. Extra arguments are forwarded to `dotnet run`.
+- **`.husky/scripts/format-staged.sh`** — invoked by the Husky pre-commit hook. Receives staged F# files as positional arguments, warns about partially-staged files (Fantomas formats the *full working-tree* version of each file, not just the staged hunks), runs `dotnet fantomas` on them, and re-stages the formatted output. You normally never call this directly; it runs automatically on `git commit`. See also [CONTRIBUTING.md](CONTRIBUTING.md#code-formatting-pre-commit-hook).
+
+#### Optional local scripts (not in the repo — paste into your working copy)
+
+Everything in this subsection is a **template**. Nothing here exists after a fresh `git clone` — `git status` will not show these files even after you create them, because the opt-in `.gitignore` excludes them by design. Save each block at the path indicated, run `chmod +x` once, and you're done.
+
+##### Run-mode wrappers (`dotnet run`)
+
+Five wrappers launch the full stack with different `GENPRES_*` presets. They all source `.env` first and then export overrides — the exported values **win** over anything coming from `.env`. For the full priority order, see [Environment Configuration](#environment-configuration).
+
+| File | Mode | `GENPRES_LOG` | `GENPRES_PROD` | `GENPRES_DEBUG` | Purpose |
+|---|---|---|---|---|---|
+| `debug.sh` | Demo, info logging | `i` | `0` | `1` | Default for local development against the demo dataset. |
+| `debugprod.sh` | Production data, debug logging | `d` | `1` | `1` | Clears the log folder first. Requires a real `GENPRES_URL_ID` in `.env`. |
+| `infoprod.sh` | Production data, info logging | `i` | `1` | `1` | Clears the log folder first. Less verbose than `debugprod.sh`. |
+| `logprod.sh` | Production data, info logging, no debug | `i` | `1` | `0` | Same logging level as `infoprod.sh` but with the debug flag off. |
+| `prod.sh` | Production data, no logging | `0` | `1` | `0` | Mirrors a real production launch locally. |
+
+**`debug.sh`** — save at the repo root:
+
+```bash
+#!/usr/bin/env bash
+# Load env vars from .env (GENPRES_URL_ID etc.)
+set -a; source .env; set +a
+
+# Override for debug mode
+export GENPRES_LOG=i
+export GENPRES_PROD=0
+export GENPRES_DEBUG=1
+
+dotnet run
+```
+
+**`debugprod.sh`** — save at the repo root:
+
+```bash
+#!/usr/bin/env bash
+# clear ./src/Informedica.GenPRES.Server/data/logs folder
+if [ -d "./src/Informedica.GenPRES.Server/data/logs" ]; then
+    echo "Clearing logs folder..."
+    rm -rf ./src/Informedica.GenPRES.Server/data/logs/*
+    echo "Logs folder cleared."
+else
+    echo "Logs folder does not exist, creating it..."
+    mkdir -p ./src/Informedica.GenPRES.Server/data/logs
+fi
+
+# Load env vars from .env (GENPRES_URL_ID etc.)
+set -a; source .env; set +a
+
+# Override for debug-production mode
+export GENPRES_LOG="d"
+export GENPRES_PROD=1
+export GENPRES_DEBUG=1
+
+dotnet run
+```
+
+**`infoprod.sh`** — save at the repo root. Same shape as `debugprod.sh`, but with `GENPRES_LOG="i"`:
+
+```bash
+#!/usr/bin/env bash
+# clear ./src/Informedica.GenPRES.Server/data/logs folder
+if [ -d "./src/Informedica.GenPRES.Server/data/logs" ]; then
+    echo "Clearing logs folder..."
+    rm -rf ./src/Informedica.GenPRES.Server/data/logs/*
+    echo "Logs folder cleared."
+else
+    echo "Logs folder does not exist, creating it..."
+    mkdir -p ./src/Informedica.GenPRES.Server/data/logs
+fi
+
+# Load env vars from .env (GENPRES_URL_ID etc.)
+set -a; source .env; set +a
+
+# Override for info-production mode
+export GENPRES_LOG="i"
+export GENPRES_PROD=1
+export GENPRES_DEBUG=1
+
+dotnet run
+```
+
+**`logprod.sh`** — save at the repo root:
+
+```bash
+#!/usr/bin/env bash
+# Load env vars from .env (GENPRES_URL_ID etc.)
+set -a; source .env; set +a
+
+# Override for log-production mode
+export GENPRES_LOG=i
+export GENPRES_PROD=1
+export GENPRES_DEBUG=0
+
+dotnet run
+```
+
+**`prod.sh`** — save at the repo root:
+
+```bash
+#!/usr/bin/env bash
+# Load env vars from .env (GENPRES_URL_ID etc.)
+set -a; source .env; set +a
+
+# Override for production mode
+export GENPRES_LOG=0
+export GENPRES_PROD=1
+export GENPRES_DEBUG=0
+
+dotnet run
+```
+
+##### Docker wrappers
+
+None of these wrappers bake `GENPRES_URL_ID` into the image — that constraint is enforced by the `Dockerfile` itself and described in [Environment Configuration](#environment-configuration).
+
+**`docker-local.sh`** — build for the local processor architecture (Apple Silicon → arm64; Intel/Linux → amd64). Save at the repo root:
+
+```bash
+#!/usr/bin/env bash
+docker build -t halcwb/genpres .
+```
+
+**`docker-amd64.sh`** — cross-build an amd64 image on Apple Silicon for deployment to a typical Linux host. Save at the repo root:
+
+```bash
+#!/usr/bin/env bash
+docker build --platform linux/amd64 -t halcwb/genpres .
+```
+
+**`docker-run.sh`** — source `.env`, validate that both `GENPRES_URL_ID` and `GENPRES_PASSWORD` are set (the `:` parameter expansion fails fast if either is missing), then run the container with the right `-e` flags. Save at the repo root:
+
+```bash
+#!/usr/bin/env bash
+# Load env vars from .env (single source of truth — same as prod.sh / debug.sh).
+set -a; source .env; set +a
+
+# Fail fast if .env did not provide the secrets, so we don't start an
+# unauthenticated container that the in-server validateProductionPassword
+# would refuse later anyway.
+: "${GENPRES_URL_ID:?GENPRES_URL_ID is not set in .env}"
+: "${GENPRES_PASSWORD:?GENPRES_PASSWORD is not set in .env}"
+
+docker run -e GENPRES_URL_ID="${GENPRES_URL_ID}" \
+           -e GENPRES_PASSWORD="${GENPRES_PASSWORD}" \
+           -p 8080:8085 halcwb/genpres
+```
+
+If you find yourself wanting to commit one of these local scripts (e.g. because the team agrees it should be standardized), add a `!`-prefixed allow-line for the file to `.gitignore` in the same PR — otherwise the opt-in strategy will silently keep it untracked.
+
 ### CI/CD Pipeline (GitHub Actions)
 
 The CI pipeline is defined in `.github/workflows/build.yml` and runs on every push or pull request to `master` across three operating systems:

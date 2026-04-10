@@ -98,6 +98,14 @@ For production deployments use a Docker / Kubernetes secret rather than
 passing the value on the command line. Open a browser to
 <http://localhost:8080> to view the site.
 
+> **Tip**: If you find yourself typing these commands often, see
+> [Helper Shell Scripts](DEVELOPMENT.md#helper-shell-scripts) in
+> DEVELOPMENT.md for ready-to-paste templates of `docker-local.sh`,
+> `docker-amd64.sh`, and `docker-run.sh`. These are *local-only*
+> convenience wrappers — they are not committed to the repo, and the
+> opt-in `.gitignore` strategy deliberately keeps them untracked so
+> each developer can customize them.
+
 ## User Documentation
 
 For guidance on using and testing the application, see the [User Guide](docs/user-guide/README.md):

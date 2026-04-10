@@ -128,6 +128,20 @@ Join our [Slack workspace](https://genpresworkspace.slack.com) for:
 
 Documented in [./DEVELOPMENT.md](./DEVELOPMENT.md).
 
+## Code Formatting (Pre-Commit Hook)
+
+F# files staged for commit are automatically formatted by [Fantomas](https://github.com/fsprojects/fantomas) via the Husky pre-commit hook. The hook delegates to `.husky/scripts/format-staged.sh`, which receives the staged F# files as positional arguments, runs `dotnet fantomas` on them, and re-stages the formatted output.
+
+> **Caveat**: Fantomas always formats the **full working-tree** version of each file, not just the hunks you staged. If you used `git add -p` to stage only specific hunks, the unstaged hunks of the same file will be silently pulled into the commit. The hook prints a warning when this is about to happen — read it carefully and abort the commit if necessary.
+
+You can also run Fantomas manually on the entire repo:
+
+```bash
+dotnet run Format
+```
+
+For the full list of helper scripts (run modes, Docker, tests, hooks) and what each one does, see [Helper Shell Scripts](DEVELOPMENT.md#helper-shell-scripts) in DEVELOPMENT.md.
+
 ## Markdown Linting
 
 Markdown files are linted automatically as a pre-commit hook using [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2). The hook is **non-blocking** — it prints warnings but never prevents a commit from succeeding.
