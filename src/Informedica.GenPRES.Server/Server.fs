@@ -33,17 +33,50 @@ let getClientIP (context: HttpContext) =
 let tryGetEnv key = Env.getItem key
 
 
+// Banner display strings. The empty-string filter matches the runtime checks
+// in `validateProductionPassword` and the `provider` binding below: the
+// Dockerfile declares `ENV GENPRES_PASSWORD=` / `ENV GENPRES_URL_ID=` with
+// empty defaults so the variables are discoverable by container management
+// UIs (Plesk, Portainer, ...). An empty value must be reported as not-set,
+// otherwise the banner would mislead an operator into thinking a real value
+// was injected.
+let password =
+    tryGetEnv "GENPRES_PASSWORD"
+    |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
+    |> Option.map (fun _ -> "***")
+    |> Option.defaultValue "NOT SET (admin operations disabled)"
+
+
+// Show only the last 5 characters of GENPRES_URL_ID, prefixed with `***`,
+// so the full proprietary Sheet ID never lands in startup logs / screenshots
+// / bug reports while still giving operators enough of a fingerprint to
+// confirm the right ID is loaded.
+//
+// The full display string (including the `***` prefix) is built here, NOT in
+// the format string below — otherwise the unset path renders as
+// `***NOT SET` (misleading) and a hypothetically-short ID (≤ 5 chars) would
+// be printed verbatim, defeating the redaction goal. Real Google Sheet IDs
+// are always > 30 characters; the `<redacted>` branch is purely defensive.
+let urlId =
+    tryGetEnv "GENPRES_URL_ID"
+    |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
+    |> Option.map (fun s ->
+        if s.Length > 5 then
+            $"***%s{s.Substring(s.Length - 5)}"
+        else
+            "***<redacted>"
+    )
+    |> Option.defaultValue "NOT SET"
+
+
 $"""
 
 === Environmental variables ===
-GENPRES_URL_ID={tryGetEnv "GENPRES_URL_ID" |> Option.defaultValue "NO GENPRES_URL_ID"}
-GENPRES_LOG={tryGetEnv "GENPRES_LOG" |> Option.defaultValue "0"}
-GENPRES_PROD={tryGetEnv "GENPRES_PROD" |> Option.defaultValue "0"}
-GENPRES_DEBUG={tryGetEnv "GENPRES_DEBUG" |> Option.defaultValue "i"}
-GENPRES_PASSWORD={if tryGetEnv "GENPRES_PASSWORD" |> Option.isSome then
-                      "***"
-                  else
-                      "NOT SET (admin operations disabled)"}
+GENPRES_URL_ID = {urlId}
+GENPRES_LOG ={tryGetEnv "GENPRES_LOG" |> Option.defaultValue "0"}
+GENPRES_PROD = {tryGetEnv "GENPRES_PROD" |> Option.defaultValue "0"}
+GENPRES_DEBUG = {tryGetEnv "GENPRES_DEBUG" |> Option.defaultValue "i"}
+GENPRES_PASSWORD = {password}
 
 === System Info ===
 
@@ -55,6 +88,52 @@ GENPRES_PASSWORD={if tryGetEnv "GENPRES_PASSWORD" |> Option.isSome then
 
 let port =
     "SERVER_PORT" |> tryGetEnv |> Option.map uint16 |> Option.defaultValue 8085us
+
+
+// SECURITY: when running in production mode (GENPRES_PROD=1), refuse to start
+// if GENPRES_PASSWORD is missing or shorter than 16 characters. The dev
+// password "genpres" must never reach production. The check is intentionally
+// fail-closed and runs before any HTTP listener is bound.
+//
+// In demo/dev mode (GENPRES_PROD≠1) any value (or none) is accepted; admin
+// operations remain disabled when GENPRES_PASSWORD is unset (see
+// ServerApi.Command.fs:11-14 and ServerApi.Services.fs ReloadResources).
+let private minProductionPasswordLength = 16
+
+
+let private validateProductionPassword () =
+    let isProd =
+        tryGetEnv "GENPRES_PROD"
+        |> Option.map (fun v -> v = "1")
+        |> Option.defaultValue false
+
+    if isProd then
+        // Treat empty / whitespace-only as unset. The Dockerfile declares
+        // `ENV GENPRES_PASSWORD=` with an empty default so the variable is
+        // discoverable by container management UIs (Plesk, Portainer, ...);
+        // operators inject the real value at runtime. An operator that
+        // forgets to inject it must hit the "not set" path, not the
+        // "shorter than 16 characters" path.
+        match
+            tryGetEnv "GENPRES_PASSWORD"
+            |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
+        with
+        | None ->
+            failwith
+                "GENPRES_PROD=1 but GENPRES_PASSWORD is not set (or is empty). \
+                 Refusing to start in production without an admin password. \
+                 Generate one with `openssl rand -base64 32` and inject it via a secret store. \
+                 See DEVELOPMENT.md → Password policy."
+        | Some pwd when pwd.Length < minProductionPasswordLength ->
+            failwith
+                $"GENPRES_PROD=1 but GENPRES_PASSWORD is shorter than %i{minProductionPasswordLength} characters. \
+                 Refusing to start in production with a weak admin password. \
+                 Generate a stronger one with `openssl rand -base64 32`. \
+                 See DEVELOPMENT.md → Password policy."
+        | Some _ -> ()
+
+
+validateProductionPassword ()
 
 
 let provider =
@@ -70,8 +149,15 @@ let provider =
         |> Option.map _.Logger
         |> Option.defaultValue Informedica.GenOrder.Lib.Logging.noOp
 
+    // Treat empty / whitespace-only as unset (the Dockerfile declares
+    // `ENV GENPRES_URL_ID=` with an empty default so it is visible to
+    // container management UIs; operators inject the real value at runtime).
+    // Without this filter, the empty string would silently flow into
+    // `getCachedProviderWithDataUrlId` and surface much later as a confusing
+    // "cannot find column" error from GenForm.
     tryGetEnv "GENPRES_URL_ID"
-    |> Option.defaultWith (fun () -> failwith "No GENPRES_URL_ID")
+    |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
+    |> Option.defaultWith (fun () -> failwith "No GENPRES_URL_ID (or value is empty)")
     |> Informedica.GenForm.Lib.Api.getCachedProviderWithDataUrlId logger
 
 

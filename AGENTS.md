@@ -78,8 +78,10 @@ dotnet test tests/Informedica.GenUNITS.Tests/
 
 ### Docker
 
-- `docker build --build-arg GENPRES_URL_ARG="your_secret_url_id" -t halcwb/genpres .`
-- `docker run -it -p 8080:8085 halcwb/genpres`
+The proprietary `GENPRES_URL_ID` is **not** baked into the image any more. Inject it (and `GENPRES_PASSWORD` for admin operations) at container runtime, ideally via a Docker / Kubernetes secret.
+
+- `docker build -t halcwb/genpres .`
+- `docker run -it -p 8080:8085 -e GENPRES_URL_ID="your_url_id" -e GENPRES_PASSWORD="your_admin_password" halcwb/genpres`
 - `dotnet run DockerRun` - Run pre-built Docker image
 
 ## Key Code Locations
@@ -161,7 +163,7 @@ Test scenarios are defined in `tests/Informedica.GenORDER.Tests/Scenarios.fs` an
 
 ### "Specify which project or solution file to use"
 
-```
+```text
 MSBUILD : error MSB1011: Specify which project or solution file to use
 because this folder contains more than one project or solution file.
 ```
@@ -357,6 +359,7 @@ FSI's `#load` directive resolves relative paths from its *include path*, **not**
 ```
 
 **Important:**
+
 - `System.IO.Directory.SetCurrentDirectory()` does **not** affect `#load` path resolution — you must use `#I`
 - The MCP `load_f_sharp_script` tool sends script statements to FSI individually, so `#load` directives inside scripts also resolve from FSI's include path. Set `#I` before calling `load_f_sharp_script`
 - Scripts should include `#I __SOURCE_DIRECTORY__` at the top so they work both when run via `dotnet fsi` (where `__SOURCE_DIRECTORY__` is the script's directory) and when loaded after manually setting `#I` via MCP

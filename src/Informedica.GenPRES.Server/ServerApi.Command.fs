@@ -8,9 +8,32 @@ module Command =
     open Informedica.Utils.Lib
 
 
+    // SECURITY: validatePassword uses CryptographicOperations.FixedTimeEquals
+    // so equal-length password comparisons do not leak information through
+    // per-byte timing differences. Per .NET docs, FixedTimeEquals short-
+    // circuits when the byte arrays differ in length; the (small) length-
+    // leak is acceptable here because the production startup check enforces
+    // a minimum 16-character GENPRES_PASSWORD and the proper fix is to
+    // migrate this code path away from raw-password-on-the-wire entirely
+    // (tracked by TODO(D4 follow-up) in ServerApi.Services.fs).
+    //
+    // The `Option.filter (IsNullOrWhiteSpace >> not)` step is essential:
+    // `Env.getItem` returns `Some ""` when an env var is set but empty,
+    // which is what the Dockerfile does with `ENV GENPRES_PASSWORD=` for
+    // Plesk-style runtime injection. Without the filter, `password = ""`
+    // (or `FixedTimeEquals(getBytes(""), getBytes(""))`) would evaluate to
+    // `true` and an empty-password login request would issue a valid
+    // 1-hour HMAC token. The filter coerces empty/whitespace to `None` so
+    // the fail-closed `Option.defaultValue false` branch fires.
     let private validatePassword (password: string) =
         Env.getItem "GENPRES_PASSWORD"
-        |> Option.map (fun expected -> password = expected)
+        |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
+        |> Option.map (fun expected ->
+            System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(password),
+                System.Text.Encoding.UTF8.GetBytes(expected)
+            )
+        )
         |> Option.defaultValue false
 
 
@@ -18,7 +41,15 @@ module Command =
 
 
     let private generateToken () =
-        match Env.getItem "GENPRES_PASSWORD" with
+        // SECURITY: same `Option.filter` as validatePassword — an empty
+        // GENPRES_PASSWORD must NOT be used as the HMAC key, otherwise the
+        // token would be signed with an attacker-known key and trivially
+        // forgeable. Coerce empty/whitespace to `None` so the empty-string
+        // return path fires and login is impossible.
+        match
+            Env.getItem "GENPRES_PASSWORD"
+            |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
+        with
         | None -> ""
         | Some secret ->
             let expiresAt = System.DateTimeOffset.UtcNow.Add(tokenLifetime).ToUnixTimeSeconds()
@@ -42,7 +73,15 @@ module Command =
         if System.String.IsNullOrWhiteSpace(token) then
             false
         else
-            match Env.getItem "GENPRES_PASSWORD" with
+            // SECURITY: same `Option.filter` as validatePassword/generateToken —
+            // an empty/whitespace GENPRES_PASSWORD must NOT be accepted as a
+            // valid HMAC key, otherwise any token signed with the empty key
+            // would verify. Coerce empty to `None` so the fail-closed branch
+            // fires.
+            match
+                Env.getItem "GENPRES_PASSWORD"
+                |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
+            with
             | None -> false
             | Some secret ->
                 let parts = token.Split('.')
