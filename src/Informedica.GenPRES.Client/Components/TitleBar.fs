@@ -69,7 +69,10 @@ module TitleBar =
                 s |> props.switchHosp
 
         let handleLoginClick =
-            fun _ ->
+            fun (e: Browser.Types.MouseEvent) ->
+                let target = e.currentTarget :?> Browser.Types.HTMLElement
+                target.blur ()
+
                 if props.isAuthenticated then
                     props.onLogout ()
                 else
@@ -79,15 +82,15 @@ module TitleBar =
 
         let handleLoginClose = fun _ -> setLoginDialogOpen false
 
-        let handleLoginConfirm =
-            fun _ ->
-                loginAttempted.current <- true
-                setLoginError false
-                props.onLogin password
+        let handleLoginSubmit (e: Browser.Types.Event) =
+            e.preventDefault ()
+            loginAttempted.current <- true
+            setLoginError false
+            props.onLogin password
 
-        let handleLoginKeyDown (e: Browser.Types.KeyboardEvent) =
-            if e.key = "Enter" then
-                handleLoginConfirm ()
+        let handlePasswordChange (e: Browser.Types.Event) =
+            setPassword (e.target?value: string)
+            setLoginError false
 
         let menuItems =
             let sxFlag = {| marginRight = 1 |}
@@ -122,7 +125,10 @@ module TitleBar =
             {|
                 display = "flex"
                 alignItems = "center"
+                marginLeft = 2
             |}
+
+        let loginButtonSx = {| marginLeft = 2 |}
 
         let sxLangLabel =
             {|
@@ -132,6 +138,12 @@ module TitleBar =
             |}
 
         let loginButtonText = if props.isAuthenticated then "Logout" else "Login"
+
+        let loginButtonIcon =
+            if props.isAuthenticated then
+                Mui.Icons.Logout
+            else
+                Mui.Icons.Login
 
         let flexGrowSx = {| flexGrow = 1 |}
         let menuIconSx = {| marginRight = 2 |}
@@ -217,32 +229,41 @@ module TitleBar =
                             {menuItems}
                         </Menu>
                     </Box>
-                    <Button color="inherit" onClick={handleLoginClick}>{loginButtonText}</Button>
+                    <Button color="inherit" onClick={handleLoginClick} startIcon={loginButtonIcon} sx={loginButtonSx}>{loginButtonText}</Button>
                 </Toolbar>
             </AppBar>
             <Dialog open={loginDialogOpen} onClose={handleLoginClose}>
-                <DialogTitle>{"Login"}</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        autoFocus={true}
-                        margin="dense"
-                        label="Password"
-                        type="password"
-                        fullWidth={true}
-                        variant="outlined"
-                        value={password}
-                        error={loginError}
-                        helperText={if loginError then "Invalid password" else ""}
-                        onChange={fun (e: Browser.Types.Event) ->
-                                      setPassword (e.target?value: string)
-                                      setLoginError false}
-                        onKeyDown={handleLoginKeyDown}
+                <form onSubmit={handleLoginSubmit}>
+                    <input
+                        type="text"
+                        name="username"
+                        autoComplete="username"
+                        value="genpres"
+                        readOnly={true}
+                        style={ {| display = "none" |} }
                     />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleLoginClose}>{"Cancel"}</Button>
-                    <Button onClick={handleLoginConfirm} variant="contained">{"Login"}</Button>
-                </DialogActions>
+                    <DialogTitle>{"Login"}</DialogTitle>
+                    <DialogContent>
+                        <TextField
+                            autoFocus={true}
+                            margin="dense"
+                            name="password"
+                            autoComplete="current-password"
+                            label="Password"
+                            type="password"
+                            fullWidth={true}
+                            variant="outlined"
+                            value={password}
+                            error={loginError}
+                            helperText={if loginError then "Invalid password" else ""}
+                            onChange={handlePasswordChange}
+                        />
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleLoginClose} type="button">{"Cancel"}</Button>
+                        <Button type="submit" variant="contained">{"Login"}</Button>
+                    </DialogActions>
+                </form>
             </Dialog>
         </Box>
         """
