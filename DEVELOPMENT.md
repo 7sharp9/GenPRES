@@ -88,6 +88,50 @@ The `Run` target starts two long-running processes **in parallel**:
 
 Output from both processes is printed concurrently with colour-coded prefixes (`server:`, `client:`).
 
+### Helper Shell Scripts
+
+The repository ships a set of bash helper scripts at the project root (and in `benchmark/`) that wrap the most common `dotnet run`, `docker build`, `docker run`, and Fantomas hook invocations. They exist so you don't have to remember which `GENPRES_*` environment variables to set for each run mode, or which long Docker command to type.
+
+**Prerequisites:**
+
+- A `.env` file at the repo root (see [Environment Configuration](#environment-configuration)). Most scripts source it via `set -a; source .env; set +a`.
+- A POSIX shell environment with `bash` available on `PATH`. Every script starts with `#!/usr/bin/env bash` and is marked executable.
+- Run the scripts from the **repo root** (e.g. `./debug.sh`), with the single exception of `benchmark/run.sh`, which expects to be invoked from the `benchmark/` directory.
+
+#### Run modes (`dotnet run` wrappers)
+
+Five scripts launch the full stack (`dotnet run`) with different `GENPRES_*` presets. They all source `.env` first and then export overrides — the exported values **win** over anything coming from `.env`. For the full priority order, see [Environment Configuration](#environment-configuration).
+
+| Script | Mode | `GENPRES_LOG` | `GENPRES_PROD` | `GENPRES_DEBUG` | Notes |
+|---|---|---|---|---|---|
+| `debug.sh` | Demo, info logging | `i` | `0` | `1` | Default for local development against the demo dataset. |
+| `debugprod.sh` | Production data, debug logging | `d` | `1` | `1` | Clears `src/Informedica.GenPRES.Server/data/logs/` before starting. Requires a real `GENPRES_URL_ID` in `.env`. |
+| `infoprod.sh` | Production data, info logging | `i` | `1` | `1` | Clears the logs folder. Less verbose than `debugprod.sh`. |
+| `logprod.sh` | Production data, info logging, no debug | `i` | `1` | `0` | Same logging level as `infoprod.sh` but with the debug flag off. |
+| `prod.sh` | Production data, no logging | `0` | `1` | `0` | Mirrors a real production launch locally. |
+
+#### Docker helpers
+
+- `docker-local.sh` — runs `docker build -t halcwb/genpres .`. Builds for the local processor architecture (Apple Silicon → arm64; Intel/Linux → amd64).
+- `docker-amd64.sh` — runs `docker build --platform linux/amd64 -t halcwb/genpres .`. Cross-builds an amd64 image on Apple Silicon for deployment to a typical Linux host.
+- `docker-run.sh` — sources `.env`, validates that both `GENPRES_URL_ID` and `GENPRES_PASSWORD` are set (it fails fast with `:` parameter expansion if either is missing), then runs `docker run -e GENPRES_URL_ID=… -e GENPRES_PASSWORD=… -p 8080:8085 halcwb/genpres`. Use this instead of typing the long `docker run` invocation by hand.
+
+None of these scripts bake `GENPRES_URL_ID` into the image — that constraint is enforced by the `Dockerfile` itself and described in the [Environment Configuration](#environment-configuration) section.
+
+#### Tests
+
+- `debugTests.sh` — sources `.env`, then iterates through eight test projects (`Utils`, `Agents`, `Logging`, `GenUnits`, `GenCore`, `GenSolver`, `GenForm`, `GenOrder`, plus the `Server` test project) and runs each with `dotnet run --project <proj> -- --debug --summary --sequenced`. Exits non-zero on the first failure. This is similar to `dotnet run ServerTests` but with per-project isolation, debug output, and forced sequential execution — useful when chasing flaky tests or test interactions. The project list is hardcoded in the script; if you add a new test project, update both `debugTests.sh` and the `ServerTests` FAKE target.
+
+#### Benchmarks
+
+- `benchmark/run.sh` — runs `sudo dotnet run -c Release "$@"`. Must be invoked from the `benchmark/` directory; it does not `cd` for you. The `sudo` is required because some BenchmarkDotNet diagnostics need elevated privileges. Any extra arguments are forwarded to `dotnet run`.
+
+#### Git hooks
+
+- `.husky/scripts/format-staged.sh` — invoked by the Husky pre-commit hook. It receives staged F# files as positional arguments, warns about partially-staged files (because Fantomas formats the *full working-tree* version of each file, not just the staged hunks), runs `dotnet fantomas` on them, and re-stages the formatted output. You normally never call this directly; it runs automatically on `git commit`. See also the corresponding note in [CONTRIBUTING.md](CONTRIBUTING.md#code-formatting-pre-commit-hook).
+
+If you add a new helper script, document it in this section and make sure its first line is `#!/usr/bin/env bash` so it stays portable across Linux and macOS.
+
 ### CI/CD Pipeline (GitHub Actions)
 
 The CI pipeline is defined in `.github/workflows/build.yml` and runs on every push or pull request to `master` across three operating systems:
