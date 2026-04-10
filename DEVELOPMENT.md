@@ -188,27 +188,27 @@ Because the application starts the server process indirectly through FAKE, attac
 
 1. Create a `.vscode/launch.json` file (if it does not exist):
 
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Launch GenPRES Server",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "dotnet: build",
-      "program": "${workspaceFolder}/src/Informedica.GenPRES.Server/bin/Debug/net10.0/Informedica.GenPRES.Server.dll",
-      "args": [],
-      "cwd": "${workspaceFolder}/src/Informedica.GenPRES.Server",
-      "stopAtEntry": false,
-      "serverReadyAction": {
-        "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
-      }
-    }
-  ]
-}
-```
+   ```json
+   {
+     "version": "0.2.0",
+     "configurations": [
+       {
+         "name": "Launch GenPRES Server",
+         "type": "coreclr",
+         "request": "launch",
+         "preLaunchTask": "dotnet: build",
+         "program": "${workspaceFolder}/src/Informedica.GenPRES.Server/bin/Debug/net10.0/Informedica.GenPRES.Server.dll",
+         "args": [],
+         "cwd": "${workspaceFolder}/src/Informedica.GenPRES.Server",
+         "stopAtEntry": false,
+         "serverReadyAction": {
+           "action": "openExternally",
+           "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+         }
+       }
+     ]
+   }
+   ```
 
 2. Press **F5** to start the server with the debugger attached
 3. Start the client in a separate terminal: `dotnet fable watch -o output -s -e .jsx --run npx vite` from `src/Informedica.GenPRES.Client/`

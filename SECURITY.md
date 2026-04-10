@@ -47,23 +47,27 @@ The current document is a first draft and will be expanded over time to include 
 ## Security Vulnerability Severity
 
 ### Critical (CVE Score 9.0-10.0)
+
 - Remote code execution
 - Privilege escalation
 - Patient data exposure
 - **Response time:** Immediate (24-48 hours)
 
 ### High (CVE Score 7.0-8.9)
+
 - Authentication bypass
 - Authorization bypass
 - Sensitive data leakage
 - **Response time:** 3-5 days
 
 ### Medium (CVE Score 4.0-6.9)
+
 - Information disclosure
 - Denial of service
 - **Response time:** 1-2 weeks
 
 ### Low (CVE Score 0.1-3.9)
+
 - Minor information disclosure
 - Configuration issues
 - **Response time:** As part of regular release cycle
@@ -71,6 +75,7 @@ The current document is a first draft and will be expanded over time to include 
 ## Security Best Practices for Contributors
 
 ### Code Security
+
 - Never commit sensitive data (credentials, API keys, patient data)
 - Use parameterized queries (SQL injection prevention)
 - Validate and sanitize all user inputs
@@ -78,24 +83,28 @@ The current document is a first draft and will be expanded over time to include 
 - Review [CONTRIBUTING.md](CONTRIBUTING.md) for secure coding guidelines
 
 ### Dependency Management
+
 - Keep dependencies up to date
 - Review dependency security advisories
 - Use Dependabot or similar tools
 - Audit third-party packages regularly
 
 ### Medical Device Compliance
+
 - Follow MDR (EU Medical Device Regulation 2017/745) security requirements
 - Maintain audit logs for all security-relevant events
 - Implement access controls appropriate for medical software
 - Ensure GDPR compliance for patient data
 
 ### Authentication & Authorization
+
 - Implement secure session management
 - Use strong password policies
 - Support multi-factor authentication where applicable
 - Implement proper role-based access control (RBAC)
 
 ### Data Protection
+
 - Encrypt sensitive data at rest and in transit
 - Implement secure key management
 - Follow data minimization principles
@@ -160,6 +169,7 @@ The current document is a first draft and will be expanded over time to include 
    - Documented production password policy in `.env.example` and `DEVELOPMENT.md` (Password policy section)
 
 ### Planned Security Enhancements
+
 - [ ] Automated security scanning in CI/CD
 - [ ] Penetration testing
 - [ ] Security-focused code reviews
@@ -202,6 +212,7 @@ We currently do not offer a bug bounty program but greatly appreciate responsibl
 ## Questions
 
 For non-security questions about GenPRES, please use:
+
 - GitHub Issues for bugs and features
 - GitHub Discussions for questions and ideas
 - See [SUPPORT.md](SUPPORT.md) for more information

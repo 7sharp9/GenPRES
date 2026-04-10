@@ -163,7 +163,7 @@ Test scenarios are defined in `tests/Informedica.GenORDER.Tests/Scenarios.fs` an
 
 ### "Specify which project or solution file to use"
 
-```
+```text
 MSBUILD : error MSB1011: Specify which project or solution file to use
 because this folder contains more than one project or solution file.
 ```
@@ -359,6 +359,7 @@ FSI's `#load` directive resolves relative paths from its *include path*, **not**
 ```
 
 **Important:**
+
 - `System.IO.Directory.SetCurrentDirectory()` does **not** affect `#load` path resolution — you must use `#I`
 - The MCP `load_f_sharp_script` tool sends script statements to FSI individually, so `#load` directives inside scripts also resolve from FSI's include path. Set `#I` before calling `load_f_sharp_script`
 - Scripts should include `#I __SOURCE_DIRECTORY__` at the top so they work both when run via `dotnet fsi` (where `__SOURCE_DIRECTORY__` is the script's directory) and when loaded after manually setting `#I` via MCP
