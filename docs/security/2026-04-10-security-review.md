@@ -112,6 +112,92 @@ control process.
 
 ---
 
+## Update — 2026-04-11 (post-implementation of demo remediations)
+
+A second remediation pass landed today, scoped to the public demo at
+`https://genpres.nl/`. It started from a live security probe of the
+deployed site that confirmed the open findings in this review and
+surfaced one new deployment-only issue (**L1**, runtime ABI drift in
+`Fable.Remoting.Giraffe 5.24` on .NET 10). Findings outside this pass
+are unchanged.
+
+The remediation plan and the live regression suite that re-runs each
+check are stored locally (deliberately not committed):
+
+- Plan: `~/.claude/plans/dapper-hopping-quiche.md`
+- Regression suite: `~/.claude/projects/-Users-halcwb-Development-halcwb-apps-GenPRES/security/run.sh`
+
+### Resolved items
+
+| ID | Status | Change | Files |
+|---|---|---|---|
+| **L1** (new) | ✅ Fixed | Pinned `Giraffe = 6.4.0` in `paket.dependencies` to dodge the binary mismatch in `Fable.Remoting.Giraffe 5.24`'s error path that previously leaked the full .NET type signature on every malformed POST. Added a `safeWebApi` wrapper around `webApi` in `Server.fs` that catches `MissingMethodException` / `TypeLoadException` and returns a clean `400 / "Bad Request"` as a belt-and-braces guarantee. | `paket.dependencies`, `paket.lock`, `src/Informedica.GenPRES.Server/Server.fs` (`safeWebApi`) |
+| **L2 / B5** | ✅ Fixed | Replaced the legacy `GET >=> text "GenInteractions App. Use localhost: 8080 for the GUI"` catch-all with `setStatusCode 404 >=> text "Not Found"`. The old string disclosed a stale app name and hinted at a separate GUI on port 8080; both reachable via the nginx SPA fallback for `/.env`, `/.git/HEAD`, `/admin`, etc. | `src/Informedica.GenPRES.Server/Server.fs` (`webApp`) |
+| **B2** | ✅ Fixed (C1 / demo) | Added `securityHeadersMiddleware` (ASP.NET middleware via `app_config`) using `Response.OnStarting` so the headers land on every flushed response — static files, Giraffe routes, the 404 fallback, and Fable.Remoting error responses alike. Headers: `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy` (with allow-list for `maxcdn`, `fonts.googleapis.com`, `fonts.gstatic.com`, `docs.google.com`). `X-Powered-By` is stripped defensively. | `src/Informedica.GenPRES.Server/Server.fs` (`securityHeadersMiddleware`, `application`) |
+| **A2** | ✅ Fixed (C1 / demo) | Added `addRateLimiting` using `Microsoft.AspNetCore.RateLimiting` (no new NuGet/Paket dependency — ships with the SDK). Per-IP fixed-window limiter, 60 requests / 10 s window, no queue, partition keyed by `getClientIP` so `X-Forwarded-For` is honoured behind nginx. Sized for the SPA's actual interaction pattern (~4 RPCs per click; clinician burst absorbed). Wired into the pipeline via `app_config` + `UseRateLimiter()`. **Note:** `X-Forwarded-For` is still trusted without an allow-list (finding **B3**, deferred). A proper auth-lockout that only touches the password path needs `Remoting.fromContext` and is also deferred. | `src/Informedica.GenPRES.Server/Server.fs` (`addRateLimiting`, `application`) |
+| **D2** | ✅ Fixed | Added `integrity="sha384-..."` + `crossorigin="anonymous"` to the `font-awesome.min.css` link in `index.html`. Google Fonts CSS endpoints (`fonts.googleapis.com/css?...`) serve user-agent-dependent CSS so SRI is not feasible for them — they would have to be self-hosted to be hashed. Documented inline. | `src/Informedica.GenPRES.Client/index.html` |
+
+### Intentional non-remediation
+
+- **A5** — clinical RPCs remain unauthenticated on the public demo by
+  explicit user decision: gating the public demo would defeat its
+  purpose. The decision is recorded inline at the **A5** finding in §4
+  ("2026-04-10 — Demo decision"). A5 **must** be re-enabled before any
+  non-demo deployment using the existing `validateToken` helper at
+  `ServerApi.Command.fs:72-121` and a new `GENPRES_REQUIRE_AUTH=1`
+  feature flag. Live regression tests 3.3 / 3.4 / 3.5 are expected to
+  FAIL on the demo and must PASS on any other deployment.
+
+### Updated severity counts (after 2026-04-11)
+
+| Severity | C1 dev | C2 on-prem | C3 SaaS |
+|---|---|---|---|
+| Critical | 0 (–) | 1 (–) | 4 (–1) |
+| High     | 1 (–) | 4 (–2) | 6 (–1) |
+| Medium   | 6 (–) | 4 (–1) | 3 (–1) |
+| Low      | 4 (–3) | 3 (–1) | 3 (–1) |
+
+Deltas (relative to the 2026-04-10 update counts):
+
+- **L2 / B5** removed Low in C2 + C3.
+- **B2** removed Low (C1), High (C2), High (C3).
+- **A2** removed Low (C1), High (C2), Critical (C3).
+- **D2** removed Low (C1), Med (C2), Med (C3).
+- **L1** is a new finding that was opened and resolved in the same
+  pass; it never contributed to a count.
+
+### Verification
+
+- `dotnet run build` — clean, 0 errors.
+- `dotnet run servertests` — **5408 passed, 0 failed, 2 skipped**.
+- Live regression suite against `http://localhost:8080` (Docker
+  container, freshly rebuilt with the changes above):
+  **13 pass / 3 fail of 16**. The three failures are the intentional
+  A5 non-remediation (regression tests 3.3 / 3.4 / 3.5).
+- Live regression suite against `http://localhost:8085` (bare F# dev
+  server): 11 pass / 4 fail — the extra failure is `1.1` ("GET /
+  returns 200"), a local-only artifact because the dev server's
+  `public/` folder is empty until a `Bundle` target runs.
+
+### Items still open
+
+The other three remediation buckets are unchanged from the 2026-04-10
+update:
+
+- **§7.2 (before C2 rollout)**: A1, A5, F1, F2, F3, B3, E4, E5, E8 — none addressed in this pass. (B2 and A2 were §7.2 items but were resolved here at the application layer.)
+- **§7.3 (before C3 rollout)**: A1 (fuller), A3, B4, F1 (retention), G1 — none addressed. (D2 was a §7.3 item but is now resolved.)
+- **§7.4 (hygiene)**: E6, E7, E9, G2, D1 — unchanged. (B5 was a §7.4 item, resolved here.)
+
+### MDR follow-up
+
+Same as the 2026-04-10 update: the regulatory artifacts in
+`docs/mdr/risk-analysis/` have not been touched. The maintainer should
+map L1, L2, B2, A2, D2 into `risk-management-report.md` and the
+hazard-analysis spreadsheets through normal change control before any
+deployment beyond C1.
+
+---
+
 ## 1. Scope and methodology
 
 ### 1.1 In scope
@@ -401,6 +487,22 @@ else
 2. Long term: every RPC must require an authenticated session. The cleanest path is to put `validateToken` in front of `processCmd` as a wrapper, with an explicit allow-list of unauthenticated RPCs (probably just a health check).
 
 **References:** OWASP ASVS V4.1; OWASP API Top 10 #2 (Broken Authentication); CWE-306 (Missing Authentication for Critical Function).
+
+> **2026-04-10 — Demo decision (intentional non-remediation):**
+> A5 is **not** remediated on the public `https://genpres.nl/`
+> deployment. The site exists for public visibility of GenPRES and
+> gating it would defeat that purpose. A5 **must** be re-enabled
+> before any non-demo deployment (C2 / C3), reusing the existing
+> `validateToken` helper at `ServerApi.Command.fs:72-121` (the
+> identical mechanism that already protects `LogAnalyzerCmd.ListLogFiles`
+> and `LogAnalyzerCmd.AnalyzeLogFile`). The simplest path is a
+> `GENPRES_REQUIRE_AUTH=1` env-var feature flag that wraps
+> `processCmd` with the token check. Live regression tests
+> 3.3 / 3.4 / 3.5 in
+> `~/.claude/projects/-Users-halcwb-Development-halcwb-apps-GenPRES/security/run.sh`
+> are expected to FAIL on the demo and must PASS on any other
+> deployment. This decision is recorded in
+> `~/.claude/plans/dapper-hopping-quiche.md`.
 
 ---
 
