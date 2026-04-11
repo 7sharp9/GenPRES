@@ -62,12 +62,15 @@ evidence, decisions, and resolution markers.
 | Severity | C1 dev / demo | C2 on-prem | C3 SaaS |
 |---|---|---|---|
 | Critical | 0 | 1 | 4 |
-| High     | 1 | 4 | 6 |
-| Medium   | 6 | 3 | 2 |
+| High     | 1 | 3 | 5 |
+| Medium   | 5 | 3 | 2 |
 | Low      | 3 | 3 | 3 |
 
 Diff history vs. the 2026-04-10 baseline lives inside the dated
-`Update —` sections; the table above is authoritative.
+`Update —` sections; the table above is authoritative. Most recent
+delta: **E5 removed** from all three contexts (C1 Med, C2 High, C3
+High) on 2026-04-11 — `ClosedXML 0.97` deleted as dead code rather
+than upgraded.
 
 ### Closed (resolved in source)
 
@@ -83,6 +86,7 @@ Diff history vs. the 2026-04-10 baseline lives inside the dated
 | **A2** | Per-IP fixed-window rate limiter (`Microsoft.AspNetCore.RateLimiting`, 60 req / 10 s, partition keyed via `getClientIP`) | 2026-04-11 |
 | **B3** | `ForwardedHeadersMiddleware` + `GENPRES_TRUSTED_PROXIES` allow-list; `getClientIP` ignores `X-Forwarded-For` from non-trusted sources; bounds rate-limiter partition cardinality (closes the A2 unbounded-memory side-effect) | 2026-04-11 |
 | **D2** | SRI `sha384` integrity attribute on the external font-awesome stylesheet | 2026-04-11 |
+| **E5** | `ClosedXML 0.97` removed entirely (not upgraded). Dead since commit `49d26df` (MetaVision removal); zero call sites in `src/`, `tests/`, any `.fsproj`, or any `.fsx`. `paket.dependencies` and `scripts/load-dependencies.fsx` updated; `paket.lock` regenerated; build clean. | 2026-04-11 |
 
 Two ancillary hardening items landed alongside §7.1 (detail in
 *Update — 2026-04-10*):
@@ -105,7 +109,7 @@ Two ancillary hardening items landed alongside §7.1 (detail in
 `B1` HTTPS at the app layer (or guaranteed TLS-terminating proxy) ·
 `F1` tamper-evident audit trail · `F2` cache-file integrity check ·
 `F3` PHI redaction in logs · `E4` replace beta/RC Fable deps ·
-`E5` `ClosedXML` upgrade · `E8` automated secret scanning.
+`E8` automated secret scanning.
 
 Full ordered list in §7.2.
 
@@ -1050,13 +1054,30 @@ Beta/RC versions carry no support guarantees, may contain unfixed bugs, and are 
 
 ### E5 — `ClosedXML = 0.97` is from 2020
 
-**Severity:** C1 Med · C2 **High** · C3 **High**
+> ✅ **Resolved 2026-04-11.** Removed entirely rather than upgraded.
+> Reachability re-audit found **zero** call sites in `src/`, `tests/`,
+> any `.fsproj`, or any `.fsx` script: no `open ClosedXML`, no
+> `XLWorkbook`, no `IXLWorksheet`. The package's only historical
+> caller was `Informedica.MetaVision.Lib/Data.fs` (which contained
+> `open ClosedXML.Excel`), deleted in commit `49d26df`
+> ("chore: remove old metavision related code"). The `paket` and FSI
+> references survived that commit as dead refs and have now been
+> removed: one line from `paket.dependencies`, one `#r` from
+> `scripts/load-dependencies.fsx`, `paket.lock` regenerated via
+> `dotnet paket install`. Build clean (`dotnet run build`: 0
+> warnings, 0 errors). The original Reachability paragraph below
+> incorrectly attributed usage to `Informedica.OTS.Lib`; OTS reads
+> Google Sheets CSV via `Informedica.Utils.Lib.Web.GoogleSheets` and
+> never used ClosedXML. The original assessment is preserved verbatim
+> below for traceability.
+
+**Severity:** C1 Med · C2 **High** · C3 **High** *(now n/a — package removed)*
 
 **Evidence:** `paket.dependencies:39`. Current ClosedXML stable is 0.104+. The 2020-era 0.97 release predates several fixes for malformed XLSX handling.
 
-**Reachability:** ClosedXML is used wherever the project reads spreadsheets — primarily `Informedica.OTS.Lib` for resource loading. If any user-supplied XLSX is ever parsed (currently no — only Google Sheets CSV), the attack surface is significant.
+**Reachability** *(superseded — see resolution marker above)*: ClosedXML is used wherever the project reads spreadsheets — primarily `Informedica.OTS.Lib` for resource loading. If any user-supplied XLSX is ever parsed (currently no — only Google Sheets CSV), the attack surface is significant.
 
-**Recommendation:**
+**Recommendation** *(superseded)*:
 
 1. Upgrade to current stable (`0.104+`) and re-run tests.
 2. If staying on 0.97 is necessary, document why and run a CVE check against `ClosedXML 0.97`.
@@ -1234,7 +1255,7 @@ A grep across `src/` for `audit`, `tamper`, `integrity`, `signature` returns no 
 3. **A2** — Per-IP rate limiting on `ValidatePassword` (and ideally on every RPC).
 4. **F1** — Implement `Informedica.Audit.Lib` for tamper-evident audit logging. Depends on §7.2 item 1 (A1) for user identity.
 5. **F2** — SHA-256 integrity check on cache files at load time.
-6. **E5** — Upgrade `ClosedXML` to current stable.
+6. ~~**E5** — Upgrade `ClosedXML` to current stable.~~ *(Resolved 2026-04-11 by removing the package entirely — see E5 in §4.)*
 7. **E4** — Replace beta/RC Fable dependencies with released versions.
 8. **F3** — Audit log call sites for PHI; introduce `Patient.toLogString` redaction helper.
 9. **B3** — `ForwardedHeadersMiddleware` with `KnownProxies` allow-list.
