@@ -255,7 +255,7 @@ Qualitative severity: **Critical / High / Medium / Low / Informational**. Each f
 | Actor | Trusted? | Capabilities |
 |---|---|---|
 | Developer | Yes | Full code, deploy |
-| Clinician (intended user) | Trusted to perform clinical role; **not** trusted to bypass safety |
+| Clinician (intended user) | Yes (in role) | Trusted for clinical use; **not** trusted to bypass safety |
 | Other LAN user | Untrusted | Can reach port 8085 in C2 |
 | Internet attacker | Untrusted | Reachable in C3 only |
 | Malicious client (browser tampering) | Semi-trusted | Can manipulate Elmish state, replay requests |
@@ -987,25 +987,25 @@ A grep across `src/` for `audit`, `tamper`, `integrity`, `signature` returns no 
 
 ### 7.2 Before any C2 (on-prem) rollout
 
-5. **A1, A5** — Place the server behind a TLS-terminating reverse proxy that enforces per-user authentication (OIDC against the hospital IdP is the lowest-friction path). Document the deployment topology in `docs/mdr/`.
-6. **B1, B2** — HTTPS at the edge plus the security header baseline from §4 B2.
-7. **A2** — Per-IP rate limiting on `ValidatePassword` (and ideally on every RPC).
-8. **F1** — Implement `Informedica.Audit.Lib` for tamper-evident audit logging. This depends on (5) for user identity.
-9. **F2** — SHA-256 integrity check on cache files at load time.
-10. **E5** — Upgrade `ClosedXML` to current stable.
-11. **E4** — Replace beta/RC Fable dependencies with released versions.
-12. **F3** — Audit log call sites for PHI; introduce `Patient.toLogString` redaction helper.
-13. **B3** — `ForwardedHeadersMiddleware` with `KnownProxies` allow-list.
-14. **E8** — Add `gitleaks` to pre-commit and CI.
+1. **A1, A5** — Place the server behind a TLS-terminating reverse proxy that enforces per-user authentication (OIDC against the hospital IdP is the lowest-friction path). Document the deployment topology in `docs/mdr/`.
+2. **B1, B2** — HTTPS at the edge plus the security header baseline from §4 B2.
+3. **A2** — Per-IP rate limiting on `ValidatePassword` (and ideally on every RPC).
+4. **F1** — Implement `Informedica.Audit.Lib` for tamper-evident audit logging. Depends on §7.2 item 1 (A1) for user identity.
+5. **F2** — SHA-256 integrity check on cache files at load time.
+6. **E5** — Upgrade `ClosedXML` to current stable.
+7. **E4** — Replace beta/RC Fable dependencies with released versions.
+8. **F3** — Audit log call sites for PHI; introduce `Patient.toLogString` redaction helper.
+9. **B3** — `ForwardedHeadersMiddleware` with `KnownProxies` allow-list.
+10. **E8** — Add `gitleaks` to pre-commit and CI.
 
 ### 7.3 Before any C3 (SaaS) rollout
 
-15. **A1** — Replace shared password with full IdP integration and per-user RBAC.
-16. **A3** — Switch to revocable opaque tokens or JWT with `jti` denylist.
-17. **B4** — Kestrel limits, request size caps, per-IP/per-user concurrency caps.
-18. **D2** — Self-host CDN assets, add SRI to anything that must remain external.
-19. **F1** — Audit log retention and tamper-evidence (hash chaining + offsite shipping).
-20. **G1** — Validate `dataUrlId` format in `Web.fs` defensively.
+1. **A1** — Replace shared password with full IdP integration and per-user RBAC.
+2. **A3** — Switch to revocable opaque tokens or JWT with `jti` denylist.
+3. **B4** — Kestrel limits, request size caps, per-IP/per-user concurrency caps.
+4. **D2** — Self-host CDN assets, add SRI to anything that must remain external.
+5. **F1** — Audit log retention and tamper-evidence (hash chaining + offsite shipping).
+6. **G1** — Validate `dataUrlId` format in `Web.fs` defensively.
 
 ### 7.4 Lower priority / hygiene
 
