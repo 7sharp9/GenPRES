@@ -35,9 +35,13 @@ deployment.
 
 1. The 2026-04-10 security review document is the **authoritative source
    of truth** for GenPRES security findings, severity grading, and
-   remediation status. All future security work must update that document
-   in-place via dated `Update — YYYY-MM-DD` sections rather than spawning
-   parallel review files.
+   remediation status. Future security work must update that document
+   in-place via dated `Update — YYYY-MM-DD` sections rather than
+   spawning parallel review files. The live remediation state is
+   summarized in the
+   [Current Status — 2026-04-11](../../security/2026-04-10-security-review.md#current-status--2026-04-11)
+   section of that document; per-finding evidence lives in §4 of the
+   same file.
 
 2. The security baseline currently in force on the public demo
    <https://genpres.nl/> is the **post-2026-04-11 state** documented in
@@ -84,6 +88,46 @@ deployment.
    - **B1** (TLS termination at the F# layer) if the deployment cannot
      guarantee an HTTPS-terminating reverse proxy.
 
+6. **Design principle — untrusted input must not be used as a key into
+   server-side storage without a trust-boundary check.** The rule
+   applies to every keyed storage the server allocates on behalf of an
+   incoming request: rate-limiter partitions, login-attempt counters,
+   per-session caches, idempotency-key tables, password-reset token
+   rows, deduplication maps. The B3 + A2 interaction is the canonical
+   example. Before B3, the A2 rate limiter partitioned by
+   `getClientIP`, which read `X-Forwarded-For` from any client. An
+   attacker flooding the server with distinct spoofed
+   `X-Forwarded-For` values would (a) bypass the rate limit entirely
+   (each fake IP starts with a clean counter), and (b) exhaust server
+   memory (the limiter allocates a new partition object per unique
+   key). B3 fixed both with one change at the trust boundary:
+   `getClientIP` now returns the real TCP-layer `RemoteIpAddress` for
+   any request not arriving from an IP in `GENPRES_TRUSTED_PROXIES`,
+   so attacker-controlled headers can no longer be partition keys.
+
+   The fix is always at the trust boundary, in order of preference:
+
+   1. **Refuse to use the untrusted input as a key at all.** Use a
+      server-controlled value (real TCP source, authenticated user
+      ID, server-generated session ID).
+   2. **Validate the input against an existing finite set** before
+      allocating storage (e.g. only create a failed-login counter
+      slot after confirming the username exists in the users table).
+   3. **Rate-limit the request that allocates**, keyed by something
+      the attacker cannot forge.
+
+   LRU eviction, ring buffers, and TTLs are *defense in depth*
+   underneath these controls, never the primary fix: they bound the
+   *symptom* (storage size) without bounding the *cause*
+   (attacker-controlled key cardinality), and they let an attacker
+   reset their own counter by flooding evictions.
+
+   New code that introduces any keyed server-side storage on a
+   request path must document — in a code comment or PR description —
+   which of the three boundary controls applies. Code review for any
+   new storage allocation in `Server.fs`, `ServerApi.*.fs`, or any
+   future request handler must check this principle.
+
 ## Consequences
 
 - The security review document, the regression test suite, and this ADR
@@ -102,3 +146,7 @@ deployment.
   formal regulatory artefacts; the maintainer must map the resolved
   items into `risk-management-report.md` and the hazard-analysis
   spreadsheets through normal change control before any C2 deployment.
+- The "untrusted input as storage key" design principle (Decision 6)
+  becomes a standing review item for any future request handler that
+  allocates server-side state. Absence of an explicit trust-boundary
+  justification is a blocking review comment for the introducing PR.

@@ -8,7 +8,6 @@
 #r "nuget: Newtonsoft.Json"
 #r "nuget: Aether"
 #r "nuget: Markdig"
-#r "nuget: ClosedXML, 0.97"
 #r "nuget: FsToolkit.ErrorHandling"
 #r "nuget: FSharpPlus, 1.7.0"
 #r "nuget: HtmlAgilityPack"
