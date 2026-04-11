@@ -112,6 +112,238 @@ control process.
 
 ---
 
+## Update — 2026-04-11 (post-implementation of demo remediations)
+
+A second remediation pass landed today, scoped to the public demo at
+`https://genpres.nl/`. It started from a live security probe of the
+deployed site that confirmed the open findings in this review and
+surfaced one new deployment-only issue (**L1**, runtime ABI drift in
+`Fable.Remoting.Giraffe 5.24` on .NET 10). Findings outside this pass
+are unchanged.
+
+The remediation plan and the live regression suite that re-runs each
+check are maintained out-of-repo by the maintainer. They encode
+deployment assumptions (target URL, demo credentials, expected HTTP
+behaviour) rather than source-code invariants, and the authoritative
+state of every decision they cover is recorded inline in this review.
+
+### Resolved items
+
+| ID | Status | Change | Files |
+|---|---|---|---|
+| **L1** (new) | ✅ Fixed | Pinned `Giraffe = 6.4.0` in `paket.dependencies` to dodge the binary mismatch in `Fable.Remoting.Giraffe 5.24`'s error path that previously leaked the full .NET type signature on every malformed POST. Added a `safeWebApi` wrapper around `webApi` in `Server.fs` that catches `MissingMethodException` / `TypeLoadException` and returns a clean `400 / "Bad Request"` as a belt-and-braces guarantee. | `paket.dependencies`, `paket.lock`, `src/Informedica.GenPRES.Server/Server.fs` (`safeWebApi`) |
+| **L2 / B5** | ✅ Fixed | Replaced the legacy `GET >=> text "GenInteractions App. Use localhost: 8080 for the GUI"` catch-all with `setStatusCode 404 >=> text "Not Found"`. The old string disclosed a stale app name and hinted at a separate GUI on port 8080; both reachable via the nginx SPA fallback for `/.env`, `/.git/HEAD`, `/admin`, etc. | `src/Informedica.GenPRES.Server/Server.fs` (`webApp`) |
+| **B2** | ✅ Fixed (C1 / demo) | Added `securityHeadersMiddleware` (ASP.NET middleware via `app_config`) using `Response.OnStarting` so the headers land on every flushed response — static files, Giraffe routes, the 404 fallback, and Fable.Remoting error responses alike. Headers: `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy` (with allow-list for `maxcdn`, `fonts.googleapis.com`, `fonts.gstatic.com`, `docs.google.com`). `X-Powered-By` is stripped defensively. | `src/Informedica.GenPRES.Server/Server.fs` (`securityHeadersMiddleware`, `application`) |
+| **A2** | ✅ Fixed (C1 / demo) | Added `addRateLimiting` using `Microsoft.AspNetCore.RateLimiting` (no new NuGet/Paket dependency — ships with the SDK). Per-IP fixed-window limiter, 60 requests / 10 s window, no queue, partition keyed by `getClientIP` so `X-Forwarded-For` is honoured behind nginx. Sized for the SPA's actual interaction pattern (~4 RPCs per click; clinician burst absorbed). Wired into the pipeline via `app_config` + `UseRateLimiter()`. The `X-Forwarded-For` trust path is now bounded by the **B3** allow-list below. A proper auth-lockout that only touches the password path needs `Remoting.fromContext` and is still deferred. | `src/Informedica.GenPRES.Server/Server.fs` (`addRateLimiting`, `application`) |
+| **B3** | ✅ Fixed (C1 / demo, configurable for C2) | Wired ASP.NET `ForwardedHeadersMiddleware` with a `GENPRES_TRUSTED_PROXIES` env var (defaults to `127.0.0.1, ::1`, matching the Plesk → Kestrel loopback hop on the public demo). `getClientIP` now reads `ctx.Connection.RemoteIpAddress` after the middleware has substituted the real client IP for requests arriving from a known proxy, and ignores `X-Forwarded-For` from any other source. This closes the spoofing-bypass on the rate limiter and bounds the rate-limiter's partition cardinality, fixing the unbounded-memory side-effect of A2's reliance on the previous `getClientIP`. Hospital-LAN C2 deployments add the actual nginx fleet via the env var without recompiling. | `src/Informedica.GenPRES.Server/Server.fs` (`getClientIP`, `trustedProxies`, `addRateLimiting`, `application`) |
+| **D2** | ✅ Fixed | Added `integrity="sha384-..."` + `crossorigin="anonymous"` to the `font-awesome.min.css` link in `index.html`. Google Fonts CSS endpoints (`fonts.googleapis.com/css?...`) serve user-agent-dependent CSS so SRI is not feasible for them — they would have to be self-hosted to be hashed. Documented inline. | `src/Informedica.GenPRES.Client/index.html` |
+
+### Intentional non-remediation
+
+- **A5** — clinical RPCs remain unauthenticated on the public demo by
+  explicit user decision: gating the public demo would defeat its
+  purpose. The decision is recorded inline at the **A5** finding in §4
+  ("2026-04-10 — Demo decision"). A5 **must** be re-enabled before any
+  non-demo deployment using the existing `validateToken` helper at
+  `ServerApi.Command.fs:72-121` and a new `GENPRES_REQUIRE_AUTH=1`
+  feature flag. Live regression tests 3.3 / 3.4 / 3.5 are expected to
+  FAIL on the demo and must PASS on any other deployment.
+- **1.3 (X-Powered-By: PleskLin)** — accepted as deferred on
+  2026-04-11 after exhausting all user-configurable Apache and nginx
+  override paths on the managed Plesk host. Discloses managed-hosting
+  type only; no exploitable surface. Resolved automatically by the C2
+  migration off shared Plesk hosting (§7.2). Full investigation,
+  decision, and Plesk-config cleanup checklist are recorded in the
+  *Hotfix — 2026-04-11 (1.3 X-Powered-By disclosure — accepted as
+  deferred)* subsection further down. Live regression test 1.3 is
+  expected to FAIL on the demo and must PASS on any non-Plesk
+  deployment.
+
+### Updated severity counts (after 2026-04-11)
+
+| Severity | C1 dev | C2 on-prem | C3 SaaS |
+|---|---|---|---|
+| Critical | 0 (–) | 1 (–) | 4 (–1) |
+| High     | 1 (–) | 4 (–2) | 6 (–1) |
+| Medium   | 6 (–) | 3 (–2) | 2 (–2) |
+| Low      | 3 (–4) | 3 (–1) | 3 (–1) |
+
+Deltas (relative to the 2026-04-10 update counts):
+
+- **L2 / B5** removed Low in C2 + C3.
+- **B2** removed Low (C1), High (C2), High (C3).
+- **A2** removed Low (C1), High (C2), Critical (C3).
+- **D2** removed Low (C1), Med (C2), Med (C3).
+- **B3** removed Low (C1), Med (C2), Med (C3) — addressed by the
+  PR #298 review-response pass alongside the
+  `QueueProcessingOrder` cleanup and the documentation hygiene
+  fixes.
+- **L1** is a new finding that was opened and resolved in the same
+  pass; it never contributed to a count.
+
+### Verification
+
+- `dotnet run build` — clean, 0 errors.
+- `dotnet run servertests` — **5408 passed, 0 failed, 2 skipped**.
+- Live regression suite against `http://localhost:8080` (Docker
+  container, freshly rebuilt with the changes above):
+  **13 pass / 3 fail of 16**. The three failures are the intentional
+  A5 non-remediation (regression tests 3.3 / 3.4 / 3.5).
+- Live regression suite against `http://localhost:8085` (bare F# dev
+  server): 11 pass / 4 fail — the extra failure is `1.1` ("GET /
+  returns 200"), a local-only artifact because the dev server's
+  `public/` folder is empty until a `Bundle` target runs.
+
+### Items still open
+
+The other three remediation buckets are unchanged from the 2026-04-10
+update:
+
+- **§7.2 (before C2 rollout)**: A1, A5, F1, F2, F3, E4, E5, E8 — none addressed in this pass. (B2 and A2 were §7.2 items but were resolved here at the application layer; B3 was resolved in the 2026-04-11 PR #298 review-response pass — see the *Resolved items* table above.)
+- **§7.3 (before C3 rollout)**: A1 (fuller), A3, B4, F1 (retention), G1 — none addressed. (D2 was a §7.3 item but is now resolved.)
+- **§7.4 (hygiene)**: E6, E7, E9, G2, D1 — unchanged. (B5 was a §7.4 item, resolved here.)
+
+### MDR follow-up
+
+Same as the 2026-04-10 update: the regulatory artifacts in
+`docs/mdr/risk-analysis/` have not been touched. The maintainer should
+map L1, L2, B2, A2, B3, D2 into `risk-management-report.md` and the
+hazard-analysis spreadsheets through normal change control before any
+deployment beyond C1.
+
+### Hotfix — 2026-04-11 (post-deploy CSP relaxation)
+
+After the **B2** headers landed on `https://genpres.nl/`, the live SPA
+rendered fully unstyled (giant unsized SVG logo, raw HTML controls,
+unstyled disclaimer). Console showed 15 identical CSP violations:
+
+```text
+Applying inline style violates the following Content Security Policy
+directive 'style-src 'self' https://maxcdn.bootstrapcdn.com
+https://fonts.googleapis.com'.
+```
+
+**Root cause**: the client uses MUI, whose Emotion-based styling engine
+injects per-component `<style>` tags into the document at runtime. The
+hardened `style-src` had no `'unsafe-inline'`, so every MUI style was
+dropped.
+
+**Fix**: added `'unsafe-inline'` to the `style-src` directive only.
+`script-src` stays strict (`'self'` only), so the residual XSS surface
+is bounded to CSS injection — no script execution. The recommended
+baseline header table earlier in this document was updated to match.
+
+| ID | Status | Change | Files |
+|---|---|---|---|
+| **B2** (CSS regression) | ✅ Hotfixed | Added `'unsafe-inline'` to `style-src` so MUI/Emotion runtime styles render. Documented the trade-off and the Emotion-nonce follow-up inline above the middleware. | `src/Informedica.GenPRES.Server/Server.fs` (`securityHeadersMiddleware`) |
+
+**Follow-up (deferred)**: wire an Emotion `CacheProvider` with a
+per-request CSP nonce to drop `'unsafe-inline'` again. Requires
+threading the nonce through the HTML template, the React tree, and the
+middleware — multi-file change in both Client and Server. Tracked as a
+new item against §7.2.
+
+### Hotfix — 2026-04-11 (1.3 X-Powered-By disclosure — accepted as deferred)
+
+The live regression suite flagged a new failure on the public demo:
+
+```text
+[FAIL] 1.3  X-Powered-By header is leaking the hosting stack
+```
+
+```text
+$ curl -sI https://genpres.nl/ | grep -i powered
+x-powered-by: PleskLin
+```
+
+The F# `securityHeadersMiddleware` calls `h.Remove "X-Powered-By"` on
+every flushed response, so the leak is downstream of the application,
+inside the managed Plesk reverse-proxy stack.
+
+**Investigation summary** (chronological, all attempts on the live host
+via Plesk → *Apache & nginx Settings*):
+
+1. Added `proxy_hide_header X-Powered-By;` to the per-site nginx
+   directives. No effect — the response shape (`etag`, `last-modified`,
+   `accept-ranges: bytes`) showed nginx was serving `index.html`
+   directly from disk and never going through any proxy hop.
+2. Added `Header always unset X-Powered-By` (and `Header unset`) inside
+   `<IfModule mod_headers.c>` to **both** the HTTP and HTTPS *Additional
+   Apache directives* fields. No effect — Apache wasn't in the chain
+   for the static `/index.html`.
+3. Removed `html` and `htm` from *Serve static files directly by nginx*
+   and disabled *Smart static files processing*, forcing the request
+   through Apache. Response shape changed (`etag` / `last-modified` /
+   `accept-ranges` disappeared), confirming Apache was now handling the
+   request — but `x-powered-by: PleskLin` still leaked. So the Apache
+   `Header unset` was being bypassed (header injected in a phase later
+   than `mod_headers`' output filter).
+4. Added `fastcgi_hide_header X-Powered-By;` alongside the
+   `proxy_hide_header`. No effect — no FastCGI hop in the chain.
+5. Tried the nginx **`add_header` inheritance trick**: added a no-op
+   `add_header X-Robots-Tag "all" always;` in the per-site nginx
+   directives. The intent was to force nginx to drop all parent
+   `add_header` directives (inheritance is all-or-nothing). Result:
+   `x-robots-tag: all` appeared on every response **and**
+   `x-powered-by: PleskLin` survived. This proved that PleskLin is
+   **not** being injected via `add_header` at any parent context — it
+   is injected by a Plesk-managed mechanism (custom module, lua filter,
+   or post-`mod_headers` Apache hook) that bypasses both standard
+   nginx `add_header` inheritance and Apache `mod_headers unset`.
+6. Headers-more (`more_clear_headers`) is not installed on this host
+   (verified in step 1's earlier nginx config-test failure), so the
+   usual force-unset escape hatch is unavailable.
+
+**Decision: accept as deferred, document, do not chase further on
+managed hosting.**
+
+Justification:
+
+- `X-Powered-By: PleskLin` discloses exactly one fact: *the host is a
+  Plesk-managed Linux box*. It does **not** disclose Plesk version,
+  nginx/Apache version, the F#/Saturn/Kestrel application stack, OS
+  distro version, any path, secret, or attack surface.
+- The information-disclosure severity is *Low* in C1 and stays *Low*
+  in C2/C3, because it does not enable any specific exploit and the
+  hosting provider type is independently observable from DNS / IP
+  WHOIS data anyway.
+- Chasing the injection source requires either (a) root SSH access to
+  the managed host plus a Plesk template override that survives
+  panel-driven config regeneration, or (b) a Plesk support ticket and
+  a vendor patch. Both have high cost relative to the security gain.
+- Migration off shared Plesk hosting (planned for the C2 deployment
+  per §7.2) resolves this finding automatically. There is no value in
+  building a workaround that gets thrown away at that point.
+
+| ID | Status | Resolution | Owner |
+|---|---|---|---|
+| **1.3** (X-Powered-By disclosure) | ⏸ Deferred (accepted) | Plesk-managed reverse proxy injects `X-Powered-By: PleskLin` at a stage that user-configurable Apache and nginx directives cannot intercept. Discloses managed-hosting type only; no attack surface. Will be resolved by the C2 migration off shared Plesk hosting (§7.2). | maintainer |
+
+**Cleanup checklist** for the directives box on
+*Domains → genpres.nl → Apache & nginx Settings*:
+
+- Remove the no-op `add_header X-Robots-Tag "all" always;` line — its
+  only purpose was the diagnostic test in step 5 above; it does not
+  belong in the production config.
+- `proxy_hide_header X-Powered-By;` may be kept as defence-in-depth.
+- The Apache `<IfModule mod_headers.c>` `Header always unset
+  X-Powered-By` block may be kept as defence-in-depth.
+- The `html` / `htm` removal from *Serve static files directly by
+  nginx* may be reverted (it was a probe, not a fix). Reverting it
+  restores nginx-direct serving of `index.html`, which is marginally
+  faster.
+- `fastcgi_hide_header X-Powered-By;` adds nothing on this stack and
+  can be removed.
+
+### Updated severity counts (after 2026-04-11 hotfixes)
+
+The B2 CSS regression was resolved in-source and adds nothing to the
+counts. The 1.3 X-Powered-By finding is **accepted as deferred** and
+joins A5 in the *intentional non-remediation* list. Severity counts
+from the 2026-04-11 update are unchanged.
+
+---
+
 ## 1. Scope and methodology
 
 ### 1.1 In scope
@@ -169,7 +401,7 @@ Qualitative severity: **Critical / High / Medium / Low / Informational**. Each f
 | Actor | Trusted? | Capabilities |
 |---|---|---|
 | Developer | Yes | Full code, deploy |
-| Clinician (intended user) | Trusted to perform clinical role; **not** trusted to bypass safety |
+| Clinician (intended user) | Yes (in role) | Trusted for clinical use; **not** trusted to bypass safety |
 | Other LAN user | Untrusted | Can reach port 8085 in C2 |
 | Internet attacker | Untrusted | Reachable in C3 only |
 | Malicious client (browser tampering) | Semi-trusted | Can manipulate Elmish state, replay requests |
@@ -402,6 +634,22 @@ else
 
 **References:** OWASP ASVS V4.1; OWASP API Top 10 #2 (Broken Authentication); CWE-306 (Missing Authentication for Critical Function).
 
+> **2026-04-10 — Demo decision (intentional non-remediation):**
+> A5 is **not** remediated on the public `https://genpres.nl/`
+> deployment. The site exists for public visibility of GenPRES and
+> gating it would defeat that purpose. A5 **must** be re-enabled
+> before any non-demo deployment (C2 / C3), reusing the existing
+> `validateToken` helper at `ServerApi.Command.fs:72-121` (the
+> identical mechanism that already protects `LogAnalyzerCmd.ListLogFiles`
+> and `LogAnalyzerCmd.AnalyzeLogFile`). The simplest path is a
+> `GENPRES_REQUIRE_AUTH=1` env-var feature flag that wraps
+> `processCmd` with the token check. Live regression tests
+> 3.3 / 3.4 / 3.5 in the maintainer's out-of-repo regression suite
+> are expected to FAIL on the demo and must PASS on any other
+> deployment. The authoritative record of this decision is the
+> blockquote you are currently reading; any earlier session-local
+> notes are non-authoritative.
+
 ---
 
 ### B1 — No HTTPS
@@ -437,7 +685,7 @@ No `UseHttpsRedirection`, no HSTS, no certificate config. `vite.config.js:6` lik
 ```text
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval';
-                         style-src 'self' https://fonts.googleapis.com;
+                         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
                          font-src https://fonts.googleapis.com;
                          img-src 'self' data:;
                          connect-src 'self';
@@ -450,15 +698,20 @@ Referrer-Policy: no-referrer
 Permissions-Policy: geolocation=(), microphone=(), camera=()
 ```
 
-Note: CSP requires `'wasm-unsafe-eval'` because Fable's compiled output uses WebAssembly bridges in some configurations. Validate before enforcement.
+Notes:
+
+- CSP requires `'wasm-unsafe-eval'` because Fable's compiled output uses WebAssembly bridges in some configurations. Validate before enforcement.
+- `style-src` includes `'unsafe-inline'` because the client uses MUI, whose Emotion-based styling engine injects per-component `<style>` tags at runtime. Without it the SPA renders fully unstyled. `script-src` stays strict (`'self'` only), so XSS exposure is bounded to CSS injection — no script execution. Tightening this further requires wiring an Emotion `CacheProvider` with a per-request nonce; tracked as a follow-up.
 
 ---
 
 ### B3 — `X-Forwarded-For` trusted without allow-list
 
+> ✅ **Resolved 2026-04-11.** `getClientIP` was reduced to `ctx.Connection.RemoteIpAddress` after wiring ASP.NET `ForwardedHeadersMiddleware` with a `GENPRES_TRUSTED_PROXIES` env var (defaults to `127.0.0.1, ::1`, matching the Plesk → Kestrel loopback hop on the public demo). XFF is now honoured only for connections from the allow-list. This also bounds the rate limiter's partition cardinality, fixing the unbounded-memory side-effect of A2's previous reliance on raw XFF. See the *Resolved items* table in the [Update — 2026-04-11](#update--2026-04-11-post-implementation-of-demo-remediations) section above.
+
 **Severity:** C1 Low · C2 Med · C3 Med
 
-**Evidence** (`Server.fs:20-30`):
+**Evidence** (`Server.fs:20-30`, **superseded** by the resolution above):
 
 ```fsharp
 let getClientIP (context: HttpContext) =
@@ -885,25 +1138,25 @@ A grep across `src/` for `audit`, `tamper`, `integrity`, `signature` returns no 
 
 ### 7.2 Before any C2 (on-prem) rollout
 
-5. **A1, A5** — Place the server behind a TLS-terminating reverse proxy that enforces per-user authentication (OIDC against the hospital IdP is the lowest-friction path). Document the deployment topology in `docs/mdr/`.
-6. **B1, B2** — HTTPS at the edge plus the security header baseline from §4 B2.
-7. **A2** — Per-IP rate limiting on `ValidatePassword` (and ideally on every RPC).
-8. **F1** — Implement `Informedica.Audit.Lib` for tamper-evident audit logging. This depends on (5) for user identity.
-9. **F2** — SHA-256 integrity check on cache files at load time.
-10. **E5** — Upgrade `ClosedXML` to current stable.
-11. **E4** — Replace beta/RC Fable dependencies with released versions.
-12. **F3** — Audit log call sites for PHI; introduce `Patient.toLogString` redaction helper.
-13. **B3** — `ForwardedHeadersMiddleware` with `KnownProxies` allow-list.
-14. **E8** — Add `gitleaks` to pre-commit and CI.
+1. **A1, A5** — Place the server behind a TLS-terminating reverse proxy that enforces per-user authentication (OIDC against the hospital IdP is the lowest-friction path). Document the deployment topology in `docs/mdr/`.
+2. **B1, B2** — HTTPS at the edge plus the security header baseline from §4 B2.
+3. **A2** — Per-IP rate limiting on `ValidatePassword` (and ideally on every RPC).
+4. **F1** — Implement `Informedica.Audit.Lib` for tamper-evident audit logging. Depends on §7.2 item 1 (A1) for user identity.
+5. **F2** — SHA-256 integrity check on cache files at load time.
+6. **E5** — Upgrade `ClosedXML` to current stable.
+7. **E4** — Replace beta/RC Fable dependencies with released versions.
+8. **F3** — Audit log call sites for PHI; introduce `Patient.toLogString` redaction helper.
+9. **B3** — `ForwardedHeadersMiddleware` with `KnownProxies` allow-list.
+10. **E8** — Add `gitleaks` to pre-commit and CI.
 
 ### 7.3 Before any C3 (SaaS) rollout
 
-15. **A1** — Replace shared password with full IdP integration and per-user RBAC.
-16. **A3** — Switch to revocable opaque tokens or JWT with `jti` denylist.
-17. **B4** — Kestrel limits, request size caps, per-IP/per-user concurrency caps.
-18. **D2** — Self-host CDN assets, add SRI to anything that must remain external.
-19. **F1** — Audit log retention and tamper-evidence (hash chaining + offsite shipping).
-20. **G1** — Validate `dataUrlId` format in `Web.fs` defensively.
+1. **A1** — Replace shared password with full IdP integration and per-user RBAC.
+2. **A3** — Switch to revocable opaque tokens or JWT with `jti` denylist.
+3. **B4** — Kestrel limits, request size caps, per-IP/per-user concurrency caps.
+4. **D2** — Self-host CDN assets, add SRI to anything that must remain external.
+5. **F1** — Audit log retention and tamper-evidence (hash chaining + offsite shipping).
+6. **G1** — Validate `dataUrlId` format in `Web.fs` defensively.
 
 ### 7.4 Lower priority / hygiene
 

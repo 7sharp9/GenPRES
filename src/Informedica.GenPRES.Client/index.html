@@ -8,7 +8,17 @@
     <!-- <meta name="theme-color" content="#2196f3"> -->
     <meta property="og:title" content="GenPRES" />
     <meta property="og:description" content="Generic Prescribe System" />
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" />
+    <!--
+        D2 — Subresource Integrity (SRI).
+        font-awesome.min.css is pinned with sha384 so a CDN compromise
+        cannot inject arbitrary CSS. The Google Fonts CSS endpoints
+        (fonts.googleapis.com/css?...) serve user-agent-dependent CSS,
+        so SRI is not feasible for them — they must either be self-hosted
+        or accepted as an unhashed dependency. Tracked under D2.
+        Kept on a single line so the SRI integrity attribute and the
+        href stay grep-able by line-oriented regression checks.
+    -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="shortcut icon" type="image/png" href="favicon.png" />
