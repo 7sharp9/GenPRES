@@ -196,6 +196,38 @@ map L1, L2, B2, A2, D2 into `risk-management-report.md` and the
 hazard-analysis spreadsheets through normal change control before any
 deployment beyond C1.
 
+### Hotfix — 2026-04-11 (post-deploy CSP relaxation)
+
+After the **B2** headers landed on `https://genpres.nl/`, the live SPA
+rendered fully unstyled (giant unsized SVG logo, raw HTML controls,
+unstyled disclaimer). Console showed 15 identical CSP violations:
+
+```text
+Applying inline style violates the following Content Security Policy
+directive 'style-src 'self' https://maxcdn.bootstrapcdn.com
+https://fonts.googleapis.com'.
+```
+
+**Root cause**: the client uses MUI, whose Emotion-based styling engine
+injects per-component `<style>` tags into the document at runtime. The
+hardened `style-src` had no `'unsafe-inline'`, so every MUI style was
+dropped.
+
+**Fix**: added `'unsafe-inline'` to the `style-src` directive only.
+`script-src` stays strict (`'self'` only), so the residual XSS surface
+is bounded to CSS injection — no script execution. The recommended
+baseline header table earlier in this document was updated to match.
+
+| ID | Status | Change | Files |
+|---|---|---|---|
+| **B2** (CSS regression) | ✅ Hotfixed | Added `'unsafe-inline'` to `style-src` so MUI/Emotion runtime styles render. Documented the trade-off and the Emotion-nonce follow-up inline above the middleware. | `src/Informedica.GenPRES.Server/Server.fs` (`securityHeadersMiddleware`) |
+
+**Follow-up (deferred)**: wire an Emotion `CacheProvider` with a
+per-request CSP nonce to drop `'unsafe-inline'` again. Requires
+threading the nonce through the HTML template, the React tree, and the
+middleware — multi-file change in both Client and Server. Tracked as a
+new item against §7.2.
+
 ---
 
 ## 1. Scope and methodology
@@ -539,7 +571,7 @@ No `UseHttpsRedirection`, no HSTS, no certificate config. `vite.config.js:6` lik
 ```text
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval';
-                         style-src 'self' https://fonts.googleapis.com;
+                         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
                          font-src https://fonts.googleapis.com;
                          img-src 'self' data:;
                          connect-src 'self';
@@ -552,7 +584,10 @@ Referrer-Policy: no-referrer
 Permissions-Policy: geolocation=(), microphone=(), camera=()
 ```
 
-Note: CSP requires `'wasm-unsafe-eval'` because Fable's compiled output uses WebAssembly bridges in some configurations. Validate before enforcement.
+Notes:
+
+- CSP requires `'wasm-unsafe-eval'` because Fable's compiled output uses WebAssembly bridges in some configurations. Validate before enforcement.
+- `style-src` includes `'unsafe-inline'` because the client uses MUI, whose Emotion-based styling engine injects per-component `<style>` tags at runtime. Without it the SPA renders fully unstyled. `script-src` stays strict (`'self'` only), so XSS exposure is bounded to CSS injection — no script execution. Tightening this further requires wiring an Emotion `CacheProvider` with a per-request nonce; tracked as a follow-up.
 
 ---
 

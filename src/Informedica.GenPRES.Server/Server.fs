@@ -174,6 +174,14 @@ let logClientIP: HttpHandler =
 // docs.google.com for the runtime Sheet fetches. Drop docs.google.com
 // once Sheet access is proxied server-side. X-Powered-By is stripped in
 // case nginx/Plesk injects it.
+//
+// style-src includes 'unsafe-inline' because MUI's styling engine
+// (Emotion) injects per-component <style> tags at runtime. Without it
+// every MUI component renders unstyled. script-src remains strict
+// ('self' only) so XSS exposure is bounded to CSS injection, which
+// cannot execute code. Tightening this further requires wiring an
+// Emotion CacheProvider with a per-request nonce — tracked as a
+// follow-up to the security review.
 let private securityHeadersMiddleware (ctx: HttpContext) (next: System.Func<Task>) : Task =
     ctx.Response.OnStarting(fun () ->
         let h = ctx.Response.Headers
@@ -186,7 +194,7 @@ let private securityHeadersMiddleware (ctx: HttpContext) (next: System.Func<Task
         h["Content-Security-Policy"] <-
             "default-src 'self'; \
              script-src 'self'; \
-             style-src 'self' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com; \
+             style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com; \
              font-src 'self' https://fonts.gstatic.com https://maxcdn.bootstrapcdn.com; \
              img-src 'self' data:; \
              connect-src 'self' https://docs.google.com; \
