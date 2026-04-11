@@ -147,6 +147,16 @@ check are stored locally (deliberately not committed):
   `ServerApi.Command.fs:72-121` and a new `GENPRES_REQUIRE_AUTH=1`
   feature flag. Live regression tests 3.3 / 3.4 / 3.5 are expected to
   FAIL on the demo and must PASS on any other deployment.
+- **1.3 (X-Powered-By: PleskLin)** — accepted as deferred on
+  2026-04-11 after exhausting all user-configurable Apache and nginx
+  override paths on the managed Plesk host. Discloses managed-hosting
+  type only; no exploitable surface. Resolved automatically by the C2
+  migration off shared Plesk hosting (§7.2). Full investigation,
+  decision, and Plesk-config cleanup checklist are recorded in the
+  *Hotfix — 2026-04-11 (1.3 X-Powered-By disclosure — accepted as
+  deferred)* subsection further down. Live regression test 1.3 is
+  expected to FAIL on the demo and must PASS on any non-Plesk
+  deployment.
 
 ### Updated severity counts (after 2026-04-11)
 
@@ -227,6 +237,105 @@ per-request CSP nonce to drop `'unsafe-inline'` again. Requires
 threading the nonce through the HTML template, the React tree, and the
 middleware — multi-file change in both Client and Server. Tracked as a
 new item against §7.2.
+
+### Hotfix — 2026-04-11 (1.3 X-Powered-By disclosure — accepted as deferred)
+
+The live regression suite flagged a new failure on the public demo:
+
+```text
+[FAIL] 1.3  X-Powered-By header is leaking the hosting stack
+```
+
+```text
+$ curl -sI https://genpres.nl/ | grep -i powered
+x-powered-by: PleskLin
+```
+
+The F# `securityHeadersMiddleware` calls `h.Remove "X-Powered-By"` on
+every flushed response, so the leak is downstream of the application,
+inside the managed Plesk reverse-proxy stack.
+
+**Investigation summary** (chronological, all attempts on the live host
+via Plesk → *Apache & nginx Settings*):
+
+1. Added `proxy_hide_header X-Powered-By;` to the per-site nginx
+   directives. No effect — the response shape (`etag`, `last-modified`,
+   `accept-ranges: bytes`) showed nginx was serving `index.html`
+   directly from disk and never going through any proxy hop.
+2. Added `Header always unset X-Powered-By` (and `Header unset`) inside
+   `<IfModule mod_headers.c>` to **both** the HTTP and HTTPS *Additional
+   Apache directives* fields. No effect — Apache wasn't in the chain
+   for the static `/index.html`.
+3. Removed `html` and `htm` from *Serve static files directly by nginx*
+   and disabled *Smart static files processing*, forcing the request
+   through Apache. Response shape changed (`etag` / `last-modified` /
+   `accept-ranges` disappeared), confirming Apache was now handling the
+   request — but `x-powered-by: PleskLin` still leaked. So the Apache
+   `Header unset` was being bypassed (header injected in a phase later
+   than `mod_headers`' output filter).
+4. Added `fastcgi_hide_header X-Powered-By;` alongside the
+   `proxy_hide_header`. No effect — no FastCGI hop in the chain.
+5. Tried the nginx **`add_header` inheritance trick**: added a no-op
+   `add_header X-Robots-Tag "all" always;` in the per-site nginx
+   directives. The intent was to force nginx to drop all parent
+   `add_header` directives (inheritance is all-or-nothing). Result:
+   `x-robots-tag: all` appeared on every response **and**
+   `x-powered-by: PleskLin` survived. This proved that PleskLin is
+   **not** being injected via `add_header` at any parent context — it
+   is injected by a Plesk-managed mechanism (custom module, lua filter,
+   or post-`mod_headers` Apache hook) that bypasses both standard
+   nginx `add_header` inheritance and Apache `mod_headers unset`.
+6. Headers-more (`more_clear_headers`) is not installed on this host
+   (verified in step 1's earlier nginx config-test failure), so the
+   usual force-unset escape hatch is unavailable.
+
+**Decision: accept as deferred, document, do not chase further on
+managed hosting.**
+
+Justification:
+
+- `X-Powered-By: PleskLin` discloses exactly one fact: *the host is a
+  Plesk-managed Linux box*. It does **not** disclose Plesk version,
+  nginx/Apache version, the F#/Saturn/Kestrel application stack, OS
+  distro version, any path, secret, or attack surface.
+- The information-disclosure severity is *Low* in C1 and stays *Low*
+  in C2/C3, because it does not enable any specific exploit and the
+  hosting provider type is independently observable from DNS / IP
+  WHOIS data anyway.
+- Chasing the injection source requires either (a) root SSH access to
+  the managed host plus a Plesk template override that survives
+  panel-driven config regeneration, or (b) a Plesk support ticket and
+  a vendor patch. Both have high cost relative to the security gain.
+- Migration off shared Plesk hosting (planned for the C2 deployment
+  per §7.2) resolves this finding automatically. There is no value in
+  building a workaround that gets thrown away at that point.
+
+| ID | Status | Resolution | Owner |
+|---|---|---|---|
+| **1.3** (X-Powered-By disclosure) | ⏸ Deferred (accepted) | Plesk-managed reverse proxy injects `X-Powered-By: PleskLin` at a stage that user-configurable Apache and nginx directives cannot intercept. Discloses managed-hosting type only; no attack surface. Will be resolved by the C2 migration off shared Plesk hosting (§7.2). | maintainer |
+
+**Cleanup checklist** for the directives box on
+*Domains → genpres.nl → Apache & nginx Settings*:
+
+- Remove the no-op `add_header X-Robots-Tag "all" always;` line — its
+  only purpose was the diagnostic test in step 5 above; it does not
+  belong in the production config.
+- `proxy_hide_header X-Powered-By;` may be kept as defence-in-depth.
+- The Apache `<IfModule mod_headers.c>` `Header always unset
+  X-Powered-By` block may be kept as defence-in-depth.
+- The `html` / `htm` removal from *Serve static files directly by
+  nginx* may be reverted (it was a probe, not a fix). Reverting it
+  restores nginx-direct serving of `index.html`, which is marginally
+  faster.
+- `fastcgi_hide_header X-Powered-By;` adds nothing on this stack and
+  can be removed.
+
+### Updated severity counts (after 2026-04-11 hotfixes)
+
+The B2 CSS regression was resolved in-source and adds nothing to the
+counts. The 1.3 X-Powered-By finding is **accepted as deferred** and
+joins A5 in the *intentional non-remediation* list. Severity counts
+from the 2026-04-11 update are unchanged.
 
 ---
 
