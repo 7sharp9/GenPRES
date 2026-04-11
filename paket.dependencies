@@ -22,6 +22,15 @@ nuget Feliz.Markdown 3.1.0
 nuget NJsonSchema 11.5.1
 
 nuget Saturn ~> 0
+// L1 — Pin Giraffe to a 6.x release that is binary-compatible with
+// Fable.Remoting.Giraffe 5.24. Giraffe 7.0 introduced a Task-based
+// HttpHandler rewrite (breaking change to setBodyFromString and friends),
+// and Fable.Remoting.Giraffe has not been recompiled against it. Without
+// this pin, Saturn pulls Giraffe 8.x transitively and every malformed
+// POST hits a MissingMethodException at runtime. See
+// docs/security/2026-04-10-security-review.md and the security regression
+// suite test 2.2.
+nuget Giraffe = 6.4.0
 
 nuget Fake.Core.Target 6.1.3
 nuget Fake.IO.FileSystem 6.1.3
