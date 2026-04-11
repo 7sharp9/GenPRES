@@ -52,6 +52,12 @@ deployment.
    - **A2** per-IP fixed-window rate limiter
      (`Microsoft.AspNetCore.RateLimiting`, 60 requests / 10 s, partition
      keyed by `getClientIP` so `X-Forwarded-For` is honoured).
+   - **B3** trusted-proxy allow-list wired via ASP.NET
+     `ForwardedHeadersMiddleware` and the `GENPRES_TRUSTED_PROXIES`
+     env var (defaults to `127.0.0.1, ::1`, matching the Plesk →
+     Kestrel loopback hop on the public demo). Spoofed `X-Forwarded-
+     For` from clients outside the allow-list is ignored, which also
+     bounds the rate-limiter's partition cardinality.
    - **D2** SRI `sha384` integrity attribute on the external font-awesome
      stylesheet in `index.html`.
 
@@ -62,12 +68,13 @@ deployment.
    `validateToken` helper at `ServerApi.Command.fs:72-121` behind a new
    `GENPRES_REQUIRE_AUTH=1` feature flag.
 
-4. The deployment-time regression check for the security baseline is the
-   live test suite stored locally at
-   `~/.claude/projects/-Users-halcwb-Development-halcwb-apps-GenPRES/security/run.sh`.
-   It is deliberately not part of the repository (it encodes deployment
-   assumptions, not source-code invariants) and is the canonical
-   verification harness referenced from the security review.
+4. The deployment-time regression check for the security baseline is a
+   live test suite maintained out-of-repo by the maintainer. It is
+   deliberately not part of the repository because it encodes
+   deployment assumptions (target URL, demo credentials, expected HTTP
+   behaviour) rather than source-code invariants. The current suite
+   verifies the items recorded in the `Update — 2026-04-11` section of
+   the security review and is run before any production deploy.
 
 5. The remaining items in §7.2, §7.3, and §7.4 of the security review
    remain open and **must** be addressed before any non-demo deployment,
@@ -76,8 +83,6 @@ deployment.
      audit trail) for any C2 / C3 rollout.
    - **B1** (TLS termination at the F# layer) if the deployment cannot
      guarantee an HTTPS-terminating reverse proxy.
-   - **B3** (`KnownProxies` allow-list) to harden the rate-limiter's
-     `X-Forwarded-For` trust.
 
 ## Consequences
 

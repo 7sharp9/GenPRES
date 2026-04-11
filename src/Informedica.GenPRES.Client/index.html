@@ -15,8 +15,8 @@
         (fonts.googleapis.com/css?...) serve user-agent-dependent CSS,
         so SRI is not feasible for them — they must either be self-hosted
         or accepted as an unhashed dependency. Tracked under D2.
-        Kept on a single line so the regression-suite single-line regex
-        in ~/.claude/projects/.../security/run.sh test 4.1 picks it up.
+        Kept on a single line so the SRI integrity attribute and the
+        href stay grep-able by line-oriented regression checks.
     -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700">

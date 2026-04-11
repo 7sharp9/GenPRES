@@ -122,10 +122,10 @@ surfaced one new deployment-only issue (**L1**, runtime ABI drift in
 are unchanged.
 
 The remediation plan and the live regression suite that re-runs each
-check are stored locally (deliberately not committed):
-
-- Plan: `~/.claude/plans/dapper-hopping-quiche.md`
-- Regression suite: `~/.claude/projects/-Users-halcwb-Development-halcwb-apps-GenPRES/security/run.sh`
+check are maintained out-of-repo by the maintainer. They encode
+deployment assumptions (target URL, demo credentials, expected HTTP
+behaviour) rather than source-code invariants, and the authoritative
+state of every decision they cover is recorded inline in this review.
 
 ### Resolved items
 
@@ -134,7 +134,8 @@ check are stored locally (deliberately not committed):
 | **L1** (new) | ✅ Fixed | Pinned `Giraffe = 6.4.0` in `paket.dependencies` to dodge the binary mismatch in `Fable.Remoting.Giraffe 5.24`'s error path that previously leaked the full .NET type signature on every malformed POST. Added a `safeWebApi` wrapper around `webApi` in `Server.fs` that catches `MissingMethodException` / `TypeLoadException` and returns a clean `400 / "Bad Request"` as a belt-and-braces guarantee. | `paket.dependencies`, `paket.lock`, `src/Informedica.GenPRES.Server/Server.fs` (`safeWebApi`) |
 | **L2 / B5** | ✅ Fixed | Replaced the legacy `GET >=> text "GenInteractions App. Use localhost: 8080 for the GUI"` catch-all with `setStatusCode 404 >=> text "Not Found"`. The old string disclosed a stale app name and hinted at a separate GUI on port 8080; both reachable via the nginx SPA fallback for `/.env`, `/.git/HEAD`, `/admin`, etc. | `src/Informedica.GenPRES.Server/Server.fs` (`webApp`) |
 | **B2** | ✅ Fixed (C1 / demo) | Added `securityHeadersMiddleware` (ASP.NET middleware via `app_config`) using `Response.OnStarting` so the headers land on every flushed response — static files, Giraffe routes, the 404 fallback, and Fable.Remoting error responses alike. Headers: `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy` (with allow-list for `maxcdn`, `fonts.googleapis.com`, `fonts.gstatic.com`, `docs.google.com`). `X-Powered-By` is stripped defensively. | `src/Informedica.GenPRES.Server/Server.fs` (`securityHeadersMiddleware`, `application`) |
-| **A2** | ✅ Fixed (C1 / demo) | Added `addRateLimiting` using `Microsoft.AspNetCore.RateLimiting` (no new NuGet/Paket dependency — ships with the SDK). Per-IP fixed-window limiter, 60 requests / 10 s window, no queue, partition keyed by `getClientIP` so `X-Forwarded-For` is honoured behind nginx. Sized for the SPA's actual interaction pattern (~4 RPCs per click; clinician burst absorbed). Wired into the pipeline via `app_config` + `UseRateLimiter()`. **Note:** `X-Forwarded-For` is still trusted without an allow-list (finding **B3**, deferred). A proper auth-lockout that only touches the password path needs `Remoting.fromContext` and is also deferred. | `src/Informedica.GenPRES.Server/Server.fs` (`addRateLimiting`, `application`) |
+| **A2** | ✅ Fixed (C1 / demo) | Added `addRateLimiting` using `Microsoft.AspNetCore.RateLimiting` (no new NuGet/Paket dependency — ships with the SDK). Per-IP fixed-window limiter, 60 requests / 10 s window, no queue, partition keyed by `getClientIP` so `X-Forwarded-For` is honoured behind nginx. Sized for the SPA's actual interaction pattern (~4 RPCs per click; clinician burst absorbed). Wired into the pipeline via `app_config` + `UseRateLimiter()`. The `X-Forwarded-For` trust path is now bounded by the **B3** allow-list below. A proper auth-lockout that only touches the password path needs `Remoting.fromContext` and is still deferred. | `src/Informedica.GenPRES.Server/Server.fs` (`addRateLimiting`, `application`) |
+| **B3** | ✅ Fixed (C1 / demo, configurable for C2) | Wired ASP.NET `ForwardedHeadersMiddleware` with a `GENPRES_TRUSTED_PROXIES` env var (defaults to `127.0.0.1, ::1`, matching the Plesk → Kestrel loopback hop on the public demo). `getClientIP` now reads `ctx.Connection.RemoteIpAddress` after the middleware has substituted the real client IP for requests arriving from a known proxy, and ignores `X-Forwarded-For` from any other source. This closes the spoofing-bypass on the rate limiter and bounds the rate-limiter's partition cardinality, fixing the unbounded-memory side-effect of A2's reliance on the previous `getClientIP`. Hospital-LAN C2 deployments add the actual nginx fleet via the env var without recompiling. | `src/Informedica.GenPRES.Server/Server.fs` (`getClientIP`, `trustedProxies`, `addRateLimiting`, `application`) |
 | **D2** | ✅ Fixed | Added `integrity="sha384-..."` + `crossorigin="anonymous"` to the `font-awesome.min.css` link in `index.html`. Google Fonts CSS endpoints (`fonts.googleapis.com/css?...`) serve user-agent-dependent CSS so SRI is not feasible for them — they would have to be self-hosted to be hashed. Documented inline. | `src/Informedica.GenPRES.Client/index.html` |
 
 ### Intentional non-remediation
@@ -164,8 +165,8 @@ check are stored locally (deliberately not committed):
 |---|---|---|---|
 | Critical | 0 (–) | 1 (–) | 4 (–1) |
 | High     | 1 (–) | 4 (–2) | 6 (–1) |
-| Medium   | 6 (–) | 4 (–1) | 3 (–1) |
-| Low      | 4 (–3) | 3 (–1) | 3 (–1) |
+| Medium   | 6 (–) | 3 (–2) | 2 (–2) |
+| Low      | 3 (–4) | 3 (–1) | 3 (–1) |
 
 Deltas (relative to the 2026-04-10 update counts):
 
@@ -173,6 +174,10 @@ Deltas (relative to the 2026-04-10 update counts):
 - **B2** removed Low (C1), High (C2), High (C3).
 - **A2** removed Low (C1), High (C2), Critical (C3).
 - **D2** removed Low (C1), Med (C2), Med (C3).
+- **B3** removed Low (C1), Med (C2), Med (C3) — addressed by the
+  PR #298 review-response pass alongside the
+  `QueueProcessingOrder` cleanup and the documentation hygiene
+  fixes.
 - **L1** is a new finding that was opened and resolved in the same
   pass; it never contributed to a count.
 
@@ -194,7 +199,7 @@ Deltas (relative to the 2026-04-10 update counts):
 The other three remediation buckets are unchanged from the 2026-04-10
 update:
 
-- **§7.2 (before C2 rollout)**: A1, A5, F1, F2, F3, B3, E4, E5, E8 — none addressed in this pass. (B2 and A2 were §7.2 items but were resolved here at the application layer.)
+- **§7.2 (before C2 rollout)**: A1, A5, F1, F2, F3, E4, E5, E8 — none addressed in this pass. (B2 and A2 were §7.2 items but were resolved here at the application layer; B3 was resolved in the 2026-04-11 PR #298 review-response pass — see the *Resolved items* table above.)
 - **§7.3 (before C3 rollout)**: A1 (fuller), A3, B4, F1 (retention), G1 — none addressed. (D2 was a §7.3 item but is now resolved.)
 - **§7.4 (hygiene)**: E6, E7, E9, G2, D1 — unchanged. (B5 was a §7.4 item, resolved here.)
 
@@ -202,7 +207,7 @@ update:
 
 Same as the 2026-04-10 update: the regulatory artifacts in
 `docs/mdr/risk-analysis/` have not been touched. The maintainer should
-map L1, L2, B2, A2, D2 into `risk-management-report.md` and the
+map L1, L2, B2, A2, B3, D2 into `risk-management-report.md` and the
 hazard-analysis spreadsheets through normal change control before any
 deployment beyond C1.
 
@@ -639,11 +644,11 @@ else
 > and `LogAnalyzerCmd.AnalyzeLogFile`). The simplest path is a
 > `GENPRES_REQUIRE_AUTH=1` env-var feature flag that wraps
 > `processCmd` with the token check. Live regression tests
-> 3.3 / 3.4 / 3.5 in
-> `~/.claude/projects/-Users-halcwb-Development-halcwb-apps-GenPRES/security/run.sh`
+> 3.3 / 3.4 / 3.5 in the maintainer's out-of-repo regression suite
 > are expected to FAIL on the demo and must PASS on any other
-> deployment. This decision is recorded in
-> `~/.claude/plans/dapper-hopping-quiche.md`.
+> deployment. The authoritative record of this decision is the
+> blockquote you are currently reading; any earlier session-local
+> notes are non-authoritative.
 
 ---
 
@@ -702,9 +707,11 @@ Notes:
 
 ### B3 — `X-Forwarded-For` trusted without allow-list
 
+> ✅ **Resolved 2026-04-11.** `getClientIP` was reduced to `ctx.Connection.RemoteIpAddress` after wiring ASP.NET `ForwardedHeadersMiddleware` with a `GENPRES_TRUSTED_PROXIES` env var (defaults to `127.0.0.1, ::1`, matching the Plesk → Kestrel loopback hop on the public demo). XFF is now honoured only for connections from the allow-list. This also bounds the rate limiter's partition cardinality, fixing the unbounded-memory side-effect of A2's previous reliance on raw XFF. See the *Resolved items* table in the [Update — 2026-04-11](#update--2026-04-11-post-implementation-of-demo-remediations) section above.
+
 **Severity:** C1 Low · C2 Med · C3 Med
 
-**Evidence** (`Server.fs:20-30`):
+**Evidence** (`Server.fs:20-30`, **superseded** by the resolution above):
 
 ```fsharp
 let getClientIP (context: HttpContext) =
