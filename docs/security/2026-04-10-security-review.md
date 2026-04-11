@@ -29,15 +29,122 @@ GenPRES is a medical-device-class clinical decision support system (CDSS) built 
 | Medium   | 8 | 7 | 5 |
 | Low      | 7 | 4 | 4 |
 
+*These are the original 2026-04-10 baseline counts. Live counts are
+in [Current Status](#current-status--2026-04-11); the diff history
+lives in the dated `Update —` sections.*
+
 **Top three risks (any deployment beyond C1):**
 
 1. **F1 — No audit trail.** No append-only, user-attributable record of who logged in, who changed what scenario, who reloaded resources. This is a hard MDR/21 CFR Part 11 blocker for any production deployment, independent of the CIA triad.
-2. **A1 + A5 — Authentication is effectively absent for clinical operations.** A single shared admin password gates only a handful of "admin" RPCs (`ListLogFiles`, `AnalyzeLogFile`, `ReloadResources`). All clinical RPCs — `UpdateOrderContext`, `FormularyCmd`, `NutritionPlanCmd`, `InteractionCmd` — are completely unauthenticated. Anyone reachable on port 8085 can compute medication scenarios for any patient payload.
-3. **B1 + B2 — No transport security and no security headers.** The server binds plain HTTP on `*:8085`. No HTTPS, no HSTS, no CSP, no `X-Frame-Options`. Acceptable for C1; unacceptable for C2 or C3.
+2. **A1 + A5 — Authentication is effectively absent for clinical operations.** A single shared admin password gates only a handful of "admin" RPCs (`ListLogFiles`, `AnalyzeLogFile`, `ReloadResources`). All clinical RPCs — `UpdateOrderContext`, `FormularyCmd`, `NutritionPlanCmd`, `InteractionCmd` — are completely unauthenticated. Anyone reachable on port 8085 can compute medication scenarios for any patient payload. *(A5 is intentionally deferred on the public demo as a documented decision — see [Current Status](#current-status--2026-04-11) and the A5 finding in §4. A1 is still fully open. Both must be re-enabled before any non-demo deployment, behind the `GENPRES_REQUIRE_AUTH=1` feature flag.)*
+3. **B1 + ~~B2~~ — No transport security ~~and no security headers~~.** The server binds plain HTTP on `*:8085`. No HTTPS at the F# layer; ~~no HSTS, no CSP, no `X-Frame-Options`~~. Acceptable for C1; unacceptable for C2 or C3. *(B2 resolved 2026-04-11 — see [Current Status](#current-status--2026-04-11). B1 still open: the demo mitigates via TLS termination at the Plesk reverse proxy; the F# bind itself remains plain HTTP.)*
 
-**The single most cost-effective remediation** is to put GenPRES behind a TLS-terminating reverse proxy (nginx/Caddy/Traefik) that also enforces a network ACL or basic auth, *while* the in-app auth model is rebuilt. That single control mitigates B1, B2 partially, A2 partially, and B3 cleanly, and is feasible without source changes.
+**The single most cost-effective remediation** is to put GenPRES behind a TLS-terminating reverse proxy (nginx/Caddy/Traefik) that also enforces a network ACL or basic auth, *while* the in-app auth model is rebuilt. That single control mitigates B1, ~~B2 partially, A2 partially, and B3 cleanly~~, and is feasible without source changes. *(B2, A2, and B3 have since been resolved at the application layer 2026-04-11 — see [Current Status](#current-status--2026-04-11). The proxy now only adds B1 mitigation plus the network-ACL / basic-auth backstop.)*
 
 The good news: there are no currently exploitable RCE vectors, no XSS sinks, no committed secrets, the password mechanism (where it exists) uses HMAC-SHA256 + `FixedTimeEquals` + 1-hour TTL, and the `LogAnalyzer` path-traversal handling is exemplary. The bones of a secure system are present — the gaps are predominantly *coverage* and *consistency*, not *cryptographic correctness*.
+
+> **Live remediation state as of 2026-04-11: see
+> [Current Status](#current-status--2026-04-11) below.** The
+> Executive Summary above is the original assessment, preserved for
+> traceability — numbers and "top three risks" entries are stale
+> where the dated `Update —` sections have superseded them.
+
+---
+
+## Current Status — 2026-04-11
+
+The single place for the live remediation state. The dated
+`Update —` sections are the change history; §4 carries per-finding
+evidence, decisions, and resolution markers.
+
+### Severity counts (live)
+
+| Severity | C1 dev / demo | C2 on-prem | C3 SaaS |
+|---|---|---|---|
+| Critical | 0 | 1 | 4 |
+| High     | 1 | 4 | 6 |
+| Medium   | 6 | 3 | 2 |
+| Low      | 3 | 3 | 3 |
+
+Diff history vs. the 2026-04-10 baseline lives inside the dated
+`Update —` sections; the table above is authoritative.
+
+### Closed (resolved in source)
+
+| ID | Title | Resolved |
+|---|---|---|
+| **C1** | `Newtonsoft.Json TypeNameHandling` flipped to `None` + 3 regression tests | 2026-04-10 |
+| **D4** | Constant-time password comparison via `FixedTimeEquals` (token migration still tracked by `TODO(D4 follow-up)`) | 2026-04-10 (partial) |
+| **E2** | Production password policy + startup `validateProductionPassword` (≥16 chars, fail-closed) | 2026-04-10 |
+| **E3** | `GENPRES_URL_ID` removed from Dockerfile `ARG/ENV`; runtime injection only; banner masks Sheet ID; ID rotated | 2026-04-10 |
+| **L1** | `Giraffe = 6.4.0` pin + `safeWebApi` wrapper to dodge `Fable.Remoting.Giraffe 5.24` ABI mismatch on .NET 10 | 2026-04-11 |
+| **L2 / B5** | Legacy framework-leaking root response replaced with generic `404 Not Found` | 2026-04-11 |
+| **B2** | `securityHeadersMiddleware` (HSTS, CSP with MUI/Emotion-compatible `'unsafe-inline'` style-src, XCTO, XFO, Referrer-Policy, Permissions-Policy); `X-Powered-By` stripped at the app layer | 2026-04-11 |
+| **A2** | Per-IP fixed-window rate limiter (`Microsoft.AspNetCore.RateLimiting`, 60 req / 10 s, partition keyed via `getClientIP`) | 2026-04-11 |
+| **B3** | `ForwardedHeadersMiddleware` + `GENPRES_TRUSTED_PROXIES` allow-list; `getClientIP` ignores `X-Forwarded-For` from non-trusted sources; bounds rate-limiter partition cardinality (closes the A2 unbounded-memory side-effect) | 2026-04-11 |
+| **D2** | SRI `sha384` integrity attribute on the external font-awesome stylesheet | 2026-04-11 |
+
+Two ancillary hardening items landed alongside §7.1 (detail in
+*Update — 2026-04-10*):
+
+- Startup banner redacts `GENPRES_URL_ID` to `***<last 5 chars>`.
+- Empty-vs-unset semantics fixed for `GENPRES_URL_ID` and
+  `GENPRES_PASSWORD`: an empty Dockerfile default is now reported
+  as not-set rather than misread as a real value.
+
+### Intentionally deferred
+
+| ID | Why | Re-enable when |
+|---|---|---|
+| **A5** (clinical RPCs unauthenticated) | Public demo at `https://genpres.nl/` exists for visibility; gating defeats the purpose. | Any non-demo deployment. Re-use `validateToken` at `ServerApi.Command.fs:72-121` behind a `GENPRES_REQUIRE_AUTH=1` flag. Live regression tests 3.3 / 3.4 / 3.5 FAIL on the demo and must PASS elsewhere. Decision recorded at A5 in §4 and in [ADR-0015](../mdr/design-history/0015-security-baseline.md). |
+| **1.3** (`X-Powered-By: PleskLin`) | Plesk-managed proxy injects the header downstream of any user-configurable Apache or nginx directive. Discloses managed-hosting type only; no exploitable surface. | C2 migration off shared Plesk hosting (§7.2) resolves it automatically. Investigation log preserved in *Hotfix — 2026-04-11 (1.3 X-Powered-By disclosure — accepted as deferred)*. |
+
+### Open — blocks any C2 (on-prem) rollout
+
+`A1` per-user identity / RBAC · `A5` re-enable behind feature flag ·
+`B1` HTTPS at the app layer (or guaranteed TLS-terminating proxy) ·
+`F1` tamper-evident audit trail · `F2` cache-file integrity check ·
+`F3` PHI redaction in logs · `E4` replace beta/RC Fable deps ·
+`E5` `ClosedXML` upgrade · `E8` automated secret scanning.
+
+Full ordered list in §7.2.
+
+### Open — additionally blocks any C3 (SaaS) rollout
+
+`A1` full IdP integration · `A3` revocable opaque tokens or JWT
+denylist · `B4` Kestrel limits and request-size caps ·
+`F1` audit retention and tamper-evidence (hash chaining + offsite
+shipping) · `G1` validate `dataUrlId` format in `Web.fs`.
+
+§7.3.
+
+### Open — hygiene (lower priority)
+
+`E6` paket pinning policy · `E7` strict `npm ci` · `E9` Action SHA
+pinning · `G2` remove unused project references ·
+`D1` build-time grep test for `rehype-raw` in client.
+
+§7.4.
+
+### Design principle that emerged from this review
+
+**Untrusted input must not be used as a key into server-side storage
+without a trust-boundary check.** Recorded in
+[ADR-0015 §Decision 6](../mdr/design-history/0015-security-baseline.md)
+with the B3 + A2 interaction as the canonical example. Standing
+review item for any future request handler that allocates
+server-side state: rate-limiter partitions, login-attempt counters,
+session caches, idempotency-key tables, password-reset rows,
+deduplication maps.
+
+### MDR readiness note
+
+These docs are written to be MDR-ready but are **not** yet part of an
+active MDR change-control process. On formal MDR entry, this review
+and ADR-0015 come in together as the security baseline; resolved
+findings then map into
+`docs/mdr/risk-analysis/risk-management-report.md` and the
+hazard-analysis spreadsheets through normal change control.
 
 ---
 
@@ -319,28 +426,12 @@ Justification:
 |---|---|---|---|
 | **1.3** (X-Powered-By disclosure) | ⏸ Deferred (accepted) | Plesk-managed reverse proxy injects `X-Powered-By: PleskLin` at a stage that user-configurable Apache and nginx directives cannot intercept. Discloses managed-hosting type only; no attack surface. Will be resolved by the C2 migration off shared Plesk hosting (§7.2). | maintainer |
 
-**Cleanup checklist** for the directives box on
-*Domains → genpres.nl → Apache & nginx Settings*:
-
-- Remove the no-op `add_header X-Robots-Tag "all" always;` line — its
-  only purpose was the diagnostic test in step 5 above; it does not
-  belong in the production config.
-- `proxy_hide_header X-Powered-By;` may be kept as defence-in-depth.
-- The Apache `<IfModule mod_headers.c>` `Header always unset
-  X-Powered-By` block may be kept as defence-in-depth.
-- The `html` / `htm` removal from *Serve static files directly by
-  nginx* may be reverted (it was a probe, not a fix). Reverting it
-  restores nginx-direct serving of `index.html`, which is marginally
-  faster.
-- `fastcgi_hide_header X-Powered-By;` adds nothing on this stack and
-  can be removed.
-
-### Updated severity counts (after 2026-04-11 hotfixes)
-
-The B2 CSS regression was resolved in-source and adds nothing to the
-counts. The 1.3 X-Powered-By finding is **accepted as deferred** and
-joins A5 in the *intentional non-remediation* list. Severity counts
-from the 2026-04-11 update are unchanged.
+An operator-side cleanup checklist for the Plesk *Apache & nginx
+Settings* directives box (removing the diagnostic `add_header
+X-Robots-Tag` no-op, optional defence-in-depth retention of
+`proxy_hide_header` and the Apache `Header unset` block, etc.) was
+maintained out-of-repo with the maintainer. Operational; expires
+when the C2 migration retires this host.
 
 ---
 
