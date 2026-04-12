@@ -30,9 +30,9 @@ The thesis Example 4.2.1 showed that `[2..{2}..10] · [6..{3}..12]` under the in
 
 The fix lives in `src/Informedica.GenSOLVER.Lib/Variable.fs`:
 
-- **`ValueRange.calc`** (around line 2876) is the entry point for domain arithmetic.
-- When both operands are `ValSet`, the code performs **element-wise** multiplication via `ValueSet.calc` (line 1145), which applies the operator directly to the underlying `ValueUnit` arrays.
-- The comment at lines 1157–1163 of `Variable.fs` explicitly documents the thesis counterexample (`[3;6] * [2;4;6]` not producing 30).
+- **`ValueRange.calc`** is the entry point for domain arithmetic.
+- When both operands are `ValSet`, the code performs **element-wise** multiplication via `ValueSet.calc`, which applies the operator directly to the underlying `ValueUnit` arrays.
+- The doc-comment on `ValueSet.minIncrMaxToValueSet` in `Variable.fs` explicitly documents the thesis counterexample (`[3;6] * [2;4;6]` not producing 30).
 
 No assumption is made that the result of arithmetic on two increment-based domains fits an increment pattern. The bug is eliminated.
 
@@ -52,7 +52,13 @@ Track `α` and `β` parameters per variable extremum during propagation. When a 
 
 ### Current State in Codebase
 
-The proposed solution is **not implemented**. In `src/Informedica.GenSOLVER.Lib/Solver.fs`, the `solve` function (around line 96) uses a single safeguard: `MAX_LOOP_COUNT` (line 118). When the solver exceeds the loop count, it raises `SolverTooManyLoops`. There is no α/β tracking, no cycle graph, no fixed-point computation.
+The proposed solution is **not implemented**. In `src/Informedica.GenSOLVER.Lib/Solver.fs`, the `solve` function uses a single safeguard: a loop-count ceiling expressed as
+
+```fsharp
+if n > (que @ acc |> List.length) * Constants.MAX_LOOP_COUNT then
+```
+
+where `Constants.MAX_LOOP_COUNT = 20` is defined in `Utils.fs`. The real ceiling is therefore **(total equation count) × 20** iterations before `SolverTooManyLoops` fires. There is no α/β tracking, no cycle graph, no fixed-point computation.
 
 ### Why Production Still Works
 
@@ -105,7 +111,7 @@ A DAG in practice because `adj_qty` and `sch_frq` are constants. Would become cy
 
 ## Empirical Verification
 
-Two production logs were analyzed within the `calc-minmax` pipeline phase (delimited by `=== PIPELINE START calc-minmax: calc-minmax ===` and `=== PIPELINE END calc-minmax: calc-minmax ===`):
+Two production logs were analyzed within the `calc-minmax` pipeline phase (delimited by `=== PIPELINE START calc-minmax: calc-minmax ===` and `=== PIPELINE END calc-minmax: calc-minmax ===`). The log files are timestamped and not committed to the repository (log files are gitignored). To regenerate equivalent logs, run the server with debug logging enabled and reproduce the scenarios below. See the [Environment Configuration](../../DEVELOPMENT.md#environment-configuration) section in `DEVELOPMENT.md` for how to set `GENPRES_LOG=d` via `.env` or a `debugprod.sh` helper script; logs are written to `src/Informedica.GenPRES.Server/data/logs/`.
 
 ### Log 1: Gentamicin, single component, concentration 1 mg/mL
 
@@ -140,5 +146,6 @@ At any such boundary, the Chapter 5 α/β tracking proposal (or an equivalent cy
 
 - Đelić, K. (2022). *Optimizing GenSolver, a module for solving equations in a medical environment*. Master thesis, Utrecht University. Supervisors: Prof. R.H. Bisseling, Dr. C.W. Bollen.
 - `src/Informedica.GenSOLVER.Lib/Variable.fs` — domain arithmetic (`ValueRange.calc`, `ValueSet.calc`)
-- `src/Informedica.GenSOLVER.Lib/Solver.fs` — propagation loop (`solve`, `MAX_LOOP_COUNT`)
+- `src/Informedica.GenSOLVER.Lib/Solver.fs` — propagation loop (`solve`)
+- `src/Informedica.GenSOLVER.Lib/Utils.fs` — `Constants.MAX_LOOP_COUNT`
 - `src/Informedica.GenSOLVER.Lib/Equation.fs` — equation-level solving
