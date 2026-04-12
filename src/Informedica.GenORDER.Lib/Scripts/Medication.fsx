@@ -1058,7 +1058,6 @@ Components:
 
 module MedicationScenarios =
 
-    open HelperFunctions
     open Informedica.Utils.Lib
 
 

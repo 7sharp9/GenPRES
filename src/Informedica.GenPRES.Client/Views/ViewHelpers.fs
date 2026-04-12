@@ -6,7 +6,6 @@ module ViewHelpers =
 
     open System
     open Fable.Core
-    open Fable.Core.JsInterop
     open Feliz
     open Shared
     open Shared.Types

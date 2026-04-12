@@ -176,8 +176,6 @@ module PatientScripts =
 module ValueUnitScripts =
 
 
-    open System
-
     open MathNet.Numerics
 
     open Informedica.Utils.Lib.BCL

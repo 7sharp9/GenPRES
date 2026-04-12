@@ -1,10 +1,7 @@
 namespace Informedica.MCP.Lib
 
-open System
-
 open Informedica.GenForm.Lib
 open Informedica.GenForm.Lib.Resources
-open Informedica.GenForm.Lib.Types
 open Informedica.GenUnits.Lib
 
 
@@ -146,7 +143,7 @@ module GenFormTools =
             Indication = rr.Indication
             Source = rr.Source
             DoseReduction = doseReduction
-            Comment = rr |> sprintf "%A" |> (fun s -> s.[.. min 200 (s.Length - 1)])
+            Comment = rr |> sprintf "%A" |> (fun s -> s[.. min 200 (s.Length - 1)])
         }
 
 

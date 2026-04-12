@@ -6,7 +6,6 @@ module Tests =
     open Expecto
     open Expecto.Flip
 
-    open Shared
     open Shared.Models
 
     let testHelloWorld =

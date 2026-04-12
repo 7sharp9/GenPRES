@@ -42,7 +42,7 @@ type InteractionPort =
 
 type LogAnalyzerPort =
     {
-        listLogFiles: unit -> Async<Result<Shared.Types.LogFileInfo[], string[]>>
+        listLogFiles: unit -> Async<Result<LogFileInfo[], string[]>>
         analyzeLogFile: string -> Async<Result<string, string[]>>
     }
 

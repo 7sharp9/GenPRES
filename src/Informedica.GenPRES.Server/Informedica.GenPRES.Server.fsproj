@@ -19,9 +19,7 @@
     <Compile Include="ServerApi.ApiImpl.fs" />
     <Compile Include="Server.fs" />
     <None Include="Scripts\load.fsx" />
-    <None Include="Scripts\Scripts.fsx" />
     <None Include="Scripts\MemoryStream.fsx" />
-    <None Include="Scripts\OrderAgent.fsx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Informedica.GenPRES.Shared\Informedica.GenPRES.Shared.fsproj" />

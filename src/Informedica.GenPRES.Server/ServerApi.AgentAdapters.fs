@@ -296,7 +296,7 @@ module AgentAdapters =
 
     [<RequireQualifiedAccess>]
     type InteractionResponse =
-        | Checked of Result<Shared.Types.DrugInteraction list, string[]>
+        | Checked of Result<DrugInteraction list, string[]>
         | Names of Result<string list, string[]>
 
 

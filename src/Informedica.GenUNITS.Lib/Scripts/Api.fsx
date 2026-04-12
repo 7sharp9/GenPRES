@@ -1,6 +1,5 @@
 #load "load.fsx"
 
-open System
 open MathNet.Numerics
 
 open Informedica.GenUnits.Lib

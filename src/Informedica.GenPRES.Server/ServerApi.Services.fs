@@ -225,7 +225,7 @@ module OrderContextService =
     open Shared.Types
     open Mappers
 
-    module GenOrderContext = Informedica.GenOrder.Lib.OrderContext
+    module GenOrderContext = OrderContext
 
 
     let setDemoVersion ctx =

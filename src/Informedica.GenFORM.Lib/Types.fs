@@ -4,10 +4,8 @@ namespace Informedica.GenForm.Lib
 [<AutoOpen>]
 module Types =
 
-    open System
     open MathNet.Numerics
 
-    open Informedica.Utils.Lib
     open Informedica.Logging.Lib
     open Informedica.GenUnits.Lib
 

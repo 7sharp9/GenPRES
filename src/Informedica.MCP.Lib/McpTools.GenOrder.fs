@@ -4,7 +4,6 @@ open System
 
 open Informedica.GenForm.Lib
 open Informedica.GenForm.Lib.Resources
-open Informedica.GenForm.Lib.Types
 open Informedica.GenOrder.Lib
 
 open Patient.Optics
@@ -329,7 +328,7 @@ module GenOrderTools =
                     )
                     |> Array.filter (fun s -> s |> String.IsNullOrWhiteSpace |> not)
                     |> String.concat " | "
-                    |> fun s -> if s.Length > 300 then s.[..299] else s
+                    |> fun s -> if s.Length > 300 then s[..299] else s
 
                 {
                     Number = i + 1

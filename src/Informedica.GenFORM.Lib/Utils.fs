@@ -8,8 +8,6 @@ module Utils =
 
     open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
-    open ConsoleWriter.NewLineNoTime
-
 
     module Parallel =
 

@@ -26,7 +26,6 @@
 
 // ── NuGet packages ────────────────────────────────────────────────────────────
 #r "nuget: Expecto, 10.2.1"
-#r "nuget: Expecto.Flip, 10.2.1"
 
 // ── Project dependencies (load ImplementationPlan to reuse its definitions) ───
 #load "ImplementationPlan.fsx"

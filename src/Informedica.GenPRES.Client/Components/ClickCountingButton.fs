@@ -5,7 +5,6 @@ module ClickCountingButton =
 
 
     open Fable.Core
-    open Fable.Core.JsInterop
     open Feliz
 
 

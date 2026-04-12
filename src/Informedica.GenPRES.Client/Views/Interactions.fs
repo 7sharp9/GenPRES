@@ -5,7 +5,6 @@ module Interactions =
 
 
     open Fable.Core
-    open Fable.Core.JsInterop
     open Fable.React
     open Feliz
     open Elmish

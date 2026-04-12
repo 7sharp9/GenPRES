@@ -6,8 +6,6 @@ module Slider =
 
     open System
     open Fable.Core
-    open Fable.Core.JsInterop
-
 
     [<JSX.Component>]
     let View

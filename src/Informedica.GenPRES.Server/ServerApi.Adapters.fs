@@ -3,7 +3,6 @@ namespace ServerApi
 
 module Adapters =
 
-    open Shared.Api
     open Informedica.GenForm.Lib
 
 

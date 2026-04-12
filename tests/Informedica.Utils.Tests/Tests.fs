@@ -1259,8 +1259,8 @@ module Tests =
                         // Verify the buffer contains the last 'capacity' items
                         let items = RingBuffer.toArray rb
                         let expectedStart = 50000 - capacity + 1
-                        Expect.equal items.[0] expectedStart "Should start with correct item"
-                        Expect.equal items.[capacity - 1] 50000 "Should end with correct item"
+                        Expect.equal items[0] expectedStart "Should start with correct item"
+                        Expect.equal items[capacity - 1] 50000 "Should end with correct item"
                     }
 
                     test "frequent clear and refill should be efficient" {

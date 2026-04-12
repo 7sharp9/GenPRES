@@ -10,7 +10,6 @@ module Order =
     open Shared.Models.Order
     open Shared
     open Elmish
-    open Utils
     open FSharp.Core
 
 

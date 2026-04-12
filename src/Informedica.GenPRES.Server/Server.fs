@@ -11,7 +11,6 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.DependencyInjection
 open System.Threading.Tasks
 
-open Informedica.Utils.Lib.BCL
 open Informedica.Utils.Lib
 
 open Microsoft.AspNetCore.Http

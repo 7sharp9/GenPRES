@@ -7,7 +7,6 @@ module Web =
     module GoogleSheets =
 
         open System
-        open System.IO
         open System.Net.Http
 
 

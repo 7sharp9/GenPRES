@@ -258,16 +258,57 @@ match obj.TryGetProperty("foo"), obj.TryGetProperty("bar") with
 | _ -> // at least one missing
 ```
 
-### String Interpolation
+### Shorthand Lambda (`_.Property`)
 
-Always specify the format specifier (e.g., `%s`, `%i`, `%f`) in string interpolation to ensure values are formatted correctly and to prevent accidentally formatting an entire object instead of a specific property:
+Prefer the F# 8 shorthand lambda `_.Property` (or `_.Method()`) over an explicit `fun x -> x.Property` when the lambda just projects a single member.
 
 ```fsharp
-// Bad - object gets formatted instead of its properties
-let user = { Name = "Alice"; Age = 30 }
-let message = $"User: {user}"
+// Bad - verbose lambda for a simple projection
+pr.DoseRule.ComponentLimits |> Array.collect (fun c -> c.Products)
+users |> List.map (fun u -> u.Name)
+items |> List.sortBy (fun i -> i.Price)
 
-// Good - explicit format specifiers
-let user = { Name = "Alice"; Age = 30 }
-let message = $"User: %s{user.Name} (age %i{user.Age})"
+// Good - shorthand lambda
+pr.DoseRule.ComponentLimits |> Array.collect _.Products
+users |> List.map _.Name
+items |> List.sortBy _.Price
 ```
+
+Only applies to a single member access on the argument. Fall back to `fun x -> ...` when you need multiple accesses, arithmetic, or pattern matching.
+
+### Array and List Indexing
+
+Use modern indexer syntax without the leading dot. `.[]` is legacy F# syntax — drop the dot.
+
+```fsharp
+// Bad - legacy dot-indexer
+let first = items.[0]
+let head = parts.[0]
+let slice = s.[.. 200]
+
+// Good - modern indexer
+let first = items[0]
+let head = parts[0]
+let slice = s[.. 200]
+```
+
+Applies to arrays, lists, strings, and any type with an `Item` indexer, including slicing.
+
+### String Interpolation
+
+Prefer interpolated strings (`$"..."`) over `sprintf`, `String.Format`, or concatenation — values sit next to their position in the text, easier to read and refactor.
+
+Always put a format specifier (`%s`, `%i`, `%f`, `%A`) inside the braces. A bare `{x}` risks formatting a whole record when you wanted one field.
+
+```fsharp
+// Bad - sprintf
+let msg = sprintf "User %s has %i orders" user.Name count
+
+// Bad - interpolation without format specifier (whole record may be formatted)
+let msg = $"User: {user} has {count} orders"
+
+// Good - interpolation with explicit specifiers
+let msg = $"User %s{user.Name} has %i{count} orders"
+```
+
+Exception: `sprintf "%A"` (or `$"%A{x}"`) is fine for diagnostic/log dumps of complex objects where full structural formatting is the intent.

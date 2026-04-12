@@ -32,7 +32,7 @@ let main _ =
 
     match findRepoRoot exeDir with
     | Some root -> Environment.CurrentDirectory <- root
-    | None -> eprintfn "[MCP] Warning: could not find repo root from %s, using current directory" exeDir
+    | None -> eprintfn $"[MCP] Warning: could not find repo root from %s{exeDir}, using current directory"
 
     let dataUrlId =
         match Environment.GetEnvironmentVariable "GENPRES_URL_ID" with
