@@ -35,10 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tests (GenFORM)**: Migrate test scaffolding into formal CI test suite — 218 lines of new Expecto tests
 - **Tests (GenORDER)**: Migrate test scaffolding into formal CI test suite — 120 lines of new Expecto tests
 - **Build**: Add Fantomas pre-commit hook — F# source files are now auto-formatted on every commit; `.fantomasignore` updated to exclude client UI code
+- **Docs**: Add ADR-0015 security baseline — new design-history document defining the server-side and client-side security threat model, remediation status for the demo deployment, and deferred items; updated with XFF bypass and Content-Security-Policy details (PR #298)
 
 ### Changed
 
-- **Docs**: Add ADR-0015 security baseline — new design-history document defining the server-side and client-side security threat model, remediation status for the demo deployment, and deferred items; updated with XFF bypass and Content-Security-Policy details (PR #298)
 - **Docs**: Update security documentation — security review document revised, X-Powered-By disclosure deferred, unused NuGet package removed (PR #299)
 - **Client (UI)**: Migrate MUI from v7 to v9 — replace deprecated props (`color`, `display`, `alignItems`, `PaperProps`) with `sx` and `slotProps` APIs across all client components; chips rendered inline with `Chip` component; centralise style definitions in `Totals` and `Typography` modules (PR #289)
 - **Client (UI)**: Extract JSX inline anonymous records — refactor Fable JSX `sx` props from inline anonymous records to named `let` bindings per F# coding guidelines; fix Markdown linting errors in docs (PR #290)
@@ -54,8 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Server**: Fix XFF bypass on rate limiter — `X-Forwarded-For` header spoofing closed; server now correctly identifies client IP through all proxy hops when determining rate-limit buckets (PR #298)
-- **Server / Client (UI)**: Fix security headers — Content-Security-Policy, HSTS, `X-Content-Type-Options`, and `Referrer-Policy` headers tightened; demo deployment gaps L1/L2/B2/A2/D2 closed (PR #298)
 - **Client (UI)**: Fix token-based auth replacing plaintext password storage — logout now properly clears token and authentication state; concurrent admin requests guarded by `InProgress` state (PR #288)
 - **GenFORM**: Fix `OnceTimed` dose rule validation — updated to accept `MaxRate` or `MaxRateAdj` as valid conditions alongside `MaxTime`/`TimeUnit`; missing-field check now requires at least one of these three options (PR #255)
 - **GenORDER**: Fix empty `ValueUnit` collection — `toValueUnit` returns `None` when the result is empty, preventing creation of invalid value units (PR #255)
@@ -74,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Server**: Fix XFF bypass on rate limiter — `X-Forwarded-For` header spoofing closed; server now correctly identifies client IP through all proxy hops when determining rate-limit buckets (PR #298)
+- **Server / Client (UI)**: Fix security headers — Content-Security-Policy, HSTS, `X-Content-Type-Options`, and `Referrer-Policy` headers tightened; demo deployment gaps L1/L2/B2/A2/D2 closed (PR #298)
 - **Server (Json)**: Disable Newtonsoft.Json `TypeNameHandling.Auto` — flip the default in `Informedica.Utils.Lib/Json.fs` to `TypeNameHandling.None` to eliminate the latent gadget-chain RCE foot-gun if any future caller passes attacker-controlled JSON to `deSerialize`. The setting is currently unreachable from the network (Fable.Remoting uses its own binary serialization) but the dangerous default is invisible to grep and would silently weaponise the next contributor who calls `Json.deSerialize` on untrusted input. Three Expecto regression tests added under a new `JsonSecurity` sub-module guard the default — they fail loudly if the setting is ever reverted. Verified by the full server test suite (5408 passed). Resolves §7.1 C1 of the [2026-04-10 security review](docs/security/2026-04-10-security-review.md)
 - **Server (auth)**: Constant-time password comparison on `ReloadResources` — replace plain `<>` string equality in `ServerApi.Services.fs` with `CryptographicOperations.FixedTimeEquals` on UTF-8 bytes. The fail-closed default (no `GENPRES_PASSWORD` env var = always reject) is preserved. The deeper structural fix — migrating `ReloadResources` onto the HMAC token system used by `LogAnalyzerCmd` so the raw password no longer travels on the wire — is tracked by an inline `TODO(D4 follow-up)` comment. Resolves §7.1 D4
 - **Server (startup)**: Production password policy enforcement — new `validateProductionPassword` in `Server.fs` runs before any HTTP listener is bound and refuses to start when `GENPRES_PROD=1` and `GENPRES_PASSWORD` is missing, empty, whitespace-only, or shorter than 16 characters. Demo mode (`GENPRES_PROD≠1`) is unaffected. The policy is documented in `.env.example` and in a new "Password policy" subsection of `DEVELOPMENT.md`. Resolves §7.1 E2
