@@ -115,7 +115,9 @@ module Calculations =
         ///
         /// PMA expresses a preterm infant's developmental age relative to
         /// conception. Returns whole weeks (integer division).
-        let postMenstrualAge (actAge: int<day>) (gestWeeks: int<week>) (gestDays: int<day>) : int<week> =
+        ///
+        /// Parameter order: gestational pair (weeks, days), then chronological age.
+        let postMenstrualAge (gestWeeks: int<week>) (gestDays: int<day>) (actAge: int<day>) : int<week> =
             (gestWeeks |> weeksToDays) + gestDays + actAge |> daysToWeeks
 
 
@@ -123,7 +125,9 @@ module Calculations =
         ///
         /// Subtracts the degree of prematurity from the chronological age.
         /// May return negative values for very preterm infants early in life.
-        let adjustedAge (gestDays: int<day>) (gestWeeks: int<week>) (chronologicalDays: int<day>) : int<day> =
+        ///
+        /// Parameter order: gestational pair (weeks, days), then chronological age.
+        let adjustedAge (gestWeeks: int<week>) (gestDays: int<day>) (chronologicalDays: int<day>) : int<day> =
             let fullTermDays = fullTerm |> weeksToDays
             let prematurityDays = fullTermDays - (gestDays + (gestWeeks |> weeksToDays))
             chronologicalDays - prematurityDays
@@ -199,23 +203,24 @@ module Calculations =
     /// Creatinine and urea unit conversions.
     module RenalConversions =
 
-        let private creatinineKFactor = 88.42<microMol / L>
+        // Factor typed as the full conversion ratio so unit math is end-to-end safe.
+        // 1 mg/dL = 88.42 µmol/L  →  factor has units µmol·dL / (L·mg)
+        let private creatinineKFactor = 88.42<microMol * dL / (L * mg)>
 
         /// Convert creatinine from mg/dL to µmol/L.
-        let creatMgDlToMicroMolL (v: float<mg / dL>) : float<microMol / L> = float v * creatinineKFactor
+        let creatMgDlToMicroMolL (v: float<mg / dL>) : float<microMol / L> = v * creatinineKFactor
 
         /// Convert creatinine from µmol/L to mg/dL.
-        let creatMicroMolLToMgDl (v: float<microMol / L>) : float<mg / dL> =
-            (float v / float creatinineKFactor) * 1.0<mg / dL>
+        let creatMicroMolLToMgDl (v: float<microMol / L>) : float<mg / dL> = v / creatinineKFactor
 
-        let private ureaMmolFactor = 0.3571<mmol / L>
-
-        /// Convert BUN/Urea from mmol/L to mg/dL.
-        let ureaMmolLToMgDl (v: float<mmol / L>) : float<mg / dL> =
-            (float v / float ureaMmolFactor) * 1.0<mg / dL>
+        // BUN mg/dL × 0.3571 = mmol/L  →  factor has units mmol·dL / (L·mg)
+        let private ureaMmolFactor = 0.3571<mmol * dL / (L * mg)>
 
         /// Convert BUN/Urea from mg/dL to mmol/L.
-        let ureaMgDlToMmolL (v: float<mg / dL>) : float<mmol / L> = float v * ureaMmolFactor
+        let ureaMgDlToMmolL (v: float<mg / dL>) : float<mmol / L> = v * ureaMmolFactor
+
+        /// Convert BUN/Urea from mmol/L to mg/dL.
+        let ureaMmolLToMgDl (v: float<mmol / L>) : float<mg / dL> = v / ureaMmolFactor
 
 
     /// eGFR (estimated Glomerular Filtration Rate) formulas.
