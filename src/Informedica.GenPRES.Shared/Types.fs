@@ -69,29 +69,20 @@ module Types =
         }
 
 
-    type Ranges =
-        {
-            Years: int list
-            Months: int list
-            Weights: float list
-            Heights: int list
-        }
-
-
     module Patient =
 
         type Age =
             {
-                Years: int
-                Months: int
-                Weeks: int
-                Days: int
+                Years: int<year>
+                Months: int<month>
+                Weeks: int<week>
+                Days: int<day>
             }
 
         type GestationalAge =
             {
-                Weeks: int
-                Days: int
+                Weeks: int<week>
+                Days: int<day>
             }
 
 

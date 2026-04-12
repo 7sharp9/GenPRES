@@ -11,6 +11,14 @@ module Measures =
 
     let toCm (x: int) = x * 1<cm>
 
+    let toYear (x: int) = x * 1<year>
+
+    let toMonth (x: int) = x * 1<month>
+
+    let toWeek (x: int) = x * 1<week>
+
+    let toDay (x: int) = x * 1<day>
+
 
 module String =
 
