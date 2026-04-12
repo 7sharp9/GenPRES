@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Docs**: Add ADR-0015 security baseline — new design-history document defining the server-side and client-side security threat model, remediation status for the demo deployment, and deferred items; updated with XFF bypass and Content-Security-Policy details (PR #298)
+- **Docs**: Update security documentation — security review document revised, X-Powered-By disclosure deferred, unused NuGet package removed (PR #299)
 - **Client (UI)**: Migrate MUI from v7 to v9 — replace deprecated props (`color`, `display`, `alignItems`, `PaperProps`) with `sx` and `slotProps` APIs across all client components; chips rendered inline with `Chip` component; centralise style definitions in `Totals` and `Typography` modules (PR #289)
 - **Client (UI)**: Extract JSX inline anonymous records — refactor Fable JSX `sx` props from inline anonymous records to named `let` bindings per F# coding guidelines; fix Markdown linting errors in docs (PR #290)
 - **Client (UI)**: Extract inlined JSX event handler lambdas — `onChange` and `onClick` handlers in `Patient.fs`, `Prescribe.fs`, and `Settings.fs` extracted to named `let` bindings per F# coding guidelines; guidelines updated to explicitly require extraction of non-trivial event handlers from JSX (PR #293)
@@ -52,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Server**: Fix XFF bypass on rate limiter — `X-Forwarded-For` header spoofing closed; server now correctly identifies client IP through all proxy hops when determining rate-limit buckets (PR #298)
+- **Server / Client (UI)**: Fix security headers — Content-Security-Policy, HSTS, `X-Content-Type-Options`, and `Referrer-Policy` headers tightened; demo deployment gaps L1/L2/B2/A2/D2 closed (PR #298)
 - **Client (UI)**: Fix token-based auth replacing plaintext password storage — logout now properly clears token and authentication state; concurrent admin requests guarded by `InProgress` state (PR #288)
 - **GenFORM**: Fix `OnceTimed` dose rule validation — updated to accept `MaxRate` or `MaxRateAdj` as valid conditions alongside `MaxTime`/`TimeUnit`; missing-field check now requires at least one of these three options (PR #255)
 - **GenORDER**: Fix empty `ValueUnit` collection — `toValueUnit` returns `None` when the result is empty, preventing creation of invalid value units (PR #255)
