@@ -8,7 +8,6 @@ module Parenteralia =
     open Feliz
     open Feliz.UseElmish
     open Elmish
-    open Utils
     open Shared.Types
     open Shared
     open Shared.Models

@@ -1,7 +1,6 @@
 #I __SOURCE_DIRECTORY__
 
 #r "nuget: Expecto, 10.2.1"
-#r "nuget: Expecto.Flip, 10.2.1"
 #r "nuget: Newtonsoft.Json"
 
 #r "../../Informedica.Utils.Lib/bin/Debug/net10.0/Informedica.Utils.Lib.dll"
@@ -275,8 +274,8 @@ let interactionTests =
                 let result = Interactions.check drugs il
 
                 result |> List.length |> Expect.equal "should detect 1 interaction" 1
-                result.[0].Drug1 |> Expect.equal "drug1 should be lisinopril" "lisinopril"
-                result.[0].Drug2 |> Expect.equal "drug2 should be ibuprofen" "ibuprofen"
+                result[0].Drug1 |> Expect.equal "drug1 should be lisinopril" "lisinopril"
+                result[0].Drug2 |> Expect.equal "drug2 should be ibuprofen" "ibuprofen"
             }
 
             test "check returns empty for non-interacting drugs" {
@@ -356,9 +355,9 @@ let interactionTests =
                 let result = Interactions.dataToInteractions data
 
                 result |> List.length |> Expect.equal "should have 1 interaction" 1
-                result.[0].DrugClass1.Name |> Expect.equal "class1 name" "ClassA"
+                result[0].DrugClass1.Name |> Expect.equal "class1 name" "ClassA"
 
-                result.[0].DrugClass1.Drugs
+                result[0].DrugClass1.Drugs
                 |> List.length
                 |> Expect.equal "class1 should have 2 drugs" 2
             }

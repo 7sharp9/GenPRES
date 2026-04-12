@@ -4146,9 +4146,6 @@ module Route =
         try
             let urlParams = Router.createUrlSearchParams input
 
-            Some
-                [
-                    for entry in urlParams.entries () -> entry.[0], entry.[1]
-                ]
+            Some [ for entry in urlParams.entries () -> entry[0], entry[1] ]
         with _ ->
             None

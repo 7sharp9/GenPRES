@@ -8,9 +8,6 @@ module PrescriptionRule =
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
 
-    open Utils
-
-
     let adjustDoseLimitToPatient (freq: ValueUnit option) (pat: Patient) (dl: DoseLimit) =
         if dl.AdjustUnit |> Option.isNone then
             dl

@@ -274,7 +274,6 @@ module DateTime =
 [<RequireQualifiedAccess>]
 module Decimal =
 
-    open System
     open System.Globalization
 
 
@@ -395,7 +394,6 @@ module Decimal =
 
 module Csv =
 
-    open System
     open Types
 
 
@@ -467,7 +465,7 @@ module TextBlock =
                     else
                         acc
                 else
-                    let m = matches.[matchIdx]
+                    let m = matches[matchIdx]
 
                     let items =
                         // Add text before match

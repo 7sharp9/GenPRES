@@ -15,12 +15,12 @@ module CompositionRoot =
                 fun cmd ->
                     async {
                         try
-                            writeInfoMessage $"Processing command: {cmd |> Shared.Api.Command.toString}"
+                            writeInfoMessage $"Processing command: {cmd |> Command.toString}"
                             let! result = Command.processCmd env cmd
-                            writeInfoMessage $"Finished processing command: {cmd |> Shared.Api.Command.toString}"
+                            writeInfoMessage $"Finished processing command: {cmd |> Command.toString}"
                             return result
                         with ex ->
-                            writeErrorMessage $"Error processing command: {cmd |> Shared.Api.Command.toString}\n{ex}"
+                            writeErrorMessage $"Error processing command: {cmd |> Command.toString}\n{ex}"
                             return Error [| ex.Message |]
                     }
 

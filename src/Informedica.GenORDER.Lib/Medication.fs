@@ -11,8 +11,6 @@ module Medication =
     open Informedica.GenUnits.Lib
     open Informedica.GenForm.Lib
     open Informedica.GenCore.Lib.Ranges
-    open Validus.ValidationMessages
-
 
     /// Unit validation helpers for deterministic field parsing
     module UnitValidation =
@@ -1022,15 +1020,14 @@ module Medication =
     /// If noSubst is true, the substances will not be added to the ProductComponent.
     /// The freqUnit is used to set the TimeUnit for the Frequencies.
     /// </summary>
-    /// <param name="solutionRule">The SolutionRule for the ProductComponent</param>
     /// <param name="limits">The ComponentLimits for the ProductComponent</param>
-    let createComponents (solutionRule: SolutionRule option) (limits: ComponentLimit[]) =
+    let createComponents (limits: ComponentLimit[]) =
 
         let filterByUnitGroup (context: string) (vus: ValueUnit[]) =
             if vus.Length <= 1 then
                 vus
             else
-                let grouped = vus |> Array.groupBy (ValueUnit.getGroup)
+                let grouped = vus |> Array.groupBy ValueUnit.getGroup
 
                 if grouped.Length <= 1 then
                     vus
@@ -1206,7 +1203,7 @@ module Medication =
                                     SubstanceLimits = [||]
                                 }
                             |]
-                            |> createComponents None
+                            |> createComponents
                             |> List.append ps
                         | None ->
                             writeWarningMessage "No diluents available"
@@ -1246,7 +1243,7 @@ module Medication =
         { template with
             Id = Guid.NewGuid().ToString()
             Name = dr.Generic
-            Components = dr.ComponentLimits |> createComponents sr
+            Components = dr.ComponentLimits |> createComponents
             Quantities = None
             Frequencies = dr.Frequencies
             Time = dr.AdministrationTime

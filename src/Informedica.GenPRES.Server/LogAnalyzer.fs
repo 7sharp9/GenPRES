@@ -510,7 +510,7 @@ module Parse =
                         let raw = line.Split('|')
 
                         if raw.Length >= 2 then
-                            raw[1 .. raw.Length - 2] |> Array.map (fun s -> s.Trim())
+                            raw[1 .. raw.Length - 2] |> Array.map _.Trim()
                         else
                             [||]
 
@@ -738,7 +738,7 @@ module Analyze =
 
 
     let buildEqByResult (equations: Equation list) =
-        equations |> List.groupBy (fun eq -> eq.Result.FullName) |> Map.ofList
+        equations |> List.groupBy _.Result.FullName |> Map.ofList
 
 
     let rec traceVariable
@@ -786,8 +786,8 @@ module Analyze =
                         varName
                         domain
                         (bestEq.Operands
-                         |> List.map (fun o -> sprintf "%s %s" o.FullName o.Domain)
-                         |> String.concat (sprintf " %s " opSym))
+                         |> List.map (fun o -> $"%s{o.FullName} %s{o.Domain}")
+                         |> String.concat $" %s{opSym} ")
 
                 Computed(varName, domain, bestEq.Op, children, eqStr)
 
@@ -832,15 +832,15 @@ module Report =
         match ctx with
         | Some c ->
             pr "  Order Context:"
-            prf "    Patient:    %s" c.Patient
-            prf "    Indication: %s" c.Indication
-            prf "    Generic:    %s" c.Generic
+            prf $"    Patient:    %s{c.Patient}"
+            prf $"    Indication: %s{c.Indication}"
+            prf $"    Generic:    %s{c.Generic}"
 
             if c.Route <> "" then
-                prf "    Route:      %s" c.Route
+                prf $"    Route:      %s{c.Route}"
 
             if c.DoseType <> "" then
-                prf "    DoseType:   %s" c.DoseType
+                prf $"    DoseType:   %s{c.DoseType}"
         | None -> pr "  (No order context found)"
 
         pr ""
@@ -853,13 +853,13 @@ module Report =
                 table |> List.filter (fun row -> not (isDefaultConstraint row.Constraints))
 
             if sigConstraints.Length > 0 then
-                prf "  %s:" label
+                prf $"  %s{label}:"
                 pr "  ─────────────────────────────────────────────────────────────────"
 
                 for row in sigConstraints do
                     // Use "(schedule)" for rows with empty name (schedule-level variables)
                     let name = if row.Name = "" then "(schedule)" else row.Name
-                    prf "    %-42s %-12s %s" name row.Variable row.Constraints
+                    prf $"    %-42s{name} %-12s{row.Variable} %s{row.Constraints}"
 
                 pr ""
 
@@ -875,7 +875,7 @@ module Report =
 
             for run in pipelineRuns do
                 if pipelineRuns.Length > 1 then
-                    prf "    Pass %d:" (run.RunIndex + 1)
+                    prf $"    Pass %d{run.RunIndex + 1}:"
 
                 for stepIdx, step in run.Steps |> List.indexed do
                     let status = if step.ErrorOccurred then "FAILED" else "OK"
@@ -886,20 +886,20 @@ module Report =
                         match step.SolverPasses with
                         | [] -> ""
                         | passes ->
-                            let totalLoops = passes |> List.sumBy (fun p -> p.LoopCount)
-                            let maxEqs = passes |> List.map (fun p -> p.EquationCount) |> List.max
-                            sprintf " (%d solver loops, %d equations)" totalLoops maxEqs
+                            let totalLoops = passes |> List.sumBy _.LoopCount
+                            let maxEqs = passes |> List.map _.EquationCount |> List.max
+                            $" (%d{totalLoops} solver loops, %d{maxEqs} equations)"
 
-                    prf "    %s %d. %-40s %s%s" statusMark (stepIdx + 1) step.Name status solverInfo
+                    prf $"    %s{statusMark} %d{stepIdx + 1}. %-40s{step.Name} %s{status}%s{solverInfo}"
 
                     if step.ErrorOccurred then
                         for passIdx, pass in step.SolverPasses |> List.indexed do
                             let passResult =
                                 match pass.Result with
                                 | Solved -> "solved"
-                                | SolvedWithErrors n -> sprintf "FAILED (%d errors)" n
+                                | SolvedWithErrors n -> $"FAILED (%d{n} errors)"
 
-                            prf "        solver pass %d: %d loops, %s" (passIdx + 1) pass.LoopCount passResult
+                            prf $"        solver pass %d{passIdx + 1}: %d{pass.LoopCount} loops, %s{passResult}"
 
                 pr ""
 
@@ -908,23 +908,23 @@ module Report =
         if uniqueErrors.IsEmpty then
             pr "  No constraint conflicts detected."
         else
-            prf "  Found %d unique constraint conflict(s):" uniqueErrors.Length
+            prf $"  Found %d{uniqueErrors.Length} unique constraint conflict(s):"
             pr ""
 
         for errIdx, error in uniqueErrors |> List.indexed do
             pr "  ────────────────────────────────────────────────────────────────"
-            prf "  CONFLICT #%d" (errIdx + 1)
+            prf $"  CONFLICT #%d{errIdx + 1}"
             pr "  ────────────────────────────────────────────────────────────────"
             pr ""
 
             let cleanVar = Analyze.cleanGuid (Analyze.shortName error.FailingVariable)
 
-            prf "  Failing variable: %s" cleanVar
-            prf "  Current domain:   %s" error.CurrentDomain
-            prf "  Attempted range:  %s" error.AttemptedRange
+            prf $"  Failing variable: %s{cleanVar}"
+            prf $"  Current domain:   %s{error.CurrentDomain}"
+            prf $"  Attempted range:  %s{error.AttemptedRange}"
 
             if error.DetailMessage <> "" then
-                prf "  Detail:           %s" error.DetailMessage
+                prf $"  Detail:           %s{error.DetailMessage}"
 
             pr ""
 
@@ -938,15 +938,10 @@ module Report =
 
                 pr "  Failing equation:"
 
-                prf "    %s %s" (Analyze.shortName failEq.Result.FullName) failEq.Result.Domain
+                prf $"    %s{Analyze.shortName failEq.Result.FullName} %s{failEq.Result.Domain}"
 
                 prf
-                    "      = %s %s  %s  %s %s"
-                    (Analyze.shortName failEq.Operands[0].FullName)
-                    failEq.Operands[0].Domain
-                    opSym
-                    (Analyze.shortName failEq.Operands[1].FullName)
-                    failEq.Operands[1].Domain
+                    $"      = %s{Analyze.shortName failEq.Operands[0].FullName} %s{failEq.Operands[0].Domain}  %s{opSym}  %s{Analyze.shortName failEq.Operands[1].FullName} %s{failEq.Operands[1].Domain}"
 
                 pr ""
 
@@ -965,7 +960,8 @@ module Report =
                         let pad = String.replicate indent "    "
 
                         match node with
-                        | Leaf(name, domain, source) -> prf "%s%s %s  <- %s" pad (Analyze.shortName name) domain source
+                        | Leaf(name, domain, source) ->
+                            prf $"%s{pad}%s{Analyze.shortName name} %s{domain}  <- %s{source}"
                         | Computed(name, domain, op, children, _) ->
                             let opWord =
                                 match op with
@@ -973,8 +969,8 @@ module Report =
                                 | Division -> "division"
                                 | Sum -> "sum"
 
-                            prf "%s%s %s" pad (Analyze.shortName name) domain
-                            prf "%s  = %s of:" pad opWord
+                            prf $"%s{pad}%s{Analyze.shortName name} %s{domain}"
+                            prf $"%s{pad}  = %s{opWord} of:"
 
                             for child in children do
                                 printTraceReport (indent + 1) child
@@ -988,9 +984,9 @@ module Report =
                             |> List.filter (fun eq -> eq.Operands |> List.exists (fun o -> o.FullName = op.FullName))
 
                         if opEqs.Length > 0 then
-                            prf "  Equations involving %s %s:" (Analyze.shortName op.FullName) op.Domain
+                            prf $"  Equations involving %s{Analyze.shortName op.FullName} %s{op.Domain}:"
 
-                            for eq in opEqs |> List.distinctBy (fun e -> e.Result.FullName) do
+                            for eq in opEqs |> List.distinctBy _.Result.FullName do
                                 let opS =
                                     match eq.Op with
                                     | Product -> "*"
@@ -1002,8 +998,8 @@ module Report =
                                     (Analyze.shortName eq.Result.FullName)
                                     eq.Result.Domain
                                     (eq.Operands
-                                     |> List.map (fun o -> sprintf "%s %s" (Analyze.shortName o.FullName) o.Domain)
-                                     |> String.concat (sprintf " %s " opS))
+                                     |> List.map (fun o -> $"%s{Analyze.shortName o.FullName} %s{o.Domain}")
+                                     |> String.concat $" %s{opS} ")
 
                             pr ""
 
@@ -1067,7 +1063,7 @@ let listLogFiles () =
                 LastWriteTime = fi.LastWriteTime
             |}
         )
-        |> Array.sortByDescending (fun f -> f.LastWriteTime)
+        |> Array.sortByDescending _.LastWriteTime
         |> Array.map (fun f ->
             {
                 Shared.Types.LogFileInfo.FileName = f.FileName

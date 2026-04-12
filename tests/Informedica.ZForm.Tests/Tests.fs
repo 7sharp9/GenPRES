@@ -5,7 +5,6 @@ open Expecto
 open Expecto.Flip
 open MathNet.Numerics
 
-open Informedica.Utils.Lib
 open Informedica.Utils.Lib.BCL
 open Informedica.GenCore.Lib.Ranges
 open Informedica.ZForm.Lib
@@ -41,8 +40,6 @@ open Helpers
 module MinMaxTests =
 
     open Informedica.GenUnits.Lib
-    open Informedica.GenCore.Lib
-    open Informedica.GenCore.Lib.Ranges
 
     let fromDecimal (v: decimal) u =
         v |> BigRational.fromDecimal |> ValueUnit.createSingle u

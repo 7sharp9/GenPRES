@@ -7,6 +7,7 @@ module Filters =
     open Informedica.Logging.Lib
 
     // Logger-injected variant
+    // TODO: the logger arg makes no sense
     let getPrescriptionRules (logger: Logger) (provider: IResourceProvider) =
         Api.getPrescriptionRules provider
         >> function
@@ -15,6 +16,7 @@ module Filters =
 
 
     // Logger-injected variant
+    // TODO: the logger arg makes no sense
     let filterPrescriptionRules (logger: Logger) (provider: IResourceProvider) filter =
         Api.filterPrescriptionRules provider filter
         |> function
@@ -481,7 +483,6 @@ module OrderContext =
 
 
     open Informedica.Logging.Lib
-    open Utils
     open Helpers
 
     module Prescription = Order.Schedule

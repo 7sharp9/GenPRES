@@ -4,7 +4,6 @@ namespace Views
 
 module Nutrition =
 
-    open System
     open Fable.Core
     open Fable.React
     open Feliz
@@ -558,7 +557,7 @@ module Nutrition =
                     let normal =
                         if items.Length >= 1 then
                             let s =
-                                match items.[items.Length - 1] with
+                                match items[items.Length - 1] with
                                 | Normal s
                                 | Bold s
                                 | Italic s -> s

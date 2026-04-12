@@ -15,6 +15,7 @@
 // These can be loaded all at once.
 
 #load "../Logging.fs"
+#load "../LogAnalyzer.fs"
 #load "../ServerApi.Mappers.fs"
 #load "../ServerApi.Ports.fs"
 #load "../ServerApi.Services.fs"
