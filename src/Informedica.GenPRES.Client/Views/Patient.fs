@@ -183,9 +183,9 @@ module Patient =
 
         let hghts = [| 40..220 |]
 
-        let zeroToNone =
-            function
-            | Some v -> if v = 0 then None else v |> Some
+        let inline zeroToNone opt =
+            match opt with
+            | Some v -> if int v = 0 then None else v |> int |> Some
             | None -> None
 
         let weightToNone =

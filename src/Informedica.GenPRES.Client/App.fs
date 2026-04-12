@@ -230,8 +230,8 @@ module private Elmish =
     let private parsePatientParams paramsMap =
         tryParseInt "wt" paramsMap,
         tryParseInt "ht" paramsMap,
-        tryParseInt "gw" paramsMap,
-        tryParseInt "gd" paramsMap,
+        tryParseInt "gw" paramsMap |> Option.map Shared.Measures.toWeek,
+        tryParseInt "gd" paramsMap |> Option.map Shared.Measures.toDay,
         Map.tryFind "dp" paramsMap
 
     let parseUrl sl =
