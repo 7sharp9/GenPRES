@@ -260,21 +260,23 @@ match obj.TryGetProperty("foo"), obj.TryGetProperty("bar") with
 
 ### Shorthand Lambda (`_.Property`)
 
-Prefer the F# 8 shorthand lambda `_.Property` (or `_.Method()`) over an explicit `fun x -> x.Property` when the lambda just projects a single member.
+Prefer the F# 8 shorthand lambda `_.Property` (or `_.Method()`) over an explicit `fun x -> x.Property` when the lambda just projects a chain of members.
 
 ```fsharp
 // Bad - verbose lambda for a simple projection
 pr.DoseRule.ComponentLimits |> Array.collect (fun c -> c.Products)
 users |> List.map (fun u -> u.Name)
 items |> List.sortBy (fun i -> i.Price)
+equations |> List.groupBy (fun eq -> eq.Result.FullName)
 
-// Good - shorthand lambda
+// Good - shorthand lambda (single or chained member access both work)
 pr.DoseRule.ComponentLimits |> Array.collect _.Products
 users |> List.map _.Name
 items |> List.sortBy _.Price
+equations |> List.groupBy _.Result.FullName
 ```
 
-Only applies to a single member access on the argument. Fall back to `fun x -> ...` when you need multiple accesses, arithmetic, or pattern matching.
+Chained member access (`_.Result.FullName`) and terminal method calls (`_.ToString()`) are supported. Fall back to `fun x -> ...` when you need to reference the argument more than once, do arithmetic, or pattern match.
 
 ### Array and List Indexing
 
