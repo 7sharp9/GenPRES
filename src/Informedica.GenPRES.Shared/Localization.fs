@@ -240,3 +240,95 @@ module Localization =
                 printfn $"cannot find term: {term}"
 
             r
+
+
+    // ── Typed translation map (header-based, robust to column reordering) ────
+
+    /// A typed translation map: term-key → locale → translated string.
+    /// Replaces the opaque `string[][]` representation for new code paths.
+    type TranslationMap = Map<string, Map<Locales, string>>
+
+
+    /// Converts a display name string to a `Locales` value, returning `None`
+    /// for unknown names instead of throwing (unlike `fromString`).
+    let tryFromString (s: string) : Locales option =
+        let s = s.Trim().ToLower()
+
+        match s with
+        | "english" -> Some English
+        | "nederlands" -> Some Dutch
+        | "français" -> Some French
+        | "español" -> Some Spanish
+        | "deutsch" -> Some German
+        | "italiano" -> Some Italian
+        | _ -> None
+
+
+    /// Parses a `string[][]` from `Csv.parseCSV` into a `TranslationMap`.
+    ///
+    /// The first row is expected to contain column headers. Any column whose
+    /// header matches a known locale display name (via `tryFromString`) is
+    /// treated as a translation column. The first column holds the term key.
+    ///
+    /// Robust to column reordering in the source spreadsheet.
+    let parseCSV (csv: string[][]) : TranslationMap =
+        if csv.Length < 2 then
+            Map.empty
+        else
+            let headers = csv.[0]
+
+            let localeColumns =
+                headers
+                |> Array.mapi (fun i header -> i, tryFromString header)
+                |> Array.choose (fun (i, opt) -> opt |> Option.map (fun l -> i, l))
+
+            csv
+            |> Array.skip 1
+            |> Array.choose (fun row ->
+                if row.Length > 0 && not (System.String.IsNullOrWhiteSpace row.[0]) then
+                    let termKey = row.[0].Trim()
+
+                    let translations =
+                        localeColumns
+                        |> Array.choose (fun (colIdx, locale) ->
+                            if colIdx < row.Length && not (System.String.IsNullOrWhiteSpace row.[colIdx]) then
+                                Some(locale, row.[colIdx].Trim())
+                            else
+                                None
+                        )
+                        |> Map.ofArray
+
+                    Some(termKey, translations)
+                else
+                    None
+            )
+            |> Map.ofArray
+
+
+    /// Looks up a translated string in a `TranslationMap`.
+    /// Returns `None` when the term or locale is absent.
+    let getTermFromMap (translations: TranslationMap) (locale: Locales) (term: Terms) : string option =
+        let key = $"{term}".Trim()
+        translations |> Map.tryFind key |> Option.bind (Map.tryFind locale)
+
+
+    /// Merges `remote` onto `fallback`: per-locale entries in `remote` take
+    /// precedence; terms missing from `remote` are kept from `fallback`.
+    let mergeTranslations (fallback: TranslationMap) (remote: TranslationMap) : TranslationMap =
+        remote
+        |> Map.fold
+            (fun acc termKey remoteLocales ->
+                let merged =
+                    match Map.tryFind termKey acc with
+                    | None -> remoteLocales
+                    | Some fallbackLocales ->
+                        Map.fold (fun m locale txt -> Map.add locale txt m) fallbackLocales remoteLocales
+
+                Map.add termKey merged acc
+            )
+            fallback
+
+
+    /// Looks up a term, falling back to `defVal` when absent.
+    let getTermOrDefault (translations: TranslationMap) (locale: Locales) (defVal: string) (term: Terms) : string =
+        getTermFromMap translations locale term |> Option.defaultValue defVal

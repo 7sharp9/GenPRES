@@ -29,19 +29,19 @@ module Models =
 
             let ageZero =
                 {
-                    Years = 0
-                    Months = 0
-                    Weeks = 0
-                    Days = 0
+                    Years = 0<year>
+                    Months = 0<month>
+                    Weeks = 0<week>
+                    Days = 0<day>
                 }
 
 
             let create years months weeks days =
                 {
                     Years = years
-                    Months = months |> Option.defaultValue 0
-                    Weeks = weeks |> Option.defaultValue 0
-                    Days = days |> Option.defaultValue 0
+                    Months = months |> Option.defaultValue 0<month>
+                    Weeks = weeks |> Option.defaultValue 0<week>
+                    Days = days |> Option.defaultValue 0<day>
                 }
 
 
@@ -57,10 +57,10 @@ module Models =
                         0
 
                 create
-                    yrs
-                    (if mos > 0 then Some mos else None)
-                    (if wks > 0 then Some wks else None)
-                    (if dys > 0 then Some dys else None)
+                    (yrs * 1<year>)
+                    (if mos > 0 then Some(mos * 1<month>) else None)
+                    (if wks > 0 then Some(wks * 1<week>) else None)
+                    (if dys > 0 then Some(dys * 1<day>) else None)
 
 
             let fromBirthDate (now: DateTime) (bdt: DateTime) =
@@ -104,39 +104,44 @@ module Models =
                     else
                         DateTime.DaysInMonth(last.Year, last.Month) - last.Day + now.Day
 
-                create yrs (Some mos) (Some(days / 7)) (Some(days - 7 * (days / 7)))
+                create
+                    (yrs * 1<year>)
+                    (Some(mos * 1<month>))
+                    (Some(days / 7 * 1<week>))
+                    (Some((days - 7 * (days / 7)) * 1<day>))
 
 
-            let validateMinMax lbl min max n =
+            let inline validateMinMax lbl min max n =
                 if n >= min && n <= max then
                     Result.Ok n
                 else
-                    $"%s{lbl}: %i{n} not >= %i{min} and <= %i{max}" |> Result.Error
+                    $"%s{lbl}: {int n} not >= {int min} and <= {int max}" |> Result.Error
 
 
-            let set setter lbl min max n age : Result<Age, string> =
+            let inline set setter lbl min max n age : Result<Age, string> =
                 n |> validateMinMax lbl min max >== ((setter age) >> Result.Ok)
 
 
-            let setYears = set (fun age n -> { age with Years = n }) "Years" 0 100
+            let setYears = set (fun age n -> { age with Years = n }) "Years" 0<year> 100<year>
 
 
             let setMonths mos age =
-                age |> setYears (mos / 12)
-                >== set (fun age n -> { age with Months = n }) "Months" 0 11 (mos % 12)
+                age |> setYears (mos / 12<month / year>)
+                >== set (fun age n -> { age with Months = n }) "Months" 0<month> 11<month> (mos % 12<month>)
 
 
             let setWeeks wks age =
-                let yrs = wks / 52
-                let mos = (wks - yrs * 52) / 4
-                let wks = wks - (mos * 4) - (yrs * 52)
+                let yrs = wks / 52<week / year>
+                let mos = (wks - yrs * 52<week / year>) / 4<week / month>
+                let wks = wks - (mos * 4<week / month>) - (yrs * 52<week / year>)
 
                 age |> setYears yrs
-                >== set (fun age n -> { age with Months = n }) "Months" 0 12 mos
-                >== set (fun age n -> { age with Weeks = n }) "Weeks" 0 4 wks
+                >== set (fun age n -> { age with Months = n }) "Months" 0<month> 12<month> mos
+                >== set (fun age n -> { age with Weeks = n }) "Weeks" 0<week> 4<week> wks
 
 
             let setDays dys age =
+                let dys = int dys
                 let c = 356. / 12.
                 let yrs = dys / 356
 
@@ -147,15 +152,15 @@ module Models =
                     |> int
                     |> fun x -> x / 7
 
-                let dys =
+                let ds =
                     (float dys) - ((float mos) * c) - (yrs * 356 |> float)
                     |> int
                     |> fun x -> x % 7
 
-                age |> setYears yrs
-                >== set (fun age n -> { age with Months = n }) "Months" 0 12 mos
-                >== set (fun age n -> { age with Weeks = n }) "Weeks" 0 4 wks
-                >== set (fun age n -> { age with Days = n }) "Days" 0 6 dys
+                age |> setYears (yrs * 1<year>)
+                >== set (fun age n -> { age with Months = n }) "Months" 0<month> 12<month> (mos * 1<month>)
+                >== set (fun age n -> { age with Weeks = n }) "Weeks" 0<week> 4<week> (wks * 1<week>)
+                >== set (fun age n -> { age with Days = n }) "Days" 0<day> 6<day> (ds * 1<day>)
 
 
             let getYears { Age.Years = yrs } = yrs
@@ -174,7 +179,8 @@ module Models =
                 (a |> getYears |> float) + ((a |> getMonths |> float) / 12.)
 
 
-            let calcMonths a = (a |> getYears) * 12 + (a |> getMonths)
+            let calcMonths a =
+                (a |> getYears |> int) * 12 + (a |> getMonths |> int)
 
             let gestAgeToString terms lang (age: GestationalAge) =
                 let getTerm = Localization.getTerm terms
@@ -187,8 +193,8 @@ module Models =
             let toString terms lang (age: Age) =
                 let getTerm = Localization.getTerm terms lang
 
-                let plur s1 s2 n =
-                    if n = 1 then $"{n} {s1}" else $"{n} {s2}"
+                let inline plur s1 s2 n =
+                    if int n = 1 then $"{int n} {s1}" else $"{int n} {s2}"
 
                 let d =
                     age.Days
@@ -207,23 +213,24 @@ module Models =
                     |> plur (getTerm Terms.``Patient Age year``) (getTerm Terms.``Patient Age years``)
 
                 match age with
-                | _ when age.Years = 0 && age.Months = 0 && age.Weeks = 0 -> $"{d}"
-                | _ when age.Years = 0 && age.Months = 0 -> if age.Days = 0 then $"{w}" else $"{w} en {d}"
-                | _ when age.Years = 0 ->
+                | _ when age.Years = 0<year> && age.Months = 0<month> && age.Weeks = 0<week> -> $"{d}"
+                | _ when age.Years = 0<year> && age.Months = 0<month> ->
+                    if age.Days = 0<day> then $"{w}" else $"{w} en {d}"
+                | _ when age.Years = 0<year> ->
                     match age.Weeks, age.Days with
-                    | ws, ds when ds > 0 && ws > 0 -> $"{m}, {w} en {d}"
-                    | ws, ds when ds = 0 && ws > 0 -> $"{m}, {w}"
-                    | ws, ds when ds > 0 && ws = 0 -> $"{m}, {d}"
+                    | ws, ds when ds > 0<day> && ws > 0<week> -> $"{m}, {w} en {d}"
+                    | ws, ds when ds = 0<day> && ws > 0<week> -> $"{m}, {w}"
+                    | ws, ds when ds > 0<day> && ws = 0<week> -> $"{m}, {d}"
                     | _ -> $"{m}"
                 | _ ->
                     match age.Months, age.Weeks, age.Days with
-                    | ms, ws, ds when ms = 0 && ds > 0 && ws > 0 -> $"{y}, {w}, {d}"
-                    | ms, ws, ds when ms = 0 && ds = 0 && ws > 0 -> $"{y}, {w}"
-                    | ms, ws, ds when ms = 0 && ds > 0 && ws = 0 -> $"{y}, {d}"
-                    | ms, ws, ds when ms > 0 && ds > 0 && ws > 0 -> $"{y}, {m}, {w}, {d}"
-                    | ms, ws, ds when ms > 0 && ds = 0 && ws > 0 -> $"{y}, {m}, {w}"
-                    | ms, ws, ds when ms > 0 && ds > 0 && ws = 0 -> $"{y}, {m}, {d}"
-                    | ms, ws, ds when ms > 0 && ds = 0 && ws = 0 -> $"{y}, {m}"
+                    | ms, ws, ds when ms = 0<month> && ds > 0<day> && ws > 0<week> -> $"{y}, {w}, {d}"
+                    | ms, ws, ds when ms = 0<month> && ds = 0<day> && ws > 0<week> -> $"{y}, {w}"
+                    | ms, ws, ds when ms = 0<month> && ds > 0<day> && ws = 0<week> -> $"{y}, {d}"
+                    | ms, ws, ds when ms > 0<month> && ds > 0<day> && ws > 0<week> -> $"{y}, {m}, {w}, {d}"
+                    | ms, ws, ds when ms > 0<month> && ds = 0<day> && ws > 0<week> -> $"{y}, {m}, {w}"
+                    | ms, ws, ds when ms > 0<month> && ds > 0<day> && ws = 0<week> -> $"{y}, {m}, {d}"
+                    | ms, ws, ds when ms > 0<month> && ds = 0<day> && ws = 0<week> -> $"{y}, {m}"
                     | _ -> $"{y}"
 
 
@@ -365,24 +372,29 @@ module Models =
 
         let create years months weeks days weight height gw gd gend cvl gfr dep : Patient option =
             let a =
-                if [ years; months; weeks; days ] |> List.forall Option.isNone then
+                if
+                    Option.isNone years
+                    && Option.isNone months
+                    && Option.isNone weeks
+                    && Option.isNone days
+                then
                     None
                 else
                     { Age.ageZero with
-                        Age.Years = years |> Option.defaultValue 0
-                        Months = months |> Option.defaultValue 0
-                        Weeks = weeks |> Option.defaultValue 0
-                        Days = days |> Option.defaultValue 0
+                        Age.Years = years |> Option.defaultValue 0<year>
+                        Months = months |> Option.defaultValue 0<month>
+                        Weeks = weeks |> Option.defaultValue 0<week>
+                        Days = days |> Option.defaultValue 0<day>
                     }
                     |> Some
 
             let ga =
-                if [ gw; gd ] |> List.forall Option.isNone then
+                if Option.isNone gw && Option.isNone gd then
                     None
                 else
                     {
-                        Patient.GestationalAge.Weeks = gw |> Option.defaultValue 37
-                        Patient.GestationalAge.Days = gd |> Option.defaultValue 0
+                        Patient.GestationalAge.Weeks = gw |> Option.defaultValue 37<week>
+                        Patient.GestationalAge.Days = gd |> Option.defaultValue 0<day>
                     }
                     |> Some
 
@@ -452,13 +464,14 @@ module Models =
 
 
         let getGestAgeInDays (p: Patient) =
-            p.GestationalAge |> Option.map (fun ga -> ga.Weeks * 7 + ga.Days)
+            p.GestationalAge
+            |> Option.map (fun ga -> (Calculations.Age.weeksToDays ga.Weeks + ga.Days) |> int)
 
 
         let getPostConceptionalAgeInDays (p: Patient) =
             match p.GestationalAge, p |> getAgeInDays with
             | Some ga, Some age ->
-                let gaDays = ga.Weeks * 7 + ga.Days
+                let gaDays = (Calculations.Age.weeksToDays ga.Weeks + ga.Days) |> int
                 int age + gaDays |> Some
             | _ -> None
 
@@ -509,10 +522,7 @@ module Models =
             | Some w, _, Some h, _
             | Some w, _, None, Some h
             | None, Some w, Some h, _
-            | None, Some w, None, Some h ->
-                0.007184 * ((float w / 1000.) ** 0.425) * ((float h) ** 0.725)
-                |> Math.fixPrecision 2
-                |> Some
+            | None, Some w, None, Some h -> Calculations.BSA.calcDuBois w h |> Some
 
 
         let applyNormalValues
@@ -640,10 +650,23 @@ module Models =
 
         let setYear s (p: Patient option) =
             match p with
-            | None -> create (s |> Option.bind tryParse) None None None None None None None UnknownGender [] None None
+            | None ->
+                create
+                    (s |> Option.bind tryParse |> Option.map Measures.toYear)
+                    None
+                    None
+                    None
+                    None
+                    None
+                    None
+                    None
+                    UnknownGender
+                    []
+                    None
+                    None
             | Some p ->
                 create
-                    (s |> Option.bind tryParse)
+                    (s |> Option.bind tryParse |> Option.map Measures.toYear)
                     (p |> getAgeMonths)
                     (p |> getAgeWeeks)
                     (p |> getAgeDays)
@@ -659,11 +682,24 @@ module Models =
 
         let setMonth s (p: Patient option) =
             match p with
-            | None -> create None (s |> Option.bind tryParse) None None None None None None UnknownGender [] None None
+            | None ->
+                create
+                    None
+                    (s |> Option.bind tryParse |> Option.map Measures.toMonth)
+                    None
+                    None
+                    None
+                    None
+                    None
+                    None
+                    UnknownGender
+                    []
+                    None
+                    None
             | Some p ->
                 create
                     (p |> getAgeYears)
-                    (s |> Option.bind tryParse)
+                    (s |> Option.bind tryParse |> Option.map Measures.toMonth)
                     (p |> getAgeWeeks)
                     (p |> getAgeDays)
                     None
@@ -678,12 +714,25 @@ module Models =
 
         let setWeek s (p: Patient option) =
             match p with
-            | None -> create None None (s |> Option.bind tryParse) None None None None None UnknownGender [] None None
+            | None ->
+                create
+                    None
+                    None
+                    (s |> Option.bind tryParse |> Option.map Measures.toWeek)
+                    None
+                    None
+                    None
+                    None
+                    None
+                    UnknownGender
+                    []
+                    None
+                    None
             | Some p ->
                 create
                     (p |> getAgeYears)
                     (p |> getAgeMonths)
-                    (s |> Option.bind tryParse)
+                    (s |> Option.bind tryParse |> Option.map Measures.toWeek)
                     (p |> getAgeDays)
                     None
                     None
@@ -697,13 +746,26 @@ module Models =
 
         let setDay s (p: Patient option) =
             match p with
-            | None -> create None None None (s |> Option.bind tryParse) None None None None UnknownGender [] None None
+            | None ->
+                create
+                    None
+                    None
+                    None
+                    (s |> Option.bind tryParse |> Option.map Measures.toDay)
+                    None
+                    None
+                    None
+                    None
+                    UnknownGender
+                    []
+                    None
+                    None
             | Some p ->
                 create
                     (p |> getAgeYears)
                     (p |> getAgeMonths)
                     (p |> getAgeWeeks)
-                    (s |> Option.bind tryParse)
+                    (s |> Option.bind tryParse |> Option.map Measures.toDay)
                     None
                     None
                     (p |> getGAWeeks)
@@ -762,7 +824,7 @@ module Models =
                     None
                     None
                     None
-                    (s |> Option.bind tryParse |> Option.map int)
+                    (s |> Option.bind tryParse |> Option.map Measures.toWeek)
                     None
                     UnknownGender
                     []
@@ -776,7 +838,7 @@ module Models =
                     (p |> getAgeDays)
                     None
                     None
-                    (s |> Option.bind tryParse |> Option.map int)
+                    (s |> Option.bind tryParse |> Option.map Measures.toWeek)
                     (p |> getGADays)
                     p.Gender
                     p.Access
@@ -795,7 +857,7 @@ module Models =
                     None
                     None
                     None
-                    (s |> Option.bind tryParse |> Option.map int)
+                    (s |> Option.bind tryParse |> Option.map Measures.toDay)
                     UnknownGender
                     []
                     None
@@ -809,7 +871,7 @@ module Models =
                     None
                     None
                     (p |> getGAWeeks)
-                    (s |> Option.bind tryParse |> Option.map int)
+                    (s |> Option.bind tryParse |> Option.map Measures.toDay)
                     p.Gender
                     p.Access
                     p.RenalFunction
@@ -829,7 +891,9 @@ module Models =
                 s |> Option.map (fun s -> if markDown then $"*{s}*" else s)
 
             let isAdult =
-                pat.Age |> Option.map (fun a -> a.Years >= 18) |> Option.defaultValue false
+                pat.Age
+                |> Option.map (fun a -> a.Years >= 18<year>)
+                |> Option.defaultValue false
 
             [
                 match pat.Gender with
@@ -890,7 +954,13 @@ module Models =
 
 
                 (Some "BSA:") |> italic
-                pat |> calcBSA |> Option.map (fun x -> $"{x} m2") |> bold
+                pat
+                |> calcBSA
+                |> Option.map (fun x ->
+                    let x = x |> float |> Math.fixPrecision 2
+                    $"{x} m2"
+                )
+                |> bold
 
                 if
                     pat
