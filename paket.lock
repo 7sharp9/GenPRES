@@ -210,7 +210,7 @@ NUGET
       FSharp.Data.Runtime.Utilities (>= 8.1.2)
     FSharpPlus (1.7)
       FSharp.Core (>= 6.0.6)
-    FsToolkit.ErrorHandling (5.1)
+    FsToolkit.ErrorHandling (5.2)
       FSharp.Core (>= 9.0.300)
     Giraffe (6.4)
       FSharp.Core (>= 6.0)
