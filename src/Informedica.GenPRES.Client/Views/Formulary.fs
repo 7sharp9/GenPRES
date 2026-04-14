@@ -197,6 +197,87 @@ module Formulary =
             else
                 "row"
 
+        let markdownBoxSx = {| color = Mui.Colors.Indigo.``900`` |}
+
+        let doseCheckHeadingSx =
+            {|
+                marginTop = 2
+                fontWeight = "bold"
+                color = Mui.Colors.Indigo.``900``
+            |}
+
+        let doseCheckLineSx = {| marginTop = 0.5 |}
+
+        let doseCheckAlertSx = {| marginTop = 1 |}
+
+        let textOf tb =
+            let items =
+                match tb with
+                | Valid xs
+                | Caution xs
+                | Warning xs
+                | Alert xs -> xs
+
+            items
+            |> Array.map (
+                function
+                | Normal s
+                | Bold s
+                | Italic s -> s
+            )
+            |> String.concat ""
+
+        let isAllValid (blocks: TextBlock[]) =
+            blocks
+            |> Array.forall (
+                function
+                | Valid _ -> true
+                | _ -> false
+            )
+
+        let renderDoseCheck (form: Formulary) =
+            if form.DoseCheck |> Array.isEmpty then
+                null |> toReact
+            elif form.DoseCheck |> isAllValid then
+                let text = form.DoseCheck |> Array.map textOf |> String.concat " "
+
+                JSX.jsx
+                    $"""
+                    import Alert from '@mui/material/Alert';
+
+                    <Box>
+                        <Typography sx={doseCheckHeadingSx}>
+                            Doseer controle volgens de G-Standaard
+                        </Typography>
+                        <Alert severity="success" sx={doseCheckAlertSx}>{text}</Alert>
+                    </Box>
+                    """
+                |> toReact
+            else
+                let lines =
+                    form.DoseCheck
+                    |> Array.map (fun tb ->
+                        JSX.jsx
+                            $"""
+                            <Box sx={doseCheckLineSx}>
+                                {tb |> Mui.TypoGraphy.fromTextBlock}
+                            </Box>
+                            """
+                    )
+                    |> unbox<seq<ReactElement>>
+                    |> React.Fragment
+
+                JSX.jsx
+                    $"""
+                    <Box>
+                        <Typography sx={doseCheckHeadingSx}>
+                            Doseer controle volgens de G-Standaard
+                        </Typography>
+                        {lines}
+                    </Box>
+                    """
+                |> toReact
+
         let content =
             JSX.jsx
                 $"""
@@ -285,7 +366,7 @@ module Formulary =
                     </Box>
                 </Stack>
 
-                <Box sx={ {| color = Mui.Colors.Indigo.``900`` |} } >
+                <Box sx={markdownBoxSx} >
                     {match formulary with
                      | Resolved form ->
                          form.Markdown
@@ -296,6 +377,10 @@ module Formulary =
 
                 }
                 </Box>
+
+                {match formulary with
+                 | Resolved form -> renderDoseCheck form
+                 | _ -> null |> toReact}
 
             </CardContent>
             """

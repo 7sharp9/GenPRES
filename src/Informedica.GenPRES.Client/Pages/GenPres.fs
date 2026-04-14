@@ -226,7 +226,34 @@ module GenPres =
             | Resolved arr -> arr.Length > 0
             | _ -> false
 
+        let formulary = (AppEnv.asEnv<AppEnv.IFormulary> props.appEnv).Formulary
+
+        let formularyBg =
+            match formulary with
+            | Resolved form when form.DoseCheck |> Array.isEmpty |> not ->
+                let hasAlert =
+                    form.DoseCheck
+                    |> Array.exists (
+                        function
+                        | Alert _ -> true
+                        | _ -> false
+                    )
+
+                let hasWarning =
+                    form.DoseCheck
+                    |> Array.exists (
+                        function
+                        | Warning _ -> true
+                        | _ -> false
+                    )
+
+                if hasAlert then Some "#fdeded"
+                elif hasWarning then Some "#fff4e5"
+                else None
+            | _ -> None
+
         let interactionsIndex = pages |> List.tryFindIndex ((=) Global.Pages.Interactions)
+        let formularyIndex = pages |> List.tryFindIndex ((=) Global.Pages.Formulary)
         let settingsIndex = pages |> List.tryFindIndex ((=) Global.Pages.Settings)
 
         let menuItems =
@@ -234,6 +261,8 @@ module GenPres =
             |> Array.mapi (fun idx (icon, text, sel, _, _) ->
                 if Some idx = interactionsIndex && hasInteractions then
                     icon, text, sel, Some "#fff4e5", false
+                elif Some idx = formularyIndex && formularyBg |> Option.isSome then
+                    icon, text, sel, formularyBg, false
                 elif Some idx = settingsIndex && not auth.IsAuthenticated then
                     icon, text, false, None, true
                 else
