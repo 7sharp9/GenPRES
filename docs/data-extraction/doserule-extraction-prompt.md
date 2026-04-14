@@ -2,9 +2,11 @@
 
 ## 1. Purpose
 
-Extract Dose Rules from free text (formularies, guidelines, protocols) into tab-delimited rows matching `data/sources/Rules/doserules.tsv` (consumed by `Informedica.GenFORM.Lib`).
+Extract Dose Rules from free text (formularies, guidelines, protocols) into a hierarchical JSON document consumed by `Informedica.GenFORM.Lib` (via `DoseRuleExtract.fsx`).
 
-One row = one Substance-level rule, keyed by: `Source + Generic + Route + Indication + PatientCategory + DoseType (+ Component + Substance)`.
+One **rule** = one patient group for one `(Source, Generic, Route, Indication)`. A rule carries 1..N **dose types** (phases: start / maintenance, load / continuous, …). Each dose type carries 1..N **dose limits**, one per `(Component, Substance)` pair.
+
+The GenFORM backend still consumes flat `DoseRuleData` rows (one per `(DoseType, DoseLimit)` pair). The TSV in `data/sources/Rules/doserules.tsv` keeps the legacy 50-column layout; flattening/grouping happens in `Conversion` inside the script.
 
 ## 2. Domain reference
 
@@ -14,143 +16,194 @@ Authoritative sources (keep open while extracting):
 - `docs/domain/core-domain.md` (OKRs, Rule Hierarchy)
 - Sample rows: `data/sources/Rules/doserules.tsv`
 
-Every column is a Selection Constraint (which rule applies) or Calculation Constraint (feeds GenSOLVER).
+Every field is a Selection Constraint (which rule applies) or a Calculation Constraint (feeds GenSOLVER).
 
 - Selection: `Source`, `Generic`, `Form`, `Brand`, `GPKs`, `Indication`, `Route`, `Dep`, PatientCategory (`Gender`, `Min/MaxAge`, `Min/MaxWeight`, `Min/MaxBSA`, `Min/MaxGestAge`, `Min/MaxPMAge`), `DoseType`, `Component`, `Substance`.
 - Calculation: Schedule (`Freqs`, `FreqUnit`, `Min/MaxTime`, `TimeUnit`, `Min/MaxInt`, `IntUnit`, `Min/MaxDur`, `DurUnit`); DoseLimits (`DoseUnit`, `AdjustUnit`, `RateUnit`, `Min/MaxQty`, `Min/MaxQtyAdj`, `Min/MaxPerTime`, `Min/MaxPerTimeAdj`, `Min/MaxRate`, `Min/MaxRateAdj`).
 
 ## 3. Output contract
 
-- Tab-delimited rows only. No markdown, fences, prose, or header (unless explicitly requested).
-- Column order (51 columns, 50 tabs/row) — identical to line 1 of `doserules.tsv`:
+Emit ONE JSON object `{"rules":[...]}`. No markdown, no fences, no prose.
 
-  ```text
-  SortNo	Source	Generic	Form	Brand	Route	GPKs	Indication	ScheduleText	Dep	Gender	MinAge	MaxAge	MinWeight	MaxWeight	MinBSA	MaxBSA	MinGestAge	MaxGestAge	MinPMAge	MaxPMAge	DoseType	DoseText	Component	Substance	Freqs	DoseUnit	AdjustUnit	FreqUnit	RateUnit	MinTime	MaxTime	TimeUnit	MinInt	MaxInt	IntUnit	MinDur	MaxDur	DurUnit	MinQty	MaxQty	MinQtyAdj	MaxQtyAdj	MinPerTime	MaxPerTime	MinPerTimeAdj	MaxPerTimeAdj	MinRate	MaxRate	MinRateAdj	MaxRateAdj
-  ```
+- One entry in `rules[]` per `scheduleText` / patient group.
+- Rule-level fields: identity + patient + `scheduleText`, plus `doseTypes[]`.
+- Inside each dose type: timing fields (`doseType`, `doseText`, `freqs`, `freqUnit`, `minTime`, `maxTime`, `timeUnit`, `minInt`, `maxInt`, `intUnit`, `minDur`, `maxDur`, `durUnit`) and `doseLimits[]`.
+- Inside each dose limit: `component`, `substance`, `doseUnit`, `adjustUnit`, `rateUnit`, and every min/max quantity / per-time / rate field.
 
-- Missing → empty field (two tabs). Never `null`/`N/A`/`-`/`0`.
-- Decimal `.` (convert `7,5` → `7.5`).
-- Lists (`GPKs`, `Freqs`): semicolon, no spaces (`3;4`).
-- `Indication`, `ScheduleText`, `DoseText` — verbatim, source language. Replace literal tab with space; collapse newlines to single space.
+Every field must be present. Missing values:
 
-## 4. Column rules
+- numbers → `null`
+- strings → `""`
+- arrays → `[]`
 
-### Identification
+Decimal `.` (convert `7,5` → `7.5`). `gpks`, `freqs`: JSON arrays. Keep `indication`, `scheduleText`, `doseText` verbatim, source language. Replace literal tab with space; collapse newlines to single space.
 
-- **SortNo** — integer, source order. Siblings from one paragraph may share or be consecutive.
-- **Source** *(required)* — `NKF`, `FK`, `SWAB`, protocol id.
-- **Generic** *(required)* — lower-case unless source capitalises.
-- **Form** — `tablet`, `suspensie`, `injectievloeistof`, `zetpil`, etc. Empty if form-agnostic. (Was `Shape` — obsolete.)
-- **Brand** — only if rule is brand-specific.
-- **GPKs** — semicolon list.
-- **Route** *(required)* — as in source (`ORAAL`, `INTRAVENEUS`, `RECTAAL`, `SUBCUTAAN`, …).
-- **Indication** *(required)* — verbatim.
-- **ScheduleText** *(required)* — full original dose-schedule paragraph, verbatim. Traceability field.
+Minified schema shown to the LLM:
 
-### Setting
+```json
+{"rules":[{"sortNo":1,"source":"","generic":"","form":"","brand":"","gpks":[],"route":"","indication":"","scheduleText":"","dep":"","gender":"","minAge":null,"maxAge":null,"minWeight":null,"maxWeight":null,"minBSA":null,"maxBSA":null,"minGestAge":null,"maxGestAge":null,"minPMAge":null,"maxPMAge":null,"doseTypes":[{"doseType":"","doseText":"","freqs":[],"freqUnit":"","minTime":null,"maxTime":null,"timeUnit":"","minInt":null,"maxInt":null,"intUnit":"","minDur":null,"maxDur":null,"durUnit":"","doseLimits":[{"component":"","substance":"","doseUnit":"","adjustUnit":"","rateUnit":"","minQty":null,"maxQty":null,"minQtyAdj":null,"maxQtyAdj":null,"minPerTime":null,"maxPerTime":null,"minPerTimeAdj":null,"maxPerTimeAdj":null,"minRate":null,"maxRate":null,"minRateAdj":null,"maxRateAdj":null}]}]}]}
+```
 
-- **Dep** — department/ward (`ICK`, `NICU`, `kinderafdeling`). Empty for general.
+## 4. Field rules
 
-### Patient Category
+### 4.1 Rule-level (identity, source, patient)
 
-Integers unless noted. Empty = unrestricted.
+- **sortNo** — integer, source order of rules.
+- **source** *(required)* — `NKF`, `FK`, `SWAB`, protocol id.
+- **generic** *(required)* — lower-case unless source capitalises.
+- **form** — `tablet`, `suspensie`, `injectievloeistof`, `zetpil`, etc. Empty if form-agnostic.
+- **brand** — only if rule is brand-specific.
+- **gpks** — array of strings.
+- **route** *(required)* — source verbatim (`ORAAL`, `INTRAVENEUS`, `RECTAAL`, `SUBCUTAAN`, …).
+- **indication** *(required)* — verbatim.
+- **scheduleText** *(required)* — full original dose-schedule paragraph, verbatim. Traceability field.
+- **dep** — department/ward (`ICK`, `NICU`, `kinderafdeling`). Empty for general.
+- **gender** — `male`/`female`/`""`.
+- **min/maxAge** — days. weeks ×7; months ×30 (`6 maanden`→182); years ×365 (`1 jaar`→365, `18 jaar`→6574). Inclusive lower, exclusive upper (`1 maand tot 18 jaar` → minAge=30, maxAge=6574).
+- **min/maxWeight** — grams (`2000 gr`→2000; `5 kg`→5000).
+- **min/maxBSA** — m², float.
+- **min/maxGestAge** — days (`34 weken`→238, `41 weken`→287).
+- **min/maxPMAge** — days (`32 weken`→224, `44 weken`→308).
 
-- **Gender** — `male`/`female`/empty.
-- **Min/MaxAge** — days. weeks ×7; months ×30 (`6 maanden`→182); years ×365 (`1 jaar`→365, `18 jaar`→6574). Inclusive lower, exclusive upper (`1 maand tot 18 jaar` → MinAge=30, MaxAge=6574).
-- **Min/MaxWeight** — grams (`2000 gr`→2000; `5 kg`→5000).
-- **Min/MaxBSA** — m², float.
-- **Min/MaxGestAge** — days (`34 weken`→238, `41 weken`→287).
-- **Min/MaxPMAge** — days (`32 weken`→224, `44 weken`→308).
+One rule = one patient group. If the paragraph describes disjoint patient groups, emit multiple `rules[]` entries.
 
-### DoseType *(exactly one)*
+### 4.2 Dose-type level (one per phase)
 
-| Value | Meaning | Cue |
-|-------|---------|-----|
+| `doseType` | Meaning | Cue |
+|------------|---------|-----|
 | `once` | single, untimed | "éénmalig", "startdosering" |
 | `onceTimed` | single over time | "oplaaddosis over 30 min" |
 | `discontinuous` | repeated bolus | "… mg/kg/dag in N doses" |
 | `timed` | repeated, each over time | "3 dd in 30 min" |
 | `continuous` | continuous infusion | "… mg/kg/uur", "continu infuus" |
 
-- **DoseText** — phase label (`startdosering`, `onderhoudsdosering`, `dag 3`). Empty if single phase.
+- **doseText** — phase label (`startdosering`, `onderhoudsdosering`, `dag 3`). Empty if single phase.
+- **freqs** — integer array per `freqUnit` (`in 3 doses`→`[3]`; `3-4 doses`→`[3,4]`). Empty for `once`/`onceTimed`/`continuous`.
+- **freqUnit** — `dag`, `uur`, `week`.
+- **min/maxTime**, **timeUnit** — infusion/admin time (`in 15 min` → min=max=15, unit="min").
+- **min/maxInt**, **intUnit** — interval between doses.
+- **min/maxDur**, **durUnit** — total treatment duration.
 
-### Component and Substance
+### 4.3 Dose-limit level (one per (component, substance) pair)
 
-- **Component** — often = Generic. For combinations (`amoxicilline/clavulaanzuur`) the whole combination is Component.
-- **Substance** *(required)* — active substance for this row.
-- Combinations → one row per Substance, shared Component, own limits.
+- **component** — often = generic. For combinations (`amoxicilline/clavulaanzuur`) the whole combination is the component.
+- **substance** *(required)* — active substance for this limit.
+- **doseUnit** *(required)* — `mg`, `g`, `IE`, `microg`, `mL`, …
+- **adjustUnit** — `kg`/`m2` when adjusted; else `""`.
+- **rateUnit** — `uur`/`min`; `""` unless `continuous` or rate given.
 
-### Schedule
+| Field | Unit structure |
+|-------|----------------|
+| `min/maxQty` | `doseUnit / dose` |
+| `min/maxQtyAdj` | `doseUnit / adjustUnit / dose` |
+| `min/maxPerTime` | `doseUnit / freqUnit` |
+| `min/maxPerTimeAdj` | `doseUnit / adjustUnit / freqUnit` |
+| `min/maxRate` | `doseUnit / rateUnit` |
+| `min/maxRateAdj` | `doseUnit / adjustUnit / rateUnit` |
 
-- **Freqs** — integer list per FreqUnit (`in 3 doses`→`3`; `3-4 doses`→`3;4`). Empty for `once`/`onceTimed`/`continuous`.
-- **DoseUnit** *(required)* — `mg`, `g`, `IE`, `microg`, `mL`, …
-- **AdjustUnit** — `kg`/`m2` when adjusted; else empty.
-- **FreqUnit** — `dag`, `uur`, `week`.
-- **RateUnit** — `uur`/`min`; empty unless `continuous` or rate given.
-- **Min/MaxTime**, **TimeUnit** — infusion/admin time (`in 15 min`→15/15/min).
-- **Min/MaxInt**, **IntUnit** — interval between doses.
-- **Min/MaxDur**, **DurUnit** — total treatment duration.
-
-### Dose Limits
-
-| Column | Unit |
-|--------|------|
-| Min/MaxQty | DoseUnit / dose |
-| Min/MaxQtyAdj | DoseUnit / AdjustUnit / dose |
-| Min/MaxPerTime | DoseUnit / FreqUnit |
-| Min/MaxPerTimeAdj | DoseUnit / AdjustUnit / FreqUnit |
-| Min/MaxRate | DoseUnit / RateUnit |
-| Min/MaxRateAdj | DoseUnit / AdjustUnit / RateUnit |
-
-- Never invent bounds. Single value (`50 mg/kg/dag`) → fill one side, partner empty.
+- Never invent bounds. Single value (`50 mg/kg/dag`) → fill one side, partner `null`.
 - `max 4 g/dag` → Max*. `min X` → Min*.
 - Range (`10-15 mg/kg/dosis`) → both Min* and Max*.
-- Unlabelled single value (recommendation) → Min* only, Max* empty.
+- Unlabelled single value (recommendation) → Min* only, Max* `null`.
 
-## 5. Row-splitting
+## 5. Splitting rules
 
-Emit multiple rows when one paragraph encodes multiple rules:
+Prefer stacking inside ONE `rules[]` entry. Split only when justified:
 
-- **Multi-phase (start+maintenance)** — one row/phase, differ by DoseType/DoseText. E.g. paracetamol IV premature → `once` (startdosering) + `discontinuous` (empty DoseText).
-- **Combination products** — one row per Substance, shared Component.
-- **Distinct PatientCategories in one paragraph** — one row each. E.g. `<1wk+<2000g`, `<1wk+≥2000g`, `1-4wk+<2000g`, `1-4wk+≥2000g` → 4 rows (×2 Substances = 8).
-- **Distinct DoseTypes** — always separate.
+- **Multi-phase (start + maintenance)** — same rule, TWO `doseTypes[]` entries differing by `doseType` / `doseText`. E.g. paracetamol IV premature → one rule with `doseTypes=[once "startdosering", discontinuous ""]`.
+- **Combination products** — same dose type, TWO `doseLimits[]` entries (shared component, distinct substance). E.g. amoxicilline/clavulaanzuur → one `doseTypes[].doseLimits=[{substance:"amoxicilline",…},{substance:"clavulaanzuur",…}]`.
+- **Distinct DoseTypes under same patient group** — stack as multiple `doseTypes[]` entries.
+- **Distinct patient groups in one paragraph** — emit separate `rules[]` entries. E.g. `<1wk+<2000g` vs `<1wk+≥2000g` → 2 rules, each with its own patient category. Preserve the same `scheduleText` across sibling rules.
 
-Preserve same `ScheduleText` across all siblings from one paragraph.
-
-No duplicates: rows duplicate if same (Source, Generic, Route, Indication, PatientCategory, DoseType, DoseText, Component, Substance).
+No duplicates: the quadruple `(doseType, doseText, component, substance)` must be unique across all `doseLimits` in the rule. Two dose-type entries MAY share a `doseType` label (e.g. load + maintenance both `timed`) provided their `doseText` distinguishes them.
 
 Multi-phase cues (Dutch):
 
-| Cues | Split |
-|------|-------|
-| `startdosering`/`onderhoudsdosering` | 2 rows, both often `discontinuous`, differ by DoseText/limits |
+| Cues | Split into |
+|------|------------|
+| `startdosering`/`onderhoudsdosering` | 2 dose types (both often `discontinuous`), differ by `doseText` and limits |
 | `oplaaddosis`/`onderhoud` or `continu` | load `onceTimed`/`once`; maintenance `continuous`/`timed` |
-| `dag 1`/`dag 2-7` | one row per day-range; DoseText = day label |
-| `initieel`/`vervolgens` | initial + follow-up rows |
+| `dag 1`/`dag 2-7` | one dose type per day-range; `doseText` = day label |
+| `initieel`/`vervolgens` | initial + follow-up dose types |
 
-Missing a load/maintenance row is a bug — emit both when stated.
+Missing a load/maintenance phase is a bug — emit both when stated.
 
 ## 6. Example
 
-Source (NKF, amoxicilline/clavulaanzuur, IV, Ernstige bacteriele infecties):
+Source (NKF, amoxicilline/clavulaanzuur, IV, "Ernstige bacteriele infecties"):
 
 > `< 1 week en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 50 / 5 mg/kg/dag in 2 doses`
 
-Two rows (one per Substance). Same PatientCategory (MaxAge=7, MaxWeight=2000), `discontinuous`, Freqs=2, ScheduleText. Per-substance value → `MinPerTimeAdj`; MaxPerTimeAdj empty.
+One rule (patient group = < 1 week + < 2000 g), one dose type (`discontinuous`, freqs=`[2]`), two dose limits (one per substance, shared component).
 
-```text
-211	NKF	amoxicilline/clavulaanzuur			INTRAVENEUS		Ernstige bacteriele infecties	< 1 week en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 50 / 5 mg/kg/dag in 2 doses					7		2000								discontinuous		amoxicilline/clavulaanzuur	amoxicilline	2	mg	kg	dag																		50					
-212	NKF	amoxicilline/clavulaanzuur			INTRAVENEUS		Ernstige bacteriele infecties	< 1 week en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 50 / 5 mg/kg/dag in 2 doses					7		2000								discontinuous		amoxicilline/clavulaanzuur	clavulaanzuur	2	mg	kg	dag																		5					
+```json
+{
+  "rules": [
+    {
+      "sortNo": 211,
+      "source": "NKF",
+      "generic": "amoxicilline/clavulaanzuur",
+      "form": "",
+      "brand": "",
+      "gpks": [],
+      "route": "INTRAVENEUS",
+      "indication": "Ernstige bacteriele infecties",
+      "scheduleText": "< 1 week en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 50 / 5 mg/kg/dag in 2 doses",
+      "dep": "",
+      "gender": "",
+      "minAge": null, "maxAge": 7,
+      "minWeight": null, "maxWeight": 2000,
+      "minBSA": null, "maxBSA": null,
+      "minGestAge": null, "maxGestAge": null,
+      "minPMAge": null, "maxPMAge": null,
+      "doseTypes": [
+        {
+          "doseType": "discontinuous",
+          "doseText": "",
+          "freqs": [2],
+          "freqUnit": "dag",
+          "minTime": null, "maxTime": null, "timeUnit": "",
+          "minInt": null, "maxInt": null, "intUnit": "",
+          "minDur": null, "maxDur": null, "durUnit": "",
+          "doseLimits": [
+            {
+              "component": "amoxicilline/clavulaanzuur",
+              "substance": "amoxicilline",
+              "doseUnit": "mg", "adjustUnit": "kg", "rateUnit": "",
+              "minQty": null, "maxQty": null,
+              "minQtyAdj": null, "maxQtyAdj": null,
+              "minPerTime": null, "maxPerTime": null,
+              "minPerTimeAdj": 50, "maxPerTimeAdj": null,
+              "minRate": null, "maxRate": null,
+              "minRateAdj": null, "maxRateAdj": null
+            },
+            {
+              "component": "amoxicilline/clavulaanzuur",
+              "substance": "clavulaanzuur",
+              "doseUnit": "mg", "adjustUnit": "kg", "rateUnit": "",
+              "minQty": null, "maxQty": null,
+              "minQtyAdj": null, "maxQtyAdj": null,
+              "minPerTime": null, "maxPerTime": null,
+              "minPerTimeAdj": 5, "maxPerTimeAdj": null,
+              "minRate": null, "maxRate": null,
+              "minRateAdj": null, "maxRateAdj": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
 ```
 
-More examples across DoseTypes: see `data/sources/Rules/doserules.tsv`.
+More examples across DoseTypes: see `data/sources/Rules/doserules.tsv` (flat form) and run the TSV through `Pipeline.fromTsv` in `DoseRuleExtract.fsx` to see the hierarchical equivalent.
 
 ## 7. Instructions
 
-1. Emit only tab-delimited rows in §3 column order. No header unless requested. No prose/fences/commentary.
-2. Keep `Indication`, `ScheduleText`, `DoseText` verbatim; collapse tabs/newlines to single space.
-3. Apply §4 conversions (days/grams/m²; decimal `.`; semicolon lists).
-4. Apply §5 splitting — one row per (PatientCategory × DoseType × Substance).
-5. Unknown → empty. Never `0`/`-`/`N/A`/`null`.
-6. Don't invent bounds; follow §4 Min/Max conventions.
+1. Emit only the JSON object defined in §3. No markdown, no fences, no prose.
+2. One `rules[]` entry per patient group. Stack phases inside `doseTypes[]`; stack substances inside `doseLimits[]`. Split to multiple rules only for disjoint patient groups.
+3. Keep `indication`, `scheduleText`, `doseText` verbatim; collapse tabs/newlines to single space.
+4. Apply §4 conversions (days/grams/m²; decimal `.`; JSON arrays).
+5. Unknown → `null` (num) / `""` (str) / `[]` (arr). Never `0` / `-` / `N/A`.
+6. Don't invent bounds; follow §4.3 Min/Max conventions.
+7. Within a rule, no duplicate `(doseType, doseText, component, substance)` quadruple across dose-limits.

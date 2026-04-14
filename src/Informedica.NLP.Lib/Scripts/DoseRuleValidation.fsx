@@ -1,27 +1,25 @@
 /// NLP dose rule extraction validation.
 ///
-/// This script validates the structured DoseRuleExtracted output from DoseRuleExtraction.fsx
-/// against the GenForm formulary.
+/// Validates the structured `DoseRuleExtracted` output from
+/// `DoseRuleExtract.fsx` against the GenFORM formulary.
 ///
 /// Validation steps:
-///   1. Generic name: must match a known generic in the formulary (case-insensitive)
-///   2. Route: must match a known route mapping (Long or Short form)
-///   3. AdjustUnit: must be "kg", "m2", or empty
-///   4. DoseType: must be one of the five valid dose types
-///   5. Unit structure: validates that compound units have the correct structure
+///   1. Generic name (rule level): must match a known generic in the formulary
+///   2. Route (rule level): must match a known route mapping (Long or Short)
+///   3. AdjustUnit (per dose-limit): must be "kg", "m2", or empty
+///   4. DoseType (per dose type): must be one of the five valid dose types
+///   5. Unit structure (per dose-limit): compound units must be complete
 ///       - MinQtyAdj / MaxQtyAdj    : doseUnit / adjustUnit
-///       - MinPerTime / MaxPerTime  : doseUnit / freqUnit
+///       - MinPerTime / MaxPerTime  : doseUnit / freqUnit (from dose type)
 ///       - MinPerTimeAdj / MaxPerTimeAdj : doseUnit / adjustUnit / freqUnit
 ///       - MinRate / MaxRate        : doseUnit / rateUnit
 ///       - MinRateAdj / MaxRateAdj  : doseUnit / adjustUnit / rateUnit
 ///
 /// Usage:
-///   Load this script in FSI, then:
 ///   let validation = extracted |> Validation.validate routeMappings genericNames
 ///   Validation.printResult validation
 ///
-/// Note: DoseRuleExtracted type is defined here to mirror DoseRuleExtraction.fsx.
-///   Keep both definitions in sync.
+/// Mirrors the hierarchical shape in `DoseRuleExtract.fsx`.
 
 #r "nuget: FSharpPlus"
 #r "nuget: Newtonsoft.Json"
@@ -42,44 +40,10 @@ open Informedica.GenForm.Lib
 open Informedica.GenForm.Lib.Resources
 
 
-/// The structured extraction output from DoseRuleExtraction.fsx.
-/// This type must be kept in sync with DoseRuleExtracted in DoseRuleExtraction.fsx.
-type DoseRuleExtracted =
+/// Hierarchical mirror of `Schema.DoseLimit` / `DoseType` /
+/// `DoseRuleExtracted` in `DoseRuleExtract.fsx`. Keep in sync.
+type DoseLimit =
     {|
-        source: string
-        sourceText: string
-        generic: string
-        form: string
-        brand: string
-        gpks: string[]
-        indication: string
-        route: string
-        department: string
-        gender: string
-        minAge: Nullable<float>
-        maxAge: Nullable<float>
-        minWeight: Nullable<float>
-        maxWeight: Nullable<float>
-        minBSA: Nullable<float>
-        maxBSA: Nullable<float>
-        minGestAge: Nullable<float>
-        maxGestAge: Nullable<float>
-        minPMAge: Nullable<float>
-        maxPMAge: Nullable<float>
-        doseType: string
-        doseText: string
-        scheduleText: string
-        frequencies: int[]
-        freqUnit: string
-        minTime: Nullable<float>
-        maxTime: Nullable<float>
-        timeUnit: string
-        minInterval: Nullable<float>
-        maxInterval: Nullable<float>
-        intervalUnit: string
-        minDuration: Nullable<float>
-        maxDuration: Nullable<float>
-        durUnit: string
         ``component``: string
         substance: string
         doseUnit: string
@@ -100,6 +64,52 @@ type DoseRuleExtracted =
     |}
 
 
+type DoseType =
+    {|
+        doseType: string
+        doseText: string
+        frequencies: int[]
+        freqUnit: string
+        minTime: Nullable<float>
+        maxTime: Nullable<float>
+        timeUnit: string
+        minInterval: Nullable<float>
+        maxInterval: Nullable<float>
+        intervalUnit: string
+        minDuration: Nullable<float>
+        maxDuration: Nullable<float>
+        durUnit: string
+        doseLimits: DoseLimit[]
+    |}
+
+
+type DoseRuleExtracted =
+    {|
+        source: string
+        sourceText: string
+        generic: string
+        form: string
+        brand: string
+        gpks: string[]
+        indication: string
+        route: string
+        department: string
+        scheduleText: string
+        gender: string
+        minAge: Nullable<float>
+        maxAge: Nullable<float>
+        minWeight: Nullable<float>
+        maxWeight: Nullable<float>
+        minBSA: Nullable<float>
+        maxBSA: Nullable<float>
+        minGestAge: Nullable<float>
+        maxGestAge: Nullable<float>
+        minPMAge: Nullable<float>
+        maxPMAge: Nullable<float>
+        doseTypes: DoseType[]
+    |}
+
+
 /// Represents the outcome of a single field validation.
 type FieldValidation =
     | Valid of fieldName: string * value: string
@@ -107,7 +117,7 @@ type FieldValidation =
     | Invalid of fieldName: string * value: string * reason: string
 
 
-/// Represents the full validation result for a DoseRuleExtracted record.
+/// Represents the full validation result for a `DoseRuleExtracted` record.
 type ValidationResult =
     {
         Extracted: DoseRuleExtracted
@@ -152,7 +162,6 @@ module Validation =
         elif genericNames |> List.exists (equalsCI extracted.generic) then
             Valid("generic", extracted.generic)
         else
-            // Try a partial / fuzzy match for helpful warnings
             let partialMatch =
                 genericNames
                 |> List.tryFind (fun g ->
@@ -162,7 +171,11 @@ module Validation =
 
             match partialMatch with
             | Some candidate ->
-                Warning("generic", extracted.generic, $"No exact match found; closest formulary entry is '{candidate}'")
+                Warning(
+                    "generic",
+                    extracted.generic,
+                    $"No exact match found; closest formulary entry is '{candidate}'"
+                )
             | None ->
                 Invalid(
                     "generic",
@@ -178,7 +191,9 @@ module Validation =
         else
             let matched =
                 routeMappings
-                |> Array.exists (fun rm -> equalsCI rm.Long extracted.route || equalsCI rm.Short extracted.route)
+                |> Array.exists (fun rm ->
+                    equalsCI rm.Long extracted.route || equalsCI rm.Short extracted.route
+                )
 
             if matched then
                 Valid("route", extracted.route)
@@ -192,8 +207,8 @@ module Validation =
                 )
 
 
-    /// Validate the dose type.
-    let validateDoseType (extracted: DoseRuleExtracted) =
+    /// Validate the dose type label from a `DoseType` entry.
+    let validateDoseType (fieldName: string) (doseType: string) =
         let valid =
             [
                 "once"
@@ -204,29 +219,29 @@ module Validation =
                 ""
             ]
 
-        if valid |> List.contains extracted.doseType then
-            Valid("doseType", extracted.doseType)
+        if valid |> List.contains doseType then
+            Valid(fieldName, doseType)
         else
             let validList = valid |> List.filter ((<>) "") |> String.concat ", "
 
             Invalid(
-                "doseType",
-                extracted.doseType,
-                $"'{extracted.doseType}' is not a valid DoseType; must be one of: {validList}"
+                fieldName,
+                doseType,
+                $"'{doseType}' is not a valid DoseType; must be one of: {validList}"
             )
 
 
-    /// Validate the adjust unit.
-    let validateAdjustUnit (extracted: DoseRuleExtracted) =
+    /// Validate the adjust unit from a `DoseLimit` entry.
+    let validateAdjustUnit (fieldName: string) (adjustUnit: string) =
         let valid = [ "kg"; "m2"; "" ]
 
-        if valid |> List.contains extracted.adjustUnit then
-            Valid("adjustUnit", extracted.adjustUnit)
+        if valid |> List.contains adjustUnit then
+            Valid(fieldName, adjustUnit)
         else
             Invalid(
-                "adjustUnit",
-                extracted.adjustUnit,
-                $"'{extracted.adjustUnit}' is not a valid adjustUnit; must be 'kg', 'm2', or empty"
+                fieldName,
+                adjustUnit,
+                $"'{adjustUnit}' is not a valid adjustUnit; must be 'kg', 'm2', or empty"
             )
 
 
@@ -267,64 +282,70 @@ module Validation =
 
 
     /// Validate that the unit structure for a compound unit field is correct.
-    /// For example, MinPerTimeAdj should be: doseUnit / adjustUnit / freqUnit
-    let validateUnitStructure (fieldName: string) (expectedParts: string list) (extracted: DoseRuleExtracted) =
+    /// For example, PerTimeAdj should be: doseUnit / adjustUnit / freqUnit.
+    let validateUnitStructure (fieldName: string) (expectedParts: string list) =
         let nonEmpty s = s |> String.isNullOrWhiteSpace |> not
         let nonEmptyParts = expectedParts |> List.filter nonEmpty
 
         if nonEmptyParts |> List.isEmpty then
             Valid(fieldName, "(unit parts all empty — skipped)")
         elif expectedParts |> List.forall nonEmpty then
-            // All expected parts are present and non-empty
             let composed = expectedParts |> String.concat "/"
             Valid(fieldName, $"unit structure ok: {composed}")
         else
-            // Some expected parts are empty strings — incomplete unit structure
             let missing =
-                expectedParts |> List.filter (String.isNullOrWhiteSpace) |> List.length
+                expectedParts |> List.filter String.isNullOrWhiteSpace |> List.length
 
             let parts = expectedParts |> String.concat "/"
             Warning(fieldName, "", $"Unit structure incomplete for {fieldName}: {parts}; missing: {missing} part(s)")
 
 
-    /// Validate the unit structures for all dose limit fields.
-    let validateDoseLimitUnits (extracted: DoseRuleExtracted) =
+    /// Validate the unit structures for all dose-limit fields that carry
+    /// a numeric range. `freqUnit` is taken from the owning dose type.
+    let validateDoseLimitUnits (pathPrefix: string) (dt: DoseType) (dl: DoseLimit) =
         [
             // QtyAdj: doseUnit / adjustUnit
-            if extracted.minQtyAdj.HasValue || extracted.maxQtyAdj.HasValue then
-                yield validateUnitStructure "QtyAdj units" [ extracted.doseUnit; extracted.adjustUnit ] extracted
+            if dl.minQtyAdj.HasValue || dl.maxQtyAdj.HasValue then
+                yield
+                    validateUnitStructure
+                        $"{pathPrefix}.QtyAdj units"
+                        [ dl.doseUnit; dl.adjustUnit ]
 
             // PerTime: doseUnit / freqUnit
-            if extracted.minPerTime.HasValue || extracted.maxPerTime.HasValue then
-                yield validateUnitStructure "PerTime units" [ extracted.doseUnit; extracted.freqUnit ] extracted
+            if dl.minPerTime.HasValue || dl.maxPerTime.HasValue then
+                yield
+                    validateUnitStructure
+                        $"{pathPrefix}.PerTime units"
+                        [ dl.doseUnit; dt.freqUnit ]
 
             // PerTimeAdj: doseUnit / adjustUnit / freqUnit
-            if extracted.minPerTimeAdj.HasValue || extracted.maxPerTimeAdj.HasValue then
+            if dl.minPerTimeAdj.HasValue || dl.maxPerTimeAdj.HasValue then
                 yield
                     validateUnitStructure
-                        "PerTimeAdj units"
+                        $"{pathPrefix}.PerTimeAdj units"
                         [
-                            extracted.doseUnit
-                            extracted.adjustUnit
-                            extracted.freqUnit
+                            dl.doseUnit
+                            dl.adjustUnit
+                            dt.freqUnit
                         ]
-                        extracted
 
             // Rate: doseUnit / rateUnit
-            if extracted.minRate.HasValue || extracted.maxRate.HasValue then
-                yield validateUnitStructure "Rate units" [ extracted.doseUnit; extracted.rateUnit ] extracted
-
-            // RateAdj: doseUnit / adjustUnit / rateUnit
-            if extracted.minRateAdj.HasValue || extracted.maxRateAdj.HasValue then
+            if dl.minRate.HasValue || dl.maxRate.HasValue then
                 yield
                     validateUnitStructure
-                        "RateAdj units"
+                        $"{pathPrefix}.Rate units"
+                        [ dl.doseUnit; dl.rateUnit ]
+
+            // RateAdj: doseUnit / adjustUnit / rateUnit
+            if dl.minRateAdj.HasValue || dl.maxRateAdj.HasValue then
+                yield
+                    validateUnitStructure
+                        $"{pathPrefix}.RateAdj units"
                         [
-                            extracted.doseUnit
-                            extracted.adjustUnit
-                            extracted.rateUnit
+                            dl.doseUnit
+                            dl.adjustUnit
+                            dl.rateUnit
                         ]
-                        extracted
         ]
 
 
@@ -353,52 +374,73 @@ module Validation =
         : ValidationResult
         =
 
-        let fields =
+        let doseTypes =
+            if isNull extracted.doseTypes then [||] else extracted.doseTypes
+
+        let ruleLevelFields =
             [
-                validateGeneric genericNames extracted
-                validateRoute routeMappings extracted
-                validateDoseType extracted
-                validateAdjustUnit extracted
+                yield validateGeneric genericNames extracted
+                yield validateRoute routeMappings extracted
 
                 // Patient dimensions
-                validateAge "minAge" extracted.minAge
-                validateAge "maxAge" extracted.maxAge
+                yield validateAge "minAge" extracted.minAge
+                yield validateAge "maxAge" extracted.maxAge
                 yield! validateMinMax "age" extracted.minAge extracted.maxAge
 
-                validateWeight "minWeight" extracted.minWeight
-                validateWeight "maxWeight" extracted.maxWeight
+                yield validateWeight "minWeight" extracted.minWeight
+                yield validateWeight "maxWeight" extracted.maxWeight
                 yield! validateMinMax "weight" extracted.minWeight extracted.maxWeight
 
-                validateBSA "minBSA" extracted.minBSA
-                validateBSA "maxBSA" extracted.maxBSA
+                yield validateBSA "minBSA" extracted.minBSA
+                yield validateBSA "maxBSA" extracted.maxBSA
                 yield! validateMinMax "BSA" extracted.minBSA extracted.maxBSA
 
-                validateAge "minGestAge" extracted.minGestAge
-                validateAge "maxGestAge" extracted.maxGestAge
+                yield validateAge "minGestAge" extracted.minGestAge
+                yield validateAge "maxGestAge" extracted.maxGestAge
                 yield! validateMinMax "gestAge" extracted.minGestAge extracted.maxGestAge
 
-                validateAge "minPMAge" extracted.minPMAge
-                validateAge "maxPMAge" extracted.maxPMAge
+                yield validateAge "minPMAge" extracted.minPMAge
+                yield validateAge "maxPMAge" extracted.maxPMAge
                 yield! validateMinMax "PMAge" extracted.minPMAge extracted.maxPMAge
 
-                // Dose ranges
-                yield! validateMinMax "qty" extracted.minQty extracted.maxQty
-                yield! validateMinMax "qtyAdj" extracted.minQtyAdj extracted.maxQtyAdj
-                yield! validateMinMax "perTime" extracted.minPerTime extracted.maxPerTime
-                yield! validateMinMax "perTimeAdj" extracted.minPerTimeAdj extracted.maxPerTimeAdj
-                yield! validateMinMax "rate" extracted.minRate extracted.maxRate
-                yield! validateMinMax "rateAdj" extracted.minRateAdj extracted.maxRateAdj
-                yield! validateMinMax "time" extracted.minTime extracted.maxTime
-                yield! validateMinMax "interval" extracted.minInterval extracted.maxInterval
-                yield! validateMinMax "duration" extracted.minDuration extracted.maxDuration
+                if doseTypes.Length = 0 then
+                    yield Invalid("doseTypes", "", "No dose types present")
+            ]
 
-                // Unit structure checks
-                yield! validateDoseLimitUnits extracted
+        let doseTypeFields =
+            [
+                for j in 0 .. doseTypes.Length - 1 do
+                    let dt = doseTypes[j]
+                    let dtPath = $"doseTypes[{j}]"
+
+                    yield validateDoseType $"{dtPath}.doseType" dt.doseType
+                    yield! validateMinMax $"{dtPath}.time" dt.minTime dt.maxTime
+                    yield! validateMinMax $"{dtPath}.interval" dt.minInterval dt.maxInterval
+                    yield! validateMinMax $"{dtPath}.duration" dt.minDuration dt.maxDuration
+
+                    let limits =
+                        if isNull dt.doseLimits then [||] else dt.doseLimits
+
+                    if limits.Length = 0 then
+                        yield Invalid($"{dtPath}.doseLimits", "", "No dose limits present")
+
+                    for k in 0 .. limits.Length - 1 do
+                        let dl = limits[k]
+                        let dlPath = $"{dtPath}.doseLimits[{k}]"
+
+                        yield validateAdjustUnit $"{dlPath}.adjustUnit" dl.adjustUnit
+                        yield! validateMinMax $"{dlPath}.qty" dl.minQty dl.maxQty
+                        yield! validateMinMax $"{dlPath}.qtyAdj" dl.minQtyAdj dl.maxQtyAdj
+                        yield! validateMinMax $"{dlPath}.perTime" dl.minPerTime dl.maxPerTime
+                        yield! validateMinMax $"{dlPath}.perTimeAdj" dl.minPerTimeAdj dl.maxPerTimeAdj
+                        yield! validateMinMax $"{dlPath}.rate" dl.minRate dl.maxRate
+                        yield! validateMinMax $"{dlPath}.rateAdj" dl.minRateAdj dl.maxRateAdj
+                        yield! validateDoseLimitUnits dlPath dt dl
             ]
 
         {
             Extracted = extracted
-            Fields = fields
+            Fields = ruleLevelFields @ doseTypeFields
         }
 
 
@@ -434,7 +476,6 @@ module Validation =
 module Formulary =
 
     /// Load a formulary provider using the GENPRES_URL_ID environment variable.
-    /// Set the environment variable before calling this function.
     let loadProvider () =
         Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
         let dataUrlId = System.Environment.GetEnvironmentVariable("GENPRES_URL_ID")
@@ -452,11 +493,12 @@ module Formulary =
 
 
     /// Get the route mappings from the formulary.
-    let getRouteMappings (provider: IResourceProvider) : RouteMapping array = provider.GetRouteMappings()
+    let getRouteMappings (provider: IResourceProvider) : RouteMapping array =
+        provider.GetRouteMappings()
 
 
 /// -------------------------------------------------------
-/// Example usage — comment out when not running interactively
+/// Example usage — uncomment and adapt when running interactively
 /// -------------------------------------------------------
 
 (*
@@ -474,31 +516,31 @@ let routeMappings = Formulary.getRouteMappings provider
 printfn $"Loaded {genericNames |> List.length} generics and {routeMappings |> Array.length} route mappings"
 
 // Example: validate a hypothetical extracted result
-let exampleExtracted: DoseRuleExtracted =
+let exampleDoseLimit: DoseLimit =
     {|
-        source = "Kinderformularium"
-        sourceText = "acetylsalicylzuur 1 maand tot 18 jaar 30-50 mg/kg/dag in 3-4 doses"
-        generic = "acetylsalicylzuur"
-        form = "tablet"
-        brand = ""
-        gpks = [||]
-        indication = ""
-        route = "ORAAL"
-        department = ""
-        gender = ""
-        minAge = Nullable(30.0)
-        maxAge = Nullable(6570.0)
-        minWeight = Nullable()
-        maxWeight = Nullable()
-        minBSA = Nullable()
-        maxBSA = Nullable()
-        minGestAge = Nullable()
-        maxGestAge = Nullable()
-        minPMAge = Nullable()
-        maxPMAge = Nullable()
+        ``component`` = ""
+        substance = "acetylsalicylzuur"
+        doseUnit = "mg"
+        adjustUnit = "kg"
+        rateUnit = ""
+        minQty = Nullable()
+        maxQty = Nullable()
+        minQtyAdj = Nullable 30.0
+        maxQtyAdj = Nullable 50.0
+        minPerTime = Nullable()
+        maxPerTime = Nullable 3000.0
+        minPerTimeAdj = Nullable()
+        maxPerTimeAdj = Nullable()
+        minRate = Nullable()
+        maxRate = Nullable()
+        minRateAdj = Nullable()
+        maxRateAdj = Nullable()
+    |}
+
+let exampleDoseType: DoseType =
+    {|
         doseType = "discontinuous"
         doseText = ""
-        scheduleText = "30-50 mg/kg/dag in 3-4 doses; max 3000 mg/dag"
         frequencies = [| 3; 4 |]
         freqUnit = "dag"
         minTime = Nullable()
@@ -510,23 +552,33 @@ let exampleExtracted: DoseRuleExtracted =
         minDuration = Nullable()
         maxDuration = Nullable()
         durUnit = ""
-        ``component`` = ""
-        substance = "acetylsalicylzuur"
-        doseUnit = "mg"
-        adjustUnit = "kg"
-        rateUnit = ""
-        minQty = Nullable()
-        maxQty = Nullable()
-        minQtyAdj = Nullable(30.0)
-        maxQtyAdj = Nullable(50.0)
-        minPerTime = Nullable()
-        maxPerTime = Nullable(3000.0)
-        minPerTimeAdj = Nullable()
-        maxPerTimeAdj = Nullable()
-        minRate = Nullable()
-        maxRate = Nullable()
-        minRateAdj = Nullable()
-        maxRateAdj = Nullable()
+        doseLimits = [| exampleDoseLimit |]
+    |}
+
+let exampleExtracted: DoseRuleExtracted =
+    {|
+        source = "Kinderformularium"
+        sourceText = "acetylsalicylzuur 1 maand tot 18 jaar 30-50 mg/kg/dag in 3-4 doses"
+        generic = "acetylsalicylzuur"
+        form = "tablet"
+        brand = ""
+        gpks = [||]
+        indication = ""
+        route = "ORAAL"
+        department = ""
+        scheduleText = "30-50 mg/kg/dag in 3-4 doses; max 3000 mg/dag"
+        gender = ""
+        minAge = Nullable 30.0
+        maxAge = Nullable 6570.0
+        minWeight = Nullable()
+        maxWeight = Nullable()
+        minBSA = Nullable()
+        maxBSA = Nullable()
+        minGestAge = Nullable()
+        maxGestAge = Nullable()
+        minPMAge = Nullable()
+        maxPMAge = Nullable()
+        doseTypes = [| exampleDoseType |]
     |}
 
 let validationResult =

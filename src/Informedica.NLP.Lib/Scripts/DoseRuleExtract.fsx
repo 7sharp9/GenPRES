@@ -106,10 +106,58 @@ module Config =
 
 module Schema =
 
-    /// Shape of one extracted dose rule, as emitted by the LLM.
-    /// Numeric fields use `Nullable<float>` so the JSON parser tolerates `null`.
-    /// Field names align 1:1 with the TSV header below so JSON ↔ TSV is a
-    /// pure rename/format problem.
+    /// One dose-limit inside a `DoseType`. Identifies a `(component,
+    /// substance)` pair and carries all quantitative bounds + their units.
+    type DoseLimit =
+        {|
+            ``component``: string
+            substance: string
+            doseUnit: string
+            adjustUnit: string
+            rateUnit: string
+            minQty: Nullable<float>
+            maxQty: Nullable<float>
+            minQtyAdj: Nullable<float>
+            maxQtyAdj: Nullable<float>
+            minPerTime: Nullable<float>
+            maxPerTime: Nullable<float>
+            minPerTimeAdj: Nullable<float>
+            maxPerTimeAdj: Nullable<float>
+            minRate: Nullable<float>
+            maxRate: Nullable<float>
+            minRateAdj: Nullable<float>
+            maxRateAdj: Nullable<float>
+        |}
+
+
+    /// One dose-type inside a `DoseRuleExtracted`. Carries the temporal
+    /// profile (frequency, time window, interval, duration) shared by all
+    /// `doseLimits` in that phase.
+    type DoseType =
+        {|
+            doseType: string
+            doseText: string
+            freqs: int[]
+            freqUnit: string
+            minTime: Nullable<float>
+            maxTime: Nullable<float>
+            timeUnit: string
+            minInt: Nullable<float>
+            maxInt: Nullable<float>
+            intUnit: string
+            minDur: Nullable<float>
+            maxDur: Nullable<float>
+            durUnit: string
+            doseLimits: DoseLimit[]
+        |}
+
+
+    /// Shape of one extracted dose rule, as emitted by the LLM. One record
+    /// per `scheduleText`, covering one patient group. Numeric fields use
+    /// `Nullable<float>` so the JSON parser tolerates `null`. The nested
+    /// `doseTypes` may contain 1..N dose-type phases (e.g. start +
+    /// maintenance), each with 1..N `doseLimits` (one per
+    /// `(component, substance)` pair).
     type DoseRuleExtracted =
         {|
             sortNo: Nullable<int>
@@ -133,41 +181,14 @@ module Schema =
             maxGestAge: Nullable<float>
             minPMAge: Nullable<float>
             maxPMAge: Nullable<float>
-            doseType: string
-            doseText: string
-            ``component``: string
-            substance: string
-            freqs: int[]
-            doseUnit: string
-            adjustUnit: string
-            freqUnit: string
-            rateUnit: string
-            minTime: Nullable<float>
-            maxTime: Nullable<float>
-            timeUnit: string
-            minInt: Nullable<float>
-            maxInt: Nullable<float>
-            intUnit: string
-            minDur: Nullable<float>
-            maxDur: Nullable<float>
-            durUnit: string
-            minQty: Nullable<float>
-            maxQty: Nullable<float>
-            minQtyAdj: Nullable<float>
-            maxQtyAdj: Nullable<float>
-            minPerTime: Nullable<float>
-            maxPerTime: Nullable<float>
-            minPerTimeAdj: Nullable<float>
-            maxPerTimeAdj: Nullable<float>
-            minRate: Nullable<float>
-            maxRate: Nullable<float>
-            minRateAdj: Nullable<float>
-            maxRateAdj: Nullable<float>
+            doseTypes: DoseType[]
         |}
 
 
     /// Container the LLM wraps its output in so we always deserialize a single
     /// top-level object (Ollama JSON mode emits one JSON object per response).
+    /// For a single-`scheduleText` extraction `rules.Length = 1`; corpus
+    /// runs may return many.
     type DoseRuleExtractionResult = {| rules: DoseRuleExtracted[] |}
 
 
@@ -203,24 +224,31 @@ module Schema =
 
 module Prompt =
 
-    /// JSON schema shown to the LLM. All fields must be present; numbers
-    /// default to `null`, strings to `""`, arrays to `[]`. Minified to save
-    /// prompt tokens — LLM parses compact JSON identically.
+    /// JSON schema shown to the LLM. Hierarchical: one `rules[i]` per
+    /// `scheduleText` (one patient group). Each rule has `doseTypes[]`
+    /// (start + maintenance, etc.); each dose type has `doseLimits[]`
+    /// (one per `component`/`substance` pair). Every field must be
+    /// present; numbers default to `null`, strings to `""`, arrays to
+    /// `[]`. Minified to save prompt tokens.
     let jsonSchema =
-        """{"rules":[{"sortNo":1,"source":"","generic":"","form":"","brand":"","gpks":[],"route":"","indication":"","scheduleText":"","dep":"","gender":"","minAge":null,"maxAge":null,"minWeight":null,"maxWeight":null,"minBSA":null,"maxBSA":null,"minGestAge":null,"maxGestAge":null,"minPMAge":null,"maxPMAge":null,"doseType":"","doseText":"","component":"","substance":"","freqs":[],"doseUnit":"","adjustUnit":"","freqUnit":"","rateUnit":"","minTime":null,"maxTime":null,"timeUnit":"","minInt":null,"maxInt":null,"intUnit":"","minDur":null,"maxDur":null,"durUnit":"","minQty":null,"maxQty":null,"minQtyAdj":null,"maxQtyAdj":null,"minPerTime":null,"maxPerTime":null,"minPerTimeAdj":null,"maxPerTimeAdj":null,"minRate":null,"maxRate":null,"minRateAdj":null,"maxRateAdj":null}]}"""
+        """{"rules":[{"sortNo":1,"source":"","generic":"","form":"","brand":"","gpks":[],"route":"","indication":"","scheduleText":"","dep":"","gender":"","minAge":null,"maxAge":null,"minWeight":null,"maxWeight":null,"minBSA":null,"maxBSA":null,"minGestAge":null,"maxGestAge":null,"minPMAge":null,"maxPMAge":null,"doseTypes":[{"doseType":"","doseText":"","freqs":[],"freqUnit":"","minTime":null,"maxTime":null,"timeUnit":"","minInt":null,"maxInt":null,"intUnit":"","minDur":null,"maxDur":null,"durUnit":"","doseLimits":[{"component":"","substance":"","doseUnit":"","adjustUnit":"","rateUnit":"","minQty":null,"maxQty":null,"minQtyAdj":null,"maxQtyAdj":null,"minPerTime":null,"maxPerTime":null,"minPerTimeAdj":null,"maxPerTimeAdj":null,"minRate":null,"maxRate":null,"minRateAdj":null,"maxRateAdj":null}]}]}]}"""
 
 
     /// Prompt augmentation for the JSON variant. Directs the LLM to emit a
-    /// `{ "rules": [...] }` document following the schema.
+    /// `{ "rules": [...] }` document following the hierarchical schema.
     let jsonOverride =
         $"""
 OUTPUT (overrides §3/§7):
-- Emit ONE JSON object: {{"rules":[...]}}. One array entry per rule. No markdown, no fences, no prose.
+- Emit ONE JSON object: {{"rules":[...]}}. No markdown, no fences, no prose.
+- One `rules[i]` per scheduleText / patient group (identity + patient fields at top level).
+- `doseTypes[]`: one entry per temporal phase (e.g. start + maintenance). Timing fields (freqs, freqUnit, minTime, maxTime, timeUnit, minInt, maxInt, intUnit, minDur, maxDur, durUnit) live on the dose type.
+- `doseLimits[]`: one entry per (component, substance) pair within a dose type.
 - Every field present. Missing: null (num) / "" (str) / [] (arr).
-- component + substance required; single-substance → both = generic.
+- component + substance required on every doseLimit; single-substance → both = generic.
 - form: fill only if source states pharmaceutical form, else "".
-- sortNo: 1,2,3… in emission order.
+- sortNo: 1,2,3… in emission order of rules.
 - doseType ∈ {{once, onceTimed, discontinuous, timed, continuous}}.
+- adjustUnit ∈ {{kg, m2, ""}}.
 - Units: age/gestAge/pmAge = days (int); weight = grams (int); BSA = m² (float); decimal = `.`.
 Schema:
 {jsonSchema}"""
@@ -269,9 +297,13 @@ module Validation =
 
 
     /// Validate that a JSON string can be deserialized into
-    /// `DoseRuleExtractionResult` and that every rule has a non-empty
-    /// `generic`, a recognised `doseType`, and a recognised `adjustUnit`.
-    /// Returns the cleaned JSON on success.
+    /// `DoseRuleExtractionResult` and that the hierarchical tree is
+    /// well-formed: every rule has a non-empty `generic` and at least
+    /// one `doseTypes` entry; every dose type has a recognised
+    /// `doseType` value and at least one `doseLimits` entry; every dose
+    /// limit has a recognised `adjustUnit` plus non-empty `component`
+    /// and `substance`. Errors are reported with a `rule i / doseType j
+    /// / doseLimit k` path. Returns the cleaned JSON on success.
     let validateExtractionJson (s: string) : Result<string, string> =
         if String.isNullOrWhiteSpace s then
             Error "Empty response"
@@ -287,23 +319,45 @@ module Validation =
                 elif parsed.rules.Length = 0 then
                     Error "JSON 'rules' array is empty"
                 else
+                    let validDoseTypes =
+                        Schema.validDoseTypes
+                        |> List.filter ((<>) "")
+                        |> String.concat ", "
+
                     let errors =
                         parsed.rules
                         |> Array.mapi (fun i r ->
                             [
+                                let rulePath = $"rule {i + 1}"
+
                                 if String.isNullOrWhiteSpace r.generic then
-                                    yield $"rule {i + 1}: generic is empty"
+                                    yield $"{rulePath}: generic is empty"
 
-                                if Schema.validDoseTypes |> List.contains r.doseType |> not then
-                                    let valids =
-                                        Schema.validDoseTypes
-                                        |> List.filter ((<>) "")
-                                        |> String.concat ", "
+                                if isNull (box r.doseTypes) || r.doseTypes.Length = 0 then
+                                    yield $"{rulePath}: doseTypes is empty"
+                                else
+                                    for j in 0 .. r.doseTypes.Length - 1 do
+                                        let dt = r.doseTypes[j]
+                                        let dtPath = $"{rulePath} / doseType {j + 1}"
 
-                                    yield $"rule {i + 1}: doseType '{r.doseType}' is not valid; must be one of: {valids}"
+                                        if Schema.validDoseTypes |> List.contains dt.doseType |> not then
+                                            yield $"{dtPath}: doseType '{dt.doseType}' is not valid; must be one of: {validDoseTypes}"
 
-                                if Schema.validAdjustUnits |> List.contains r.adjustUnit |> not then
-                                    yield $"rule {i + 1}: adjustUnit '{r.adjustUnit}' is not valid; must be 'kg', 'm2', or empty"
+                                        if isNull (box dt.doseLimits) || dt.doseLimits.Length = 0 then
+                                            yield $"{dtPath}: doseLimits is empty"
+                                        else
+                                            for k in 0 .. dt.doseLimits.Length - 1 do
+                                                let dl = dt.doseLimits[k]
+                                                let dlPath = $"{dtPath} / doseLimit {k + 1}"
+
+                                                if Schema.validAdjustUnits |> List.contains dl.adjustUnit |> not then
+                                                    yield $"{dlPath}: adjustUnit '{dl.adjustUnit}' is not valid; must be 'kg', 'm2', or empty"
+
+                                                if String.isNullOrWhiteSpace dl.``component`` then
+                                                    yield $"{dlPath}: component is empty"
+
+                                                if String.isNullOrWhiteSpace dl.substance then
+                                                    yield $"{dlPath}: substance is empty"
                             ]
                         )
                         |> Array.collect List.toArray
@@ -342,6 +396,54 @@ module Extraction =
                     let! resp = Ollama.chat model history last
                     return resp |> Result.map _.Response.message.content
             }
+
+
+    /// Ask the LLM to correct grammar and punctuation in a free-text
+    /// dosing schedule. The reply is the corrected text itself — no
+    /// JSON, no retries. Clinical content (numbers, units, frequencies,
+    /// abbreviations) must be preserved verbatim.
+    let sanitizeText
+        (sendMessages: Sender)
+        (model: string)
+        (text: string)
+        : Async<Result<string, string>>
+        =
+        let mkSystem = Informedica.OpenAI.Lib.Message.system
+        let mkUser = Informedica.OpenAI.Lib.Message.user
+
+        let systemPrompt =
+            "You correct grammar and punctuation in medical dosing schedule text. "
+            + "Preserve all clinical content, numbers, units, frequencies, durations, "
+            + "and abbreviations exactly. Do not translate. Do not add, remove, "
+            + "reorder, or reinterpret any clinical fact. "
+            + "Reply with the corrected text only — no quoting, no commentary, no markdown fences."
+
+        let stripFences (s: string) =
+            let t = s.Trim()
+            let t =
+                if t.StartsWith("```") then
+                    match t.IndexOf('\n') with
+                    | -1 -> t
+                    | i ->
+                        let rest = t.Substring(i + 1)
+                        let endFence = rest.LastIndexOf("```")
+                        if endFence >= 0 then rest.Substring(0, endFence) else rest
+                else
+                    t
+
+            t.Trim().Trim('`').Trim()
+
+        async {
+            if String.isNullOrWhiteSpace text then
+                return Ok text
+            else
+                let msgs = [ mkSystem systemPrompt; mkUser text ]
+                let! resp = sendMessages model msgs
+
+                match resp with
+                | Error e -> return Error e
+                | Ok answer -> return Ok (stripFences answer)
+        }
 
 
     /// Extract a structured `DoseRuleExtractionResult` from free text using
@@ -421,9 +523,18 @@ module Conversion =
     let private orEmpty (s: string) = if isNull s then "" else s
 
 
-    /// Convert one JSON-extracted record to `DoseRuleData` (GenFORM shape).
-    let toDoseRuleData (r: Schema.DoseRuleExtracted) : DoseRuleData =
-        let freqs = r.freqs |> Array.choose (float >> brFromFloat)
+    /// Build one flat `DoseRuleData` record from a rule / dose-type /
+    /// dose-limit triple. The three layers own disjoint field sets, so
+    /// the mapping is a straightforward field-wise copy.
+    let private toDoseRuleDataOne
+        (r: Schema.DoseRuleExtracted)
+        (dt: Schema.DoseType)
+        (dl: Schema.DoseLimit)
+        : DoseRuleData
+        =
+        let freqs =
+            if isNull dt.freqs then [||]
+            else dt.freqs |> Array.choose (float >> brFromFloat)
 
         {
             Source = orEmpty r.source
@@ -452,87 +563,61 @@ module Conversion =
             MaxGestAge = nullableToBr r.maxGestAge
             MinPMAge = nullableToBr r.minPMAge
             MaxPMAge = nullableToBr r.maxPMAge
-            DoseType = orEmpty r.doseType
-            DoseText = orEmpty r.doseText
+            DoseType = orEmpty dt.doseType
+            DoseText = orEmpty dt.doseText
             Frequencies = freqs
-            DoseUnit = orEmpty r.doseUnit
-            AdjustUnit = orEmpty r.adjustUnit
-            FreqUnit = orEmpty r.freqUnit
-            RateUnit = orEmpty r.rateUnit
-            MinTime = nullableToBr r.minTime
-            MaxTime = nullableToBr r.maxTime
-            TimeUnit = orEmpty r.timeUnit
-            MinInterval = nullableToBr r.minInt
-            MaxInterval = nullableToBr r.maxInt
-            IntervalUnit = orEmpty r.intUnit
-            MinDur = nullableToBr r.minDur
-            MaxDur = nullableToBr r.maxDur
-            DurUnit = orEmpty r.durUnit
-            Component = orEmpty r.``component``
-            Substance = orEmpty r.substance
-            MinQty = nullableToBr r.minQty
-            MaxQty = nullableToBr r.maxQty
-            MinQtyAdj = nullableToBr r.minQtyAdj
-            MaxQtyAdj = nullableToBr r.maxQtyAdj
-            MinPerTime = nullableToBr r.minPerTime
-            MaxPerTime = nullableToBr r.maxPerTime
-            MinPerTimeAdj = nullableToBr r.minPerTimeAdj
-            MaxPerTimeAdj = nullableToBr r.maxPerTimeAdj
-            MinRate = nullableToBr r.minRate
-            MaxRate = nullableToBr r.maxRate
-            MinRateAdj = nullableToBr r.minRateAdj
-            MaxRateAdj = nullableToBr r.maxRateAdj
+            DoseUnit = orEmpty dl.doseUnit
+            AdjustUnit = orEmpty dl.adjustUnit
+            FreqUnit = orEmpty dt.freqUnit
+            RateUnit = orEmpty dl.rateUnit
+            MinTime = nullableToBr dt.minTime
+            MaxTime = nullableToBr dt.maxTime
+            TimeUnit = orEmpty dt.timeUnit
+            MinInterval = nullableToBr dt.minInt
+            MaxInterval = nullableToBr dt.maxInt
+            IntervalUnit = orEmpty dt.intUnit
+            MinDur = nullableToBr dt.minDur
+            MaxDur = nullableToBr dt.maxDur
+            DurUnit = orEmpty dt.durUnit
+            Component = orEmpty dl.``component``
+            Substance = orEmpty dl.substance
+            MinQty = nullableToBr dl.minQty
+            MaxQty = nullableToBr dl.maxQty
+            MinQtyAdj = nullableToBr dl.minQtyAdj
+            MaxQtyAdj = nullableToBr dl.maxQtyAdj
+            MinPerTime = nullableToBr dl.minPerTime
+            MaxPerTime = nullableToBr dl.maxPerTime
+            MinPerTimeAdj = nullableToBr dl.minPerTimeAdj
+            MaxPerTimeAdj = nullableToBr dl.maxPerTimeAdj
+            MinRate = nullableToBr dl.minRate
+            MaxRate = nullableToBr dl.maxRate
+            MinRateAdj = nullableToBr dl.minRateAdj
+            MaxRateAdj = nullableToBr dl.maxRateAdj
             Products = [||]
         }
 
 
-    /// Inverse of `toDoseRuleData` used by `fromTsv`. BigRational values
-    /// lose precision on the float conversion — round-tripping a value
-    /// that is not exactly representable as a float will drift, but for
-    /// the dosing-corpus ranges in use this is below clinical relevance.
-    let doseRuleDataToExtracted (d: DoseRuleData) : Schema.DoseRuleExtracted =
+    /// Expand one hierarchical record to one flat `DoseRuleData` per
+    /// `(doseType, doseLimit)` pair. Enumeration order is preserved.
+    let toDoseRuleData (r: Schema.DoseRuleExtracted) : DoseRuleData[] =
+        [|
+            for dt in (if isNull r.doseTypes then [||] else r.doseTypes) do
+                let limits = if isNull dt.doseLimits then [||] else dt.doseLimits
+                for dl in limits -> toDoseRuleDataOne r dt dl
+        |]
+
+
+    let applyToDoseRuleExtracted f (de: Schema.DoseRuleExtracted) : Schema.DoseRuleExtracted = f de
+
+
+    /// Carve one `DoseLimit` out of a flat `DoseRuleData` row.
+    let private toDoseLimit (d: DoseRuleData) : Schema.DoseLimit =
         {|
-            sortNo = Nullable()
-            source = d.Source
-            generic = d.Generic
-            form = d.Form
-            brand = d.Brand
-            gpks = d.GPKs
-            route = d.Route
-            indication = d.Indication
-            scheduleText = d.ScheduleText
-            dep = d.Department
-            gender = d.Gender |> Gender.toString
-            minAge = brOptToNullable d.MinAge
-            maxAge = brOptToNullable d.MaxAge
-            minWeight = brOptToNullable d.MinWeight
-            maxWeight = brOptToNullable d.MaxWeight
-            minBSA = brOptToNullable d.MinBSA
-            maxBSA = brOptToNullable d.MaxBSA
-            minGestAge = brOptToNullable d.MinGestAge
-            maxGestAge = brOptToNullable d.MaxGestAge
-            minPMAge = brOptToNullable d.MinPMAge
-            maxPMAge = brOptToNullable d.MaxPMAge
-            doseType = d.DoseType
-            doseText = d.DoseText
             ``component`` = d.Component
             substance = d.Substance
-            freqs =
-                d.Frequencies
-                |> Array.map (BigRational.toFloat >> int)
             doseUnit = d.DoseUnit
             adjustUnit = d.AdjustUnit
-            freqUnit = d.FreqUnit
             rateUnit = d.RateUnit
-            minTime = brOptToNullable d.MinTime
-            maxTime = brOptToNullable d.MaxTime
-            timeUnit = d.TimeUnit
-            minInt = brOptToNullable d.MinInterval
-            maxInt = brOptToNullable d.MaxInterval
-            intUnit = d.IntervalUnit
-            minDur = brOptToNullable d.MinDur
-            maxDur = brOptToNullable d.MaxDur
-            durUnit = d.DurUnit
             minQty = brOptToNullable d.MinQty
             maxQty = brOptToNullable d.MaxQty
             minQtyAdj = brOptToNullable d.MinQtyAdj
@@ -548,6 +633,118 @@ module Conversion =
         |}
 
 
+    /// Build one `DoseType` from the subset of rows sharing the same
+    /// dose-type identity (doseType + timing fields). Timing fields are
+    /// copied from the first row; each row contributes one `DoseLimit`.
+    let private toDoseType (rows: DoseRuleData[]) : Schema.DoseType =
+        let head = rows[0]
+
+        {|
+            doseType = head.DoseType
+            doseText = head.DoseText
+            freqs = head.Frequencies |> Array.map (BigRational.toFloat >> int)
+            freqUnit = head.FreqUnit
+            minTime = brOptToNullable head.MinTime
+            maxTime = brOptToNullable head.MaxTime
+            timeUnit = head.TimeUnit
+            minInt = brOptToNullable head.MinInterval
+            maxInt = brOptToNullable head.MaxInterval
+            intUnit = head.IntervalUnit
+            minDur = brOptToNullable head.MinDur
+            maxDur = brOptToNullable head.MaxDur
+            durUnit = head.DurUnit
+            doseLimits = rows |> Array.map toDoseLimit
+        |}
+
+
+    /// Group a flat `DoseRuleData[]` into hierarchical
+    /// `DoseRuleExtracted[]`: rows sharing identity + patient fields
+    /// collapse into one rule; within a rule, rows sharing dose-type +
+    /// timing collapse into one `DoseType`; each row becomes one
+    /// `DoseLimit`. Group order follows first-occurrence order of the
+    /// input, so a TSV → hierarchy → TSV round-trip preserves row order.
+    let doseRuleDataArrayToExtracted
+        (ds: DoseRuleData[])
+        : Schema.DoseRuleExtracted[]
+        =
+        let ruleKey (d: DoseRuleData) =
+            {|
+                source = d.Source
+                generic = d.Generic
+                form = d.Form
+                brand = d.Brand
+                gpks = d.GPKs |> Array.toList
+                route = d.Route
+                indication = d.Indication
+                scheduleText = d.ScheduleText
+                dep = d.Department
+                gender = d.Gender
+                minAge = d.MinAge
+                maxAge = d.MaxAge
+                minWeight = d.MinWeight
+                maxWeight = d.MaxWeight
+                minBSA = d.MinBSA
+                maxBSA = d.MaxBSA
+                minGestAge = d.MinGestAge
+                maxGestAge = d.MaxGestAge
+                minPMAge = d.MinPMAge
+                maxPMAge = d.MaxPMAge
+            |}
+
+        let doseTypeKey (d: DoseRuleData) =
+            {|
+                doseType = d.DoseType
+                doseText = d.DoseText
+                freqs = d.Frequencies |> Array.toList
+                freqUnit = d.FreqUnit
+                minTime = d.MinTime
+                maxTime = d.MaxTime
+                timeUnit = d.TimeUnit
+                minInterval = d.MinInterval
+                maxInterval = d.MaxInterval
+                intervalUnit = d.IntervalUnit
+                minDur = d.MinDur
+                maxDur = d.MaxDur
+                durUnit = d.DurUnit
+            |}
+
+        ds
+        |> Array.groupBy ruleKey
+        |> Array.map (fun (_, group) ->
+            let head = group[0]
+
+            let doseTypes =
+                group
+                |> Array.groupBy doseTypeKey
+                |> Array.map (fun (_, inner) -> toDoseType inner)
+
+            {|
+                sortNo = Nullable()
+                source = head.Source
+                generic = head.Generic
+                form = head.Form
+                brand = head.Brand
+                gpks = head.GPKs
+                route = head.Route
+                indication = head.Indication
+                scheduleText = head.ScheduleText
+                dep = head.Department
+                gender = head.Gender |> Gender.toString
+                minAge = brOptToNullable head.MinAge
+                maxAge = brOptToNullable head.MaxAge
+                minWeight = brOptToNullable head.MinWeight
+                maxWeight = brOptToNullable head.MaxWeight
+                minBSA = brOptToNullable head.MinBSA
+                maxBSA = brOptToNullable head.MaxBSA
+                minGestAge = brOptToNullable head.MinGestAge
+                maxGestAge = brOptToNullable head.MaxGestAge
+                minPMAge = brOptToNullable head.MinPMAge
+                maxPMAge = brOptToNullable head.MaxPMAge
+                doseTypes = doseTypes
+            |}
+        )
+
+
     let private formatNullable (n: Nullable<float>) =
         if n.HasValue then n.Value.ToString(CultureInfo.InvariantCulture)
         else ""
@@ -556,10 +753,15 @@ module Conversion =
         if n.HasValue then string n.Value else "0"
 
 
-    /// Render one `DoseRuleExtracted` as a `\t`-joined row matching
-    /// `Schema.tsvColumns`. Nullable numbers become `""` when absent;
-    /// arrays are `;`-joined.
-    let toTsvRow (r: Schema.DoseRuleExtracted) : string =
+    /// Render one `(rule, doseType, doseLimit)` triple as a `\t`-joined
+    /// TSV row matching `Schema.tsvColumns`. One hierarchical rule
+    /// expands to `doseTypes.Length * doseLimits.Length` rows.
+    let toTsvRow
+        (r: Schema.DoseRuleExtracted)
+        (dt: Schema.DoseType)
+        (dl: Schema.DoseLimit)
+        : string
+        =
         let lookup =
             [
                 "SortNo", formatInt r.sortNo
@@ -584,38 +786,38 @@ module Conversion =
                 "MaxGestAge", formatNullable r.maxGestAge
                 "MinPMAge", formatNullable r.minPMAge
                 "MaxPMAge", formatNullable r.maxPMAge
-                "DoseType", orEmpty r.doseType
-                "DoseText", orEmpty r.doseText
-                "Component", orEmpty r.``component``
-                "Substance", orEmpty r.substance
+                "DoseType", orEmpty dt.doseType
+                "DoseText", orEmpty dt.doseText
+                "Component", orEmpty dl.``component``
+                "Substance", orEmpty dl.substance
                 "Freqs",
-                    (if isNull r.freqs then ""
-                     else r.freqs |> Array.map string |> String.concat ";")
-                "DoseUnit", orEmpty r.doseUnit
-                "AdjustUnit", orEmpty r.adjustUnit
-                "FreqUnit", orEmpty r.freqUnit
-                "RateUnit", orEmpty r.rateUnit
-                "MinTime", formatNullable r.minTime
-                "MaxTime", formatNullable r.maxTime
-                "TimeUnit", orEmpty r.timeUnit
-                "MinInt", formatNullable r.minInt
-                "MaxInt", formatNullable r.maxInt
-                "IntUnit", orEmpty r.intUnit
-                "MinDur", formatNullable r.minDur
-                "MaxDur", formatNullable r.maxDur
-                "DurUnit", orEmpty r.durUnit
-                "MinQty", formatNullable r.minQty
-                "MaxQty", formatNullable r.maxQty
-                "MinQtyAdj", formatNullable r.minQtyAdj
-                "MaxQtyAdj", formatNullable r.maxQtyAdj
-                "MinPerTime", formatNullable r.minPerTime
-                "MaxPerTime", formatNullable r.maxPerTime
-                "MinPerTimeAdj", formatNullable r.minPerTimeAdj
-                "MaxPerTimeAdj", formatNullable r.maxPerTimeAdj
-                "MinRate", formatNullable r.minRate
-                "MaxRate", formatNullable r.maxRate
-                "MinRateAdj", formatNullable r.minRateAdj
-                "MaxRateAdj", formatNullable r.maxRateAdj
+                    (if isNull dt.freqs then ""
+                     else dt.freqs |> Array.map string |> String.concat ";")
+                "DoseUnit", orEmpty dl.doseUnit
+                "AdjustUnit", orEmpty dl.adjustUnit
+                "FreqUnit", orEmpty dt.freqUnit
+                "RateUnit", orEmpty dl.rateUnit
+                "MinTime", formatNullable dt.minTime
+                "MaxTime", formatNullable dt.maxTime
+                "TimeUnit", orEmpty dt.timeUnit
+                "MinInt", formatNullable dt.minInt
+                "MaxInt", formatNullable dt.maxInt
+                "IntUnit", orEmpty dt.intUnit
+                "MinDur", formatNullable dt.minDur
+                "MaxDur", formatNullable dt.maxDur
+                "DurUnit", orEmpty dt.durUnit
+                "MinQty", formatNullable dl.minQty
+                "MaxQty", formatNullable dl.maxQty
+                "MinQtyAdj", formatNullable dl.minQtyAdj
+                "MaxQtyAdj", formatNullable dl.maxQtyAdj
+                "MinPerTime", formatNullable dl.minPerTime
+                "MaxPerTime", formatNullable dl.maxPerTime
+                "MinPerTimeAdj", formatNullable dl.minPerTimeAdj
+                "MaxPerTimeAdj", formatNullable dl.maxPerTimeAdj
+                "MinRate", formatNullable dl.minRate
+                "MaxRate", formatNullable dl.maxRate
+                "MinRateAdj", formatNullable dl.minRateAdj
+                "MaxRateAdj", formatNullable dl.maxRateAdj
             ]
             |> Map.ofList
 
@@ -628,12 +830,28 @@ module Conversion =
         |> String.concat "\t"
 
 
+    /// Expand one hierarchical rule to one TSV row per
+    /// `(doseType, doseLimit)` pair.
+    let toTsvRows (r: Schema.DoseRuleExtracted) : string list =
+        [
+            for dt in (if isNull r.doseTypes then [||] else r.doseTypes) do
+                let limits = if isNull dt.doseLimits then [||] else dt.doseLimits
+                for dl in limits -> toTsvRow r dt dl
+        ]
+
+
     /// Render a `DoseRuleExtractionResult` as a TSV block with the
-    /// canonical header followed by one row per rule.
+    /// canonical header followed by one row per flattened
+    /// `(rule, doseType, doseLimit)` triple.
     let toTsv (r: Schema.DoseRuleExtractionResult) : string =
         let header = Schema.tsvHeader
-        let rows = r.rules |> Array.map toTsvRow
-        Array.append [| header |] rows |> String.concat "\n"
+
+        let rows =
+            r.rules
+            |> Array.toList
+            |> List.collect toTsvRows
+
+        header :: rows |> String.concat "\n"
 
 
 // =======================================================
@@ -756,12 +974,168 @@ module Pipeline =
 
 
     /// Parse a TSV block into `DoseRuleExtracted[]` — the inverse of
-    /// `Conversion.toTsv`. Used for round-trip checks and for replaying
-    /// archived TSV rows through the JSON-based pipeline.
+    /// `Conversion.toTsv`. Flat rows are grouped into the hierarchical
+    /// shape by rule identity + dose-type key. Used for round-trip
+    /// checks and for replaying archived TSV rows through the JSON-based
+    /// pipeline.
     let fromTsv (tsv: string) : Schema.DoseRuleExtracted[] =
         tsv
         |> parseTsv
-        |> Array.map Conversion.doseRuleDataToExtracted
+        |> Conversion.doseRuleDataArrayToExtracted
+
+
+    /// One row-level transformation. Multiple `Transform`s are composed
+    /// with `>>` so any `DoseRuleExtracted -> DoseRuleExtracted` function
+    /// (whether pure or effectful, e.g. `checkGrammar sender model`)
+    /// can be added to a pipeline without changing call sites.
+    type Transform = Schema.DoseRuleExtracted -> Schema.DoseRuleExtracted
+
+
+    let applyToExtracted (f: Transform) (extracted: Schema.DoseRuleExtracted[]) =
+        extracted
+        |> Array.map f
+
+
+    /// Apply a list of `Transform`s to every row, left-to-right. An empty
+    /// list is a no-op.
+    let applyAll (transforms: Transform list) (extracted: Schema.DoseRuleExtracted[]) =
+        let composed = transforms |> List.fold (>>) id
+        extracted |> Array.map composed
+
+
+    /// Render a `DoseRuleExtracted[]` as the canonical TSV block
+    /// (header + one row per rule). Complements `fromTsv`.
+    let toTsv (extracted: Schema.DoseRuleExtracted[]) : string =
+        {| rules = extracted |} |> Conversion.toTsv
+
+
+    /// Given `/path/to/file.tsv`, return `/path/to/file.vN.tsv` where
+    /// `N` is the next free integer. Existing `.vK.tsv` siblings are
+    /// scanned; absent, `N = 2`. Never overwrites.
+    let nextVersionedPath (path: string) : string =
+        let dir =
+            match Path.GetDirectoryName path with
+            | null | "" -> "."
+            | d -> d
+
+        let baseName = Path.GetFileNameWithoutExtension path
+        let ext = Path.GetExtension path
+
+        let versionOf (f: string) =
+            let name = Path.GetFileNameWithoutExtension f
+
+            if name.StartsWith(baseName + ".v") then
+                let tail = name.Substring((baseName + ".v").Length)
+                match Int32.TryParse tail with
+                | true, n -> Some n
+                | false, _ -> None
+            else
+                None
+
+        let nextN =
+            Directory.GetFiles(dir, $"{baseName}.v*{ext}")
+            |> Array.choose versionOf
+            |> fun ns -> if Array.isEmpty ns then 1 else Array.max ns
+            |> (+) 1
+
+        Path.Combine(dir, $"{baseName}.v{nextN}{ext}")
+
+
+    /// Read a TSV file, apply each `Transform` in order, write the result
+    /// to `outputPath`. Returns the output path for convenience.
+    let transformTsvFile
+        (transforms: Transform list)
+        (inputPath: string)
+        (outputPath: string)
+        : string
+        =
+        let tsv =
+            inputPath
+            |> File.ReadAllText
+            |> fromTsv
+            |> applyAll transforms
+            |> toTsv
+
+        File.WriteAllText(outputPath, tsv)
+        outputPath
+
+
+    /// Same as `transformTsvFile` but writes to an auto-versioned sibling
+    /// (`file.v2.tsv`, `file.v3.tsv`, ...) next to the input.
+    let transformTsvFileVersioned
+        (transforms: Transform list)
+        (inputPath: string)
+        : string
+        =
+        transformTsvFile transforms inputPath (nextVersionedPath inputPath)
+
+
+    /// Strip C0/C1 control characters while preserving newlines, carriage
+    /// returns, and tabs. Null input collapses to an empty string.
+    let removeNonReadable (s: string) =
+        if isNull s then
+            ""
+        else
+            let chars =
+                s.ToCharArray()
+                |> Array.filter (fun c ->
+                    c = '\n' || c = '\r' || c = '\t' || not (Char.IsControl c)
+                )
+
+            System.String(chars)
+
+
+    /// Deterministic whitespace normalization applied after the LLM
+    /// grammar pass: normalize line endings, collapse runs of spaces /
+    /// tabs (per line, so newlines are preserved), and drop leading /
+    /// trailing blank lines. No content rewriting.
+    let normalizeWhitespace (s: string) =
+        if isNull s then
+            ""
+        else
+            let lf = s.Replace("\r\n", "\n").Replace("\r", "\n")
+            let collapseSpaces (line: string) =
+                System.Text.RegularExpressions.Regex.Replace(line, @"[ \t]+", " ")
+
+            lf.Split('\n')
+            |> Array.map (collapseSpaces >> String.trim)
+            |> Array.skipWhile String.isNullOrWhiteSpace
+            |> Array.rev
+            |> Array.skipWhile String.isNullOrWhiteSpace
+            |> Array.rev
+            |> String.concat "\n"
+
+
+    /// Ask the LLM to correct grammar and punctuation in `scheduleText`,
+    /// then strip non-readable characters and normalize whitespace. Falls
+    /// back to the original text on LLM failure so the pipeline never loses
+    /// data. Output may be multi-line — newlines from the LLM are preserved.
+    let checkGrammar
+        (sender: Extraction.Sender)
+        (model: string)
+        (de: Schema.DoseRuleExtracted)
+        : Schema.DoseRuleExtracted
+        =
+        let cleaned =
+            de.scheduleText
+            |> Extraction.sanitizeText sender model
+            |> Async.RunSynchronously
+            |> Result.defaultValue de.scheduleText
+            |> removeNonReadable
+            |> normalizeWhitespace
+
+        {| de with scheduleText = cleaned |}
+
+
+    /// Overwrite `scheduleText` on a rule with the supplied (possibly
+    /// multi-line) canonical text. Used after the validate step to
+    /// commit the user-approved version.
+    let saveScheduleText
+        (cleanedText: string)
+        (r: Schema.DoseRuleExtracted)
+        : Schema.DoseRuleExtracted
+        =
+        {| r with scheduleText = cleanedText |}
 
 
     /// Feed the parsed `DoseRuleData` through the same post-processing
@@ -808,7 +1182,8 @@ module Pipeline =
             match res with
             | Error e -> return Error $"LLM/JSON error: {e}"
             | Ok payload ->
-                let data = payload.rules |> Array.map Conversion.toDoseRuleData
+                let data =
+                    payload.rules |> Array.collect Conversion.toDoseRuleData
 
                 if Array.isEmpty data then
                     return Error "LLM returned zero rules"
@@ -841,6 +1216,143 @@ module Pipeline =
 
 
 // =======================================================
+// RuleValidation — structural checks on one hierarchical
+// `DoseRuleExtracted` produced from one input `scheduleText`.
+// Patient-group identity is now guaranteed by construction
+// (one rule = one group); the auto-checks cover dose-type /
+// dose-limit uniqueness only.
+// =======================================================
+
+module RuleValidation =
+
+    /// Structural summary of one hierarchical rule.
+    type RuleSummary =
+        {|
+            doseTypes: string[]
+            components: string[]
+            substances: string[]
+            duplicateCombos: (string * string * string * string)[]
+        |}
+
+
+    /// Distinct dose-type labels, components and substances inside the
+    /// rule, plus any `(doseType, doseText, component, substance)`
+    /// quadruples that repeat across dose-limits. Two dose types may
+    /// legitimately share a `doseType` label (e.g. load + maintenance
+    /// both `timed`) provided their `doseText` distinguishes them;
+    /// duplication is flagged per-limit against the full key. Pure, no IO.
+    let summarise (r: Schema.DoseRuleExtracted) : RuleSummary =
+        let dts =
+            if isNull r.doseTypes then [||] else r.doseTypes
+
+        let dtLabels = dts |> Array.map _.doseType
+
+        let combos =
+            [|
+                for dt in dts do
+                    let limits =
+                        if isNull dt.doseLimits then [||] else dt.doseLimits
+
+                    for dl in limits ->
+                        dt.doseType, dt.doseText, dl.``component``, dl.substance
+            |]
+
+        let dupCombos =
+            combos
+            |> Array.countBy id
+            |> Array.choose (fun (k, n) -> if n > 1 then Some k else None)
+
+        {|
+            doseTypes = dtLabels |> Array.distinct
+            components =
+                combos |> Array.map (fun (_, _, c, _) -> c) |> Array.distinct
+            substances =
+                combos |> Array.map (fun (_, _, _, s) -> s) |> Array.distinct
+            duplicateCombos = dupCombos
+        |}
+
+
+    /// A rule must carry at least one `DoseType`.
+    let validateDoseTypesPresent
+        (r: Schema.DoseRuleExtracted)
+        : Result<unit, string>
+        =
+        if isNull r.doseTypes || r.doseTypes.Length = 0 then
+            Error "doseTypes is empty"
+        else
+            Ok()
+
+
+    /// Each `(doseType, doseText, component, substance)` quadruple must
+    /// appear at most once across all dose-limits in the rule. Two
+    /// dose-type entries may share a `doseType` label if distinguished
+    /// by `doseText`.
+    let validateUniqueDoseLimits
+        (r: Schema.DoseRuleExtracted)
+        : Result<unit, string list>
+        =
+        let dups = (summarise r).duplicateCombos
+
+        if Array.isEmpty dups then
+            Ok()
+        else
+            dups
+            |> Array.map (fun (dt, dtx, c, s) ->
+                let text = if dtx = "" then "" else $" doseText=%s{dtx}"
+                $"duplicate dose-limit combo: doseType=%s{dt}{text}, component=%s{c}, substance=%s{s}"
+            )
+            |> Array.toList
+            |> Error
+
+
+    /// Combined check: returns `Ok r` on full pass, `Error report` otherwise.
+    let validate
+        (r: Schema.DoseRuleExtracted)
+        : Result<Schema.DoseRuleExtracted, string list>
+        =
+        let dtPresent =
+            match validateDoseTypesPresent r with
+            | Ok() -> []
+            | Error e -> [ e ]
+
+        let dlUnique =
+            match validateUniqueDoseLimits r with
+            | Ok() -> []
+            | Error es -> es
+
+        match dtPresent @ dlUnique with
+        | [] -> Ok r
+        | errs -> Error errs
+
+
+    /// Pretty-print the structural summary for FSI inspection.
+    let printCounts (r: Schema.DoseRuleExtracted) =
+        let s = summarise r
+        let join (xs: string[]) = String.concat ", " xs
+
+        let totalLimits =
+            if isNull r.doseTypes then
+                0
+            else
+                r.doseTypes
+                |> Array.sumBy (fun dt ->
+                    if isNull dt.doseLimits then 0 else dt.doseLimits.Length
+                )
+
+        printfn $"""doseTypes:  {s.doseTypes.Length} [{join s.doseTypes}]"""
+        printfn $"""components: {s.components.Length} [{join s.components}]"""
+        printfn $"""substances: {s.substances.Length} [{join s.substances}]"""
+        printfn $"""doseLimits: {totalLimits}"""
+
+        if not (Array.isEmpty s.duplicateCombos) then
+            printfn $"duplicate combos: {s.duplicateCombos.Length}"
+
+            for (dt, dtx, comp, sub) in s.duplicateCombos do
+                let text = if dtx = "" then "" else $" doseText={dtx}"
+                printfn $"  - doseType={dt}{text}, component={comp}, substance={sub}"
+
+
+// =======================================================
 // Printing — pretty-print a DoseRuleExtracted for inspection.
 // Ported from DoseRuleExtraction.fsx and remapped to the
 // unified record shape (dep / minInt / minDur / freqs).
@@ -852,117 +1364,93 @@ module Printing =
         if n.HasValue then string n.Value else "—"
 
 
-    /// Pretty-print an extracted DoseRuleExtracted record for inspection.
+    /// Pretty-print one dose-limit block — the quantitative payload
+    /// attached to a `(doseType, component, substance)` triple.
+    let private printDoseLimit
+        (dt: Schema.DoseType)
+        (dl: Schema.DoseLimit)
+        =
+        printfn
+            $"""  - substance  : %s{dl.substance}
+    component  : %s{dl.``component``}
+    doseUnit   : %s{dl.doseUnit}
+    adjustUnit : %s{dl.adjustUnit}
+    rateUnit   : %s{dl.rateUnit}
+    Qty        : %s{nullable dl.minQty} — %s{nullable dl.maxQty} %s{dl.doseUnit}
+    QtyAdj     : %s{nullable dl.minQtyAdj} — %s{nullable dl.maxQtyAdj} %s{dl.doseUnit}/%s{dl.adjustUnit}
+    PerTime    : %s{nullable dl.minPerTime} — %s{nullable dl.maxPerTime} %s{dl.doseUnit}/%s{dt.freqUnit}
+    PerTimeAdj : %s{nullable dl.minPerTimeAdj} — %s{nullable dl.maxPerTimeAdj} %s{dl.doseUnit}/%s{dl.adjustUnit}/%s{dt.freqUnit}
+    Rate       : %s{nullable dl.minRate} — %s{nullable dl.maxRate} %s{dl.doseUnit}/%s{dl.rateUnit}
+    RateAdj    : %s{nullable dl.minRateAdj} — %s{nullable dl.maxRateAdj} %s{dl.doseUnit}/%s{dl.adjustUnit}/%s{dl.rateUnit}"""
+
+
+    /// Pretty-print one dose-type block: the temporal profile followed
+    /// by every nested dose-limit.
+    let private printDoseType (dt: Schema.DoseType) =
+        let freqs =
+            if isNull dt.freqs then ""
+            else dt.freqs |> Array.map string |> String.concat ";"
+
+        printfn
+            $"""
+### Dose type
+  doseType   : %s{dt.doseType}
+  doseText   : %s{dt.doseText}
+
+### Schedule
+  frequencies: %s{freqs} × %s{dt.freqUnit}
+  time       : %s{nullable dt.minTime} — %s{nullable dt.maxTime} %s{dt.timeUnit}
+  interval   : %s{nullable dt.minInt} — %s{nullable dt.maxInt} %s{dt.intUnit}
+  duration   : %s{nullable dt.minDur} — %s{nullable dt.maxDur} %s{dt.durUnit}
+
+### Dose limits"""
+
+        let limits =
+            if isNull dt.doseLimits then [||] else dt.doseLimits
+
+        if Array.isEmpty limits then
+            printfn "  (none)"
+        else
+            limits |> Array.iter (printDoseLimit dt)
+
+
+    /// Pretty-print an extracted `DoseRuleExtracted` record for
+    /// inspection: identity + patient at the top, then every nested
+    /// `DoseType` / `DoseLimit`.
     let printExtracted (r: Schema.DoseRuleExtracted) =
         printfn
-            """
+            $"""
 ## Extracted DoseRule
 
 ### Medication
-  generic    : %s
-  form       : %s
-  brand      : %s
-  gpks       : %s
-  route      : %s
-  indication : %s
-  department : %s
+  generic    : %s{r.generic}
+  form       : %s{r.form}
+  brand      : %s{r.brand}
+  gpks       : %s{if isNull r.gpks then "" else r.gpks |> String.concat ", "}
+  route      : %s{r.route}
+  indication : %s{r.indication}
+  department : %s{r.dep}
 
 ### Source
-  source     : %s
+  source     : %s{r.source}
 
 ### Patient
-  gender     : %s
-  age        : %s — %s days
-  weight     : %s — %s g
-  BSA        : %s — %s m2
-  gestAge    : %s — %s days
-  PMAge      : %s — %s days
+  gender     : %s{r.gender}
+  age        : %s{nullable r.minAge} — %s{nullable r.maxAge} days
+  weight     : %s{nullable r.minWeight} — %s{nullable r.maxWeight} g
+  BSA        : %s{nullable r.minBSA} — %s{nullable r.maxBSA} m2
+  gestAge    : %s{nullable r.minGestAge} — %s{nullable r.maxGestAge} days
+  PMAge      : %s{nullable r.minPMAge} — %s{nullable r.maxPMAge} days"""
 
-### Dose type
-  doseType   : %s
-  doseText   : %s
+        let dts =
+            if isNull r.doseTypes then [||] else r.doseTypes
 
-### Schedule
-  frequencies: %s × %s
-  time       : %s — %s %s
-  interval   : %s — %s %s
-  duration   : %s — %s %s
-
-### Dose limits
-  substance  : %s
-  component  : %s
-  doseUnit   : %s
-  adjustUnit : %s
-  rateUnit   : %s
-  Qty        : %s — %s %s
-  QtyAdj     : %s — %s %s/%s
-  PerTime    : %s — %s %s/%s
-  PerTimeAdj : %s — %s %s/%s/%s
-  Rate       : %s — %s %s/%s
-  RateAdj    : %s — %s %s/%s/%s
-"""
-            r.generic
-            r.form
-            r.brand
-            (if isNull r.gpks then "" else r.gpks |> String.concat ", ")
-            r.route
-            r.indication
-            r.dep
-            r.source
-            r.gender
-            (nullable r.minAge)
-            (nullable r.maxAge)
-            (nullable r.minWeight)
-            (nullable r.maxWeight)
-            (nullable r.minBSA)
-            (nullable r.maxBSA)
-            (nullable r.minGestAge)
-            (nullable r.maxGestAge)
-            (nullable r.minPMAge)
-            (nullable r.maxPMAge)
-            r.doseType
-            r.doseText
-            (if isNull r.freqs then "" else r.freqs |> Array.map string |> String.concat ";")
-            r.freqUnit
-            (nullable r.minTime)
-            (nullable r.maxTime)
-            r.timeUnit
-            (nullable r.minInt)
-            (nullable r.maxInt)
-            r.intUnit
-            (nullable r.minDur)
-            (nullable r.maxDur)
-            r.durUnit
-            r.substance
-            r.``component``
-            r.doseUnit
-            r.adjustUnit
-            r.rateUnit
-            (nullable r.minQty)
-            (nullable r.maxQty)
-            r.doseUnit
-            (nullable r.minQtyAdj)
-            (nullable r.maxQtyAdj)
-            r.doseUnit
-            r.adjustUnit
-            (nullable r.minPerTime)
-            (nullable r.maxPerTime)
-            r.doseUnit
-            r.freqUnit
-            (nullable r.minPerTimeAdj)
-            (nullable r.maxPerTimeAdj)
-            r.doseUnit
-            r.adjustUnit
-            r.freqUnit
-            (nullable r.minRate)
-            (nullable r.maxRate)
-            r.doseUnit
-            r.rateUnit
-            (nullable r.minRateAdj)
-            (nullable r.maxRateAdj)
-            r.doseUnit
-            r.adjustUnit
-            r.rateUnit
+        if Array.isEmpty dts then
+            printfn ""
+            printfn "### Dose type"
+            printfn "  (none)"
+        else
+            dts |> Array.iter printDoseType
 
 
     /// Print every rule in a `DoseRuleExtractionResult` via `printExtracted`.
@@ -974,10 +1462,121 @@ module Printing =
 
 
 // =======================================================
+// Interactive — walk one scheduleText through extract →
+// checkGrammar → validate → save, prompting between every
+// stage so the user can step through, save the current
+// canonical text and exit, or abort entirely.
+// =======================================================
+
+module Interactive =
+
+    type StepDecision =
+        | Proceed
+        | SaveAndExit
+        | Exit
+
+
+    type RunResult =
+        | Saved of Schema.DoseRuleExtracted
+        | Aborted of stage: string
+        | Failed of string
+
+
+    /// Read one line from stdin and map to a step decision. Defaults to
+    /// `Proceed` on empty / unrecognised input. Case-insensitive.
+    let promptStep (label: string) : StepDecision =
+        printfn ""
+        printfn $"[{label}] (P)roceed / (S)ave and exit / (E)xit  [P]:"
+        let line = Console.ReadLine()
+
+        let key =
+            if isNull line then ""
+            else line.Trim().ToUpperInvariant()
+
+        if key.StartsWith "S" then SaveAndExit
+        elif key.StartsWith "E" then Exit
+        else Proceed
+
+
+    /// Commit the current `scheduleText` as-is — hierarchical records
+    /// carry the text in one place, so this is just an identity pass.
+    let private saveCurrent (r: Schema.DoseRuleExtracted) = r
+
+
+    /// Step the user through extract → checkGrammar → validate → save
+    /// for ONE `scheduleText`. The LLM is expected to return exactly
+    /// one hierarchical `DoseRuleExtracted` (multiple entries trigger
+    /// `Failed`). Each prompt accepts P / S / E (case-insensitive);
+    /// empty defaults to Proceed. SaveAndExit returns `Saved` with the
+    /// current text committed. Exit returns `Aborted`.
+    let runInteractive
+        (sender: Extraction.Sender)
+        (model: string)
+        (sourceName: string)
+        (freeText: string)
+        : RunResult
+        =
+        // Stage 1: extract
+        let extracted =
+            match
+                Extraction.extractDoseRule sender model sourceName freeText
+                |> Async.RunSynchronously
+            with
+            | Ok r -> Ok r.rules
+            | Error e -> Error e
+
+        match extracted with
+        | Error e -> Failed $"extraction failed: {e}"
+        | Ok rs when Array.isEmpty rs -> Failed "extraction returned zero rules"
+        | Ok rs when rs.Length > 1 ->
+            Failed $"extraction returned {rs.Length} rules; expected 1 per scheduleText"
+        | Ok rs ->
+            let r0 = rs[0]
+
+            printfn "=== Stage 1: extracted ==="
+            r0 |> RuleValidation.printCounts
+
+            match promptStep "after extract" with
+            | Exit -> Aborted "extract"
+            | SaveAndExit -> Saved(saveCurrent r0)
+            | Proceed ->
+                // Stage 2: grammar check
+                printfn ""
+                printfn "=== Stage 2: checkGrammar (LLM, may take a while) ==="
+                let cleaned = Pipeline.checkGrammar sender model r0
+
+                printfn "scheduleText (cleaned):"
+                printfn "%s" cleaned.scheduleText
+
+                match promptStep "after checkGrammar" with
+                | Exit -> Aborted "checkGrammar"
+                | SaveAndExit -> Saved(saveCurrent cleaned)
+                | Proceed ->
+                    // Stage 3: validate
+                    printfn ""
+                    printfn "=== Stage 3: validate ==="
+
+                    match RuleValidation.validate cleaned with
+                    | Error errs ->
+                        errs |> List.iter (printfn "FAIL: %s")
+                        printfn ""
+                        printfn "Manually rewrite (and possibly split) the scheduleText, then re-run."
+                        Failed(String.concat "; " errs)
+                    | Ok r ->
+                        printfn "validation OK"
+
+                        match promptStep "after validate" with
+                        | Exit -> Aborted "validate"
+                        | SaveAndExit
+                        | Proceed -> Saved(saveCurrent r)
+
+
+// =======================================================
 // Benchmark — evaluate local Ollama models against the
 // authoritative dose-rule TSV. Unchanged in behaviour;
 // re-points to Extraction.extractDoseRule +
-// Conversion.toDoseRuleData.
+// Conversion.toDoseRuleData (which now returns an array
+// per hierarchical rule — flattened via Array.collect).
 // =======================================================
 
 module Benchmark =
@@ -1151,7 +1750,9 @@ module Benchmark =
                     match res with
                     | Error e -> return Error e
                     | Ok payload ->
-                        let rows = payload.rules |> Array.map Conversion.toDoseRuleData
+                        let rows =
+                            payload.rules |> Array.collect Conversion.toDoseRuleData
+
                         return Ok rows
                 with ex ->
                     return Error ex.Message
@@ -1319,4 +1920,33 @@ dosering verlagen tot 3 - 5 mg/kg/dag in 1 dosis.
 //   | Error e -> eprintfn $"Extraction failed: {e}"
 
 
-Benchmark.run benchmarkModels 100 42 |> ignore
+// =======================================================
+// Interactive driver — extract → checkGrammar → validate
+// → save, with a per-stage prompt (Proceed / Save and exit
+// / Exit). On a validate failure, manually rewrite (and
+// possibly split) the scheduleText, then re-run.
+// =======================================================
+
+//   match
+//       Interactive.runInteractive
+//           Extraction.ollamaSender
+//           Config.defaultModel
+//           "Kinderformularium"
+//           freeText
+//   with
+//   | Interactive.Saved rs   -> rs |> Pipeline.toTsv |> printfn "%s"
+//   | Interactive.Aborted s  -> printfn "aborted at stage: %s" s
+//   | Interactive.Failed e   -> eprintfn "failed: %s" e
+
+
+// Skip the benchmark when the script is loaded purely to exercise the
+// types (TSV round-trip checks, tests, etc). Set `GENPRES_NLP_SKIP_BENCHMARK=1`
+// in the environment to suppress the Ollama call.
+let skipBenchmark =
+    match Environment.GetEnvironmentVariable "GENPRES_NLP_SKIP_BENCHMARK" with
+    | null
+    | "" -> false
+    | _ -> true
+
+if not skipBenchmark then
+    Benchmark.run benchmarkModels 100 42 |> ignore
