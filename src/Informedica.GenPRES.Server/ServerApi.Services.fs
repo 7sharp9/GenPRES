@@ -34,6 +34,62 @@ module FormularyService =
         | _ -> sel
 
 
+    /// Pure helpers for classifying and aggregating raw G-Standaard dose-check
+    /// result strings into colored TextBlocks. Exposed for unit testing.
+    module DoseCheck =
+
+        // `Shared.Utils.String.split` (in scope via `open Shared`) returns string[].
+
+        /// True if the line is a frequency-mismatch entry emitted by Check.fs.
+        /// Expected raw shape: "{target}\t{route}\t{patientCategory}\t{message}".
+        let isFrequency (s: string) =
+            match s |> String.split "\t" with
+            | [| _; _; _; msg |] -> msg.Contains "frequenties"
+            | _ -> false
+
+        /// True for the "no monitoring data" sentinel emitted when no rules
+        /// match and no violations are reported. These lines have no tab
+        /// separators, so the severity classifier must detect them by
+        /// substring and treat them as non-violations.
+        let isNoMonitoring (s: string) =
+            s.Contains "geen doseer bewaking gevonden"
+
+        /// Format a raw check line for display. `singleRule` drops the
+        /// patient-category field when only one dose rule is in scope.
+        let formatLine (singleRule: bool) (s: string) =
+            match s |> String.split "\t" with
+            | [| s1; _; p; s2 |] ->
+                if singleRule then
+                    $"%s{s1} %s{s2}"
+                else
+                    $"%s{s1} %s{p} %s{s2}"
+            | _ -> s
+
+        /// Build the colored TextBlock[] for the Formulary's DoseCheck field.
+        ///   - empty input            → single green "Ok!" block
+        ///   - only "no monitoring"   → green blocks showing the sentinel text
+        ///   - only frequency issues  → orange (Warning) blocks
+        ///   - any dose-range issue   → red (Alert) blocks
+        /// When severity is Warning or Alert, "no monitoring" sentinels are
+        /// dropped from the display so a non-violation isn't painted as a
+        /// violation.
+        let build (parseTextItem: string -> TextItem[]) (singleRule: bool) (rawLines: string[]) : TextBlock[] =
+            let violations = rawLines |> Array.filter (isNoMonitoring >> not)
+
+            let wrap =
+                if violations |> Array.isEmpty then Valid
+                elif violations |> Array.forall isFrequency then Warning
+                else Alert
+
+            let displayLines = if violations |> Array.isEmpty then rawLines else violations
+
+            let formatted = displayLines |> Array.map (formatLine singleRule)
+
+            match formatted with
+            | [||] -> [| "Ok!" |> parseTextItem |> Valid |]
+            | xs -> xs |> Array.map (parseTextItem >> wrap)
+
+
     let checkDoseRules provider pat (dsrs: DoseRule[]) =
         let routeMapping = Api.getRouteMapping provider
 
@@ -105,32 +161,12 @@ DoseType : {filter.DoseType |> Option.map DoseType.toDescription |> Option.defau
                 | Some _, Some _, Some _ ->
                     writeDebugMessage $"start checking {dsrs |> Array.length} rules"
 
-                    let rawLines = dsrs |> checkDoseRules provider filter.Patient
-
-                    let isFrequency (s: string) =
-                        match s |> String.split "\t" with
-                        | [| _; _; _; msg |] -> msg.Contains "frequenties"
-                        | _ -> false
-
                     let singleRule = dsrs |> Array.length = 1
 
-                    let formatted =
-                        rawLines
-                        |> Array.map (fun s ->
-                            match s |> String.split "\t" with
-                            | [| s1; _; p; s2 |] -> if singleRule then $"{s1} {s2}" else $"{s1} {p} {s2}"
-                            | _ -> s
-                        )
-
-                    let wrap =
-                        if rawLines |> Array.isEmpty then Valid
-                        elif rawLines |> Array.forall isFrequency then Warning
-                        else Alert
-
                     let doseCheck =
-                        match formatted with
-                        | [||] -> [| "Ok!" |> Mappers.parseTextItem |> Valid |]
-                        | xs -> xs |> Array.map (Mappers.parseTextItem >> wrap)
+                        dsrs
+                        |> checkDoseRules provider filter.Patient
+                        |> DoseCheck.build Mappers.parseTextItem singleRule
 
                     writeDebugMessage $"finished checking {dsrs |> Array.length} rules"
 
