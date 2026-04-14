@@ -48,6 +48,7 @@ module Helpers =
             PatientCategory = None
             Patient = None
             Markdown = ""
+            DoseCheck = [||]
         }
 
 
@@ -639,3 +640,130 @@ module StubAdapterTests =
                 errorPropagationTests
                 requireLoadedTests
             ]
+
+
+module DoseCheckTests =
+
+    open Shared.Types
+    open ServerApi.FormularyService
+
+
+    /// Minimal TextItem parser used by the build function under test.
+    /// Avoids pulling in the Mappers module-level formatting state.
+    let parseTextItem (s: string) =
+        if System.String.IsNullOrWhiteSpace s then
+            [||]
+        else
+            [| Normal s |]
+
+
+    let tab (target: string) (route: string) (pat: string) (msg: string) =
+        sprintf "%s\t%s\t%s\t%s" target route pat msg
+
+
+    let ctorName =
+        function
+        | Valid _ -> "Valid"
+        | Caution _ -> "Caution"
+        | Warning _ -> "Warning"
+        | Alert _ -> "Alert"
+
+
+    let doseCheckTests =
+        testList
+            "DoseCheck.build severity classification"
+            [
+
+                test "no check lines → single Valid 'Ok!'" {
+                    let result = [||] |> DoseCheck.build parseTextItem true
+
+                    result.Length |> Expect.equal "one block" 1
+                    result[0] |> ctorName |> Expect.equal "Valid" "Valid"
+                }
+
+                test "only 'geen doseer bewaking' sentinel → Valid (P1 regression fix)" {
+                    let sentinel = "geen doseer bewaking gevonden voor paracetamol"
+
+                    let result = [| sentinel |] |> DoseCheck.build parseTextItem true
+
+                    result
+                    |> Array.forall (fun tb -> ctorName tb = "Valid")
+                    |> Expect.isTrue "sentinel must not be Alert (red)"
+                }
+
+                test "only frequency inconsistencies → Warning" {
+                    let lines =
+                        [|
+                            tab "paracetamol" "oraal" "0-1 jaar" "frequenties 4 x per dag niet gelijk aan 6 x per dag"
+                            tab "paracetamol" "oraal" "1-2 jaar" "frequenties 3 x per dag is subset van 4 x per dag"
+                        |]
+
+                    let result = lines |> DoseCheck.build parseTextItem false
+
+                    result
+                    |> Array.forall (fun tb -> ctorName tb = "Warning")
+                    |> Expect.isTrue "all Warning"
+                }
+
+                test "any dose-range inconsistency → Alert" {
+                    let lines =
+                        [|
+                            tab "paracetamol" "oraal" "0-1 jaar" "keer dosering per dag niet in bereik"
+                        |]
+
+                    let result = lines |> DoseCheck.build parseTextItem true
+
+                    result
+                    |> Array.forall (fun tb -> ctorName tb = "Alert")
+                    |> Expect.isTrue "all Alert"
+                }
+
+                test "mixed frequency + dose-range → Alert" {
+                    let lines =
+                        [|
+                            tab "paracetamol" "oraal" "0-1 jaar" "frequenties 4 x per dag niet gelijk aan 6 x per dag"
+                            tab "paracetamol" "oraal" "0-1 jaar" "dosering per kg per dag niet in bereik"
+                        |]
+
+                    let result = lines |> DoseCheck.build parseTextItem false
+
+                    result
+                    |> Array.forall (fun tb -> ctorName tb = "Alert")
+                    |> Expect.isTrue "all Alert"
+                }
+
+                test "frequency violation alongside sentinel → Warning, sentinel dropped" {
+                    let sentinel = "geen doseer bewaking gevonden voor paracetamol"
+
+                    let freq =
+                        tab "paracetamol" "oraal" "0-1 jaar" "frequenties 4 x per dag niet gelijk aan 6 x per dag"
+
+                    let result = [| sentinel; freq |] |> DoseCheck.build parseTextItem false
+
+                    result.Length |> Expect.equal "sentinel dropped, one block left" 1
+                    result[0] |> ctorName |> Expect.equal "Warning" "Warning"
+                }
+
+                test "isFrequency detects 'frequenties' in the 4th tab field" {
+                    let freqLine = tab "x" "y" "z" "frequenties 4 x per dag niet gelijk aan 6 x per dag"
+
+                    let doseLine = tab "x" "y" "z" "keer dosering per dag niet in bereik"
+
+                    DoseCheck.isFrequency freqLine |> Expect.isTrue "frequency"
+                    DoseCheck.isFrequency doseLine |> Expect.isFalse "not frequency"
+                }
+
+                test "isNoMonitoring matches the sentinel by substring" {
+                    "geen doseer bewaking gevonden voor paracetamol"
+                    |> DoseCheck.isNoMonitoring
+                    |> Expect.isTrue "sentinel"
+
+                    "frequenties 4 x per dag niet gelijk aan 6 x per dag"
+                    |> DoseCheck.isNoMonitoring
+                    |> Expect.isFalse "not sentinel"
+                }
+            ]
+
+
+    [<Tests>]
+    let tests = testList "DoseCheck Tests" [ doseCheckTests ]
