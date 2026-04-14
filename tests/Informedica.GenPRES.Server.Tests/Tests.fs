@@ -48,6 +48,7 @@ module Helpers =
             PatientCategory = None
             Patient = None
             Markdown = ""
+            DoseCheck = [||]
         }
 
 

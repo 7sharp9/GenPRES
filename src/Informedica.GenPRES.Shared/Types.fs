@@ -546,6 +546,7 @@ module Types =
             PatientCategory: string option
             Patient: Patient option
             Markdown: string
+            DoseCheck: TextBlock[]
         }
 
 

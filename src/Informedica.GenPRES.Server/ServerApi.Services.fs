@@ -101,36 +101,49 @@ DoseType : {filter.DoseType |> Option.map DoseType.toDescription |> Option.defau
                     PatientCategory = form.PatientCategories |> selectIfOne form.PatientCategory
                 }
             |> fun form ->
-                { form with
-                    Markdown =
-                        match form.Generic, form.Indication, form.Route with
-                        | Some _, Some _, Some _ ->
-                            writeDebugMessage $"start checking {dsrs |> Array.length} rules"
+                match form.Generic, form.Indication, form.Route with
+                | Some _, Some _, Some _ ->
+                    writeDebugMessage $"start checking {dsrs |> Array.length} rules"
 
-                            let s =
-                                dsrs
-                                |> checkDoseRules provider filter.Patient
-                                |> Array.map (fun s ->
-                                    match s |> String.split "\t" with
-                                    | [| s1; _; p; s2 |] ->
-                                        if dsrs |> Array.length = 1 then
-                                            $"{s1} {s2}"
-                                        else
-                                            $"{s1} {p} {s2}"
-                                    | _ -> s
-                                )
-                                |> Array.map (fun s -> $"* {s}")
-                                |> String.concat "\n"
-                                |> fun s -> if s |> String.isNullOrWhiteSpace then "Ok!" else s
+                    let rawLines = dsrs |> checkDoseRules provider filter.Patient
 
-                            writeDebugMessage $"finished checking {dsrs |> Array.length} rules"
+                    let isFrequency (s: string) =
+                        match s |> String.split "\t" with
+                        | [| _; _; _; msg |] -> msg.Contains "frequenties"
+                        | _ -> false
 
-                            dsrs
-                            |> DoseRule.Print.toMarkdown
-                            |> fun md -> $"{md}\n\n### Doseer controle volgens de G-Standaard\n\n{s}"
+                    let singleRule = dsrs |> Array.length = 1
 
-                        | _ -> ""
-                }
+                    let formatted =
+                        rawLines
+                        |> Array.map (fun s ->
+                            match s |> String.split "\t" with
+                            | [| s1; _; p; s2 |] -> if singleRule then $"{s1} {s2}" else $"{s1} {p} {s2}"
+                            | _ -> s
+                        )
+
+                    let wrap =
+                        if rawLines |> Array.isEmpty then Valid
+                        elif rawLines |> Array.forall isFrequency then Warning
+                        else Alert
+
+                    let doseCheck =
+                        match formatted with
+                        | [||] -> [| "Ok!" |> Mappers.parseTextItem |> Valid |]
+                        | xs -> xs |> Array.map (Mappers.parseTextItem >> wrap)
+
+                    writeDebugMessage $"finished checking {dsrs |> Array.length} rules"
+
+                    { form with
+                        Markdown = dsrs |> DoseRule.Print.toMarkdown
+                        DoseCheck = doseCheck
+                    }
+
+                | _ ->
+                    { form with
+                        Markdown = ""
+                        DoseCheck = [||]
+                    }
 
         $"""
 

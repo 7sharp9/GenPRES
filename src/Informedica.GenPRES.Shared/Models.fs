@@ -2377,6 +2377,7 @@ module Models =
                 PatientCategory = None
                 Patient = None
                 Markdown = ""
+                DoseCheck = [||]
             }
 
 
