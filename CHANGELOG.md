@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Build (deps)**: Bump `FsToolkit.ErrorHandling` from 5.1.0 to 5.2.0 (PR #306)
+- **Codebase**: F# 8 syntax modernisation and cleanup — adopt shorthand lambdas (`_.Property`) and modern indexer syntax (`items[0]`); remove unused `open` statements and NuGet package references across multiple modules; refactor `createComponents` in `Medication.fs` to drop unused `solutionRule` parameter; update string-interpolation formatting to use explicit format specifiers throughout (PR #305)
 - **Docs**: Update security documentation — security review document revised, X-Powered-By disclosure deferred, unused NuGet package removed (PR #299)
 - **Client (UI)**: Migrate MUI from v7 to v9 — replace deprecated props (`color`, `display`, `alignItems`, `PaperProps`) with `sx` and `slotProps` APIs across all client components; chips rendered inline with `Chip` component; centralise style definitions in `Totals` and `Typography` modules (PR #289)
 - **Client (UI)**: Extract JSX inline anonymous records — refactor Fable JSX `sx` props from inline anonymous records to named `let` bindings per F# coding guidelines; fix Markdown linting errors in docs (PR #290)
