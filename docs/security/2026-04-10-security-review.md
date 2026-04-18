@@ -80,7 +80,7 @@ than upgraded.
 | **D4** | Constant-time password comparison via `FixedTimeEquals` (token migration still tracked by `TODO(D4 follow-up)`) | 2026-04-10 (partial) |
 | **E2** | Production password policy + startup `validateProductionPassword` (≥16 chars, fail-closed) | 2026-04-10 |
 | **E3** | `GENPRES_URL_ID` removed from Dockerfile `ARG/ENV`; runtime injection only; banner masks Sheet ID; ID rotated | 2026-04-10 |
-| **L1** | `Giraffe = 6.4.0` pin + `safeWebApi` wrapper to dodge `Fable.Remoting.Giraffe 5.24` ABI mismatch on .NET 10 | 2026-04-11 |
+| **L1** | `Fable.Remoting.Giraffe 5.24` ABI mismatch on .NET 10 resolved by upgrading to `Fable.Remoting.Giraffe 6.1.0` (requires `Giraffe >= 8.2.0`); `Giraffe = 6.4.0` pin removed; `safeWebApi` wrapper retained as defense-in-depth | 2026-04-18 |
 | **L2 / B5** | Legacy framework-leaking root response replaced with generic `404 Not Found` | 2026-04-11 |
 | **B2** | `securityHeadersMiddleware` (HSTS, CSP with MUI/Emotion-compatible `'unsafe-inline'` style-src, XCTO, XFO, Referrer-Policy, Permissions-Policy); `X-Powered-By` stripped at the app layer | 2026-04-11 |
 | **A2** | Per-IP fixed-window rate limiter (`Microsoft.AspNetCore.RateLimiting`, 60 req / 10 s, partition keyed via `getClientIP`) | 2026-04-11 |
@@ -436,6 +436,46 @@ X-Robots-Tag` no-op, optional defence-in-depth retention of
 `proxy_hide_header` and the Apache `Header unset` block, etc.) was
 maintained out-of-repo with the maintainer. Operational; expires
 when the C2 migration retires this host.
+
+---
+
+## Update — 2026-04-18 (L1 root-cause fix upstream)
+
+`Fable.Remoting.Giraffe 6.1.0` (released 2026-04-18) was recompiled
+against the task-based `HttpHandler` rewrite introduced in Giraffe 7,
+and declares `Giraffe (>= 8.2.0)`. Adopting it resolves the original
+binary mismatch that produced the `MissingMethodException` /
+`TypeLoadException` in `Giraffe.Core.setBodyFromString`, so the
+earlier workaround can be unwound.
+
+### Resolved items
+
+| ID | Status | Change | Files |
+|---|---|---|---|
+| **L1** (root-cause fix) | ✅ Fixed upstream | Upgraded `Fable.Remoting.Giraffe 5.24 → 6.1`, `Fable.Remoting.Server 5.42 → 6.1`, `Fable.Remoting.Client 7.35 → 8.0` (transitively `Fable.Remoting.Json 2.25 → 3.0`, `Fable.Remoting.MsgPack 1.25 → 2.0`). The `Giraffe = 6.4.0` pin and its L1 comment block are removed from `paket.dependencies`; Paket now resolves `Giraffe 8.2` (required by `Fable.Remoting.Giraffe 6.1`) and keeps `Saturn 0.17`. The `safeWebApi` wrapper in `Server.fs` is retained as defense-in-depth and its comment refreshed to reflect the upstream fix. `paket.lock` regenerated. | `paket.dependencies`, `paket.lock`, `src/Informedica.GenPRES.Server/Server.fs` (`safeWebApi` comment only) |
+
+### Verification
+
+Per the plan at
+`.claude/plans/use-new-fable-remoting-giraffe-fixes-fancy-wand.md`:
+
+1. `dotnet run build` — clean.
+2. `paket.lock` confirms `Fable.Remoting.Giraffe (6.x)`,
+   `Giraffe (8.x)`, `Saturn (0.17)` coexist.
+3. `dotnet run servertests` — all green.
+4. Happy-path RPC round-trip at `http://localhost:5173`.
+5. Malformed-RPC smoke: `POST /api/IServerApi/<cmd>` with
+   `not-valid-json` returns HTTP 400 with a short body and no
+   `System.*` / `Giraffe.*` / `Fable.Remoting.*` type names.
+6. The live regression suite (ADR-0015, Decision 4; maintained
+   out-of-repo) — test 2.2 must re-run PASS against the new build
+   before deploying to `https://genpres.nl/`.
+
+### MDR follow-up
+
+- `docs/mdr/design-history/0015-security-baseline.md:46-51` updated
+  to reflect the upstream fix and the retained `safeWebApi` wrapper.
+- `CHANGELOG.md` carries the user-visible entry.
 
 ---
 

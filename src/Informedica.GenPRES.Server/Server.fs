@@ -282,20 +282,41 @@ let webApi =
     |> Remoting.buildHttpHandler
 
 
-// L1 — Belt-and-braces wrapper for the Fable.Remoting.Giraffe 5.24 ABI
-// drift on .NET 10: the error path can throw MissingMethodException (or
-// TypeLoadException) from Giraffe.Core.setBodyFromString, and the
-// unfiltered exception body leaks the full .NET type signature. The
-// Giraffe pin (paket.dependencies, currently 6.4.0) avoids the trigger
-// in normal use; this wrapper guarantees a clean 400 even if it fires.
+// L1 — Defense-in-depth wrapper. The original Fable.Remoting.Giraffe 5.24
+// ABI drift against Giraffe 7+ (MissingMethodException / TypeLoadException
+// from Giraffe.Core.setBodyFromString, leaking full .NET type signatures)
+// is resolved upstream in Fable.Remoting.Giraffe 6.1.0. This wrapper is
+// retained as belt-and-braces so any future reflection/ABI fault returns
+// a clean 400 instead of a raw exception body.
 let safeWebApi: HttpHandler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
             try
                 return! webApi next ctx
-            with
-            | :? System.MissingMethodException
-            | :? System.TypeLoadException ->
+            with ex when (ex :? System.MissingMethodException || ex :? System.TypeLoadException) ->
+                // Record the ABI fault so neither branch can fail silently.
+                // Stderr fires unconditionally; logger fires only if
+                // GENPRES_LOG is set. The mid-stream branch (HasStarted = true)
+                // cannot rewrite the response, so this log is the only signal
+                // the caller will ever get.
+                let msg =
+                    $"safeWebApi caught %s{ex.GetType().Name} on %s{ctx.Request.Path.ToString()}: %s{ex.Message}"
+
+                eprintfn $"{msg}"
+
+                match Logging.loggingLevel with
+                | Some level ->
+                    let logger = Logging.getLogger level Logging.RequestLogger
+
+                    async {
+                        do! logger |> Logging.setComponentName (Some "safeWebApi")
+
+                        Logging.ServerLogging.Error msg
+                        |> Informedica.Logging.Lib.Logging.logError logger.Logger
+                    }
+                    |> Async.Start
+                | None -> ()
+
                 if not ctx.Response.HasStarted then
                     ctx.Response.StatusCode <- 400
                     ctx.Response.ContentType <- "application/json; charset=utf-8"
