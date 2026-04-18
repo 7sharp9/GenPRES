@@ -293,9 +293,30 @@ let safeWebApi: HttpHandler =
         task {
             try
                 return! webApi next ctx
-            with
-            | :? System.MissingMethodException
-            | :? System.TypeLoadException ->
+            with ex when (ex :? System.MissingMethodException || ex :? System.TypeLoadException) ->
+                // Record the ABI fault so neither branch can fail silently.
+                // Stderr fires unconditionally; logger fires only if
+                // GENPRES_LOG is set. The mid-stream branch (HasStarted = true)
+                // cannot rewrite the response, so this log is the only signal
+                // the caller will ever get.
+                let msg =
+                    $"safeWebApi caught %s{ex.GetType().Name} on %s{ctx.Request.Path.ToString()}: %s{ex.Message}"
+
+                eprintfn $"{msg}"
+
+                match Logging.loggingLevel with
+                | Some level ->
+                    let logger = Logging.getLogger level Logging.RequestLogger
+
+                    async {
+                        do! logger |> Logging.setComponentName (Some "safeWebApi")
+
+                        Logging.ServerLogging.Error msg
+                        |> Informedica.Logging.Lib.Logging.logError logger.Logger
+                    }
+                    |> Async.Start
+                | None -> ()
+
                 if not ctx.Response.HasStarted then
                     ctx.Response.StatusCode <- 400
                     ctx.Response.ContentType <- "application/json; charset=utf-8"
