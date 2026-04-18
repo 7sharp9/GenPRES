@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Build (deps)**: Bump `Fable.Remoting.Giraffe` 5.24 → 6.1, `Fable.Remoting.Server` 5.42 → 6.1, `Fable.Remoting.Client` 7.35 → 8.0 (transitively `Fable.Remoting.Json` 2.25 → 3.0, `Fable.Remoting.MsgPack` 1.25 → 2.0), and drop the `Giraffe = 6.4.0` pin in `paket.dependencies`. Paket re-resolves `Giraffe` to 8.2 (required by `Fable.Remoting.Giraffe 6.1`) and keeps `Saturn 0.17`. The original L1 binary mismatch against Giraffe 7+ on .NET 10 (documented in `docs/security/2026-04-10-security-review.md`) is fixed upstream; the `safeWebApi` wrapper in `Server.fs` is retained as defense-in-depth with a refreshed comment.
 - **Build (deps)**: Bump `FsToolkit.ErrorHandling` from 5.1.0 to 5.2.0 (PR #306)
 - **Codebase**: F# 8 syntax modernisation and cleanup — adopt shorthand lambdas (`_.Property`) and modern indexer syntax (`items[0]`); remove unused `open` statements and NuGet package references across multiple modules; refactor `createComponents` in `Medication.fs` to drop unused `solutionRule` parameter; update string-interpolation formatting to use explicit format specifiers throughout (PR #305)
 - **Docs**: Update security documentation — security review document revised, X-Powered-By disclosure deferred, unused NuGet package removed (PR #299)
