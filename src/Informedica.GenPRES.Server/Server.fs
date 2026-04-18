@@ -282,12 +282,12 @@ let webApi =
     |> Remoting.buildHttpHandler
 
 
-// L1 — Belt-and-braces wrapper for the Fable.Remoting.Giraffe 5.24 ABI
-// drift on .NET 10: the error path can throw MissingMethodException (or
-// TypeLoadException) from Giraffe.Core.setBodyFromString, and the
-// unfiltered exception body leaks the full .NET type signature. The
-// Giraffe pin (paket.dependencies, currently 6.4.0) avoids the trigger
-// in normal use; this wrapper guarantees a clean 400 even if it fires.
+// L1 — Defense-in-depth wrapper. The original Fable.Remoting.Giraffe 5.24
+// ABI drift against Giraffe 7+ (MissingMethodException / TypeLoadException
+// from Giraffe.Core.setBodyFromString, leaking full .NET type signatures)
+// is resolved upstream in Fable.Remoting.Giraffe 6.1.0. This wrapper is
+// retained as belt-and-braces so any future reflection/ABI fault returns
+// a clean 400 instead of a raw exception body.
 let safeWebApi: HttpHandler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {

@@ -46,9 +46,10 @@ deployment.
 2. The security baseline currently in force on the public demo
    <https://genpres.nl/> is the **post-2026-04-11 state** documented in
    the `Update — 2026-04-11` section of the review:
-   - **L1** (binary mismatch in `Fable.Remoting.Giraffe 5.24` on .NET 10)
-     mitigated by pinning `Giraffe = 6.4.0` and a `safeWebApi` wrapper
-     that catches `MissingMethodException` / `TypeLoadException`.
+   - **L1** — `Fable.Remoting.Giraffe` upgraded to 6.1.0 (requires
+     `Giraffe >= 8.2.0`); the earlier `Giraffe = 6.4.0` pin is removed.
+     The `safeWebApi` wrapper catching `MissingMethodException` /
+     `TypeLoadException` is retained as defense-in-depth.
    - **L2 / B5** legacy catch-all string replaced with a generic 404.
    - **B2** security response headers (HSTS, CSP, X-Content-Type-Options,
      X-Frame-Options, Referrer-Policy, Permissions-Policy) emitted via
