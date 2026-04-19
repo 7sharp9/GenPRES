@@ -155,6 +155,8 @@ type Patient = {
 
 Do not make types or functions private, unless explicitly mentioned in a comment or being told to.
 
+Never mark a pure function `private`. Pure functions have no side effects, no hidden state, and no security implications — hiding them only makes them harder to reuse, test, and compose. Leave them public so they remain available as building blocks. `private` is reserved for cases where exposure is actively harmful (e.g., smart-constructor invariants, mutable state, IO wiring), not as a default.
+
 ### Type and Module Shadowing Pattern
 
 - Create specific modules for each domain type that shadow the type name

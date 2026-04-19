@@ -1,7 +1,10 @@
 /// Tests for the NLP dose rule extraction pipeline.
 ///
-/// This script tests the extraction logic (validation, schema checking, unit structure)
-/// without requiring an LLM API key.
+/// This script tests the extraction logic (validation, schema checking, unit
+/// structure) without requiring an LLM API key.
+///
+/// Mirrors the hierarchical shape from `DoseRuleExtract.fsx`: one rule per
+/// scheduleText, with `doseTypes[]` and nested `doseLimits[]`.
 ///
 /// Run with: dotnet fsi DoseRuleTests.fsx
 /// Or interactively from: src/Informedica.NLP.Lib/Scripts/
@@ -31,46 +34,12 @@ open Informedica.OpenAI.Lib
 
 
 /// -------------------------------------------------------
-/// Re-define the types and functions from DoseRuleExtraction
+/// Re-define the hierarchical types from DoseRuleExtract.fsx
 /// (inlined here so the tests can run standalone)
 /// -------------------------------------------------------
 
-type DoseRuleExtracted =
+type DoseLimit =
     {|
-        source: string
-        sourceText: string
-        generic: string
-        form: string
-        brand: string
-        gpks: string[]
-        indication: string
-        route: string
-        department: string
-        gender: string
-        minAge: Nullable<float>
-        maxAge: Nullable<float>
-        minWeight: Nullable<float>
-        maxWeight: Nullable<float>
-        minBSA: Nullable<float>
-        maxBSA: Nullable<float>
-        minGestAge: Nullable<float>
-        maxGestAge: Nullable<float>
-        minPMAge: Nullable<float>
-        maxPMAge: Nullable<float>
-        doseType: string
-        doseText: string
-        scheduleText: string
-        frequencies: int[]
-        freqUnit: string
-        minTime: Nullable<float>
-        maxTime: Nullable<float>
-        timeUnit: string
-        minInterval: Nullable<float>
-        maxInterval: Nullable<float>
-        intervalUnit: string
-        minDuration: Nullable<float>
-        maxDuration: Nullable<float>
-        durUnit: string
         ``component``: string
         substance: string
         doseUnit: string
@@ -91,42 +60,54 @@ type DoseRuleExtracted =
     |}
 
 
-let emptyExtracted: DoseRuleExtracted =
+type DoseType =
     {|
-        source = ""
-        sourceText = ""
-        generic = ""
-        form = ""
-        brand = ""
-        gpks = [||]
-        indication = ""
-        route = ""
-        department = ""
-        gender = ""
-        minAge = Nullable()
-        maxAge = Nullable()
-        minWeight = Nullable()
-        maxWeight = Nullable()
-        minBSA = Nullable()
-        maxBSA = Nullable()
-        minGestAge = Nullable()
-        maxGestAge = Nullable()
-        minPMAge = Nullable()
-        maxPMAge = Nullable()
-        doseType = ""
-        doseText = ""
-        scheduleText = ""
-        frequencies = [||]
-        freqUnit = ""
-        minTime = Nullable()
-        maxTime = Nullable()
-        timeUnit = ""
-        minInterval = Nullable()
-        maxInterval = Nullable()
-        intervalUnit = ""
-        minDuration = Nullable()
-        maxDuration = Nullable()
-        durUnit = ""
+        doseType: string
+        doseText: string
+        frequencies: int[]
+        freqUnit: string
+        minTime: Nullable<float>
+        maxTime: Nullable<float>
+        timeUnit: string
+        minInterval: Nullable<float>
+        maxInterval: Nullable<float>
+        intervalUnit: string
+        minDuration: Nullable<float>
+        maxDuration: Nullable<float>
+        durUnit: string
+        doseLimits: DoseLimit[]
+    |}
+
+
+type DoseRuleExtracted =
+    {|
+        source: string
+        sourceText: string
+        generic: string
+        form: string
+        brand: string
+        gpks: string[]
+        indication: string
+        route: string
+        department: string
+        scheduleText: string
+        gender: string
+        minAge: Nullable<float>
+        maxAge: Nullable<float>
+        minWeight: Nullable<float>
+        maxWeight: Nullable<float>
+        minBSA: Nullable<float>
+        maxBSA: Nullable<float>
+        minGestAge: Nullable<float>
+        maxGestAge: Nullable<float>
+        minPMAge: Nullable<float>
+        maxPMAge: Nullable<float>
+        doseTypes: DoseType[]
+    |}
+
+
+let emptyDoseLimit: DoseLimit =
+    {|
         ``component`` = ""
         substance = ""
         doseUnit = ""
@@ -147,9 +128,57 @@ let emptyExtracted: DoseRuleExtracted =
     |}
 
 
+let emptyDoseType: DoseType =
+    {|
+        doseType = ""
+        doseText = ""
+        frequencies = [||]
+        freqUnit = ""
+        minTime = Nullable()
+        maxTime = Nullable()
+        timeUnit = ""
+        minInterval = Nullable()
+        maxInterval = Nullable()
+        intervalUnit = ""
+        minDuration = Nullable()
+        maxDuration = Nullable()
+        durUnit = ""
+        doseLimits = [| emptyDoseLimit |]
+    |}
+
+
+let emptyExtracted: DoseRuleExtracted =
+    {|
+        source = ""
+        sourceText = ""
+        generic = ""
+        form = ""
+        brand = ""
+        gpks = [||]
+        indication = ""
+        route = ""
+        department = ""
+        scheduleText = ""
+        gender = ""
+        minAge = Nullable()
+        maxAge = Nullable()
+        minWeight = Nullable()
+        maxWeight = Nullable()
+        minBSA = Nullable()
+        maxBSA = Nullable()
+        minGestAge = Nullable()
+        maxGestAge = Nullable()
+        minPMAge = Nullable()
+        maxPMAge = Nullable()
+        doseTypes = [| emptyDoseType |]
+    |}
+
+
 /// -------------------------------------------------------
 /// Validation logic (inlined from DoseRuleValidation.fsx
-/// so the tests can run standalone)
+/// so the tests can run standalone). Scalar validators
+/// operate on individual values; callers iterate dose types
+/// and dose limits when aggregating.
 /// -------------------------------------------------------
 
 type FieldValidation =
@@ -164,6 +193,7 @@ module Validation =
 
     let private equalsCI (a: string) (b: string) =
         String.Compare(a, b, StringComparison.OrdinalIgnoreCase) = 0
+
 
     let validateGeneric (genericNames: string list) (extracted: DoseRuleExtracted) =
         if extracted.generic |> String.isNullOrWhiteSpace then
@@ -180,9 +210,11 @@ module Validation =
 
             match partial with
             | Some c -> Warning("generic", extracted.generic, $"Closest match: '{c}'")
-            | None -> Invalid("generic", extracted.generic, $"Not found in formulary: '{extracted.generic}'")
+            | None ->
+                Invalid("generic", extracted.generic, $"Not found in formulary: '{extracted.generic}'")
 
-    let validateDoseType (extracted: DoseRuleExtracted) =
+
+    let validateDoseType (doseType: string) =
         let valid =
             [
                 "once"
@@ -193,18 +225,20 @@ module Validation =
                 ""
             ]
 
-        if valid |> List.contains extracted.doseType then
-            Valid("doseType", extracted.doseType)
+        if valid |> List.contains doseType then
+            Valid("doseType", doseType)
         else
-            Invalid("doseType", extracted.doseType, $"Not a valid DoseType: '{extracted.doseType}'")
+            Invalid("doseType", doseType, $"Not a valid DoseType: '{doseType}'")
 
-    let validateAdjustUnit (extracted: DoseRuleExtracted) =
+
+    let validateAdjustUnit (adjustUnit: string) =
         let valid = [ "kg"; "m2"; "" ]
 
-        if valid |> List.contains extracted.adjustUnit then
-            Valid("adjustUnit", extracted.adjustUnit)
+        if valid |> List.contains adjustUnit then
+            Valid("adjustUnit", adjustUnit)
         else
-            Invalid("adjustUnit", extracted.adjustUnit, $"Not valid: '{extracted.adjustUnit}'")
+            Invalid("adjustUnit", adjustUnit, $"Not valid: '{adjustUnit}'")
+
 
     let validateMinMax (fieldBase: string) (mn: Nullable<float>) (mx: Nullable<float>) =
         match mn.HasValue, mx.HasValue with
@@ -214,57 +248,60 @@ module Validation =
             ]
         | _ -> []
 
-    let validateUnitStructure (fieldName: string) (expectedParts: string list) (extracted: DoseRuleExtracted) =
+
+    let validateUnitStructure (fieldName: string) (expectedParts: string list) =
         let nonEmpty = String.isNullOrWhiteSpace >> not
         let nonEmptyParts = expectedParts |> List.filter nonEmpty
 
         if nonEmptyParts |> List.isEmpty then
             Valid(fieldName, "(skipped — no units)")
         elif expectedParts |> List.forall nonEmpty then
-            // All expected parts are present
             Valid(fieldName, expectedParts |> String.concat "/")
         else
-            // Some expected parts are empty — incomplete unit structure
             let parts = expectedParts |> String.concat "/"
             Warning(fieldName, "", $"Incomplete unit structure: {parts}")
 
-    let validateDoseLimitUnits (extracted: DoseRuleExtracted) =
+
+    /// Validate the compound-unit structure of every dose-limit field
+    /// populated with a numeric range. Called once per `(DoseType,
+    /// DoseLimit)` pair; the `freqUnit` comes from the dose type (it is
+    /// the same for every limit under that type).
+    let validateDoseLimitUnits (dt: DoseType) (dl: DoseLimit) =
         [
-            if extracted.minQtyAdj.HasValue || extracted.maxQtyAdj.HasValue then
-                yield validateUnitStructure "QtyAdj" [ extracted.doseUnit; extracted.adjustUnit ] extracted
+            if dl.minQtyAdj.HasValue || dl.maxQtyAdj.HasValue then
+                yield validateUnitStructure "QtyAdj" [ dl.doseUnit; dl.adjustUnit ]
 
-            if extracted.minPerTime.HasValue || extracted.maxPerTime.HasValue then
-                yield validateUnitStructure "PerTime" [ extracted.doseUnit; extracted.freqUnit ] extracted
+            if dl.minPerTime.HasValue || dl.maxPerTime.HasValue then
+                yield validateUnitStructure "PerTime" [ dl.doseUnit; dt.freqUnit ]
 
-            if extracted.minPerTimeAdj.HasValue || extracted.maxPerTimeAdj.HasValue then
+            if dl.minPerTimeAdj.HasValue || dl.maxPerTimeAdj.HasValue then
                 yield
                     validateUnitStructure
                         "PerTimeAdj"
                         [
-                            extracted.doseUnit
-                            extracted.adjustUnit
-                            extracted.freqUnit
+                            dl.doseUnit
+                            dl.adjustUnit
+                            dt.freqUnit
                         ]
-                        extracted
 
-            if extracted.minRate.HasValue || extracted.maxRate.HasValue then
-                yield validateUnitStructure "Rate" [ extracted.doseUnit; extracted.rateUnit ] extracted
+            if dl.minRate.HasValue || dl.maxRate.HasValue then
+                yield validateUnitStructure "Rate" [ dl.doseUnit; dl.rateUnit ]
 
-            if extracted.minRateAdj.HasValue || extracted.maxRateAdj.HasValue then
+            if dl.minRateAdj.HasValue || dl.maxRateAdj.HasValue then
                 yield
                     validateUnitStructure
                         "RateAdj"
                         [
-                            extracted.doseUnit
-                            extracted.adjustUnit
-                            extracted.rateUnit
+                            dl.doseUnit
+                            dl.adjustUnit
+                            dl.rateUnit
                         ]
-                        extracted
         ]
 
 
 /// -------------------------------------------------------
-/// Extraction schema validation (pure logic, no LLM needed)
+/// Extraction schema validation (pure logic, no LLM needed).
+/// Accepts hierarchical JSON matching the new schema.
 /// -------------------------------------------------------
 
 let validateExtractionJson (s: string) : Result<string, string> =
@@ -290,10 +327,25 @@ let validateExtractionJson (s: string) : Result<string, string> =
                 [
                     if extracted.generic |> String.IsNullOrWhiteSpace then
                         yield "generic name is empty"
-                    if validDoseTypes |> List.contains extracted.doseType |> not then
-                        yield $"invalid doseType: '{extracted.doseType}'"
-                    if validAdjustUnits |> List.contains extracted.adjustUnit |> not then
-                        yield $"invalid adjustUnit: '{extracted.adjustUnit}'"
+
+                    if isNull extracted.doseTypes || extracted.doseTypes.Length = 0 then
+                        yield "doseTypes is empty"
+                    else
+                        for j in 0 .. extracted.doseTypes.Length - 1 do
+                            let dt = extracted.doseTypes[j]
+
+                            if validDoseTypes |> List.contains dt.doseType |> not then
+                                yield $"invalid doseType at doseTypes[{j}]: '{dt.doseType}'"
+
+                            if isNull dt.doseLimits || dt.doseLimits.Length = 0 then
+                                yield $"doseLimits at doseTypes[{j}] is empty"
+                            else
+                                for k in 0 .. dt.doseLimits.Length - 1 do
+                                    let dl = dt.doseLimits[k]
+
+                                    if validAdjustUnits |> List.contains dl.adjustUnit |> not then
+                                        yield
+                                            $"invalid adjustUnit at doseTypes[{j}].doseLimits[{k}]: '{dl.adjustUnit}'"
                 ]
 
             if errors.IsEmpty then
@@ -305,7 +357,7 @@ let validateExtractionJson (s: string) : Result<string, string> =
 
 
 /// -------------------------------------------------------
-/// Prompt generation (inlined from DoseRuleExtraction.fsx)
+/// Prompt generation (inlined from DoseRuleExtract.fsx)
 /// -------------------------------------------------------
 
 let systemPrompt (sourceName: string) (text: string) =
@@ -327,11 +379,14 @@ Rules:
 - The doseType must be one of: "once", "onceTimed", "discontinuous", "timed", "continuous".
 """
 
+
 let extractionPrompt =
     """
 Extract all dose rule information from the text and return it as a single JSON object
-with fields including: generic, form, brand, indication, route, doseType, adjustUnit,
-doseUnit, freqUnit, rateUnit, and all min/max quantity fields.
+with fields including: generic, form, brand, indication, route, and a doseTypes array.
+Each doseType carries the temporal profile (doseType, frequencies, freqUnit, time, interval,
+duration) and a doseLimits array. Each doseLimit carries component, substance, doseUnit,
+adjustUnit, rateUnit and all min/max quantity / rate fields.
 Important unit structure reminders:
 - minPerTimeAdj and maxPerTimeAdj quantities are in doseUnit/adjustUnit/freqUnit
 - minRateAdj and maxRateAdj quantities are in doseUnit/adjustUnit/rateUnit
@@ -345,24 +400,63 @@ Respond with valid JSON only.
 /// Test helpers
 /// -------------------------------------------------------
 
+let private mkLimit
+    (doseUnit: string)
+    (adjustUnit: string)
+    (rateUnit: string)
+    (minPerTimeAdj: Nullable<float>)
+    (maxPerTimeAdj: Nullable<float>)
+    (minRate: Nullable<float>)
+    (maxRate: Nullable<float>)
+    : DoseLimit
+    =
+    {| emptyDoseLimit with
+        doseUnit = doseUnit
+        adjustUnit = adjustUnit
+        rateUnit = rateUnit
+        minPerTimeAdj = minPerTimeAdj
+        maxPerTimeAdj = maxPerTimeAdj
+        minRate = minRate
+        maxRate = maxRate
+    |}
+
+
+let private mkDoseType (doseType: string) (freqUnit: string) (dl: DoseLimit) : DoseType =
+    {| emptyDoseType with
+        doseType = doseType
+        freqUnit = freqUnit
+        doseLimits = [| dl |]
+    |}
+
+
+/// Build a hierarchical rule with one dose type carrying one dose limit.
 let makeExtracted gen route doseType adjustUnit : DoseRuleExtracted =
+    let dl = {| emptyDoseLimit with adjustUnit = adjustUnit |}
+    let dt = mkDoseType doseType "" dl
+
     {| emptyExtracted with
         generic = gen
         route = route
-        doseType = doseType
-        adjustUnit = adjustUnit
+        doseTypes = [| dt |]
     |}
 
 
+/// Build a hierarchical rule populated with a compound-unit dose limit.
 let makeExtractedWithDose doseUnit adjustUnit freqUnit minPerTimeAdj maxPerTimeAdj : DoseRuleExtracted =
+    let dl =
+        mkLimit doseUnit adjustUnit "" minPerTimeAdj maxPerTimeAdj (Nullable()) (Nullable())
+
+    let dt = mkDoseType "" freqUnit dl
+
     {| emptyExtracted with
         generic = "testdrug"
-        doseUnit = doseUnit
-        adjustUnit = adjustUnit
-        freqUnit = freqUnit
-        minPerTimeAdj = minPerTimeAdj
-        maxPerTimeAdj = maxPerTimeAdj
+        doseTypes = [| dt |]
     |}
+
+
+let private firstDoseType (r: DoseRuleExtracted) = r.doseTypes[0]
+
+let private firstDoseLimit (r: DoseRuleExtracted) = r.doseTypes[0].doseLimits[0]
 
 
 /// -------------------------------------------------------
@@ -436,17 +530,13 @@ let validationTests =
                             ""
                         ] do
                         test $"'{dt}' is a valid doseType" {
-                            let extracted = makeExtracted "test" "" dt ""
-
-                            match Validation.validateDoseType extracted with
+                            match Validation.validateDoseType dt with
                             | Valid _ -> ()
                             | _ -> failtest $"Expected Valid for doseType '{dt}'"
                         }
 
                     test "invalid doseType returns Invalid" {
-                        let extracted = makeExtracted "test" "" "bolus" ""
-
-                        match Validation.validateDoseType extracted with
+                        match Validation.validateDoseType "bolus" with
                         | Invalid _ -> ()
                         | _ -> failtest "Expected Invalid for doseType 'bolus'"
                     }
@@ -457,17 +547,13 @@ let validationTests =
                 [
                     for au in [ "kg"; "m2"; "" ] do
                         test $"'{au}' is a valid adjustUnit" {
-                            let extracted = makeExtracted "test" "" "" au
-
-                            match Validation.validateAdjustUnit extracted with
+                            match Validation.validateAdjustUnit au with
                             | Valid _ -> ()
                             | _ -> failtest $"Expected Valid for adjustUnit '{au}'"
                         }
 
                     test "invalid adjustUnit returns Invalid" {
-                        let extracted = makeExtracted "test" "" "" "lbs"
-
-                        match Validation.validateAdjustUnit extracted with
+                        match Validation.validateAdjustUnit "lbs" with
                         | Invalid _ -> ()
                         | _ -> failtest "Expected Invalid for adjustUnit 'lbs'"
                     }
@@ -509,15 +595,13 @@ let validationTests =
                         let extracted =
                             makeExtractedWithDose "mg" "kg" "dag" (Nullable 10.0) (Nullable 50.0)
 
+                        let dt = firstDoseType extracted
+                        let dl = firstDoseLimit extracted
+
                         match
                             Validation.validateUnitStructure
                                 "PerTimeAdj"
-                                [
-                                    extracted.doseUnit
-                                    extracted.adjustUnit
-                                    extracted.freqUnit
-                                ]
-                                extracted
+                                [ dl.doseUnit; dl.adjustUnit; dt.freqUnit ]
                         with
                         | Valid _ -> ()
                         | r -> failtest $"Expected Valid but got: {r}"
@@ -525,33 +609,24 @@ let validationTests =
 
                     test "PerTimeAdj with missing freqUnit produces Warning" {
                         let extracted = makeExtractedWithDose "mg" "kg" "" (Nullable 10.0) (Nullable 50.0)
+                        let dt = firstDoseType extracted
+                        let dl = firstDoseLimit extracted
 
                         match
                             Validation.validateUnitStructure
                                 "PerTimeAdj"
-                                [
-                                    extracted.doseUnit
-                                    extracted.adjustUnit
-                                    extracted.freqUnit
-                                ]
-                                extracted
+                                [ dl.doseUnit; dl.adjustUnit; dt.freqUnit ]
                         with
                         | Warning _ -> ()
                         | r -> failtest $"Expected Warning but got: {r}"
                     }
 
-                    test "validateDoseLimitUnits: PerTimeAdj with all units returns Valid" {
+                    test "validateDoseLimitUnits: PerTimeAdj with all units returns no Invalid" {
                         let extracted =
-                            {| emptyExtracted with
-                                generic = "testdrug"
-                                doseUnit = "mg"
-                                adjustUnit = "kg"
-                                freqUnit = "dag"
-                                minPerTimeAdj = Nullable 10.0
-                                maxPerTimeAdj = Nullable 50.0
-                            |}
+                            makeExtractedWithDose "mg" "kg" "dag" (Nullable 10.0) (Nullable 50.0)
 
-                        let results = Validation.validateDoseLimitUnits extracted
+                        let results =
+                            Validation.validateDoseLimitUnits (firstDoseType extracted) (firstDoseLimit extracted)
 
                         results
                         |> List.exists (
@@ -563,9 +638,8 @@ let validationTests =
                     }
 
                     test "validateDoseLimitUnits: Rate with no rateUnit returns Warning" {
-                        let extracted =
-                            {| emptyExtracted with
-                                generic = "testdrug"
+                        let dl =
+                            {| emptyDoseLimit with
                                 doseUnit = "mg"
                                 adjustUnit = ""
                                 rateUnit = ""
@@ -573,7 +647,9 @@ let validationTests =
                                 maxRate = Nullable 5.0
                             |}
 
-                        let results = Validation.validateDoseLimitUnits extracted
+                        let dt = {| emptyDoseType with doseLimits = [| dl |] |}
+
+                        let results = Validation.validateDoseLimitUnits dt dl
 
                         results
                         |> List.exists (
@@ -588,58 +664,41 @@ let validationTests =
             testList
                 "JSON schema validation"
                 [
-                    test "valid JSON with generic passes validation" {
-                        let json =
-                            """{
-                      "source": "test", "sourceText": "test", "generic": "paracetamol",
-                      "form": "", "brand": "", "gpks": [], "indication": "", "route": "",
-                      "department": "", "gender": "",
-                      "minAge": null, "maxAge": null, "minWeight": null, "maxWeight": null,
-                      "minBSA": null, "maxBSA": null, "minGestAge": null, "maxGestAge": null,
-                      "minPMAge": null, "maxPMAge": null,
-                      "doseType": "discontinuous", "doseText": "", "scheduleText": "",
-                      "frequencies": [], "freqUnit": "",
-                      "minTime": null, "maxTime": null, "timeUnit": "",
-                      "minInterval": null, "maxInterval": null, "intervalUnit": "",
-                      "minDuration": null, "maxDuration": null, "durUnit": "",
-                      "component": "", "substance": "", "doseUnit": "mg",
-                      "adjustUnit": "kg", "rateUnit": "",
-                      "minQty": null, "maxQty": null,
-                      "minQtyAdj": 30.0, "maxQtyAdj": 50.0,
-                      "minPerTime": null, "maxPerTime": 3000.0,
-                      "minPerTimeAdj": null, "maxPerTimeAdj": null,
-                      "minRate": null, "maxRate": null,
-                      "minRateAdj": null, "maxRateAdj": null
-                    }"""
+                    let validRuleJson =
+                        """{
+                          "source": "test", "sourceText": "test", "generic": "paracetamol",
+                          "form": "", "brand": "", "gpks": [], "indication": "", "route": "",
+                          "department": "", "scheduleText": "", "gender": "",
+                          "minAge": null, "maxAge": null, "minWeight": null, "maxWeight": null,
+                          "minBSA": null, "maxBSA": null, "minGestAge": null, "maxGestAge": null,
+                          "minPMAge": null, "maxPMAge": null,
+                          "doseTypes": [{
+                            "doseType": "discontinuous", "doseText": "",
+                            "frequencies": [], "freqUnit": "",
+                            "minTime": null, "maxTime": null, "timeUnit": "",
+                            "minInterval": null, "maxInterval": null, "intervalUnit": "",
+                            "minDuration": null, "maxDuration": null, "durUnit": "",
+                            "doseLimits": [{
+                              "component": "", "substance": "", "doseUnit": "mg",
+                              "adjustUnit": "kg", "rateUnit": "",
+                              "minQty": null, "maxQty": null,
+                              "minQtyAdj": 30.0, "maxQtyAdj": 50.0,
+                              "minPerTime": null, "maxPerTime": 3000.0,
+                              "minPerTimeAdj": null, "maxPerTimeAdj": null,
+                              "minRate": null, "maxRate": null,
+                              "minRateAdj": null, "maxRateAdj": null
+                            }]
+                          }]
+                        }"""
 
-                        match validateExtractionJson json with
+                    test "valid JSON with generic passes validation" {
+                        match validateExtractionJson validRuleJson with
                         | Ok _ -> ()
                         | Error e -> failtest $"Expected Ok but got error: {e}"
                     }
 
                     test "JSON with empty generic fails validation" {
-                        let json =
-                            """{
-                      "source": "", "sourceText": "", "generic": "",
-                      "form": "", "brand": "", "gpks": [], "indication": "", "route": "",
-                      "department": "", "gender": "",
-                      "minAge": null, "maxAge": null, "minWeight": null, "maxWeight": null,
-                      "minBSA": null, "maxBSA": null, "minGestAge": null, "maxGestAge": null,
-                      "minPMAge": null, "maxPMAge": null,
-                      "doseType": "", "doseText": "", "scheduleText": "",
-                      "frequencies": [], "freqUnit": "",
-                      "minTime": null, "maxTime": null, "timeUnit": "",
-                      "minInterval": null, "maxInterval": null, "intervalUnit": "",
-                      "minDuration": null, "maxDuration": null, "durUnit": "",
-                      "component": "", "substance": "", "doseUnit": "",
-                      "adjustUnit": "", "rateUnit": "",
-                      "minQty": null, "maxQty": null,
-                      "minQtyAdj": null, "maxQtyAdj": null,
-                      "minPerTime": null, "maxPerTime": null,
-                      "minPerTimeAdj": null, "maxPerTimeAdj": null,
-                      "minRate": null, "maxRate": null,
-                      "minRateAdj": null, "maxRateAdj": null
-                    }"""
+                        let json = validRuleJson.Replace("\"generic\": \"paracetamol\"", "\"generic\": \"\"")
 
                         match validateExtractionJson json with
                         | Error _ -> ()
@@ -648,27 +707,7 @@ let validationTests =
 
                     test "JSON with invalid doseType fails validation" {
                         let json =
-                            """{
-                      "source": "", "sourceText": "", "generic": "paracetamol",
-                      "form": "", "brand": "", "gpks": [], "indication": "", "route": "",
-                      "department": "", "gender": "",
-                      "minAge": null, "maxAge": null, "minWeight": null, "maxWeight": null,
-                      "minBSA": null, "maxBSA": null, "minGestAge": null, "maxGestAge": null,
-                      "minPMAge": null, "maxPMAge": null,
-                      "doseType": "bolus", "doseText": "", "scheduleText": "",
-                      "frequencies": [], "freqUnit": "",
-                      "minTime": null, "maxTime": null, "timeUnit": "",
-                      "minInterval": null, "maxInterval": null, "intervalUnit": "",
-                      "minDuration": null, "maxDuration": null, "durUnit": "",
-                      "component": "", "substance": "", "doseUnit": "",
-                      "adjustUnit": "", "rateUnit": "",
-                      "minQty": null, "maxQty": null,
-                      "minQtyAdj": null, "maxQtyAdj": null,
-                      "minPerTime": null, "maxPerTime": null,
-                      "minPerTimeAdj": null, "maxPerTimeAdj": null,
-                      "minRate": null, "maxRate": null,
-                      "minRateAdj": null, "maxRateAdj": null
-                    }"""
+                            validRuleJson.Replace("\"doseType\": \"discontinuous\"", "\"doseType\": \"bolus\"")
 
                         match validateExtractionJson json with
                         | Error msg -> msg |> Expect.stringContains "Expected error to mention doseType" "doseType"
@@ -676,32 +715,26 @@ let validationTests =
                     }
 
                     test "JSON with invalid adjustUnit fails validation" {
-                        let json =
-                            """{
-                      "source": "", "sourceText": "", "generic": "paracetamol",
-                      "form": "", "brand": "", "gpks": [], "indication": "", "route": "",
-                      "department": "", "gender": "",
-                      "minAge": null, "maxAge": null, "minWeight": null, "maxWeight": null,
-                      "minBSA": null, "maxBSA": null, "minGestAge": null, "maxGestAge": null,
-                      "minPMAge": null, "maxPMAge": null,
-                      "doseType": "discontinuous", "doseText": "", "scheduleText": "",
-                      "frequencies": [], "freqUnit": "",
-                      "minTime": null, "maxTime": null, "timeUnit": "",
-                      "minInterval": null, "maxInterval": null, "intervalUnit": "",
-                      "minDuration": null, "maxDuration": null, "durUnit": "",
-                      "component": "", "substance": "", "doseUnit": "mg",
-                      "adjustUnit": "lbs", "rateUnit": "",
-                      "minQty": null, "maxQty": null,
-                      "minQtyAdj": null, "maxQtyAdj": null,
-                      "minPerTime": null, "maxPerTime": null,
-                      "minPerTimeAdj": null, "maxPerTimeAdj": null,
-                      "minRate": null, "maxRate": null,
-                      "minRateAdj": null, "maxRateAdj": null
-                    }"""
+                        let json = validRuleJson.Replace("\"adjustUnit\": \"kg\"", "\"adjustUnit\": \"lbs\"")
 
                         match validateExtractionJson json with
                         | Error msg -> msg |> Expect.stringContains "Expected error to mention adjustUnit" "adjustUnit"
                         | Ok _ -> failtest "Expected Error for invalid adjustUnit"
+                    }
+
+                    test "JSON with empty doseTypes fails validation" {
+                        let json =
+                            System.Text.RegularExpressions.Regex.Replace(
+                                validRuleJson,
+                                "\"doseTypes\"\\s*:\\s*\\[[\\s\\S]*\\]",
+                                "\"doseTypes\": []"
+                            )
+
+                        match validateExtractionJson json with
+                        | Error msg ->
+                            msg
+                            |> Expect.stringContains "Expected error to mention doseTypes" "doseTypes"
+                        | Ok _ -> failtest "Expected Error for empty doseTypes"
                     }
 
                     test "invalid JSON string fails with parse error" {
@@ -737,7 +770,7 @@ let validationTests =
                         |> Expect.stringContains "Should contain generic field" "generic"
 
                         extractionPrompt
-                        |> Expect.stringContains "Should contain minPerTimeAdj field" "minPerTimeAdj"
+                        |> Expect.stringContains "Should contain doseTypes field" "doseTypes"
 
                         extractionPrompt
                         |> Expect.stringContains "Should contain adjustUnit field" "adjustUnit"

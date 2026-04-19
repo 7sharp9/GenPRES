@@ -1,115 +1,209 @@
-### 9. DoseRules Sheet
+# DoseRules Extraction Prompt
 
-**Purpose**: Defines clinical dosing rules and limits for medications across different patient populations, routes, and clinical scenarios.
+## 1. Purpose
 
-**Required Columns**:
+Extract Dose Rules from free text (formularies, guidelines, protocols) into a hierarchical JSON document consumed by `Informedica.GenFORM.Lib` (via `DoseRuleExtract.fsx`).
 
-#### Basic Identification
-- `SortNo` - The order of the dose rule according the appearance in the source schedule text
-- `Source` - Data source identifier (e.g., "NKF", "FK") (required)
-- `Generic` - Generic medication name (required)
-- `Shape` - Medication form/shape (optional)
-- `Brand` - Brand name (optional)
-- `GPKs` - Generic Product Codes (semicolon-separated list)
-- `Indication` - Clinical indication for the medication (required)
-- `Route` - Administration route (required)
-- `ScheduleText` - Dosing schedule description (original source text) (required)
+One **rule** = one patient group for one `(Source, Generic, Route, Indication)`. A rule carries 1..N **dose types** (phases: start / maintenance, load / continuous, …). Each dose type carries 1..N **dose limits**, one per `(Component, Substance)` pair.
 
-#### Patient Demographics
-- `Dep` - Department/ward (optional)
-- `Gender` - Patient gender (optional)
-- `MinAge` - Minimum age (numeric, optional)
-- `MaxAge` - Maximum age (numeric, optional)
-- `MinWeight` - Minimum weight (numeric, optional)
-- `MaxWeight` - Maximum weight (numeric, optional)
-- `MinBSA` - Minimum body surface area (numeric, optional)
-- `MaxBSA` - Maximum body surface area (numeric, optional)
-- `MinGestAge` - Minimum gestational age (numeric, optional)
-- `MaxGestAge` - Maximum gestational age (numeric, optional)
-- `MinPMAge` - Minimum post-menstrual age (numeric, optional)
-- `MaxPMAge` - Maximum post-menstrual age (numeric, optional)
+The GenFORM backend still consumes flat `DoseRuleData` rows (one per `(DoseType, DoseLimit)` pair). The TSV in `data/sources/Rules/doserules.tsv` keeps the legacy 50-column layout; flattening/grouping happens in `Conversion` inside the script.
 
-#### Dose Configuration
-- `DoseType` - Type of dose (can only be either "discontinuous", "continuous", "once", "timed" or "onceTimed")
-- `DoseText` - Dose type description text (can be empty)
-- `Component` - Component name for combination products (required)
-- `Substance` - Active substance name (required)
-- `Freqs` - Frequencies (semicolon-separated numeric values) (optional)
-- `DoseUnit` - Base dose unit (required)
-- `AdjustUnit` - Adjustment unit (e.g., "kg", "m2") (optional)
-- `FreqUnit` - Frequency unit (e.g., "day", "hour") (optional)
-- `RateUnit` - Rate unit (e.g., "hour", "min") (optional)
+## 2. Domain reference
 
-#### Timing Parameters
-- `MinTime` - Minimum administration time (numeric, optional)
-- `MaxTime` - Maximum administration time (numeric, optional)
-- `TimeUnit` - Time unit for administration
-- `MinInt` - Minimum interval (numeric, optional)
-- `MaxInt` - Maximum interval (numeric, optional)
-- `IntUnit` - Interval unit (optional)
-- `MinDur` - Minimum duration (numeric, optional)
-- `MaxDur` - Maximum duration (numeric, optional)
-- `DurUnit` - Duration unit (optional)
+Authoritative sources (keep open while extracting):
 
-#### Dose Limits
-- `MinQty` - Minimum quantity per dose (numeric, optional)
-- `MaxQty` - Maximum quantity per dose (numeric, optional)
-- `NormQtyAdj` - Normal adjusted quantity (numeric, optional)
-- `MinQtyAdj` - Minimum adjusted quantity (numeric, optional)
-- `MaxQtyAdj` - Maximum adjusted quantity (numeric, optional)
-- `MinPerTime` - Minimum dose per time (numeric, optional)
-- `MaxPerTime` - Maximum dose per time (numeric, optional)
-- `NormPerTimeAdj` - Normal adjusted dose per time (numeric, optional)
-- `MinPerTimeAdj` - Minimum adjusted dose per time (numeric, optional)
-- `MaxPerTimeAdj` - Maximum adjusted dose per time (numeric, optional)
-- `MinRate` - Minimum rate (numeric, optional)
-- `MaxRate` - Maximum rate (numeric, optional)
-- `MinRateAdj` - Minimum adjusted rate (numeric, optional)
-- `MaxRateAdj` - Maximum adjusted rate (numeric, optional)
+- `docs/domain/genform-free-text-to-operational-rules.md` §3, §5, §6.1, §6.2, Appendix C.2
+- `docs/domain/core-domain.md` (OKRs, Rule Hierarchy)
+- Sample rows: `data/sources/Rules/doserules.tsv`
 
+Every field is a Selection Constraint (which rule applies) or a Calculation Constraint (feeds GenSOLVER).
 
-**Example Data**:
+- Selection: `Source`, `Generic`, `Form`, `Brand`, `GPKs`, `Indication`, `Route`, `Dep`, PatientCategory (`Gender`, `Min/MaxAge`, `Min/MaxWeight`, `Min/MaxBSA`, `Min/MaxGestAge`, `Min/MaxPMAge`), `DoseType`, `Component`, `Substance`.
+- Calculation: Schedule (`Freqs`, `FreqUnit`, `Min/MaxTime`, `TimeUnit`, `Min/MaxInt`, `IntUnit`, `Min/MaxDur`, `DurUnit`); DoseLimits (`DoseUnit`, `AdjustUnit`, `RateUnit`, `Min/MaxQty`, `Min/MaxQtyAdj`, `Min/MaxPerTime`, `Min/MaxPerTimeAdj`, `Min/MaxRate`, `Min/MaxRateAdj`).
 
-| SortNo | Source | Generic | Shape | Brand | Route | GPKs | Indication | ScheduleText | Dep | Gender | MinAge | MaxAge | MinWeight | MaxWeight | MinBSA | MaxBSA | MinGestAge | MaxGestAge | MinPMAge | MaxPMAge | DoseType | DoseText | Component | Substance | Freqs | DoseUnit | AdjustUnit | FreqUnit | RateUnit | MinTime | MaxTime | TimeUnit | MinInt | MaxInt | IntUnit | MinDur | MaxDur | DurUnit | MinQty | MaxQty | NormQtyAdj | MinQtyAdj | MaxQtyAdj | MinPerTime | MaxPerTime | NormPerTimeAdj | MinPerTimeAdj | MaxPerTimeAdj | MinRate | MaxRate | MinRateAdj | MaxRateAdj |
-|--------|--------|---------|-------|-------|-------|------|------------|--------------|-----|--------|--------|--------|-----------|-----------|--------|--------|------------|------------|----------|----------|----------|----------|-----------|-----------|-------|----------|------------|----------|----------|---------|---------|----------|--------|--------|---------|--------|--------|---------|--------|--------|------------|-----------|-----------|------------|------------|----------------|---------------|---------------|---------|---------|------------|------------|
-| 211 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | < 1 week en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 50 / 5 mg/kg/dag in 2 doses | | | | 7 | | 2000 | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 2 | mg | kg | dag | | | | | | | | | | | | | | | 50 | | | | | | | | | |
-| 212 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | < 1 week en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 50 / 5 mg/kg/dag in 2 doses | | | | 7 | | 2000 | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 2 | mg | kg | dag | | | | | | | | | | | | | | | 5 | | | | | | | | | |
-| 213 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | < 1 week en geboortegewicht ≥ 2000 gr Amoxicilline/clavulaanzuur 10:1 : 75 / 7,5 mg/kg/dag in 3 doses | | | | 7 | 2000 | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 3 | mg | kg | dag | | | | | | | | | | | | | | | 75 | | | | | | | | | |
-| 214 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | < 1 week en geboortegewicht ≥ 2000 gr Amoxicilline/clavulaanzuur 10:1 : 75 / 7,5 mg/kg/dag in 3 doses | | | | 7 | 2000 | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 3 | mg | kg | dag | | | | | | | | | | | | | | | 7.5 | | | | | | | | | |
-| 215 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | 1 week tot 4 weken en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 75 / 7,5 mg/kg/dag in 3 doses | | | 7 | 28 | | 2000 | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 3 | mg | kg | dag | | | | | | | | | | | | | | | 75 | | | | | | | | | |
-| 216 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | 1 week tot 4 weken en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 75 / 7,5 mg/kg/dag in 3 doses | | | 7 | 28 | | 2000 | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 3 | mg | kg | dag | | | | | | | | | | | | | | | 7.5 | | | | | | | | | |
-| 217 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | 1 week tot 4 weken en geboortegewicht ≥ 2000 gr Amoxicilline/clavulaanzuur 10:1 100/10 mg/kg/dag in 3 doses | | | 7 | 28 | 2000 | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 3 | mg | kg | dag | | | | | | | | | | | | | | | 100 | | | | | | | | | |
-| 218 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | 1 week tot 4 weken en geboortegewicht ≥ 2000 gr Amoxicilline/clavulaanzuur 10:1 100/10 mg/kg/dag in 3 doses | | | 7 | 28 | 2000 | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 3 | mg | kg | dag | | | | | | | | | | | | | | | 10 | | | | | | | | | |
-| 219 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | 1 maand tot 18 jaar Amoxicilline/clavulaanzuur 10:1 100/10 mg/kg/dag in 3 doses, max 12.000 mg / 600 mg per dag. Indien de maximale dosering clavulaanzuur hogere doseringen voor amoxicilline in de weg staat: overweeg amoxicilline+ clavulaanzuur af te wisselen met amoxicilline alleen (om en om). | | | 30 | 6574 | | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 3 | mg | kg | dag | | | | | | | | | | | 6000 | | | 100 | | | | | | | | | | |
-| 220 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Ernstige bacteriele infecties | 1 maand tot 18 jaar Amoxicilline/clavulaanzuur 10:1 100/10 mg/kg/dag in 3 doses, max 12.000 mg / 600 mg per dag. Indien de maximale dosering clavulaanzuur hogere doseringen voor amoxicilline in de weg staat: overweeg amoxicilline+ clavulaanzuur af te wisselen met amoxicilline alleen (om en om). | | | 30 | 6574 | | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 3 | mg | kg | dag | | | | | | | | | | | 600 | | | 10 | | | | | | | | | | |
-| 225 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Verdenking neonatale bacteriele infectie (in afwezigheid van positieve kweek) | Zwangerschapsduur 34 weken tot 41 weken. Postnatale leeftijd 0-7 dagen: amoxicilline/clavulaanzuur 10:1  50/5 mg/kg/dag in 2 doses | | | 0 | 7 | | | | | 238 | 287 | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 2 | mg | kg | dag | | | | | | | | | | | | | | | 50 | | | | | | | | | |
-| 226 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Verdenking neonatale bacteriele infectie (in afwezigheid van positieve kweek) | Zwangerschapsduur 34 weken tot 41 weken. Postnatale leeftijd 0-7 dagen: amoxicilline/clavulaanzuur 10:1  50/5 mg/kg/dag in 2 doses | | | 0 | 7 | | | | | 238 | 287 | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 2 | mg | kg | dag | | | | | | | | | | | | | | | 5 | | | | | | | | | |
-| 225 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Verdenking neonatale bacteriele infectie (in afwezigheid van positieve kweek) | Zwangerschapsduur 34 weken tot 41 weken. Postnatale leeftijd 8-28 dagen: amoxicilline/clavulaanzuur 10:1  75/7,5 mg/kg/dag in 3 doses | | | 8 | 28 | | | | | 238 | 287 | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 3 | mg | kg | dag | | | | | | | | | | | | | | | 75 | | | | | | | | | |
-| 226 | NKF | amoxicilline/clavulaanzuur | | | INTRAVENEUS | | Verdenking neonatale bacteriele infectie (in afwezigheid van positieve kweek) | Zwangerschapsduur 34 weken tot 41 weken. Postnatale leeftijd 8-28 dagen: amoxicilline/clavulaanzuur 10:1  75/7,5 mg/kg/dag in 3 doses | | | 8 | 28 | | | | | 238 | 287 | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 3 | mg | kg | dag | | | | | | | | | | | | | | | 7.5 | | | | | | | | | |
-| 226 | NKF | amoxicilline/clavulaanzuur | | | ORAAL | | Verdenking neonatale bacteriele infectie (in afwezigheid van positieve kweek) | Postnatale leeftijd 0-28 dagen Zwangerschapsduur ≥ 34 weken. Na initiele behandeling met IV antibiotica: Amoxicilline/clavulaanzuur 4:1: 60/15 mg/kg/dag in 2 doses of Amoxicilline/clavulaanzuur 8:1: 60/7.5 mg/kg/dag in 2 doses | | | 0 | 28 | | | | | 238 | | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 2 | mg | kg | dag | | | | | | | | | | | | | | | 60 | | | | | | | | | |
-| 226 | NKF | amoxicilline/clavulaanzuur | | | ORAAL | | Verdenking neonatale bacteriele infectie (in afwezigheid van positieve kweek) | Postnatale leeftijd 0-28 dagen Zwangerschapsduur ≥ 34 weken. Na initiele behandeling met IV antibiotica: Amoxicilline/clavulaanzuur 4:1: 60/15 mg/kg/dag in 2 doses of Amoxicilline/clavulaanzuur 8:1: 60/7.5 mg/kg/dag in 2 doses | | | 0 | 28 | | | | | 238 | | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 2 | mg | kg | dag | | | | | | | | | | | | | | | | 6.75 | 16.5 | | | | | | | | |
-| 209 | NKF | amoxicilline/clavulaanzuur | | | ORAAL | | Bacteriele infecties | 1 maand tot 18 jaar Amoxicilline /clavulaanzuur 8:1 50/6,25 mg/kg/dag in 3 doses. Max: 1500/187,5mg/dag. Range: 40/5 - 60/7,5 mg/kg/dag amoxicilline/clavulaanzuurAmoxicilline/clavulaanzuur 4:1 50/12,5 mg/kg/dag in 3 doses. Max: 1500/375mg/dag.Range: 40/10-60/15 mg/kg/dag amoxicilline/clavulaanzuur | | | 30 | 6574 | | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 3 | mg | kg | dag | | | | | | | | | | | 1500 | | | 40 | 60 | | | | | | | | | |
-| 210 | NKF | amoxicilline/clavulaanzuur | | | ORAAL | | Bacteriele infecties | 1 maand tot 18 jaar Amoxicilline /clavulaanzuur 8:1 50/6,25 mg/kg/dag in 3 doses. Max: 1500/187,5mg/dag. Range: 40/5 - 60/7,5 mg/kg/dag amoxicilline/clavulaanzuurAmoxicilline/clavulaanzuur 4:1 50/12,5 mg/kg/dag in 3 doses. Max: 1500/375mg/dag.Range: 40/10-60/15 mg/kg/dag amoxicilline/clavulaanzuur | | | 30 | 6574 | | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 3 | mg | kg | dag | | | | | | | | | | | | | | | 15 | | | | | | | | | |
-| 221 | NKF | amoxicilline/clavulaanzuur | | | ORAAL | | Ernstige bacteriele infecties | 1 maand tot 18 jaar Amoxicilline/clavulaanzuur 8:1 : 80/10 – 90/11,25 mg/kg/dag in 3 doses. Max: 6000 mg/375 mg per dag.Amoxicilline/clavulaanzuur 4:1 80/20– 90/22,5mg/kg/dag in 3 doses . Max: 6000 mg/ 375 mg per dag.Indien de maximale dosering clavulaanzuur hogere doseringen voor amoxicilline in de weg staat: overweeg amoxicilline+ clavulaanzuur af te wisselen met amoxicilline alleen (om en om). | | | 30 | 6574 | | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | amoxicilline | 3 | mg | kg | dag | | | | | | | | | | | 6000 | | | 80 | 90 | | | | | | | | | |
-| 222 | NKF | amoxicilline/clavulaanzuur | | | ORAAL | | Ernstige bacteriele infecties | 1 maand tot 18 jaar Amoxicilline/clavulaanzuur 8:1 : 80/10 – 90/11,25 mg/kg/dag in 3 doses. Max: 6000 mg/375 mg per dag.Amoxicilline/clavulaanzuur 4:1 80/20– 90/22,5mg/kg/dag in 3 doses . Max: 6000 mg/ 375 mg per dag.Indien de maximale dosering clavulaanzuur hogere doseringen voor amoxicilline in de weg staat: overweeg amoxicilline+ clavulaanzuur af te wisselen met amoxicilline alleen (om en om). | | | 30 | 6574 | | | | | | | | | discontinuous | | amoxicilline/clavulaanzuur | clavulaanzuur | 3 | mg | kg | dag | | | | | | | | | | | 375 | | | | 22.5 | | | | | | | | | |
-| 3158 | NKF | paracetamol | | | INTRAVENEUS | | Pijn, acuut/post-operatief | Premature neonaten Postmenstruele leeftijd < 32 weken Startdosering: 12 mg/kg/dosis, éénmalig. Onderhoudsdosering: 24 mg/kg/dag in 4 doses.De paracetamol intraveneuze oplossing wordt toegediend als een 15-minuten intraveneus infuus. Het minimum interval tussen 2 toedieningen is 4 uur, maximaal aantal toedieningen per dag is 4. | | | | 182 | | | | | | 258 | | 224 | once | startdosering | paracetamol | paracetamol | | mg | kg | | | | | | | | | | | | | 12 | | | | | | | | | | | | | |
-| 3159 | NKF | paracetamol | | | INTRAVENEUS | | Pijn, acuut/post-operatief | Premature neonaten Postmenstruele leeftijd < 32 weken Startdosering: 12 mg/kg/dosis, éénmalig. Onderhoudsdosering: 24 mg/kg/dag in 4 doses.De paracetamol intraveneuze oplossing wordt toegediend als een 15-minuten intraveneus infuus. Het minimum interval tussen 2 toedieningen is 4 uur, maximaal aantal toedieningen per dag is 4. | | | | 182 | | | | | | 258 | | 224 | discontinuous | | paracetamol | paracetamol | 4 | mg | kg | dag | | | | | | | | | | | | | | | 24 | | | | | | | | | |
-| 3160 | NKF | paracetamol | | | INTRAVENEUS | | Pijn, acuut/post-operatief | Premature neonaten Postmenstruele leeftijd 32 weken tot 44 weken Startdosering: 20 mg/kg/dosis, éénmalig. Onderhoudsdosering: 40 mg/kg/dag in 4 doses.De paracetamol intraveneuze oplossing wordt toegediend als een 15-minuten intraveneus infuus.Het minimum interval tussen 2 toedieningen is 4 uur; maximaal aantal toedieningen per dag is 4. | | | | 182 | | | | | | 258 | 224 | 308 | once | startdosering | paracetamol | paracetamol | | mg | kg | | | | | | | | | | | | | 20 | | | | | | | | | | | | | |
-| 3161 | NKF | paracetamol | | | INTRAVENEUS | | Pijn, acuut/post-operatief | Premature neonaten Postmenstruele leeftijd 32 weken tot 44 weken Startdosering: 20 mg/kg/dosis, éénmalig. Onderhoudsdosering: 40 mg/kg/dag in 4 doses.De paracetamol intraveneuze oplossing wordt toegediend als een 15-minuten intraveneus infuus.Het minimum interval tussen 2 toedieningen is 4 uur; maximaal aantal toedieningen per dag is 4. | | | | 182 | | | | | | 258 | 224 | 308 | discontinuous | | paracetamol | paracetamol | 4 | mg | kg | dag | | | | | | | | | | | | | | | 40 | | | | | | | | | |
-| 3162 | NKF | paracetamol | | | INTRAVENEUS | | Pijn, acuut/post-operatief | a terme neonaat Startdosering: 20 mg/kg/dosis, éénmalig. Onderhoudsdosering: 40 mg/kg/dag in 4 doses.De paracetamol intraveneuze oplossing wordt toegediend als een 15-minuten intraveneus infuus. Het minimum interval tussen iedere toediening dient 4 uur te zijn. Maximaal aantal toedieningen per dag is 4. | | | | 30 | | | | | 259 | | | | once | startdosering | paracetamol | paracetamol | | mg | kg | | | | | | | | | | | | | 20 | | | | | | | | | | | | | |
-| 3163 | NKF | paracetamol | | | INTRAVENEUS | | Pijn, acuut/post-operatief | a terme neonaat Startdosering: 20 mg/kg/dosis, éénmalig. Onderhoudsdosering: 40 mg/kg/dag in 4 doses.De paracetamol intraveneuze oplossing wordt toegediend als een 15-minuten intraveneus infuus. Het minimum interval tussen iedere toediening dient 4 uur te zijn. Maximaal aantal toedieningen per dag is 4. | | | | 30 | | | | | 259 | | | | discontinuous | | paracetamol | paracetamol | 4 | mg | kg | dag | | | | | | | | | | | | | | | 40 | | | | | | | | | |
-| 3164 | NKF | paracetamol | | | INTRAVENEUS | | Pijn, acuut/post-operatief | 1 maand tot 18 jaar Startdosering: 20 mg/kg/dosis, éénmalig. Maximale dosering per gift: 1 g/dosis. Onderhoudsdosering: 60 mg/kg/dag in 4 doses. Max: 4 g/dag. Maximale dosering per gift: 1 g/dosis. De paracetamol intraveneuze oplossing wordt toegediend als een 15-minuten intraveneus infuus. Het minimum interval tussen iedere toediening dient 4 uur te zijn. Het maximum aantal toedieningen per dag is 4. | | | 30 | 6574 | | | | | | | | | once | startdosering | paracetamol | paracetamol | | mg | kg | | | | | | | | | | | 1000 | | | 20 | | | | | | | | | | | | |
-| 3165 | NKF | paracetamol | | | INTRAVENEUS | | Pijn, acuut/post-operatief | 1 maand tot 18 jaar Startdosering: 20 mg/kg/dosis, éénmalig. Maximale dosering per gift: 1 g/dosis. Onderhoudsdosering: 60 mg/kg/dag in 4 doses. Max: 4 g/dag. Maximale dosering per gift: 1 g/dosis. De paracetamol intraveneuze oplossing wordt toegediend als een 15-minuten intraveneus infuus. Het minimum interval tussen iedere toediening dient 4 uur te zijn. Het maximum aantal toedieningen per dag is 4. | | | 30 | 6574 | | | | | | | | | discontinuous | | paracetamol | paracetamol | 4 | mg | kg | dag | | | | | | | | | | | 1000 | | | | | 4000 | 60 | | | | | | | | |
-| 3166 | NKF | paracetamol | | | ORAAL | | Chronische pijn | 1 maand tot 18 jaar 60 mg/kg/dag in 3 - 4 doses. Max: 3 g/dag. Maximale dosering per gift: 1 g/dosis. Bij chronische pijn wordt overleg met een pijnspecialist aanbevolen. | | | 30 | 6574 | | | | | | | | | discontinuous | | paracetamol | paracetamol | 3;4 | mg | kg | dag | | | | | | | | | | | 1000 | | | | | 3000 | 60 | | | | | | | | |
-| 3139 | NKF | paracetamol | | | ORAAL | | Milde tot matige pijn; koorts | a terme neonaat 10 - 15 mg/kg/dosis, zo nodig max 3 dd. Max: 45 mg/kg/dag. Let op: sommige vloeibare doseervormenbevatten toxische hulpstoffen en zijn daarom niet geschikt voor toepassing bij neonaten (zie rubriek toedieningvormen en hulpstoffen) | | | | 30 | | | | | 259 | | | | discontinuous | | paracetamol | paracetamol | 3 | mg | kg | dag | | | | | | | | | | | | | | 10 | 15 | | | 45 | | | | | | | | |
-| 3140 | NKF | paracetamol | | | ORAAL | | Milde tot matige pijn; koorts | 1 maand tot 18 jaar 10 - 15 mg/kg/dosis, zo nodig max 4dd. Max: 60mg/kg/dag, maar niet hoger dan 4 g/dag. | | | 30 | 6574 | | | | | | | | | discontinuous | | paracetamol | paracetamol | 1;2;3;4 | mg | kg | dag | | | | | | | | | | | | | | 10 | 15 | | 4000 | | | | | | | | | |
-| 3143 | NKF | paracetamol | | | ORAAL | | Pijn, acuut/post-operatief | Prematuren Postconceptionele leeftijd 28 weken tot 33 weken 30 mg/kg/dag in 3 doses.Behandelduur: Kortdurend gebruik, maximaal 2-3 dagenLet op: sommige vloeibare doseervormen bevatten toxische hulpstoffen en zijn daarom niet geschikt voor toepassing bij neonaten (zie rubriek toedieningvormen en hulpstoffen) | | | | 182 | | | | | | | 196 | 231 | discontinuous | | paracetamol | paracetamol | 3 | mg | kg | dag | | | | | | | | | | | | | | | 30 | | | | | | | | | |
-| 3144 | NKF | paracetamol | | | ORAAL | | Pijn, acuut/post-operatief | Prematuren Postconceptionele leeftijd 33 weken tot 37 weken 45 mg/kg/dag in 3 doses.Behandelduur: kortdurend gebruik, maximaal 2-3 dagenLet op: sommige vloeibare doseervormen bevatten toxische hulpstoffen en zijn daarom niet geschikt voor toepassing bij neonaten (zie rubriek toedieningvormen en hulpstoffen)Omwille van de eenvoud van het dosisadvies en het gebrek aan wetenschappelijke bewijsvoering naar de effectiviteit van een orale oplaaddosering, wordt er geen oplaaddosering aanbevolen. | | | | 182 | | | | | | | 231 | 259 | discontinuous | | paracetamol | paracetamol | 3 | mg | kg | dag | | | | | | | | | | | | | | | 45 | | | | | | | | | |
-| 3145 | NKF | paracetamol | | | ORAAL | | Pijn, acuut/post-operatief | a terme neonaat 60 mg/kg/dag in 4 doses.Behandelduur: kortdurend gebruik, maximaal 2-3 dagen. Indien na deze periode nog pijnstilling nodig is, de dosering verlagen naar dosis voor milde tot matige pijn. Let op: sommige vloeibare doseervormen bevatten toxische hulpstoffen en zijn daarom niet geschikt voor toepassing bij neonaten (zie rubriek toedieningvormen en hulpstoffen)Omwille van de eenvoud van het dosisadvies en het gebrek aan wetenschappelijke bewijsvoering naar de effectiviteit van een orale oplaaddosering, wordt er geen oplaaddosering aanbevolen. | | | | 30 | | | | | 259 | | | | discontinuous | | paracetamol | paracetamol | 4 | mg | kg | dag 
+## 3. Output contract
 
----
+Emit ONE JSON object `{"rules":[...]}`. No markdown, no fences, no prose.
 
-# PROMP INSTRUCTIONS
+- One entry in `rules[]` per `scheduleText` / patient group.
+- Rule-level fields: identity + patient + `scheduleText`, plus `doseTypes[]`.
+- Inside each dose type: timing fields (`doseType`, `doseText`, `freqs`, `freqUnit`, `minTime`, `maxTime`, `timeUnit`, `minInt`, `maxInt`, `intUnit`, `minDur`, `maxDur`, `durUnit`) and `doseLimits[]`.
+- Inside each dose limit: `component`, `substance`, `doseUnit`, `adjustUnit`, `rateUnit`, and every min/max quantity / per-time / rate field.
 
-When asked, extract the above described columns for the dose rule sheet in the **exact** order from the supplied text. Present the extracted data as tab delimited rows. Use the original dose text language and localization. Do not change the original text.
+Every field must be present. Missing values:
 
+- numbers → `null`
+- strings → `""`
+- arrays → `[]`
+
+Decimal `.` (convert `7,5` → `7.5`). `gpks`, `freqs`: JSON arrays. Keep `indication`, `scheduleText`, `doseText` verbatim, source language. Replace literal tab with space; collapse newlines to single space.
+
+Minified schema shown to the LLM:
+
+```json
+{"rules":[{"sortNo":1,"source":"","generic":"","form":"","brand":"","gpks":[],"route":"","indication":"","scheduleText":"","dep":"","gender":"","minAge":null,"maxAge":null,"minWeight":null,"maxWeight":null,"minBSA":null,"maxBSA":null,"minGestAge":null,"maxGestAge":null,"minPMAge":null,"maxPMAge":null,"doseTypes":[{"doseType":"","doseText":"","freqs":[],"freqUnit":"","minTime":null,"maxTime":null,"timeUnit":"","minInt":null,"maxInt":null,"intUnit":"","minDur":null,"maxDur":null,"durUnit":"","doseLimits":[{"component":"","substance":"","doseUnit":"","adjustUnit":"","rateUnit":"","minQty":null,"maxQty":null,"minQtyAdj":null,"maxQtyAdj":null,"minPerTime":null,"maxPerTime":null,"minPerTimeAdj":null,"maxPerTimeAdj":null,"minRate":null,"maxRate":null,"minRateAdj":null,"maxRateAdj":null}]}]}]}
+```
+
+## 4. Field rules
+
+### 4.1 Rule-level (identity, source, patient)
+
+- **sortNo** — integer, source order of rules.
+- **source** *(required)* — `NKF`, `FK`, `SWAB`, protocol id.
+- **generic** *(required)* — lower-case unless source capitalises.
+- **form** — `tablet`, `suspensie`, `injectievloeistof`, `zetpil`, etc. Empty if form-agnostic.
+- **brand** — only if rule is brand-specific.
+- **gpks** — array of strings.
+- **route** *(required)* — source verbatim (`ORAAL`, `INTRAVENEUS`, `RECTAAL`, `SUBCUTAAN`, …).
+- **indication** *(required)* — verbatim.
+- **scheduleText** *(required)* — full original dose-schedule paragraph, verbatim. Traceability field.
+- **dep** — department/ward (`ICK`, `NICU`, `kinderafdeling`). Empty for general.
+- **gender** — `male`/`female`/`""`.
+- **min/maxAge** — days. weeks ×7; months ×30 (`6 maanden`→182); years ×365 (`1 jaar`→365, `18 jaar`→6574). Inclusive lower, exclusive upper (`1 maand tot 18 jaar` → minAge=30, maxAge=6574).
+- **min/maxWeight** — grams (`2000 gr`→2000; `5 kg`→5000).
+- **min/maxBSA** — m², float.
+- **min/maxGestAge** — days (`34 weken`→238, `41 weken`→287).
+- **min/maxPMAge** — days (`32 weken`→224, `44 weken`→308).
+
+One rule = one patient group. If the paragraph describes disjoint patient groups, emit multiple `rules[]` entries.
+
+### 4.2 Dose-type level (one per phase)
+
+| `doseType` | Meaning | Cue |
+|------------|---------|-----|
+| `once` | single, untimed | "éénmalig", "startdosering" |
+| `onceTimed` | single over time | "oplaaddosis over 30 min" |
+| `discontinuous` | repeated bolus | "… mg/kg/dag in N doses" |
+| `timed` | repeated, each over time | "3 dd in 30 min" |
+| `continuous` | continuous infusion | "… mg/kg/uur", "continu infuus" |
+
+- **doseText** — phase label (`startdosering`, `onderhoudsdosering`, `dag 3`). Empty if single phase.
+- **freqs** — integer array per `freqUnit` (`in 3 doses`→`[3]`; `3-4 doses`→`[3,4]`). Empty for `once`/`onceTimed`/`continuous`.
+- **freqUnit** — `dag`, `uur`, `week`.
+- **min/maxTime**, **timeUnit** — infusion/admin time (`in 15 min` → min=max=15, unit="min").
+- **min/maxInt**, **intUnit** — interval between doses.
+- **min/maxDur**, **durUnit** — total treatment duration.
+
+### 4.3 Dose-limit level (one per (component, substance) pair)
+
+- **component** — often = generic. For combinations (`amoxicilline/clavulaanzuur`) the whole combination is the component.
+- **substance** *(required)* — active substance for this limit.
+- **doseUnit** *(required)* — `mg`, `g`, `IE`, `microg`, `mL`, …
+- **adjustUnit** — `kg`/`m2` when adjusted; else `""`.
+- **rateUnit** — `uur`/`min`; `""` unless `continuous` or rate given.
+
+| Field | Unit structure |
+|-------|----------------|
+| `min/maxQty` | `doseUnit / dose` |
+| `min/maxQtyAdj` | `doseUnit / adjustUnit / dose` |
+| `min/maxPerTime` | `doseUnit / freqUnit` |
+| `min/maxPerTimeAdj` | `doseUnit / adjustUnit / freqUnit` |
+| `min/maxRate` | `doseUnit / rateUnit` |
+| `min/maxRateAdj` | `doseUnit / adjustUnit / rateUnit` |
+
+- Never invent bounds. Single value (`50 mg/kg/dag`) → fill one side, partner `null`.
+- `max 4 g/dag` → Max*. `min X` → Min*.
+- Range (`10-15 mg/kg/dosis`) → both Min* and Max*.
+- Unlabelled single value (recommendation) → Min* only, Max* `null`.
+
+## 5. Splitting rules
+
+Prefer stacking inside ONE `rules[]` entry. Split only when justified:
+
+- **Multi-phase (start + maintenance)** — same rule, TWO `doseTypes[]` entries differing by `doseType` / `doseText`. E.g. paracetamol IV premature → one rule with `doseTypes=[once "startdosering", discontinuous ""]`.
+- **Combination products** — same dose type, TWO `doseLimits[]` entries (shared component, distinct substance). E.g. amoxicilline/clavulaanzuur → one `doseTypes[].doseLimits=[{substance:"amoxicilline",…},{substance:"clavulaanzuur",…}]`.
+- **Distinct DoseTypes under same patient group** — stack as multiple `doseTypes[]` entries.
+- **Distinct patient groups in one paragraph** — emit separate `rules[]` entries. E.g. `<1wk+<2000g` vs `<1wk+≥2000g` → 2 rules, each with its own patient category. Preserve the same `scheduleText` across sibling rules.
+
+No duplicates: the quadruple `(doseType, doseText, component, substance)` must be unique across all `doseLimits` in the rule. Two dose-type entries MAY share a `doseType` label (e.g. load + maintenance both `timed`) provided their `doseText` distinguishes them.
+
+Multi-phase cues (Dutch):
+
+| Cues | Split into |
+|------|------------|
+| `startdosering`/`onderhoudsdosering` | 2 dose types (both often `discontinuous`), differ by `doseText` and limits |
+| `oplaaddosis`/`onderhoud` or `continu` | load `onceTimed`/`once`; maintenance `continuous`/`timed` |
+| `dag 1`/`dag 2-7` | one dose type per day-range; `doseText` = day label |
+| `initieel`/`vervolgens` | initial + follow-up dose types |
+
+Missing a load/maintenance phase is a bug — emit both when stated.
+
+## 6. Example
+
+Source (NKF, amoxicilline/clavulaanzuur, IV, "Ernstige bacteriele infecties"):
+
+> `< 1 week en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 50 / 5 mg/kg/dag in 2 doses`
+
+One rule (patient group = < 1 week + < 2000 g), one dose type (`discontinuous`, freqs=`[2]`), two dose limits (one per substance, shared component).
+
+```json
+{
+  "rules": [
+    {
+      "sortNo": 211,
+      "source": "NKF",
+      "generic": "amoxicilline/clavulaanzuur",
+      "form": "",
+      "brand": "",
+      "gpks": [],
+      "route": "INTRAVENEUS",
+      "indication": "Ernstige bacteriele infecties",
+      "scheduleText": "< 1 week en geboortegewicht < 2000 gr Amoxicilline/clavulaanzuur 10:1 : 50 / 5 mg/kg/dag in 2 doses",
+      "dep": "",
+      "gender": "",
+      "minAge": null, "maxAge": 7,
+      "minWeight": null, "maxWeight": 2000,
+      "minBSA": null, "maxBSA": null,
+      "minGestAge": null, "maxGestAge": null,
+      "minPMAge": null, "maxPMAge": null,
+      "doseTypes": [
+        {
+          "doseType": "discontinuous",
+          "doseText": "",
+          "freqs": [2],
+          "freqUnit": "dag",
+          "minTime": null, "maxTime": null, "timeUnit": "",
+          "minInt": null, "maxInt": null, "intUnit": "",
+          "minDur": null, "maxDur": null, "durUnit": "",
+          "doseLimits": [
+            {
+              "component": "amoxicilline/clavulaanzuur",
+              "substance": "amoxicilline",
+              "doseUnit": "mg", "adjustUnit": "kg", "rateUnit": "",
+              "minQty": null, "maxQty": null,
+              "minQtyAdj": null, "maxQtyAdj": null,
+              "minPerTime": null, "maxPerTime": null,
+              "minPerTimeAdj": 50, "maxPerTimeAdj": null,
+              "minRate": null, "maxRate": null,
+              "minRateAdj": null, "maxRateAdj": null
+            },
+            {
+              "component": "amoxicilline/clavulaanzuur",
+              "substance": "clavulaanzuur",
+              "doseUnit": "mg", "adjustUnit": "kg", "rateUnit": "",
+              "minQty": null, "maxQty": null,
+              "minQtyAdj": null, "maxQtyAdj": null,
+              "minPerTime": null, "maxPerTime": null,
+              "minPerTimeAdj": 5, "maxPerTimeAdj": null,
+              "minRate": null, "maxRate": null,
+              "minRateAdj": null, "maxRateAdj": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+More examples across DoseTypes: see `data/sources/Rules/doserules.tsv` (flat form) and run the TSV through `Pipeline.fromTsv` in `DoseRuleExtract.fsx` to see the hierarchical equivalent.
+
+## 7. Instructions
+
+1. Emit only the JSON object defined in §3. No markdown, no fences, no prose.
+2. One `rules[]` entry per patient group. Stack phases inside `doseTypes[]`; stack substances inside `doseLimits[]`. Split to multiple rules only for disjoint patient groups.
+3. Keep `indication`, `scheduleText`, `doseText` verbatim; collapse tabs/newlines to single space.
+4. Apply §4 conversions (days/grams/m²; decimal `.`; JSON arrays).
+5. Unknown → `null` (num) / `""` (str) / `[]` (arr). Never `0` / `-` / `N/A`.
+6. Don't invent bounds; follow §4.3 Min/Max conventions.
+7. Within a rule, no duplicate `(doseType, doseText, component, substance)` quadruple across dose-limits.
