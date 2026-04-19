@@ -31,7 +31,7 @@ layer.
 
 `ZForm.DoseRule` has a deeply nested hierarchy:
 
-```
+```text
 ZForm.DoseRule
   └─ Dosages[] (indication → route → patient → dosage)
        └─ RouteDosages[]
@@ -41,7 +41,7 @@ ZForm.DoseRule
 
 `GenFORM.DoseRule` is flat:
 
-```
+```text
 GenFORM.DoseRule { Generic; Form; Route; PatientCategory; DoseType; Source; Limits[] }
 ```
 
@@ -77,16 +77,19 @@ When the maintainer is ready to migrate:
 1. Add `GStandAdapter` module in `src/Informedica.GenFORM.Lib/` (new file
    `GStandAdapter.fs`).
 2. In `Api.getDoseRules`, after Google Sheet rules are loaded:
+
    ```fsharp
    let fallback = GStandAdapter.buildFallbackRules config loadedRules
    Array.append loadedRules fallback
    ```
+
 3. Keep `Source = "G-Standaard"` as the discriminator in the UI layer
    (already implemented via the colour-coding introduced in PR #309).
 
 ## Consequences
 
 **Positive**:
+
 - Adult clinicians see a dose reference even when the paediatric-focused
   Google Sheet has not been updated.
 - Provenance is explicit (`Source` field, colour badge) — clinicians know the
@@ -95,6 +98,7 @@ When the maintainer is ready to migrate:
   after existing rules.
 
 **Negative / Trade-offs**:
+
 - Introduces a dependency on G-Standard data quality; incorrect G-Standard
   entries will propagate to the formulary view.
 - The type conversion is non-trivial; an incorrect unit mapping (months→days,
@@ -104,6 +108,7 @@ When the maintainer is ready to migrate:
   address how these are surfaced.
 
 **MDR / Safety**:
+
 - G-Standard-sourced rules must be visually distinguished from pharmacist-curated
   rules (colour badge, source label). This is a safety requirement.
 - Any migration of the prototype to source files must be accompanied by new
