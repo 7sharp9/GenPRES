@@ -2,7 +2,8 @@
 // Pin versions here to avoid design-time conflicts (e.g. FSharp.Data type providers).
 // Versions match paket.lock.
 
-#r "nuget: FSharp.Data, 8.0"
+// note: FSharp.Data should match the packet.lock version
+#r "nuget: FSharp.Data, 8.1.2"
 #r "nuget: MathNet.Numerics.FSharp"
 #r "nuget: FParsec"
 #r "nuget: Newtonsoft.Json"

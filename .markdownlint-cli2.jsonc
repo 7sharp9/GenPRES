@@ -21,6 +21,10 @@
         "MD012": false,
 
         // MD060/fenced-code-block-style: Not enforced - mixed styles in docs.
-        "MD060": false
+        "MD060": false,
+
+        // MD010/no-hard-tabs: Allow tabs inside code blocks (TSV samples in
+        // data-extraction docs require real tab characters).
+        "MD010": { "code_blocks": false }
     }
 }
