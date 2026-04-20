@@ -112,46 +112,49 @@ module Check =
         }
 
 
-    let checkInRangeOf sn (refRange: MinMax) (testRange: MinMax) =
-        let getTimeUnit mm =
-            match mm.Min |> Option.map Limit.getValueUnit, mm.Max |> Option.map Limit.getValueUnit with
-            | Some vu, _
-            | _, Some vu ->
-                match vu |> ValueUnit.getUnit |> ValueUnit.getUnits with
-                | [ _; tu ]
-                | [ _; _; tu ] when tu |> ValueUnit.Group.eqsGroup Units.Time.day -> Some tu
+    let checkInRangeOf sn (refRange: MinMax) (testRange: MinMax) : bool option * string =
+        if testRange |> MinMax.isEmpty || refRange |> MinMax.isEmpty then
+            None, ""
+        else
+            let getTimeUnit mm =
+                match mm.Min |> Option.map Limit.getValueUnit, mm.Max |> Option.map Limit.getValueUnit with
+                | Some vu, _
+                | _, Some vu ->
+                    match vu |> ValueUnit.getUnit |> ValueUnit.getUnits with
+                    | [ _; tu ]
+                    | [ _; _; tu ] when tu |> ValueUnit.Group.eqsGroup Units.Time.day -> Some tu
+                    | _ -> None
                 | _ -> None
-            | _ -> None
-            |> Option.map unitToString
-            |> Option.defaultValue ""
+                |> Option.map unitToString
+                |> Option.defaultValue ""
 
-        ((testRange.Min |> Option.isNone
-          || testRange.Min |> Option.map Limit.getValueUnit |> MinMax.inRange refRange)
-         && (testRange.Max |> Option.isNone
-             || testRange.Max |> Option.map Limit.getValueUnit |> MinMax.inRange refRange))
-        |> fun b ->
-            let u =
-                match testRange.Min, testRange.Max with
-                | Some l, _
-                | _, Some l -> l |> Limit.getValueUnit |> ValueUnit.getUnit |> Some
-                | _ -> None
+            ((testRange.Min |> Option.isNone
+              || testRange.Min |> Option.map Limit.getValueUnit |> MinMax.inRange refRange)
+             && (testRange.Max |> Option.isNone
+                 || testRange.Max |> Option.map Limit.getValueUnit |> MinMax.inRange refRange))
+            |> fun b ->
+                let u =
+                    match testRange.Min, testRange.Max with
+                    | Some l, _
+                    | _, Some l -> l |> Limit.getValueUnit |> ValueUnit.getUnit |> Some
+                    | _ -> None
 
-            let toStr mm =
-                if u |> Option.isNone then
-                    mm
-                else
-                    let convert =
-                        Option.map (Limit.getValueUnit >> ValueUnit.convertTo u.Value >> Limit.inclusive)
+                let toStr mm =
+                    if u |> Option.isNone then
+                        mm
+                    else
+                        let convert =
+                            Option.map (Limit.getValueUnit >> ValueUnit.convertTo u.Value >> Limit.inclusive)
 
-                    {
-                        Min = mm.Min |> convert
-                        Max = mm.Max |> convert
-                    }
-                |> MinMax.toString "min " "min " "max " "max "
+                        {
+                            Min = mm.Min |> convert
+                            Max = mm.Max |> convert
+                        }
+                    |> MinMax.toString "min " "min " "max " "max "
 
-            b,
-            $"""%s{sn} {testRange |> toStr} {if b then "" else "niet "}in bereik van {refRange |> toStr}"""
-            |> String.replace "<TIMEUNIT>" (testRange |> getTimeUnit)
+                Some b,
+                $"""%s{sn} {testRange |> toStr} {if b then "" else "niet "}in bereik van %s{refRange |> toStr}"""
+                |> String.replace "<TIMEUNIT>" (testRange |> getTimeUnit)
 
 
     let maximizeDosages (dosages: Dosage list) =
@@ -437,133 +440,324 @@ module Check =
     let checkDoseRule routeMapping (pat: Patient) (dr: DoseRule) =
         let m = dr |> matchWithZIndex routeMapping pat |> createMapping
 
+        let eqsAny (candidates: DoseType list) (dt: DoseType) =
+            candidates |> List.exists (DoseType.eqsType dt)
+
+        let toMinMax vuOpt =
+            {
+                Min =
+                    vuOpt
+                    |> Option.map ((*) ([| 90N / 100N |] |> ValueUnit.withUnit Units.Count.times))
+                    |> Option.map Limit.inclusive
+                Max =
+                    vuOpt
+                    |> Option.map ((*) ([| 110N / 100N |] |> ValueUnit.withUnit Units.Count.times))
+                    |> Option.map Limit.inclusive
+            }
+
+        // Derive rate fields for a given dose-limit target from m.zindex.dosages,
+        // mirroring the perTimeAdjust* pattern in createMapping.
+        let rateFieldsFor (target: string) =
+            let empty =
+                {|
+                    rateNorm = MinMax.empty
+                    rateAbs = MinMax.empty
+                    rateAdjustNorm = MinMax.empty
+                    rateAdjustAbs = MinMax.empty
+                |}
+
+            m.zindex.dosages
+            |> List.tryFind (fun g -> target |> String.equalsCapInsens g.target)
+            |> Option.bind _.dosage
+            |> Option.map (fun x ->
+                let dr, rateUnit = x.RateDosage
+
+                if rateUnit = NoUnit then
+                    empty
+                else
+                    {|
+                        rateNorm = dr.Norm |> setAdjustAndOrTimeUnit None (Some rateUnit)
+                        rateAbs = dr.Abs |> setAdjustAndOrTimeUnit None (Some rateUnit)
+                        rateAdjustNorm =
+                            if dr.NormWeight |> fst = MinMax.empty then
+                                if dr.NormBSA |> fst = MinMax.empty then
+                                    MinMax.empty
+                                else
+                                    dr.NormBSA |> fst |> setAdjustAndOrTimeUnit (Some Units.BSA.m2) (Some rateUnit)
+                            else
+                                dr.NormWeight
+                                |> fst
+                                |> setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) (Some rateUnit)
+                        rateAdjustAbs =
+                            if dr.AbsWeight |> fst = MinMax.empty then
+                                if dr.AbsBSA |> fst = MinMax.empty then
+                                    MinMax.empty
+                                else
+                                    dr.AbsBSA |> fst |> setAdjustAndOrTimeUnit (Some Units.BSA.m2) (Some rateUnit)
+                            else
+                                dr.AbsWeight
+                                |> fst
+                                |> setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) (Some rateUnit)
+                    |}
+            )
+            |> Option.defaultValue empty
+
+        // Extract adjust unit from a MinMax (mirrors getAdj inside checkAdjustUnit).
+        let getAdjUnit (mm: MinMax) =
+            match mm.Min |> Option.map Limit.getValueUnit, mm.Max |> Option.map Limit.getValueUnit with
+            | Some vu, _
+            | _, Some vu ->
+                match vu |> ValueUnit.getUnit |> ValueUnit.getUnits with
+                | [ _; adj ]
+                | [ _; adj; _ ]
+                | [ _; _; adj ] when adj = Units.Weight.kiloGram || adj = Units.Weight.gram || adj = Units.BSA.m2 ->
+                    Some adj
+                | _ -> None
+            | _ -> None
+
         m.mapping.doseLimits
         |> Array.collect (fun dl ->
             match dl.gstand with
-            | None -> [| true, "" |]
+            | None -> [| (None: bool option), "" |]
             | Some gstand ->
+                let dt = m.doseRule.DoseType
                 let p = m.doseRule.PatientCategory |> PatientCategory.toString
                 let r = m.doseRule.Route
 
-                let inRangeOf m refRange testRange =
+                let inRangeOf msg refRange testRange =
                     try
-                        checkInRangeOf $"{gstand.doseLimitTarget}\t{r}\t{p}\t{m}: " refRange testRange
+                        checkInRangeOf $"{gstand.doseLimitTarget}\t{r}\t{p}\t{msg}: " refRange testRange
                     with e ->
                         writeErrorMessage $"{e}"
-                        true, $"{gstand.doseLimitTarget}\t{r}\t{p}\t{m}: kan niet worden gechecked vanwege foutmelding"
 
-                let toMinMax vuOpt =
-                    {
-                        Min =
-                            vuOpt
-                            |> Option.map ((*) ([| 90N / 100N |] |> ValueUnit.withUnit Units.Count.times))
-                            |> Option.map Limit.inclusive
-                        Max =
-                            vuOpt
-                            |> Option.map ((*) ([| 110N / 100N |] |> ValueUnit.withUnit Units.Count.times))
-                            |> Option.map Limit.inclusive
-                    }
+                        Some true,
+                        $"{gstand.doseLimitTarget}\t{r}\t{p}\t{msg}: kan niet worden gechecked vanwege foutmelding"
 
-                [|
-                    m.mapping.frequencies.genform
-                    |> Option.map (fun vu ->
-                        m.mapping.frequencies.gstand
-                        |> Option.map (ValueUnit.isSubset vu)
-                        |> Option.defaultValue true
-                    )
-                    |> Option.defaultValue true
-                    |> fun b ->
-                        //let u = m.mapping.frequencies.genform |> Option.map ValueUnit.getUnit
-                        let s1 =
-                            m.mapping.frequencies.genform
-                            |> Option.map (ValueUnit.toStringDecimalDutchShortWithPrec -1)
-                            |> Option.defaultValue ""
+                match dt with
+                | NoDoseType ->
+                    [|
+                        Some false, $"{m.doseRule.Generic}\t{r}\t{p}\tdoseer type mist — kan niet vergelijken"
+                    |]
+                | _ ->
+                    let rates = rateFieldsFor gstand.doseLimitTarget
 
-                        let s2 =
-                            m.mapping.frequencies.gstand
-                            //|> Option.map (fun vu -> if u |> Option.isNone then vu else vu |> ValueUnit.convertTo u.Value)
-                            |> Option.map (ValueUnit.toStringDecimalDutchShortWithPrec -1)
-                            |> Option.defaultValue ""
+                    let runQuantity = dt |> eqsAny [ Once ""; Discontinuous ""; Timed ""; OnceTimed "" ]
 
-                        if not b then
-                            b, $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} niet gelijk aan {s2}"
-                        else
-                            b, $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} is subset van {s2}"
+                    let runPerTime = dt |> eqsAny [ Discontinuous ""; Timed "" ]
+                    let runRate = dt |> eqsAny [ Continuous ""; Timed ""; OnceTimed "" ]
+                    let runFrequencies = dt |> eqsAny [ Discontinuous ""; Timed "" ]
 
-                    dl.genForm.Quantity |> inRangeOf "keer dosering" gstand.quantityNorm
+                    let freqRow () =
+                        match m.mapping.frequencies.genform, m.mapping.frequencies.gstand with
+                        | None, _
+                        | _, None -> (None: bool option), ""
+                        | Some vuG, Some vuS ->
+                            let b = vuG |> ValueUnit.isSubset vuS
 
-                    dl.genForm.Quantity |> inRangeOf "keer dosering" gstand.quantityAbs
+                            let s1 = vuG |> ValueUnit.toStringDecimalDutchShortWithPrec -1
+                            let s2 = vuS |> ValueUnit.toStringDecimalDutchShortWithPrec -1
 
-                    match dl.genForm.QuantityAdjust |> checkAdjustUnit gstand.quantityAdjustNorm with
-                    | None -> ()
-                    | Some adj ->
-                        let adj = adj |> unitToString
+                            if not b then
+                                Some b, $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} niet gelijk aan {s2}"
+                            else
+                                Some b, $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} is subset van {s2}"
 
-                        dl.genForm.QuantityAdjust
-                        |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustNorm
+                    let quantityChecks () =
+                        [|
+                            dl.genForm.Quantity |> inRangeOf "keer dosering" gstand.quantityNorm
 
-                    match dl.genForm.QuantityAdjust |> checkAdjustUnit gstand.quantityAdjustAbs with
-                    | None -> ()
-                    | Some adj ->
-                        let adj = adj |> unitToString
+                            dl.genForm.Quantity |> inRangeOf "keer dosering" gstand.quantityAbs
 
-                        dl.genForm.QuantityAdjust
-                        |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
+                            match dl.genForm.QuantityAdjust |> checkAdjustUnit gstand.quantityAdjustNorm with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
 
-                    let mm = dl.genForm.QuantityAdjust |> DoseLimit.getNormDose |> toMinMax
+                                dl.genForm.QuantityAdjust
+                                |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustNorm
 
-                    match mm |> checkAdjustUnit gstand.quantityAdjustNorm with
-                    | None -> ()
-                    | Some adj ->
-                        let adj = adj |> unitToString
-                        mm |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustNorm
+                            match dl.genForm.QuantityAdjust |> checkAdjustUnit gstand.quantityAdjustAbs with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
 
-                    match mm |> checkAdjustUnit gstand.quantityAdjustAbs with
-                    | None -> ()
-                    | Some adj ->
-                        let adj = adj |> unitToString
-                        mm |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
+                                dl.genForm.QuantityAdjust
+                                |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
 
-                    dl.genForm.PerTime |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeNorm
+                            let mm = dl.genForm.QuantityAdjust |> DoseLimit.getNormDose |> toMinMax
 
-                    dl.genForm.PerTime |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeAbs
+                            match mm |> checkAdjustUnit gstand.quantityAdjustNorm with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
+                                mm |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustNorm
 
-                    match dl.genForm.PerTimeAdjust |> checkAdjustUnit gstand.perTimeAdjustNorm with
-                    | None -> ()
-                    | Some adj ->
-                        let adj = adj |> unitToString
+                            match mm |> checkAdjustUnit gstand.quantityAdjustAbs with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
+                                mm |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
+                        |]
 
-                        dl.genForm.PerTimeAdjust
-                        |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustNorm
+                    let perTimeChecks () =
+                        [|
+                            dl.genForm.PerTime |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeNorm
 
-                    match dl.genForm.PerTimeAdjust |> checkAdjustUnit gstand.perTimeAdjustAbs with
-                    | None -> ()
-                    | Some adj ->
-                        let adj = adj |> unitToString
+                            dl.genForm.PerTime |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeAbs
 
-                        dl.genForm.PerTimeAdjust
-                        |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustAbs
+                            match dl.genForm.PerTimeAdjust |> checkAdjustUnit gstand.perTimeAdjustNorm with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
 
-                    let mm = dl.genForm.PerTimeAdjust |> DoseLimit.getNormDose |> toMinMax
+                                dl.genForm.PerTimeAdjust
+                                |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustNorm
 
-                    match mm |> checkAdjustUnit gstand.perTimeAdjustNorm with
-                    | None -> ()
-                    | Some adj ->
-                        let adj = adj |> unitToString
-                        mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustNorm
+                            match dl.genForm.PerTimeAdjust |> checkAdjustUnit gstand.perTimeAdjustAbs with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
 
-                    match mm |> checkAdjustUnit gstand.perTimeAdjustAbs with
-                    | None -> ()
-                    | Some adj ->
-                        let adj = adj |> unitToString
-                        mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustAbs
-                |]
+                                dl.genForm.PerTimeAdjust
+                                |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustAbs
+
+                            let mm = dl.genForm.PerTimeAdjust |> DoseLimit.getNormDose |> toMinMax
+
+                            match mm |> checkAdjustUnit gstand.perTimeAdjustNorm with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
+                                mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustNorm
+
+                            match mm |> checkAdjustUnit gstand.perTimeAdjustAbs with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
+                                mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustAbs
+                        |]
+
+                    let rateChecks () =
+                        [|
+                            dl.genForm.Rate |> inRangeOf "infusiesnelheid per <TIMEUNIT>" rates.rateNorm
+
+                            dl.genForm.Rate |> inRangeOf "infusiesnelheid per <TIMEUNIT>" rates.rateAbs
+
+                            match dl.genForm.RateAdjust |> checkAdjustUnit rates.rateAdjustNorm with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
+
+                                dl.genForm.RateAdjust
+                                |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" rates.rateAdjustNorm
+
+                            match dl.genForm.RateAdjust |> checkAdjustUnit rates.rateAdjustAbs with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
+
+                                dl.genForm.RateAdjust
+                                |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" rates.rateAdjustAbs
+
+                            let mm = dl.genForm.RateAdjust |> DoseLimit.getNormDose |> toMinMax
+
+                            match mm |> checkAdjustUnit rates.rateAdjustNorm with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
+                                mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" rates.rateAdjustNorm
+
+                            match mm |> checkAdjustUnit rates.rateAdjustAbs with
+                            | None -> ()
+                            | Some adj ->
+                                let adj = adj |> unitToString
+                                mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" rates.rateAdjustAbs
+                        |]
+
+                    // "non matching adjust units" detection. Only fires when both
+                    // sides of the (DoseType-applicable) adjust ranges carry a
+                    // detectable unit AND no pair of them is in the same unit
+                    // group. Emits at most one row per DoseLimit.
+                    let mismatchRow () =
+                        let gstandSides =
+                            [
+                                if runQuantity then
+                                    yield gstand.quantityAdjustNorm
+                                    yield gstand.quantityAdjustAbs
+                                if runPerTime then
+                                    yield gstand.perTimeAdjustNorm
+                                    yield gstand.perTimeAdjustAbs
+                                if runRate then
+                                    yield rates.rateAdjustNorm
+                                    yield rates.rateAdjustAbs
+                            ]
+                            |> List.choose (fun mm -> getAdjUnit mm |> Option.map (fun u -> mm, u))
+
+                        let genFormSides =
+                            [
+                                if runQuantity then
+                                    yield dl.genForm.QuantityAdjust
+                                if runPerTime then
+                                    yield dl.genForm.PerTimeAdjust
+                                if runRate then
+                                    yield dl.genForm.RateAdjust
+                            ]
+                            |> List.choose (fun mm -> getAdjUnit mm |> Option.map (fun u -> mm, u))
+
+                        match gstandSides, genFormSides with
+                        | [], _
+                        | _, [] -> None
+                        | gs, gf ->
+                            let anyMatch =
+                                gf
+                                |> List.exists (fun (gfMm, _) ->
+                                    gs |> List.exists (fun (gsMm, _) -> checkAdjustUnit gfMm gsMm |> Option.isSome)
+                                )
+
+                            if anyMatch then
+                                None
+                            else
+                                let gfU = gf |> List.head |> snd |> unitToString
+                                let gsU = gs |> List.head |> snd |> unitToString
+
+                                Some(
+                                    Some false,
+                                    $"{gstand.doseLimitTarget}\t{r}\t{p}\teenheden verschillen (kg vs m2) (doseer regel: %s{gfU}, G-Standaard controle: %s{gsU})"
+                                )
+
+                    [|
+                        if runFrequencies then
+                            yield freqRow ()
+                        if runQuantity then
+                            yield! quantityChecks ()
+                        if runPerTime then
+                            yield! perTimeChecks ()
+                        if runRate then
+                            yield! rateChecks ()
+                        match mismatchRow () with
+                        | Some entry -> yield entry
+                        | None -> ()
+                    |]
         )
-        |> Array.partition (fst >> not)
-        |> fun (didNot, did) ->
+        |> fun xs ->
+            let didNotPass =
+                xs
+                |> Array.choose (
+                    function
+                    | Some false, s -> Some s
+                    | _ -> None
+                )
+
+            let didPass =
+                xs
+                |> Array.choose (
+                    function
+                    | Some true, s -> Some s
+                    | _ -> None
+                )
+
             {| m with
-                didNotPass = didNot |> Array.map snd
-                didPass = did |> Array.map snd
+                didNotPass = didNotPass
+                didPass = didPass
             |}
 
 
