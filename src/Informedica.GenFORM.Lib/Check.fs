@@ -536,7 +536,7 @@ module Check =
                 match dt with
                 | NoDoseType ->
                     [|
-                        (None: bool option), $"{m.doseRule.Generic}\t{r}\t{p}\tdoseer type mist — kan niet vergelijken"
+                        Some false, $"{m.doseRule.Generic}\t{r}\t{p}\tdoseer type mist — kan niet vergelijken"
                     |]
                 | _ ->
                     let rates = rateFieldsFor gstand.doseLimitTarget
@@ -552,7 +552,7 @@ module Check =
                         | None, _
                         | _, None -> (None: bool option), ""
                         | Some vuG, Some vuS ->
-                            let b = vuS |> ValueUnit.isSubset vuG
+                            let b = vuG |> ValueUnit.isSubset vuS
 
                             let s1 = vuG |> ValueUnit.toStringDecimalDutchShortWithPrec -1
                             let s2 = vuS |> ValueUnit.toStringDecimalDutchShortWithPrec -1
@@ -638,9 +638,9 @@ module Check =
 
                     let rateChecks () =
                         [|
-                            dl.genForm.Rate |> inRangeOf "dosering per <TIMEUNIT>" rates.rateNorm
+                            dl.genForm.Rate |> inRangeOf "infusiesnelheid per <TIMEUNIT>" rates.rateNorm
 
-                            dl.genForm.Rate |> inRangeOf "dosering per <TIMEUNIT>" rates.rateAbs
+                            dl.genForm.Rate |> inRangeOf "infusiesnelheid per <TIMEUNIT>" rates.rateAbs
 
                             match dl.genForm.RateAdjust |> checkAdjustUnit rates.rateAdjustNorm with
                             | None -> ()

@@ -239,7 +239,7 @@ module Check =
                 match dt with
                 | NoDoseType ->
                     [|
-                        None,
+                        Some false,
                         $"{m.doseRule.Generic}\t{r}\t{p}\tgeen doseer type — check kan niet plaats vinden"
                     |]
                 | _ ->
@@ -258,7 +258,7 @@ module Check =
                         | None, _
                         | _, None -> None, ""
                         | Some vuG, Some vuS ->
-                            let b = vuS |> ValueUnit.isSubset vuG
+                            let b = vuG |> ValueUnit.isSubset vuS
 
                             let s1 = vuG |> ValueUnit.toStringDecimalDutchShortWithPrec -1
                             let s2 = vuS |> ValueUnit.toStringDecimalDutchShortWithPrec -1
@@ -344,9 +344,9 @@ module Check =
 
                     let rateChecks () =
                         [|
-                            dl.genForm.Rate |> inRangeOf "dosering per <TIMEUNIT>" rates.rateNorm
+                            dl.genForm.Rate |> inRangeOf "infusiesnelheid per <TIMEUNIT>" rates.rateNorm
 
-                            dl.genForm.Rate |> inRangeOf "dosering per <TIMEUNIT>" rates.rateAbs
+                            dl.genForm.Rate |> inRangeOf "infusiesnelheid per <TIMEUNIT>" rates.rateAbs
 
                             match dl.genForm.RateAdjust |> checkAdjustUnit rates.rateAdjustNorm with
                             | None -> ()
@@ -427,7 +427,7 @@ module Check =
 
                                 Some(
                                     Some false,
-                                    $"{gstand.doseLimitTarget}\t{r}\t{p}\tnon matching adjust units (genForm: %s{gfU}, gstand: %s{gsU})"
+                                    $"{gstand.doseLimitTarget}\t{r}\t{p}\teenheden verschillen (kg vs m2) (doseer regel: %s{gfU}, G-Standaard controle: %s{gsU})"
                                 )
 
                     [|
