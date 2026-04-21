@@ -6,7 +6,7 @@ Extract Dose Rules from free text (formularies, guidelines, protocols) into a hi
 
 One **rule** = one patient group for one `(Source, Generic, Route, Indication)`. A rule carries 1..N **dose types** (phases: start / maintenance, load / continuous, …). Each dose type carries 1..N **dose limits**, one per `(Component, Substance)` pair.
 
-The GenFORM backend still consumes flat `DoseRuleData` rows (one per `(DoseType, DoseLimit)` pair). The TSV in `data/sources/Rules/doserules.tsv` keeps the legacy 50-column layout; flattening/grouping happens in `Conversion` inside the script.
+The GenFORM backend still consumes flat `DoseRuleData` rows (one per `(DoseType, DoseLimit)` pair, defined at `src/Informedica.GenFORM.Lib/Types.fs:359-412`). The TSV in `data/sources/Rules/doserules.tsv` keeps the legacy layout (51 active columns + a trailing duplicate block; see `doserule-extraction-flowchart.md` §7.4); flattening/grouping happens in the `Conversion` module inside `DoseRuleExtract.fsx`.
 
 ## 2. Domain reference
 
@@ -14,6 +14,7 @@ Authoritative sources (keep open while extracting):
 
 - `docs/domain/genform-free-text-to-operational-rules.md` §3, §5, §6.1, §6.2, Appendix C.2
 - `docs/domain/core-domain.md` (OKRs, Rule Hierarchy)
+- `docs/data-extraction/doserule-extraction-flowchart.md` (visual decision tree mirroring this prompt under fixed scope assumptions; cross-check of prompt JSON ↔ `DoseRuleData` ↔ TSV in §7)
 - Sample rows: `data/sources/Rules/doserules.tsv`
 
 Every field is a Selection Constraint (which rule applies) or a Calculation Constraint (feeds GenSOLVER).
@@ -102,9 +103,9 @@ One rule = one patient group. If the paragraph describes disjoint patient groups
 | `min/maxRateAdj` | `doseUnit / adjustUnit / rateUnit` |
 
 - Never invent bounds. Single value (`50 mg/kg/dag`) → fill one side, partner `null`.
-- `max 4 g/dag` → Max*. `min X` → Min*.
-- Range (`10-15 mg/kg/dosis`) → both Min* and Max*.
-- Unlabelled single value (recommendation) → Min* only, Max* `null`.
+- `max 4 g/dag` → `Max*`. `min X` → `Min*`.
+- Range (`10-15 mg/kg/dosis`) → both `Min*` and `Max*`.
+- Unlabelled single value (recommendation) → `Min*` only, `Max*` `null`.
 
 ## 5. Splitting rules
 
