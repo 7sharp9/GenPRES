@@ -67,7 +67,9 @@ module FormularyService =
 
         /// Build the colored TextBlock[] for the Formulary's DoseCheck field.
         ///   - empty input            → single green "Ok!" block
-        ///   - only "no monitoring"   → green blocks showing the sentinel text
+        ///   - only "no monitoring"   → blue (Caution) info blocks; signals
+        ///                              no G-Standaard rule exists for the
+        ///                              selection
         ///   - only frequency issues  → orange (Warning) blocks
         ///   - any dose-range issue   → red (Alert) blocks
         /// When severity is Warning or Alert, "no monitoring" sentinels are
@@ -76,8 +78,17 @@ module FormularyService =
         let build (parseTextItem: string -> TextItem[]) (singleRule: bool) (rawLines: string[]) : TextBlock[] =
             let violations = rawLines |> Array.filter (isNoMonitoring >> not)
 
+            // "no monitoring" only: rawLines is non-empty but consists
+            // solely of sentinel lines. Distinct from the pure pass-through
+            // (rawLines = [||]) which keeps the green "Ok!" badge.
+            let allNoMonitoring =
+                violations |> Array.isEmpty
+                && rawLines |> Array.isEmpty |> not
+                && rawLines |> Array.forall isNoMonitoring
+
             let wrap =
-                if violations |> Array.isEmpty then Valid
+                if allNoMonitoring then Caution
+                elif violations |> Array.isEmpty then Valid
                 elif violations |> Array.forall isFrequency then Warning
                 else Alert
 

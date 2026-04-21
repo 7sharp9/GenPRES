@@ -11,6 +11,7 @@
 #r "../../Informedica.GenSolver.Lib/bin/Debug/net10.0/Informedica.GenSolver.Lib.dll"
 #r "../../Informedica.GenForm.Lib/bin/Debug/net10.0/Informedica.GenForm.Lib.dll"
 #r "../../Informedica.GenOrder.Lib/bin/Debug/net10.0/Informedica.GenOrder.Lib.dll"
+#r "../../Informedica.GenINTERACT.Lib/bin/Debug/net10.0/Informedica.GenINTERACT.Lib.dll"
 #r "../../Informedica.GenPRES.Shared/bin/Debug/net10.0/Informedica.GenPRES.Shared.dll"
 // These can be loaded all at once.
 
