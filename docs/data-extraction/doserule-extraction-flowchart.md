@@ -189,7 +189,7 @@ These items are intentional — the prompt + TSV stay aligned; `Conversion` brid
 4. **`gender`.** Prompt: string (`"male"` / `"female"` / `""`). TSV: same string. `DoseRuleData.Gender` is the F# `Gender` discriminated union (`Male` / `Female` / `AnyGender`). Conversion uses `Gender.fromString` / `Gender.toString`.
 5. **`Products : Product[]`.** Field on `DoseRuleData` with no prompt or TSV counterpart. Initialized empty by `Conversion.toDoseRuleDataOne` and populated downstream (out of extraction scope).
 6. **`freqs` precision.** JSON int array → in-memory `BigRational array` → `;`-delimited string in TSV. No precision loss for the integer frequencies the prompt emits.
-7. **TSV header layout.** First **51** active columns (prompt §1 informally calls it "50-column"). Header is followed by an empty tab, a duplicate trailing block of columns 10–51 (`Dep` through `MaxRateAdj`), and a final `unique` column. The trailing block is a legacy artifact and is not consumed by the current parser.
+7. **TSV header layout.** First **51** active columns. Header is followed by an empty tab, a duplicate trailing block of columns 10–51 (`Dep` through `MaxRateAdj`), and a final `unique` column. The trailing block is a legacy artifact and is not consumed by the current parser.
 
 ## 8. References
 
