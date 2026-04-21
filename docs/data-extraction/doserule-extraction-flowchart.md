@@ -29,7 +29,7 @@ flowchart TD
     B -- single --> D[1 rules entry]
     C --> E
     D --> E{Split by dose type / phase}
-    E -- N phases<br/>start, maintenance, taper, load… --> F[N doseTypes entries]
+    E -- "N phases (start, maintenance, taper, load…)" --> F[N doseTypes entries]
     E -- single --> G[1 doseTypes entry]
     F --> H
     G --> H{Dose limit granularity?<br/>uniform per doseType<br/>no mixing}
