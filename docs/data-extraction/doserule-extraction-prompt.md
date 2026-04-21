@@ -103,9 +103,9 @@ One rule = one patient group. If the paragraph describes disjoint patient groups
 | `min/maxRateAdj` | `doseUnit / adjustUnit / rateUnit` |
 
 - Never invent bounds. Single value (`50 mg/kg/dag`) → fill one side, partner `null`.
-- `max 4 g/dag` → Max*. `min X` → Min*.
-- Range (`10-15 mg/kg/dosis`) → both Min* and Max*.
-- Unlabelled single value (recommendation) → Min* only, Max* `null`.
+- `max 4 g/dag` → `Max*`. `min X` → `Min*`.
+- Range (`10-15 mg/kg/dosis`) → both `Min*` and `Max*`.
+- Unlabelled single value (recommendation) → `Min*` only, `Max*` `null`.
 
 ## 5. Splitting rules
 
