@@ -247,8 +247,17 @@ module GenPres =
                         | _ -> false
                     )
 
+                let hasCaution =
+                    form.DoseCheck
+                    |> Array.exists (
+                        function
+                        | Caution _ -> true
+                        | _ -> false
+                    )
+
                 if hasAlert then Some "#fdeded"
                 elif hasWarning then Some "#fff4e5"
+                elif hasCaution then Some "#e5f6fd"
                 else None
             | _ -> None
 

@@ -681,14 +681,30 @@ module DoseCheckTests =
                     result[0] |> ctorName |> Expect.equal "Valid" "Valid"
                 }
 
-                test "only 'geen doseer bewaking' sentinel → Valid (P1 regression fix)" {
+                test "only 'geen doseer bewaking' sentinel → Caution (blue info)" {
                     let sentinel = "geen doseer bewaking gevonden voor paracetamol"
 
                     let result = [| sentinel |] |> DoseCheck.build parseTextItem true
 
                     result
-                    |> Array.forall (fun tb -> ctorName tb = "Valid")
-                    |> Expect.isTrue "sentinel must not be Alert (red)"
+                    |> Array.forall (fun tb -> ctorName tb = "Caution")
+                    |> Expect.isTrue "sentinel signals 'no rules to check', must be Caution not Valid"
+                }
+
+                test "multiple 'geen doseer bewaking' sentinels → all Caution" {
+                    let lines =
+                        [|
+                            "geen doseer bewaking gevonden voor aciclovir"
+                            "geen doseer bewaking gevonden voor paracetamol"
+                        |]
+
+                    let result = lines |> DoseCheck.build parseTextItem false
+
+                    result.Length |> Expect.equal "two blocks" 2
+
+                    result
+                    |> Array.forall (fun tb -> ctorName tb = "Caution")
+                    |> Expect.isTrue "both Caution"
                 }
 
                 test "only frequency inconsistencies → Warning" {

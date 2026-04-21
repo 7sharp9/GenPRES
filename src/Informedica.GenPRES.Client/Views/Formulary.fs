@@ -235,6 +235,15 @@ module Formulary =
                 | _ -> false
             )
 
+        let isAllCaution (blocks: TextBlock[]) =
+            (blocks |> Array.isEmpty |> not)
+            && blocks
+               |> Array.forall (
+                   function
+                   | Caution _ -> true
+                   | _ -> false
+               )
+
         let renderDoseCheck (form: Formulary) =
             if form.DoseCheck |> Array.isEmpty then
                 null |> toReact
@@ -250,6 +259,21 @@ module Formulary =
                             Doseer controle volgens de G-Standaard
                         </Typography>
                         <Alert severity="success" sx={doseCheckAlertSx}>{text}</Alert>
+                    </Box>
+                    """
+                |> toReact
+            elif form.DoseCheck |> isAllCaution then
+                let text = form.DoseCheck |> Array.map textOf |> String.concat " "
+
+                JSX.jsx
+                    $"""
+                    import Alert from '@mui/material/Alert';
+
+                    <Box>
+                        <Typography sx={doseCheckHeadingSx}>
+                            Doseer controle volgens de G-Standaard
+                        </Typography>
+                        <Alert severity="info" sx={doseCheckAlertSx}>{text}</Alert>
                     </Box>
                     """
                 |> toReact
