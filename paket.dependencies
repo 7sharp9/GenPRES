@@ -2,16 +2,16 @@ source https://api.nuget.org/v3/index.json
 framework: net10.0
 storage: none
 
-nuget FSharpPlus 1.7.0
+nuget FSharpPlus 1.9.1
 
 nuget Fable.Core 5.0.0
 nuget Fable.Remoting.Client
 nuget Fable.Remoting.Giraffe
 nuget Fable.Browser.DOM
 nuget Fable.Elmish
-nuget Fable.Elmish.React 5.5.0-beta-1
+nuget Fable.Elmish.React 5.6.0
 nuget Fable.Elmish.Debugger
-nuget Fable.Elmish.HMR 9.0.0-beta.1
+nuget Fable.Elmish.HMR 9.0.0
 nuget Fable.React.UseElmish
 nuget Fable.Mocha
 nuget Fable.SimpleHttp
@@ -19,7 +19,7 @@ nuget Fable.SimpleHttp
 nuget Feliz.UseElmish
 nuget Feliz ~> 3
 nuget Feliz.Markdown 3.1.0
-nuget NJsonSchema 11.6.0
+nuget NJsonSchema 11.6.1
 
 nuget Saturn ~> 0
 // Fable.Remoting.Giraffe 6.1.0 recompiled against the task-based
@@ -28,18 +28,18 @@ nuget Saturn ~> 0
 // Update — 2026-04-18 section of docs/security/2026-04-10-security-review.md.
 nuget Giraffe
 
-nuget Fake.Core.Target 6.1.3
-nuget Fake.IO.FileSystem 6.1.3
+nuget Fake.Core.Target 6.1.4
+nuget Fake.IO.FileSystem 6.1.4
 
 nuget FSharp.Data
 nuget HtmlAgilityPack 1.12.4
 nuget FParsec
 nuget FsToolkit.ErrorHandling 5.2.0
 nuget MathNet.Numerics.FSharp
-nuget Microsoft.Net.Test.Sdk 18.3.0
+nuget Microsoft.Net.Test.Sdk 18.4.0
 nuget Validus
 nuget YoloDev.Expecto.TestSdk 0.15.5
-nuget Markdig 0.42.0
+nuget Markdig 1.1.3
 nuget Aether
 nuget ConsoleTables
 nuget IcedTasks 0.11.9
