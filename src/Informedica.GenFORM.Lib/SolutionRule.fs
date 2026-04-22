@@ -293,7 +293,7 @@ module SolutionRule =
                 |> ValueUnit.getValue
                 |> Array.item 0
                 |> BigRational.toDouble
-                |> fun x -> $"{100. / x}"
+                |> fun x -> $"{x * 100.}"
 
             let p =
                 match sr.DosePerc.Min, sr.DosePerc.Max with
@@ -486,23 +486,41 @@ module SolutionRule =
                                                 match rs |> Array.tryHead with
                                                 | None -> [||]
                                                 | Some r ->
-                                                    let parts =
+                                                    // Group limits by their substance/component target so that
+                                                    // concentratie lines stay adjacent to the heads they describe.
+                                                    // Within a single-target group the concentratie is de-duplicated
+                                                    // (same substance + same conc across different qty ranges).
+                                                    let targetBlocks =
                                                         r.SolutionLimits
-                                                        |> Array.map (printSolutionLimit r includeSubstanceName)
+                                                        |> Array.groupBy _.SolutionLimitTarget
+                                                        |> Array.collect (fun (_, limits) ->
+                                                            let parts =
+                                                                limits
+                                                                |> Array.map (
+                                                                    printSolutionLimit r includeSubstanceName
+                                                                )
 
-                                                    let heads = parts |> Array.map _.head |> String.concat ""
+                                                            let heads =
+                                                                parts |> Array.map _.head |> String.concat ""
 
-                                                    let concBlock =
-                                                        parts
-                                                        |> Array.map _.conc
-                                                        |> Array.filter (String.isNullOrWhiteSpace >> not)
-                                                        |> Array.distinct
-                                                        |> String.concat "\n"
+                                                            let concBlock =
+                                                                parts
+                                                                |> Array.map _.conc
+                                                                |> Array.filter (String.isNullOrWhiteSpace >> not)
+                                                                |> Array.distinct
+                                                                |> String.concat "\n"
+
+                                                            [| heads; concBlock |]
+                                                            |> Array.filter (String.isNullOrWhiteSpace >> not)
+                                                        )
 
                                                     let dosePercBlock = printDosePerc r
 
-                                                    [| heads; concBlock; dosePercBlock |]
-                                                    |> Array.filter (String.isNullOrWhiteSpace >> not)
+                                                    [|
+                                                        yield! targetBlocks
+                                                        if dosePercBlock |> String.isNullOrWhiteSpace |> not then
+                                                            yield dosePercBlock
+                                                    |]
                                             )
                                             |> String.concat "\n"
 
