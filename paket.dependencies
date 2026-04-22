@@ -4,7 +4,7 @@ storage: none
 
 nuget FSharpPlus 1.7.0
 
-nuget Fable.Core 5.0.0-rc.1
+nuget Fable.Core 5.0.0
 nuget Fable.Remoting.Client
 nuget Fable.Remoting.Giraffe
 nuget Fable.Browser.DOM
@@ -50,4 +50,3 @@ nuget Expecto.FsCheck
 
 nuget ModelContextProtocol 1.2.0
 nuget Microsoft.Extensions.Hosting
-
