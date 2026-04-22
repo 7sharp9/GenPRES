@@ -283,8 +283,40 @@ module SolutionRule =
             |> ValueUnit.toStringDecimalDutchShortWithPrec 2
 
 
-        /// Get the string representation of a SolutionLimit.
-        let printSolutionLimit (sr: SolutionRule) (limit: SolutionLimit) =
+        /// Format the rule-wide "geef X% van de bereiding" line from the
+        /// DosePerc bounds on the rule. Returns an empty string when no bounds
+        /// are set.
+        let printDosePerc (sr: SolutionRule) =
+            let toPerc l =
+                l
+                |> Limit.getValueUnit
+                |> ValueUnit.getValue
+                |> Array.item 0
+                |> BigRational.toDouble
+                |> fun x -> $"{x * 100.}"
+
+            let p =
+                match sr.DosePerc.Min, sr.DosePerc.Max with
+                | None, None -> ""
+                | Some l, None -> $"min. {l |> toPerc}"
+                | None, Some l -> $"max. {l |> toPerc}"
+                | Some min, Some max ->
+                    if min = max then
+                        $"{min |> toPerc}"
+                    else
+                        $"{min |> toPerc} - {max |> toPerc}"
+
+            if p |> String.isNullOrWhiteSpace then
+                ""
+            else
+                $"* geef %s{p}%% van de bereiding"
+
+
+        /// Split a SolutionLimit into its display parts so callers can de-duplicate
+        /// trailing lines that are identical across multiple limits of the same rule.
+        /// `includeSubstanceName = false` suppresses the inline substance prefix
+        /// (used when the substance is rendered as a separate heading).
+        let printSolutionLimit (sr: SolutionRule) (includeSubstanceName: bool) (limit: SolutionLimit) =
             let mmToStr = MinMax.toString "min. " "min. " "max. " "max. "
 
             let loc =
@@ -325,39 +357,22 @@ module SolutionRule =
                             else
                                 $" in {s} {sols}"
 
+            let substancePrefix =
+                if includeSubstanceName then
+                    $"{limit.SolutionLimitTarget |> LimitTarget.toString}: "
+                else
+                    ""
+
             let conc =
                 if limit.Concentration |> mmToStr |> String.isNullOrWhiteSpace then
                     ""
                 else
                     $"* concentratie: {limit.Concentration |> mmToStr}"
 
-            let dosePerc =
-                let toPerc l =
-                    l
-                    |> Limit.getValueUnit
-                    |> ValueUnit.getValue
-                    |> Array.item 0
-                    |> BigRational.toDouble
-                    |> fun x -> $"{x * 100.}"
-
-                let p =
-                    match sr.DosePerc.Min, sr.DosePerc.Max with
-                    | None, None -> ""
-                    | Some l, None -> $"min. {l |> toPerc}"
-                    | None, Some l -> $"max. {l |> toPerc}"
-                    | Some min, Some max ->
-                        if min = max then
-                            $"{min |> toPerc}"
-                        else
-                            $"{min |> toPerc} - {max |> toPerc}"
-
-
-                if p |> String.isNullOrWhiteSpace then
-                    ""
-                else
-                    $"* geef %s{p}%% van de bereiding"
-
-            $"\n{loc}{limit.SolutionLimitTarget |> LimitTarget.toString}: {q}{qs}{vol}\n{conc}\n{dosePerc}"
+            {|
+                head = $"\n{loc}{substancePrefix}{q}{qs}{vol}"
+                conc = conc
+            |}
 
 
         /// Get the markdown representation of the given SolutionRules.
@@ -373,6 +388,8 @@ module SolutionRule =
                     | _ -> dep
 
                 $"\n### Afdeling: %s{dep}\n"
+
+            let substance_md substance = $"\n## %s{substance}\n"
 
             let pat_md pat = $"\n##### %s{pat}\n"
 
@@ -426,8 +443,25 @@ module SolutionRule =
                         ||> Array.fold (fun acc (dep, rs) ->
                             let dep = dep |> Option.defaultValue ""
 
+                            let distinctSubstances =
+                                rs
+                                |> Array.collect _.SolutionLimits
+                                |> Array.map _.SolutionLimitTarget
+                                |> Array.distinct
+
+                            let substanceHeading, includeSubstanceName =
+                                if distinctSubstances.Length = 1 then
+                                    let name = distinctSubstances[0] |> LimitTarget.toString
+
+                                    if name |> String.isNullOrWhiteSpace then
+                                        "", true
+                                    else
+                                        substance_md name, false
+                                else
+                                    "", true
+
                             {| acc with
-                                md = acc.md + (department_md dep)
+                                md = acc.md + department_md dep + substanceHeading
                                 rules = rs
                             |}
                             |> fun r ->
@@ -449,11 +483,44 @@ module SolutionRule =
                                             rs
                                             |> Array.groupBy _.PatientCategory.Access
                                             |> Array.collect (fun (_, rs) ->
-                                                rs
-                                                |> Array.tryHead
-                                                |> function
-                                                    | None -> [||]
-                                                    | Some r -> r.SolutionLimits |> Array.map (printSolutionLimit r)
+                                                match rs |> Array.tryHead with
+                                                | None -> [||]
+                                                | Some r ->
+                                                    // Group limits by their substance/component target so that
+                                                    // concentratie lines stay adjacent to the heads they describe.
+                                                    // Within a single-target group the concentratie is de-duplicated
+                                                    // (same substance + same conc across different qty ranges).
+                                                    let targetBlocks =
+                                                        r.SolutionLimits
+                                                        |> Array.groupBy _.SolutionLimitTarget
+                                                        |> Array.collect (fun (_, limits) ->
+                                                            let parts =
+                                                                limits
+                                                                |> Array.map (
+                                                                    printSolutionLimit r includeSubstanceName
+                                                                )
+
+                                                            let heads =
+                                                                parts |> Array.map _.head |> String.concat ""
+
+                                                            let concBlock =
+                                                                parts
+                                                                |> Array.map _.conc
+                                                                |> Array.filter (String.isNullOrWhiteSpace >> not)
+                                                                |> Array.distinct
+                                                                |> String.concat "\n"
+
+                                                            [| heads; concBlock |]
+                                                            |> Array.filter (String.isNullOrWhiteSpace >> not)
+                                                        )
+
+                                                    let dosePercBlock = printDosePerc r
+
+                                                    [|
+                                                        yield! targetBlocks
+                                                        if dosePercBlock |> String.isNullOrWhiteSpace |> not then
+                                                            yield dosePercBlock
+                                                    |]
                                             )
                                             |> String.concat "\n"
 
@@ -482,17 +549,18 @@ module SolutionRule =
                                             let s = sel.DoseType |> DoseType.toDescription
                                             if s |> String.isNullOrWhiteSpace then "" else $"{s}"
 
+                                        let header =
+                                            [ dt; pat; dose ]
+                                            |> List.filter (String.isNullOrWhiteSpace >> not)
+                                            |> String.concat ", "
 
                                         {| acc with
                                             rules = rs
                                             md =
-                                                if
-                                                    pat |> String.isNullOrWhiteSpace
-                                                    && dose |> String.isNullOrWhiteSpace
-                                                then
-                                                    acc.md + $"##### {dt}"
-                                                else
-                                                    acc.md + pat_md $"{dt}, {pat}{dose}"
+                                                (if header |> String.isNullOrWhiteSpace then
+                                                     acc.md
+                                                 else
+                                                     acc.md + pat_md header)
                                                 |> fun s -> $"{s}\n{sol}"
                                         |}
                                     )
