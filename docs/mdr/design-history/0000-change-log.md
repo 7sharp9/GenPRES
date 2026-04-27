@@ -22,6 +22,7 @@ Maintain this document as a reverse-chronological log of significant design chan
 
 | Date | ADR | Summary |
 |------|-----|---------|
+| 2026-04-27 | [ADR-0019](0019-shared-clinical-calculations.md) | Shared library clinical calculations proposed; BSA, age, and renal eGFR formulas available to both server and client |
 | 2026-04-11 | [ADR-0015](0015-security-baseline.md) | Security baseline for the public demo accepted; references the 2026-04-10 security review |
 | 2026-03-28 | [ADR-0009](0009-mcp-server-architecture.md) | MCP server architecture proposed |
 | 2026-03-25 | [ADR-0007](0007-clean-safe-architecture.md) | Clean SAFE architecture accepted (all 4 phases complete) |
