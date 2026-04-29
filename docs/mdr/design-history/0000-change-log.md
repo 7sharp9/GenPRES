@@ -22,6 +22,7 @@ Maintain this document as a reverse-chronological log of significant design chan
 
 | Date | ADR | Summary |
 |------|-----|---------|
+| 2026-04-27 | [ADR-0019](0019-shared-clinical-calculations.md) | Shared library clinical calculations proposed; BSA, age, and renal eGFR formulas available to both server and client |
 | 2026-04-26 | [ADR-0018](0018-nlp-dose-rule-extraction.md) | LLM-based dose-rule extraction pipeline proposed; multi-stage FSX pipeline with human review gate |
 | 2026-04-25 | [ADR-0017](0017-lru-solver-memoisation.md) | Session-level LRU memoisation for constraint solver — W2 solver optimisation |
 | 2026-04-17 | [ADR-0016](0016-gstand-dose-rule-fallback.md) | G-Standard dose rule fallback for missing adult rules |
