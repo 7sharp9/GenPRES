@@ -23,6 +23,8 @@ Maintain this document as a reverse-chronological log of significant design chan
 | Date | ADR | Summary |
 |------|-----|---------|
 | 2026-04-26 | [ADR-0018](0018-nlp-dose-rule-extraction.md) | LLM-based dose-rule extraction pipeline proposed; multi-stage FSX pipeline with human review gate |
+| 2026-04-25 | [ADR-0017](0017-lru-solver-memoisation.md) | Session-level LRU memoisation for constraint solver — W2 solver optimisation |
+| 2026-04-17 | [ADR-0016](0016-gstand-dose-rule-fallback.md) | G-Standard dose rule fallback for missing adult rules |
 | 2026-04-07 | [ADR-0014](0014-staged-value-expansion-timed-orders.md) | Staged value expansion to prevent value explosion in the constraint solver proposed |
 | 2026-03-29 | [ADR-0013](0013-adr-template-based-navigation.md) | Template-based navigation to prescribe view accepted |
 | 2026-04-11 | [ADR-0015](0015-security-baseline.md) | Security baseline for the public demo accepted; references the 2026-04-10 security review |
