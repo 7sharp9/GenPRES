@@ -23,7 +23,12 @@ Maintain this document as a reverse-chronological log of significant design chan
 | Date | ADR | Summary |
 |------|-----|---------|
 | 2026-04-27 | [ADR-0019](0019-shared-clinical-calculations.md) | Shared library clinical calculations proposed; BSA, age, and renal eGFR formulas available to both server and client |
+| 2026-04-26 | [ADR-0018](0018-nlp-dose-rule-extraction.md) | LLM-based dose-rule extraction pipeline proposed; multi-stage FSX pipeline with human review gate |
+| 2026-04-25 | [ADR-0017](0017-lru-solver-memoisation.md) | Session-level LRU memoisation for constraint solver — W2 solver optimisation |
+| 2026-04-17 | [ADR-0016](0016-gstand-dose-rule-fallback.md) | G-Standard dose rule fallback for missing adult rules |
 | 2026-04-11 | [ADR-0015](0015-security-baseline.md) | Security baseline for the public demo accepted; references the 2026-04-10 security review |
+| 2026-04-07 | [ADR-0014](0014-staged-value-expansion-timed-orders.md) | Staged value expansion to prevent value explosion in the constraint solver proposed |
+| 2026-03-29 | [ADR-0013](0013-adr-template-based-navigation.md) | Template-based navigation to prescribe view accepted |
 | 2026-03-28 | [ADR-0009](0009-mcp-server-architecture.md) | MCP server architecture proposed |
 | 2026-03-25 | [ADR-0007](0007-clean-safe-architecture.md) | Clean SAFE architecture accepted (all 4 phases complete) |
 | 2025-12-21 | [ADR-0012](0012-resource-verification.md) | Resource requirements verified against GenFORM implementation |
