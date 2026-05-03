@@ -83,19 +83,19 @@ Source: ~740 lines of test code
 | KDIGO classification | `Normal` through `KidneyFailure` GFR stages |
 | Age calculations | Post-menstrual age, adjusted age, chronological age in days |
 
-### 4.6 Server / Security (`Informedica.GenPRES.Server.Tests`)
+### 4.6 Server (`Informedica.GenPRES.Server.Tests`)
 
 | Test Category | Description |
 |---|---|
-| JSON security | `JsonSecurity` sub-module — verifies `TypeNameHandling.None` default is not reverted |
-| Authentication | Token-based login/logout, constant-time password comparison |
-| Endpoint smoke tests | Key server endpoints respond correctly under `CI=true` |
+| Resource loading | Spreadsheet/cache-backed resource loading for server-facing medication data |
+| Caching | Local resource cache behavior used by server resource tests |
+| Adapters | Adapter and integration-layer tests around server resource access |
 
 ### 4.7 Other Libraries
 
 | Library | Coverage Highlights |
 |---------|---------------------|
-| `Informedica.Utils.Tests` | FsCheck property tests for Array, List, String utilities |
+| `Informedica.Utils.Tests` | FsCheck property tests for Array, List, String utilities, plus `JsonSecurity` regression tests verifying unsafe JSON `TypeNameHandling` settings are not reintroduced |
 | `Informedica.GenCORE.Tests` | Domain-model invariants with custom FsCheck generators |
 | `Informedica.ZIndex.Tests` | G-Standard fixture loading, product and route lookups |
 | `Informedica.ZForm.Tests` | ZForm dose-rule parsing and GStand integration |
