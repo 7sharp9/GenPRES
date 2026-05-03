@@ -168,9 +168,11 @@ current scale. Deferred to future work.
   batch at the knee-point capacity (512 entries).
 - **No API change**: the `SessionSolver` wraps the existing `Solver.solveAll`
   transparently; callers do not need to change.
-- **Correctness guarantees**: eight FsCheck property tests
+- **Correctness guarantees**: five canonical-key invariant property tests
   (`CanonKeyInvariant.fsx`) verify the rename-invariance and no-collision
-  invariants that the cache correctness depends on.
+  invariants that the cache correctness depends on, plus three cache-behaviour
+  property tests (`LRUCacheProps.fsx`) verify eviction, capacity, and hit-rate
+  invariants.
 - **Observability**: `Hits` / `Misses` counters on the cache enable hit-rate
   monitoring in production logs.
 

@@ -64,8 +64,8 @@ Calculations
 ├── BSA                  — Mosteller, Du Bois, Haycock, Gehan & George, Fujimoto
 ├── Age                  — PMA, corrected age, chronological age in days
 ├── RenalConversions     — creatinine and urea unit conversions
-├── Renal                — CKD-EPI 2021, CKD-EPI 2009, MDRD, Bedside Schwartz
-└── RenalClassification  — KDIGO 2012 GFR category classification
+├── EGfr                 — CKD-EPI 2021, CKD-EPI 2009, MDRD, Bedside Schwartz
+└── classifyGfr (top-level function)  — KDIGO 2012 GFR category classification
 ```
 
 ### Type safety via units of measure
@@ -103,7 +103,7 @@ most appropriate one for the clinical context:
 | Function | Description |
 |----------|-------------|
 | `postMenstrualAge` | Gestational weeks + chronological weeks (preterm dosing) |
-| `correctedAge` | Chronological age corrected for degree of prematurity |
+| `adjustedAge` | Chronological age corrected for degree of prematurity |
 | `chronologicalAgeDays` | Days between two DateTimes (Fable: JavaScript Date) |
 
 #### Renal function (eGFR)

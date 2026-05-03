@@ -48,7 +48,8 @@ The integration layer translates between two representations:
 | GenPRES → EHR | `toFhirMedicationRequest`: convert a calculated `GenOrder.OrderScenario` (with orderable quantities applied) back into a FHIR `MedicationRequest`. |
 
 **Key invariant**: a round-trip `fromFhirMedicationRequest (toFhirMedicationRequest scenario)` preserves
-Route, DoseType, Indication, AdminQuantity, Rate, and Frequency.
+Route, Indication, AdminQuantity, Rate, and Frequency. DoseType is preserved
+only when unambiguously inferable from FHIR `Timing` (heuristic; see Risks).
 
 ### Separation of FHIR Context from Dose-Rule Lookup
 
@@ -157,7 +158,7 @@ authentication plumbing not yet needed for the calculation-service use case. Def
 - FHIR R4 specification: <https://hl7.org/fhir/R4/>
 - Firely .NET SDK: <https://docs.fire.ly/projects/Firely-NET-SDK/>
 - Dutch G-Standard / NL FHIR: <https://informatiestandaarden.nictiz.nl/wiki/Landingspagina_Medicatie>
-- IHE Pharmacy profile: <https://www.ihe.net/uploadedFiles/Documents/Pharmacy/>
+- IHE Pharmacy profile: <https://www.ihe.net/resources/technical_frameworks/#pharmacy>
 - [ADR-0007: Clean SAFE Architecture](0007-clean-safe-architecture.md)
 - [ADR-0009: MCP Server Architecture](0009-mcp-server-architecture.md)
 - [ADR-0015: Security Baseline](0015-security-baseline.md)
