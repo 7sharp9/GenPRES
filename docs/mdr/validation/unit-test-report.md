@@ -31,17 +31,14 @@ This report documents the automated unit and property-based test results for Gen
 
 ### 4.1 GenSOLVER (`Informedica.GenSOLVER.Tests`)
 
-Source: ~2 270 lines of test code
+Source: current repository test assets in `tests/Informedica.GenSOLVER.Tests/Tests.fs` and `tests/Informedica.GenSOLVER.Tests/Scripts/Tests.fsx`
 
 | Test Category | Description |
 |---|---|
-| Variable operations | `Variable.fs` — increment, min/max, value range arithmetic |
-| Constraint propagation | `Solver.fs` — equation solving, `solveAll` correctness |
-| Canon-key normalisation | `CanonKey` round-trip symmetry, hash stability (8 unit + 6 property tests) |
-| LRU cache | Capacity, eviction order, thread-safety, O(1) get/put (FsCheck property tests) |
-| LRU solver integration | `SessionSolver` correctness with 6 tests + 50-patient capacity benchmark |
-| Cycle / stall detection | `LoopDetect.fsx` — 9 Expecto tests for `StateFingerprint` and `CycleDetector` |
-| `removeBigRationalMultiples` | Semantics: keeps smallest representatives, removes integer multiples |
+| Variable operations | Regression tests in `Tests.fs` cover core `Variable.fs` behavior such as incrementing, bounds, and range/value manipulation |
+| Constraint propagation | Regression tests in `Tests.fs` exercise solver behavior from `Solver.fs`, including equation solving and `solveAll`-style scenarios |
+| End-to-end solver scenarios | Repository-checked GenSOLVER tests focus on executable solver scenarios in `Tests.fs` rather than separate cache/session helper modules |
+| Script-based verification | `Scripts/Tests.fsx` provides F# Interactive coverage for running and validating GenSOLVER test cases during script-based development |
 
 ### 4.2 GenFORM (`Informedica.GenFORM.Tests`)
 
