@@ -84,7 +84,7 @@ FsCheck-driven tests that verify invariants across randomly generated inputs. Ke
 - `Utils`: generic list and array invariants
 - `GenCORE`: domain-model invariants
 
-The default FsCheck run count is 1 000 per property. Configurations are defined in `Generators.fs` files adjacent to each test suite.
+FsCheck run counts in this repository are configured per suite, commonly 1 000 or 10 000 cases per property depending on the test project. Configurations are defined in `Generators.fs` files adjacent to each test suite.
 
 ### 5.3 Integration / Resource Tests
 
