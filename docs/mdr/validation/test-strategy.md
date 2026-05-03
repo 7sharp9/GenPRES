@@ -88,14 +88,14 @@ FsCheck run counts in this repository are configured per suite, commonly 1 000 o
 
 ### 5.3 Integration / Resource Tests
 
-Tests that exercise the full resource-loading pipeline against locally cached CSV snapshots of the Google Spreadsheet medication data. These tests run inside the server test suite (`GENPRES_DEBUG=1` environment variable enables the local cache path). They cover:
+Tests that exercise the full resource-loading pipeline against locally cached CSV snapshots of the Google Spreadsheet medication data. These tests run inside the server test suite and use the existing cache-selection mechanism for demo versus production data (`GENPRES_PROD`), while `GENPRES_DEBUG` controls debug logging only. They cover:
 
 - Dose-rule parsing from CSV (all products and indications)
 - Solution-rule loading and validation
 - Renal-rule parsing
 - Route and frequency mapping lookup
 
-The `ZIndex` tests additionally exercise the medication fixture loader against locally cached G-Standard data.
+The `ZIndex` tests additionally exercise the medication fixture loader against locally cached G-Standard data, using the same demo-versus-production cache selection mechanism.
 
 ### 5.4 Security Regression Tests
 
