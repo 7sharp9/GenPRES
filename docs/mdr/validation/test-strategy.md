@@ -34,7 +34,7 @@ actual
 |> Expect.equal $"should equal {expected}" expected
 ```
 
-Property-based tests use FsCheck generators with custom `BigRational` and domain-type arbitraries configured in `Generators.fs` files. The standard FsCheck configuration runs 1 000 test cases per property.
+Property-based tests use FsCheck generators with custom `BigRational` and domain-type arbitraries configured in project-specific `Generators.fs` files. The number of test cases per property is configured per test project via `maxTest` rather than using a single repository-wide default; current projects use values such as 1 000 and 10 000 cases per property.
 
 ## 4. Test Projects
 
