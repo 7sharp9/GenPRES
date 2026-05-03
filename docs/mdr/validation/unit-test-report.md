@@ -14,7 +14,7 @@ This report documents the automated unit and property-based test results for Gen
 | Test runner | Expecto ~> 10 with YoloDev.Expecto.TestSdk 0.15.5 |
 | Property tests | FsCheck (via Expecto.FsCheck), 1 000 cases/property |
 | CI platforms | Ubuntu, Windows, macOS (GitHub Actions `build.yml`) |
-| Environment variable | `GENPRES_DEBUG=1` (enables local resource cache for resource tests) |
+| Environment variable | `GENPRES_DEBUG=1` (enables debug logging when set; not used for resource cache selection) |
 | Fantomas format gate | Required to pass before tests run |
 
 ## 3. Pass/Fail Status
