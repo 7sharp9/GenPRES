@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Docs (MDR)**: Fix document inaccuracies raised in PR reviews — correct six factual errors identified by automated reviewers across ADR-0017, ADR-0019, ADR-0020, and the unit-test report: ADR-0017 corrects the canonical-key property count; ADR-0019 uses accurate module and function names matching the implementation; ADR-0020 fixes the `DoseType` invariant description and corrects the IHE URL; unit-test-report fixes a section heading and removes a stale reference to `pickNearestHigherElseLower` (PR #337)
 - **GenFORM**: Improve solution rule printing — fix multi-substance ambiguity in parenteralia printing, revert an incorrect percentage-printing change, and guard against divide-by-zero errors in solution rule display; `SolutionRule.fs` refactored for cleaner print formatting (PR #325)
 - **Server**: Close mid-stream silent-swallow gap in `safeWebApi` — the exception handler now logs the ABI fault unconditionally (stderr + structured logger when `GENPRES_LOG` is set) even after `Response.HasStarted`, so mid-stream exceptions no longer disappear silently; status-code rewrite is still skipped when the response has started (cannot rewrite headers) but the caller at least gets a log entry
 - **Client (UI)**: Fix token-based auth replacing plaintext password storage — logout now properly clears token and authentication state; concurrent admin requests guarded by `InProgress` state (PR #288)
