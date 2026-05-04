@@ -63,7 +63,7 @@ Source: ~1 160 lines of test code + `Scenarios.fs`
 | TPN calculation | Total parenteral nutrition order composition |
 | Staged value expansion | Two-phase `skipRate` expansion for `OnceTimed`/`Timed` orders |
 
-### 4.4 GenUNITS (`Informedica.GenUNITS.Lib`)
+### 4.4 GenUNITS (`Informedica.GenUNITS.Tests`)
 
 Source: ~740 lines of test code
 
@@ -71,7 +71,7 @@ Source: ~740 lines of test code
 |---|---|
 | Unit arithmetic | Addition, subtraction, multiplication, division with unit tracking |
 | BigRational conversion | `toBigRational`, `fromFloat`, precision tests |
-| `ValueUnit` operations | `singleWithUnit`, `withUnit`, base/unit conversions, `pickNearestHigherElseLower` |
+| `ValueUnit` operations | `singleWithUnit`, `withUnit`, base/unit conversions |
 | Unit group compatibility | `eqsGroup` checks for incompatible unit combinations |
 
 ### 4.5 Shared (`Informedica.GenPRES.Shared.Tests`)
