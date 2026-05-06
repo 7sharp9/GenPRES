@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docs**: Update ROADMAP — correct ADR count to 0000–0020 (ADR-0020 FHIR R4 EHR integration merged in PR #332) and note that the W7 FHIR/HL7 Integration design milestone is documented (PR #339)
+
 - **Docs (MDR/Validation)**: Replace placeholder validation documents with substantive content — `docs/mdr/validation/test-strategy.md` documents the full test strategy (Expecto/FsCheck framework, 20 test projects, CI matrix across Ubuntu/Windows/macOS, unit/property/integration/security test types, coverage goals, known gaps); `docs/mdr/validation/unit-test-report.md` documents the per-module test coverage baseline (≥ 5 408 tests passing as of May 2026, including GenSOLVER canon-key/LRU/cycle-detection tests, GenFORM 131+ patient scenario tests, GenORDER pipeline scenarios, Shared BSA/eGFR/age formula tests, and JSON security regression tests)
 
 - **Docs (MDR)**: Add ADR-0020 — `docs/mdr/design-history/0020-fhir-r4-integration.md` documents the FHIR R4 EHR integration design: stateless GenPRES/FHIR-persistent EHR architecture, bidirectional `MedicationRequest` translation (11 concrete `FhirScenario` records matching interface spec §6.1–6.11), Dutch G-Standard GPK coding (`urn:oid:2.16.840.1.113883.2.4.4.7`), Firely .NET SDK (`Hl7.Fhir.R4`) for type-safe model access, and scripts-first approach via `ImplementationPlan.fsx` / `FhirExpectoTests.fsx`; considered alternatives include HL7 v2, proprietary REST, FHIR R5, and FHIR server proxy (PR #332)
