@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docs (MDR/Requirements)**: Update `software-requirements.md` to v1.1 (May 2026) — corrects stale .NET 8 reference to .NET 10; moves FHIR R4 from "Future Enhancements" to the Integration section (designed in ADR-0020); promotes MCP stdio server and NLP dose-rule extraction pipeline from "future" to implemented; expands security section to reflect ADR-0015 baseline controls (CSP, HSTS, constant-time auth, production password policy, `TypeNameHandling` fix); adds G-Standard fallback (ADR-0016) and shared clinical calculations (ADR-0019) to functional requirements
+
 - **Docs (MDR/Validation)**: Replace placeholder validation documents — `docs/mdr/validation/integration-test-report.md` now documents the 32-test integration test suite in `Informedica.GenPRES.Server.Tests`: resource loading pipeline (error propagation, caching, reload), server command dispatch (stub-adapter command routing for 5 command types, error propagation, `requireLoaded` guard), and dose-check severity classification (Valid/Caution/Warning/Alert logic); includes coverage-gap analysis and remediation plan; `docs/mdr/validation/usability-validation-report.md` now documents the IEC 62366-1 usability validation framework with user profile (3 primary groups), 7 critical tasks with patient-safety rationale, summative test plan (≥ 10 participants, ≥ 90% success criterion), formative changes delivered to date, and pending execution status for formal validation
 
 - **Docs**: Update ROADMAP — correct ADR count to 0000–0020 (ADR-0020 FHIR R4 EHR integration merged in PR #332) and note that the W7 FHIR/HL7 Integration design milestone is documented (PR #339)
