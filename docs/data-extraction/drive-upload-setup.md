@@ -1,6 +1,6 @@
-# Google Drive upload setup for `ftk_extract.fsx`
+# Google Drive upload setup for the FTK extraction pipeline
 
-The `FTK_EXTRACT_UPLOAD=1` gate in `src/Informedica.NLP.Lib/Scratch/ftk_extract.fsx` uploads the Pass-1 TSV to Google Drive and converts it server-side to a Google Sheet at `My Drive/GenPRES/data/extraction/ftk_extract_pass1_<UTC>`. This runbook documents the one-time setup that gets that working from a personal `@gmail.com` account.
+The FTK extraction FSI script exposes a `FTK_EXTRACT_UPLOAD=1` gate that uploads the Pass-1 TSV to Google Drive and converts it server-side to a Google Sheet at `My Drive/GenPRES/data/extraction/ftk_extract_pass1_<UTC>`. This runbook documents the one-time setup that gets that working from a personal `@gmail.com` account.
 
 The script authenticates via Application Default Credentials (`GoogleCredential.GetApplicationDefault()`), which natively honours both gcloud user creds and a service-account JSON. On a personal Gmail account, the only path that actually *uploads* (not just creates folders) is gcloud user creds backed by a **custom OAuth client** — see "Why not a service account?" below for the reasoning.
 
@@ -39,7 +39,7 @@ In the Cloud Console: **APIs & Services → OAuth consent screen**.
   Sheets scope off — Drive is enough; converting TSV → Sheet happens via the Drive
   API's `mimeType = application/vnd.google-apps.spreadsheet` flag, not via the
   Sheets API.)
-- **Test users** step: add **your own Gmail address** (e.g. `halcwb@gmail.com`).
+- **Test users** step: add **your own Gmail address**.
   In `Testing` publishing status, only listed test users can sign in. Skipping
   this gives `Error 403: access_denied — App has not completed Google
   verification` on login.
@@ -99,7 +99,7 @@ unset. To delete the SA itself: `gcloud iam service-accounts delete
 
 ### 6. (First run only) clean up any service-account-owned folders
 
-If a prior `ftk_extract.fsx` run with a service account succeeded at the
+If a prior pipeline run with a service account succeeded at the
 folder-creation step but failed at file upload (the SA-quota error), you'll
 have orphan `GenPRES/data/extraction` folders on Drive owned by the SA, not
 you. They'll show under **Shared with me** rather than **My Drive**. Trash
@@ -107,9 +107,10 @@ them so the next run creates them fresh under your own ownership.
 
 ## Smoke test
 
+Run from the directory containing the extraction script:
+
 ```sh
-cd src/Informedica.NLP.Lib/Scratch
-FTK_EXTRACT_RUN=1 FTK_EXTRACT_UPLOAD=1 dotnet fsi ftk_extract.fsx
+FTK_EXTRACT_RUN=1 FTK_EXTRACT_UPLOAD=1 dotnet fsi ftk_extract_v2.fsx
 ```
 
 Expected tail:
@@ -166,7 +167,6 @@ warning.
 
 ## Reference
 
-- Script: [`src/Informedica.NLP.Lib/Scratch/ftk_extract.fsx`](../../src/Informedica.NLP.Lib/Scratch/ftk_extract.fsx)
-- Pipeline doc: [`doserule-extraction-flowchart.md`](doserule-extraction-flowchart.md) §5.1
+- Pipeline doc: [`doserule-extraction-flowchart.md`](doserule-extraction-flowchart.md)
 - Drive API folder model: <https://developers.google.com/drive/api/guides/folder>
 - TSV → Sheet conversion via metadata `mimeType`: <https://developers.google.com/drive/api/reference/rest/v3/files/create>

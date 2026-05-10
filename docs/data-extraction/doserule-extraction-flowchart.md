@@ -4,7 +4,7 @@
 
 Per-generic FTK XML → `DoseRuleData` TSV via three sequential **NuExtract Online** passes plus a fourth **pure post-processing** pass, with a **human validation/edit checkpoint** after each pass. Each pass writes a TSV (and optionally uploads it as a Google Sheet); the user edits the file, and the next pass reads the edited version. Pass 3 is the terminal LLM-driven pass and emits the canonical TSV with structured PC, Component / Substance, and DoseLimit columns filled. Pass 4 is a deterministic post-processing pass that fills the `Id` / `GrpId` / `SortNo` columns from a stable hash of the canonical key fields — no NuExtract spend.
 
-The whole pipeline lives in `src/Informedica.NLP.Lib/Scratch/ftk_extract_v2.fsx` — single self-contained script with all phase modules, NuExtract HTTP plumbing, Drive helpers, the FTK XML reader / decomposer, and the TSV writer. NuExtract 2.0's `verbatim-string` typing keeps Dutch source text intact across the round-trip; raw FTK XML is fed directly to NuExtract (no curation in front).
+The whole pipeline is implemented as a single self-contained FSI script (`ftk_extract_v2.fsx`) that bundles all phase modules, NuExtract HTTP plumbing, Drive helpers, the FTK XML reader / decomposer, and the TSV writer. NuExtract 2.0's `verbatim-string` typing keeps Dutch source text intact across the round-trip; raw FTK XML is fed directly to NuExtract (no curation in front).
 
 ### Pipeline at a glance
 
@@ -234,7 +234,7 @@ flowchart TD
 
 ## 6. Pass schemas
 
-Every pass calls NuExtract Online via the shared HTTP plumbing in `module NuExtract` of `src/Informedica.NLP.Lib/Scratch/ftk_extract_v2.fsx` (`createProject` + `extractText` + `deleteProject`, Bearer auth from `NUEXTRACT_API_KEY`). Per-call payloads are sent **unchunked**. Verbatim-typed fields are used wherever possible so Dutch source text is preserved verbatim across the round-trip; numeric fields are typed `number` / `integer` and converted to canonical units client-side.
+Every pass calls NuExtract Online via the shared HTTP plumbing in `module NuExtract` of the extraction script (`createProject` + `extractText` + `deleteProject`, Bearer auth from `NUEXTRACT_API_KEY`). Per-call payloads are sent **unchunked**. Verbatim-typed fields are used wherever possible so Dutch source text is preserved verbatim across the round-trip; numeric fields are typed `number` / `integer` and converted to canonical units client-side.
 
 ### 6.1 Pass 1 — verbatim record extraction (fills L0..L4 verbatim + L5 ScheduleText)
 
@@ -326,7 +326,7 @@ Pass 3 is terminal for the LLM-driven pipeline; Pass 4 is a deterministic ID-ass
 
 ## 9. Implementation hooks
 
-All modules live in `src/Informedica.NLP.Lib/Scratch/ftk_extract_v2.fsx`.
+All modules live in the extraction script (`ftk_extract_v2.fsx`).
 
 | Module | Key functions / values |
 |---|---|
@@ -381,7 +381,7 @@ Each pass writes a per-generic JSON dump to its `passNJsonDir`:
 
 ## 10. References
 
-- **Live implementation**: `src/Informedica.NLP.Lib/Scratch/ftk_extract_v2.fsx` — leading point for the whole pipeline.
+- **Live implementation**: the FTK extraction FSI script (`ftk_extract_v2.fsx`) — leading point for the whole pipeline.
 - **NuExtract prompts**: [`docs/data-extraction/instructions/`](instructions/) — `phase1-ftk.md`, `phase2-dose-type.md`, `phase3-patient-category.md`, `phase3-schedule-form.md` (classifier), `phase3-dose-limits.md` (CatchAll), `phase3-dose-limits-once.md`, `phase3-dose-limits-once-timed.md`, `phase3-dose-limits-disc-freq.md`, `phase3-dose-limits-disc-int.md`, `phase3-dose-limits-timed-freq.md`, `phase3-dose-limits-timed-int.md`, `phase3-dose-limits-continuous.md`, `phase3-dose-limits-slim-interval.md`. Edit-and-reload picks up changes.
 - [`drive-upload-setup.md`](drive-upload-setup.md) — one-time ADC auth setup (`gcloud auth application-default login`) used by `module Drive`.
 - `src/Informedica.GenFORM.Lib/Types.fs:359-411` — `DoseRuleData` (canonical column source of truth).
