@@ -9,10 +9,15 @@ GenPRES aims to be the leading open-source medication decision support system fo
 🚧 **Active Development** - Moving toward production-ready release
 
 **Current Phase**: Foundation Building & Documentation
-- Core libraries implemented (GenSolver, GenUnits, GenOrder, GenForm)
-- SAFE Stack architecture in place
-- MDR compliance documentation in progress
-- Test coverage expanding
+- Core libraries implemented (GenSolver, GenUnits, GenOrder, GenForm, NLP, MCP)
+- SAFE Stack architecture in place (upgraded to Fable 5 / React 19 / Vite 8 in Q1 2026)
+- MDR compliance documentation in progress (ADRs 0000–0020 complete)
+- Test coverage expanding (Expecto property tests for solver, GenUnits, GenOrder)
+- LRU memoisation in GenSolver reducing repeat-calculation overhead
+- MCP stdio server (Informedica.MCP.Server) exposing GenFORM/GenORDER tools
+- NLP dose-rule extraction pipeline (DoseRuleExtract.fsx) for semi-automated data entry
+- G-Standard dose-rule fallback for medications without GenFORM spreadsheet entries
+- Shared calculation scripts (BSA, Age, Renal, Emergency) for AI-assisted prototyping
 
 ## Release Schedule
 
@@ -34,11 +39,11 @@ First production-ready release with MDR compliance and clinical validation.
 #### Phase 1: Foundation & Governance (Q1 2026)
 **Workshop W1-W3**
 
-- ✅ W1: Project Structure & Governance (In Progress)
-  - Community health files
-  - Governance model
-  - Quality gates
-  - CI/CD foundation
+- ✅ W1: Project Structure & Governance (Complete)
+  - ✅ Community health files (CODE_OF_CONDUCT, CONTRIBUTING, GOVERNANCE, SECURITY, SUPPORT)
+  - ✅ Governance model (GOVERNANCE.md, MAINTAINERS.md)
+  - ✅ Quality gates (Fantomas formatting, Expecto test suite, CI on push)
+  - ✅ CI/CD foundation (GitHub Actions: build, test, Docker image workflow)
 
 - ⏳ W2: Core Architecture Review
   - Domain model validation
@@ -77,6 +82,7 @@ First production-ready release with MDR compliance and clinical validation.
 **Workshop W7-W9**
 
 - ⏳ W7: FHIR/HL7 Integration
+  - ✅ ADR-0020: FHIR R4 integration architecture designed (bidirectional `MedicationRequest` translation, Dutch G-Standard coding, Firely .NET SDK)
   - Interface implementation
   - EHR integration testing
   - Interoperability validation
@@ -296,8 +302,8 @@ Want to contribute to GenPRES development?
 
 ---
 
-**Document Version**: 1.1
-**Last Updated**: 2026-02-28
+**Document Version**: 1.2
+**Last Updated**: 2026-04-24
 **Next Review**: 2026-05-28
 
 For the most up-to-date information, see the [project GitHub repository](https://github.com/informedica/GenPRES).
