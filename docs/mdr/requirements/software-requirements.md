@@ -37,7 +37,7 @@ GenPRES is a clinical decision support system for prescribing and managing medic
 
 - Designed to be invoked via URL from any EPD system.
 - Does not maintain internal session state — each session must include required parameters (e.g., patient ID, context).
-- **FHIR R4 integration** (designed): bidirectional `MedicationRequest` translation with Dutch G-Standard GPK coding (`urn:oid:2.16.840.1.113883.2.4.4.7`); implementation approach documented in ADR-0020 (`docs/mdr/design-history/0020-fhir-r4-ehr-integration.md`).
+- **FHIR R4 integration** (designed): bidirectional `MedicationRequest` translation with Dutch G-Standard GPK coding (`urn:oid:2.16.840.1.113883.2.4.4.7`); implementation approach documented in ADR-0020 (`docs/mdr/design-history/0020-fhir-r4-integration.md`).
 - **MCP stdio server** (`Informedica.MCP.Server`): exposes GenFORM and GenORDER APIs as Model Context Protocol tools; enables AI-assisted prescribing workflows (ADR-0009).
 - **NLP dose-rule extraction pipeline**: semi-automated extraction of dose rules from Dutch formulary (NKF/FTK) free text using LLM function-calling; documented in ADR-0018 (`docs/mdr/design-history/0018-nlp-dose-rule-extraction.md`).
 - Future versions will include full integration with a clinical database for longitudinal tracking.
