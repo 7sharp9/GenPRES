@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docs (MDR/Requirements)**: Fix Greptile P2 issues in `software-requirements.md` (follow-up to PR #343) — removes duplicate DEVELOPMENT.md reference, replaces mutable `.fsx` script paths with stable ADR document references (`0020-fhir-r4-ehr-integration.md`, `0018-nlp-dose-rule-extraction.md`), and unifies version-block formatting between document header and footer (PR #346)
+
 - **Docs (Data Extraction)**: Add Google Drive upload setup guide — `docs/data-extraction/drive-upload-setup.md` provides a step-by-step runbook for configuring OAuth-based Google Drive uploads in `ftk_extract.fsx`; documents why user OAuth credentials are required over service accounts for personal Gmail; includes troubleshooting steps and `docs/data-extraction/doserule-extraction-flowchart.md` updated to remove direct references to non-repository folders (PR #345)
 
 - **Docs (MDR/Requirements)**: Update `software-requirements.md` to v1.1 (May 2026) — corrects stale .NET 8 reference to .NET 10; moves FHIR R4 from "Future Enhancements" to the Integration section (designed in ADR-0020); promotes MCP stdio server and NLP dose-rule extraction pipeline from "future" to implemented; expands security section to reflect ADR-0015 baseline controls (CSP, HSTS, constant-time auth, production password policy, `TypeNameHandling` fix); adds G-Standard fallback (ADR-0016) and shared clinical calculations (ADR-0019) to functional requirements
