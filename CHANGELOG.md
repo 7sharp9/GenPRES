@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docs (Data Extraction)**: Add Google Drive upload setup guide — `docs/data-extraction/drive-upload-setup.md` provides a step-by-step runbook for configuring OAuth-based Google Drive uploads in `ftk_extract.fsx`; documents why user OAuth credentials are required over service accounts for personal Gmail; includes troubleshooting steps and `docs/data-extraction/doserule-extraction-flowchart.md` updated to remove direct references to non-repository folders (PR #345)
+
 - **Docs (MDR/Requirements)**: Update `software-requirements.md` to v1.1 (May 2026) — corrects stale .NET 8 reference to .NET 10; moves FHIR R4 from "Future Enhancements" to the Integration section (designed in ADR-0020); promotes MCP stdio server and NLP dose-rule extraction pipeline from "future" to implemented; expands security section to reflect ADR-0015 baseline controls (CSP, HSTS, constant-time auth, production password policy, `TypeNameHandling` fix); adds G-Standard fallback (ADR-0016) and shared clinical calculations (ADR-0019) to functional requirements
 
 - **Docs (MDR/Validation)**: Replace placeholder validation documents — `docs/mdr/validation/integration-test-report.md` now documents the 32-test integration test suite in `Informedica.GenPRES.Server.Tests`: resource loading pipeline (error propagation, caching, reload), server command dispatch (stub-adapter command routing for 5 command types, error propagation, `requireLoaded` guard), and dose-check severity classification (Valid/Caution/Warning/Alert logic); includes coverage-gap analysis and remediation plan; `docs/mdr/validation/usability-validation-report.md` now documents the IEC 62366-1 usability validation framework with user profile (3 primary groups), 7 critical tasks with patient-safety rationale, summative test plan (≥ 10 participants, ≥ 90% success criterion), formative changes delivered to date, and pending execution status for formal validation
@@ -59,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docs**: Add ADR-0015 security baseline — new design-history document defining the server-side and client-side security threat model, remediation status for the demo deployment, and deferred items; updated with XFF bypass and Content-Security-Policy details (PR #298)
 
 ### Changed
+
+- **Build (deps)**: Bump `FSharp.Data` from 8.1.2 to 8.1.10 in `scripts/load-dependencies.fsx` (PR #345)
 
 - **Build (deps)**: Upgrade to Fable 5 stable — bump `Fable.Core` from `5.0.0-rc.2` to `5.0.0` stable, `Fable.Elmish.React` to `5.6.0`, and `Fable.Elmish.HMR` to `9.0.0`; update `dotnet-tools.json` to matching Fable CLI version (PR #323)
 - **Build (deps)**: Update client packages — bump Vite to `8.0.9`, `@vitejs/plugin-react` to `6.0.1`, React to `19.2.5`, `@mui/material` / `@mui/icons-material` / `@mui/x-data-grid` to latest 9.x, and associated peer dependencies; `react-markdown` to `10.1.0` (PR #324)
