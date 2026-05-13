@@ -159,8 +159,9 @@ GenSOLVER applies the following strategy:
 4. Reduce domains monotonically.
 5. Detect empty domains early and fail fast.
 6. Iterate until a fixed point is reached.
+7. **Cycle detection**: monitor state fingerprints across iterations; terminate with a `CycleDetected` or `PotentialStall` result if the solver is not converging (see `LoopDetect.fsx`).
 
-This guarantees convergence even in highly interdependent equation networks.
+This guarantees convergence even in highly interdependent equation networks. In pathological cases where a cycle or stall is detected, the solver terminates gracefully with a typed `TerminationReason` rather than looping indefinitely, preserving system stability and auditability.
 
 ## 8. Logging and Explainability
 
@@ -193,6 +194,20 @@ It can run as:
 
 - An embedded library
 - A standalone agent-based microservice
+
+### Session-Level LRU Memoisation
+
+GenSOLVER applies session-level memoisation to avoid redundant re-solving of equivalent equation systems across multiple patients or scenarios within the same server session (see [ADR-0017](../mdr/design-history/0017-lru-solver-memoisation.md)).
+
+Key design points:
+- **Canonical key remapping**: variable names are normalised to a canonical form before cache lookup, enabling cross-patient cache sharing even when variable names differ only by patient-specific identifiers.
+- **LRU eviction**: the cache uses a Least-Recently-Used eviction policy with a configurable capacity, implemented as a thread-safe `ConcurrentDictionary` + linked list.
+- **Correctness guarantee**: the cache never returns a stale result; cache hits require the full canonical equation system to match.
+- **Benchmarked improvement**: in a 50-patient benchmark, cache hits eliminate the solve inner loop entirely for repeat scenarios, yielding significant latency reduction.
+
+This optimisation is transparent to callers — the `SessionSolver` API is identical to the non-memoised solver.
+
+See [ADR-0017: LRU Solver Memoisation](../mdr/design-history/0017-lru-solver-memoisation.md) for the complete design rationale.
 
 See [GenORDER Appendix B.3: Libraries](genorder-operational-rules-to-orders.md#addendum-b.3.-genorder-libraries) for the complete library architecture.
 
@@ -241,6 +256,8 @@ This GenSOLVER document is part of the GenPRES domain documentation. For the com
 | [Core Domain Model](core-domain.md) | High-level overview of the transformation pipeline, core definitions, and system architecture. |
 | [GenFORM: Free Text to Operational Rules](genform-free-text-to-operational-rules.md) | How free-text expert knowledge is transformed into structured Operational Knowledge Rules (OKRs). |
 | [GenORDER: Operational Rules to Orders](genorder-operational-rules-to-orders.md) | How OKRs are transformed into executable Order Scenarios. Includes the equation system that GenSOLVER solves. |
+| [GenSOLVER Stability Analysis](gensolver-stability-analysis.md) | Analysis of solver stability properties, known limitations, and open questions. |
+| [ADR-0017: LRU Solver Memoisation](../mdr/design-history/0017-lru-solver-memoisation.md) | Design rationale for session-level LRU memoisation and canonical key remapping. |
 
 ### Quick Reference by Topic
 
