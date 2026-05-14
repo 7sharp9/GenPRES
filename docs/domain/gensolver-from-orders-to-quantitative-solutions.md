@@ -200,6 +200,7 @@ It can run as:
 A prototype session-level memoisation design has been documented to avoid redundant re-solving of equivalent equation systems across multiple patients or scenarios within the same server session (see [ADR-0017](../mdr/design-history/0017-lru-solver-memoisation.md)). As of ADR-0017 (status: Proposed, dated 2026-04-25), this remains pending integration into the production solver.
 
 Key design points described in ADR-0017:
+
 - **Canonical key remapping**: variable names are normalised to a canonical form before cache lookup, enabling cross-patient cache sharing even when variable names differ only by patient-specific identifiers.
 - **LRU eviction**: the prototype cache uses a Least-Recently-Used eviction policy with a configurable capacity, implemented as a `Dictionary<K, LinkedListNode<K*V>>` plus `LinkedList<K*V>` guarded by a single `obj` mutex.
 - **Correctness guarantee**: the cache never returns a stale result; cache hits require the full canonical equation system to match.
