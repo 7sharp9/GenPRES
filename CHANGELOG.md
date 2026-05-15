@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docs (Domain)**: Update GenSOLVER domain document with cycle detection and LRU memoisation — section 7 (Variable Propagation and Solving Strategy) expanded with a cycle-detection paragraph describing the state-fingerprint-based `CycleDetector` that terminates gracefully with a typed `TerminationReason` (`CycleDetected` / `PotentialStall` / `HardLimit`); section 9 (Technical Architecture) gains a "Session-Level LRU Memoisation" subsection documenting the `LRUCache` prototype, canonical key remapping for cross-patient cache sharing, thread-safety design, and status (prototype pending production integration per ADR-0017); cross-references added to [ADR-0017](docs/mdr/design-history/0017-lru-solver-memoisation.md) and the [GenSOLVER Stability Analysis](docs/domain/gensolver-stability-analysis.md) (PR #349)
+
 - **Docs (MDR/Requirements)**: Fix Greptile P2 issues in `software-requirements.md` (follow-up to PR #343) — removes duplicate DEVELOPMENT.md reference, replaces mutable `.fsx` script paths with stable ADR document references (`0020-fhir-r4-ehr-integration.md`, `0018-nlp-dose-rule-extraction.md`), and unifies version-block formatting between document header and footer (PR #346)
 
 - **Docs (Data Extraction)**: Add Google Drive upload setup guide — `docs/data-extraction/drive-upload-setup.md` provides a step-by-step runbook for configuring OAuth-based Google Drive uploads in `ftk_extract.fsx`; documents why user OAuth credentials are required over service accounts for personal Gmail; includes troubleshooting steps and `docs/data-extraction/doserule-extraction-flowchart.md` updated to remove direct references to non-repository folders (PR #345)
