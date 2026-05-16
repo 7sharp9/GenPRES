@@ -15,9 +15,9 @@ and [ROADMAP](../../ROADMAP.md).
 | Goal | Status | Evidence |
 |------|--------|----------|
 | Domain model validation | 🔄 Partial | MDR docs, stability analysis, GenFORM 131+ test scenarios |
-| Constraint solver optimisation | ✅ Complete | ADR-0017, PRs #166 #220 #230 #233 #238 #249 |
+| Constraint solver optimisation | 🔄 Partial | ADR-0017, PRs #166 #220 #230 #233 #238 #249 (prototype complete, production migration pending) |
 | Unit of measure framework | ✅ Complete | `Informedica.GenUnits.Lib` — units-of-measure API with BigRational arithmetic |
-| Performance benchmarking | ✅ Complete | PR #166 — solver throughput benchmarks with BenchmarkDotNet |
+| Performance benchmarking | ✅ Complete | PR #166 — solver throughput benchmarks with Stopwatch-based timing |
 
 ---
 
@@ -33,14 +33,16 @@ and correctness improvements:
 - **[PR #220]** `LRUCache.fsx` — session-level LRU cache prototype; thread-safe
   O(1) get/put/evict, configurable capacity, 10-patient dosing benchmark.
 - **[PR #230]** `LRUCacheProps.fsx` — FsCheck property-based tests validating
-  capacity, eviction, and thread-safety invariants.
+  sequential count/capacity, put/get, overwrite, clear, capacity-1, promotion,
+  and eviction behaviour.
 - **[PR #233]** `CanonKeyInvariant.fsx` — 8 unit tests + 6 FsCheck property
   tests for canonical key normalisation and round-trip symmetry.
 - **[PR #238]** `LRUSolverIntegration.fsx` — `SessionSolver` integrating the
   LRU cache with canonical name-remapping; 6 correctness tests and a 50-patient
   capacity benchmark.
 - **[ADR-0017]** Architecture Decision Record documenting the design rationale,
-  `ConcurrentDictionary` thread-safety approach, configurable eviction policy,
+  `Dictionary` + `LinkedList` implementation guarded by a single mutex for
+  thread-safety, configurable eviction policy,
   and alternatives considered (request-scoped and persistent caching).
 
 #### Cycle Detection & Stability
@@ -78,10 +80,9 @@ The `Informedica.GenUnits.Lib` provides the unit-of-measure foundation:
 
 ### Performance Benchmarking (PR #166)
 
-BenchmarkDotNet solver throughput benchmarks measuring:
-- Equations-per-second for representative clinical scenarios.
-- Memory allocation profile per solve call.
-- Cache hit-rate under simulated 50-patient load.
+Stopwatch-based solver throughput benchmarks (`timeMean` helper) measuring
+elapsed time for representative clinical scenarios:
+- Solver execution time for several representative clinical scenarios.
 
 ---
 
