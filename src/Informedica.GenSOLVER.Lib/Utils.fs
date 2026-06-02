@@ -92,7 +92,7 @@ module Utils =
                 |> function
                     | [ u1; u2; u3 ] when u3 |> String.startsWith "kg" -> [ u1; u3; u2 ]
                     | xs -> xs
-                |> List.choose Units.fromString
+                |> List.choose UnitsParse.fromString
                 |> function
                     | [] -> vu |> getUnit
                     | [ u ] -> u

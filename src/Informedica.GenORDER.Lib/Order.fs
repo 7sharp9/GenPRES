@@ -271,7 +271,7 @@ module Order =
             let setStandardRateConstraints dos =
                 let rates =
                     [| 1N / 10N .. 1N / 10N .. 1_000N |]
-                    |> ValueUnit.withUnit (Units.Volume.milliLiter |> Units.per Units.Time.hour)
+                    |> ValueUnit.withUnit (Units.Volume.milliLiter |> ValueUnit.per Units.Time.hour)
                     |> Variable.ValueRange.ValueSet.create
                     |> Some
                     |> OrderVariable.Constraints.create None None None
@@ -407,7 +407,7 @@ module Order =
 
                                 let dr =
                                     Units.Volume.milliLiter
-                                    |> Units.per Units.Time.hour
+                                    |> ValueUnit.per Units.Time.hour
                                     |> ValueUnit.singleWithValue (1N / 10N)
 
                                 if vu = dr then 10 else 1
@@ -3512,7 +3512,7 @@ module Order =
                             ord // increased increment order
                             |> increaseRateIncrement
                                 maxRateCount
-                                (incrs (Units.Volume.milliLiter |> Units.per Units.Time.hour))
+                                (incrs (Units.Volume.milliLiter |> ValueUnit.per Units.Time.hour))
 
                         if incrOrd = ord then
                             Ok ord

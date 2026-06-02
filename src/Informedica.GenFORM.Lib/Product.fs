@@ -199,7 +199,7 @@ module Product =
                         None
                     | Some u ->
                         let isMolar = u |> ValueUnit.Group.eqsGroup Units.Molar.milliMole
-                        let u = u |> Units.per formUnit
+                        let u = u |> ValueUnit.per formUnit
 
                         (isMolar, br |> ValueUnit.singleWithUnit u) |> Some
 
@@ -258,7 +258,7 @@ module Product =
             prods
             |> Array.filter _.ProductType.IsEnteralProduct
             |> Array.choose (fun fp ->
-                let formUnit = fp.Unit |> Option.bind Units.fromString
+                let formUnit = fp.Unit |> Option.bind UnitsParse.fromString
 
                 match formUnit with
                 | None -> None
@@ -464,7 +464,7 @@ module Product =
                                 None
                             // only apply mmol to substance with the same name as the product
                             else
-                                let u = Units.Molar.milliMole |> Units.per formUnit
+                                let u = Units.Molar.milliMole |> ValueUnit.per formUnit
                                 fp.Mmol |> Option.map (ValueUnit.singleWithUnit u)
                     }
                 )

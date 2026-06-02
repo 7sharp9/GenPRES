@@ -540,7 +540,7 @@ module Tests =
                                     }
 
                                     test "failing case: 40.5 ml/hour to 163.5 ml/hour with incr: 0.1" {
-                                        let u = Units.Volume.milliLiter |> Units.per Units.Time.hour
+                                        let u = Units.Volume.milliLiter |> ValueUnit.per Units.Time.hour
 
                                         Variable.ValueRange.create
                                             ((81N / 2N) |> ValueUnit.singleWithUnit u |> Minimum.create true |> Some)
@@ -2104,7 +2104,7 @@ module Tests =
                                 }
 
                                 test "failing case: 31 ml/hour to 125 ml/hour with incr: 0.1" {
-                                    let u = Units.Volume.milliLiter |> Units.per Units.Time.hour
+                                    let u = Units.Volume.milliLiter |> ValueUnit.per Units.Time.hour
 
                                     {
                                         Name = Variable.Name.createExc "[1.gentamicine]_dos_rte"

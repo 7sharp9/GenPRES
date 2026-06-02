@@ -378,7 +378,7 @@ module DoseRule =
                     if u |> String.isNullOrWhiteSpace || g |> String.isNullOrWhiteSpace then
                         o
                     else
-                        match $"%s{u}[%s{g}]" |> Units.fromString with
+                        match $"%s{u}[%s{g}]" |> UnitsParse.fromString with
                         | None -> o
                         | Some u ->
                             match mm |> MinMax.Dto.fromDto with

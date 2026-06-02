@@ -269,7 +269,7 @@ module Tests =
         let createValueUnit (d: decimal) u =
             let v = d |> float
 
-            match u |> Units.fromString with
+            match u |> UnitsParse.fromString with
             | None -> None
             | Some u ->
                 match v |> BigRational.fromFloat with

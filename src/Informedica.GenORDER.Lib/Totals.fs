@@ -42,7 +42,7 @@ module Totals =
                 |> OrderVariable.Quantity.toOrdVar
                 |> OrderVariable.getVar
 
-            let unt = var |> Variable.getUnit |> Option.map (fun u -> u |> Units.per tu)
+            let unt = var |> Variable.getUnit |> Option.map (fun u -> u |> ValueUnit.per tu)
 
             unt
             |> Option.map (fun u -> var |> Variable.setUnit u)
@@ -96,8 +96,8 @@ module Totals =
                         u
                         |> ValueUnit.getUnits
                         |> List.head
-                        |> Units.per Units.Weight.kiloGram
-                        |> Units.per tu
+                        |> ValueUnit.per Units.Weight.kiloGram
+                        |> ValueUnit.per tu
 
                     (n, tot ^/ w |> Variable.setUnit u) |> Some
             )
@@ -131,9 +131,9 @@ module Totals =
                         MaxAge = get "MaxAge" |> toBrOpt
                         MinWeight = get "MinWeight" |> toBrOpt
                         MaxWeight = get "MaxWeight" |> toBrOpt
-                        Unit = get "Unit" |> Units.fromString
-                        Adj = get "Adj" |> Units.fromString
-                        TimeUnit = get "TimeUnit" |> Units.fromString
+                        Unit = get "Unit" |> UnitsParse.fromString
+                        Adj = get "Adj" |> UnitsParse.fromString
+                        TimeUnit = get "TimeUnit" |> UnitsParse.fromString
                         MinPerTime = get "MinPerTime" |> toBrOpt
                         MaxPerTime = get "MaxPerTime" |> toBrOpt
                         MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt

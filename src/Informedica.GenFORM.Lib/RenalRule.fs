@@ -210,14 +210,14 @@ module RenalRule =
                         if r.DoseRed = DoseReduction.REL then
                             times
                         else
-                            r.DoseUnit |> Units.fromString
+                            r.DoseUnit |> UnitsParse.fromString
                     // the adjusted dose unit
                     let duAdj =
                         if r.DoseRed = DoseReduction.REL then
                             times
                         else
                             match adj, du with
-                            | Some adj, Some du -> du |> Units.per adj |> Some
+                            | Some adj, Some du -> du |> ValueUnit.per adj |> Some
                             | _ -> None
                     // the time unit
                     let tu = r.FreqUnit |> Utils.Units.timeUnit
@@ -227,7 +227,7 @@ module RenalRule =
                             times
                         else
                             match du, tu with
-                            | Some du, Some tu -> du |> Units.per tu |> Some
+                            | Some du, Some tu -> du |> ValueUnit.per tu |> Some
                             | _ -> None
                     // the adjusted dose unit per time unit
                     let duAdjTime =
@@ -235,21 +235,21 @@ module RenalRule =
                             times
                         else
                             match duAdj, tu with
-                            | Some duAdj, Some tu -> duAdj |> Units.per tu |> Some
+                            | Some duAdj, Some tu -> duAdj |> ValueUnit.per tu |> Some
                             | _ -> None
                     // the rate unit
                     let ru =
                         if r.DoseRed = DoseReduction.REL then
                             times
                         else
-                            r.RateUnit |> Units.fromString
+                            r.RateUnit |> UnitsParse.fromString
                     // the dose unit per rate unit
                     let duRate =
                         if r.DoseRed = DoseReduction.REL then
                             times
                         else
                             match du, ru with
-                            | Some du, Some ru -> du |> Units.per ru |> Some
+                            | Some du, Some ru -> du |> ValueUnit.per ru |> Some
                             | _ -> None
                     // the adjusted dose unit per rate unit
                     let duAdjRate =
@@ -257,7 +257,7 @@ module RenalRule =
                             times
                         else
                             match duAdj, ru with
-                            | Some duAdj, Some ru -> duAdj |> Units.per ru |> Some
+                            | Some duAdj, Some ru -> duAdj |> ValueUnit.per ru |> Some
                             | _ -> None
 
                     Limit.create

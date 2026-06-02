@@ -302,7 +302,7 @@ module Dto =
             else
                 dto.MultipleUnit |> Mapping.stringToUnit |> Some
 
-        let ru = dto.RateUnit |> Units.fromString
+        let ru = dto.RateUnit |> UnitsParse.fromString
 
         let rte = dto.Route
 

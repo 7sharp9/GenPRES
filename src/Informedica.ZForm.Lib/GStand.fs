@@ -134,7 +134,7 @@ module GStand =
 
     /// Try to map a GStand time period to a valid unit.
     let mapTime s =
-        s |> parseTimeString |> Units.fromString
+        s |> parseTimeString |> UnitsParse.fromString
 
 
     /// <summary>
@@ -356,7 +356,7 @@ module GStand =
                         isOne: bool
                         name: string
                         time: string
-                        unitGroup: Group.Group
+                        unitGroup: Informedica.GenUnits.Lib.Group
                     |}
                 indication: string
                 normDose: MinMax

@@ -32,6 +32,7 @@ let getClientIP (context: HttpContext) =
     | ip -> ip.ToString()
 
 
+Env.loadDotEnv () |> ignore
 let tryGetEnv key = Env.getItem key
 
 

@@ -84,7 +84,7 @@ module Mapping =
                 || r.MV |> String.equalsCapInsens s
             )
             |> function
-                | Some r -> $"{r.Short}[{r.Group}]" |> Units.fromString
+                | Some r -> $"{r.Short}[{r.Group}]" |> UnitsParse.fromString
                 | None -> None
 
 
@@ -140,7 +140,7 @@ module Mapping =
                     if du = NoUnit then
                         None
                     else
-                        let du = du |> Units.per Units.Weight.kiloGram
+                        let du = du |> ValueUnit.per Units.Weight.kiloGram
 
                         getFlt "MinDoseQtyKg"
                         |> Option.bind BigRational.fromFloat
@@ -149,7 +149,7 @@ module Mapping =
                     if du = NoUnit then
                         None
                     else
-                        let du = du |> Units.per Units.Weight.kiloGram
+                        let du = du |> ValueUnit.per Units.Weight.kiloGram
 
                         getFlt "MaxDoseQtyKg"
                         |> Option.bind BigRational.fromFloat

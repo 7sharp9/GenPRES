@@ -109,7 +109,7 @@ module Utils =
             else
                 // TODO need better fix than this
                 if s = "keer" then $"times[Count]" else $"{s}[Time]"
-                |> Units.fromString
+                |> UnitsParse.fromString
 
 
         let weightUnit s =
@@ -121,21 +121,21 @@ module Utils =
             then
                 Some Units.Weight.gram
             else
-                $"{s}[Weight]" |> Units.fromString
+                $"{s}[Weight]" |> UnitsParse.fromString
 
 
         let massUnit s =
             if s |> String.isNullOrWhiteSpace then
                 None
             else
-                $"{s}[Mass]" |> Units.fromString
+                $"{s}[Mass]" |> UnitsParse.fromString
 
 
         let freqUnit s =
             if s |> String.isNullOrWhiteSpace then
                 None
             else
-                $"times[Count]/{s}[Time]" |> Units.fromString
+                $"times[Count]/{s}[Time]" |> UnitsParse.fromString
 
 
         let adjustUnit s =
@@ -211,15 +211,15 @@ module Utils =
             ]
             |> List.map (fun (s, du, au, tu) ->
                 s,
-                du |> Units.fromString,
+                du |> UnitsParse.fromString,
                 (if au |> String.isNullOrWhiteSpace then
                      None
                  else
-                     au |> Units.fromString),
+                     au |> UnitsParse.fromString),
                 if tu |> String.isNullOrWhiteSpace then
                     None
                 else
-                    tu |> Units.fromString
+                    tu |> UnitsParse.fromString
             )
 
 

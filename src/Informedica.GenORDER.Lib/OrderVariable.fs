@@ -22,7 +22,8 @@ module ValueUnit =
     /// </summary>
     /// <param name="u">The Unit</param>
     let isAdjust (u: Unit) =
-        u |> Group.eqsGroup Units.Weight.kiloGram || u |> Group.eqsGroup Units.BSA.m2
+        u |> ValueUnit.Group.eqsGroup Units.Weight.kiloGram
+        || u |> ValueUnit.Group.eqsGroup Units.BSA.m2
 
 
     /// <summary>
@@ -46,7 +47,7 @@ module ValueUnit =
         let v, u = vu |> get
 
         match u |> getUnits with
-        | [ u1; u2; u3 ] when u3 |> isAdjust -> u1 |> Units.per u3 |> Units.per u2 |> withValue v
+        | [ u1; u2; u3 ] when u3 |> isAdjust -> u1 |> ValueUnit.per u3 |> ValueUnit.per u2 |> withValue v
         | _ -> vu
 
 
@@ -657,7 +658,7 @@ module OrderVariable =
                     u1
                 else
                     match u1 |> ValueUnit.getUnits with
-                    | _ :: rest -> rest |> List.fold (fun acc x -> acc |> Units.per x) u
+                    | _ :: rest -> rest |> List.fold (fun acc x -> acc |> ValueUnit.per x) u
                     | _ -> u
             )
             |> Option.defaultValue u
@@ -685,7 +686,7 @@ module OrderVariable =
                     // assume the last unit is a time unit
                     | _ :: rest ->
                         match tu :: rest |> List.rev with
-                        | u :: rest -> rest |> List.fold (fun acc x -> acc |> Units.per x) u
+                        | u :: rest -> rest |> List.fold (fun acc x -> acc |> ValueUnit.per x) u
                         | _ -> tu
                     | _ -> tu
             )

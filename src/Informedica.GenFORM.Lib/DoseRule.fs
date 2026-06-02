@@ -810,35 +810,35 @@ module DoseRule =
             // the adjust unit
             let adj = r.AdjustUnit |> Utils.Units.adjustUnit
             // the dose unit
-            let du = r.DoseUnit |> Units.fromString
+            let du = r.DoseUnit |> UnitsParse.fromString
             // the adjusted dose unit
             let duAdj =
                 match adj, du with
-                | Some adj, Some du -> du |> Units.per adj |> Some
+                | Some adj, Some du -> du |> ValueUnit.per adj |> Some
                 | _ -> None
             // the time unit
             let tu = r.FreqUnit |> Utils.Units.timeUnit
             // the dose unit per time unit
             let duTime =
                 match du, tu with
-                | Some du, Some tu -> du |> Units.per tu |> Some
+                | Some du, Some tu -> du |> ValueUnit.per tu |> Some
                 | _ -> None
             // the adjusted dose unit per time unit
             let duAdjTime =
                 match duAdj, tu with
-                | Some duAdj, Some tu -> duAdj |> Units.per tu |> Some
+                | Some duAdj, Some tu -> duAdj |> ValueUnit.per tu |> Some
                 | _ -> None
             // the rate unit
-            let ru = r.RateUnit |> Units.fromString
+            let ru = r.RateUnit |> UnitsParse.fromString
             // the dose unit per rate unit
             let duRate =
                 match du, ru with
-                | Some du, Some ru -> du |> Units.per ru |> Some
+                | Some du, Some ru -> du |> ValueUnit.per ru |> Some
                 | _ -> None
             // the adjusted dose unit per rate unit
             let duAdjRate =
                 match duAdj, ru with
-                | Some duAdj, Some ru -> duAdj |> Units.per ru |> Some
+                | Some duAdj, Some ru -> duAdj |> ValueUnit.per ru |> Some
                 | _ -> None
 
             {

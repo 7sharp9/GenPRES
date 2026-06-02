@@ -6,10 +6,15 @@ module Unquote =
 
     open Swensen.Unquote
     open MathNet.Numerics
+    //open Informedica.GenUnits.Lib
     open Informedica.GenUnits.Lib
+    open Informedica.GenUnits.Lib.Core
+    open Informedica.GenUnits.Lib.Types
     open Informedica.GenUnits.Lib.ValueUnit
     open Informedica.GenUnits.Lib.ValueUnit.Operators
-
+    //open Informedica.GenUnits.Lib.ValueUnit
+    //open Informedica.GenUnits.Lib.ValueUnit.Operators
+    module Units = Informedica.GenUnits.Lib.Units
 
     // Test Array.removeBigRationalMultiples
     let testRemoveBigRationalMultiples removeF =
@@ -60,8 +65,8 @@ module Unquote =
         test [| 1N / 2N; 1N / 3N; 1N / 6N |] [| 1N / 6N |] // 1/6 is multiple of both 1/2 and 1/3
 
         // Mixed integers and fractions
-        test [| 1N; 1N / 2N; 1N / 3N |] [| 1N / 3N; 1N / 2N |] // 1N makes everything else irrelevant
-        test [| 2N; 1N; 3N |] [| 1N |] // 1N in the middle
+        test [| 1N; 1N / 2N; 1N / 3N |] [| 1N / 3N; 1N / 2N |] // 1N is removed (multiple of both 1/2 and 1/3); the fractions are kept
+        test [| 2N; 1N; 3N |] [| 1N |] // 1N (mid-array, out of order) is the smallest; 2 and 3 are multiples of it
 
         // Negative numbers (should be filtered out by the function)
         test [| -2N; -4N; 2N; 4N |] [| 2N |]
@@ -111,45 +116,46 @@ module Unquote =
         [
 
             // Test that 10 ml / 5 ml = 2
-            test <@ ([| 10N |] |> ml) / ([| 5N |] |> ml) =? ([| 2N |] |> x) @>
+            test <@ ([| 10N |] |> ml) /? ([| 5N |] |> ml) =? ([| 2N |] |> x) @>
 
             // Test that 1 kg / 1000 mg = 1000
-            test <@ ([| 1N |] |> kg) / ([| 1000N |] |> mg) =? ([| 1000N |] |> x) @>
+            test <@ ([| 1N |] |> kg) /? ([| 1000N |] |> mg) =? ([| 1000N |] |> x) @>
 
             // Test that 10 * 2 mg = 20 mg
-            test <@ ([| 10N |] |> x) * ([| 1N |] |> mg) =? ([| 10N |] |> mg) @>
+            test <@ ([| 10N |] |> x) *? ([| 1N |] |> mg) =? ([| 10N |] |> mg) @>
 
             // Test that 10 mg * (2 x / day) = 20 mg / day
             test
                 <@
-                    ([| 10N |] |> mg) * (([| 2N |] |> x) / ([| 1N |] |> day))
-                    =? (([| 20N |] |> mg) / ([| 1N |] |> day))
+                    ([| 10N |] |> mg) *? (([| 2N |] |> x) /? ([| 1N |] |> day))
+                    =? (([| 20N |] |> mg) /? ([| 1N |] |> day))
                 @>
 
             // Test that 20 mg * (1 x / 2 day) = 10 mg / day
             test
                 <@
-                    ([| 20N |] |> mg) * (([| 1N |] |> x) / ([| 2N |] |> day))
-                    =? (([| 10N |] |> mg) / ([| 1N |] |> day))
+                    ([| 20N |] |> mg) *? (([| 1N |] |> x) /? ([| 2N |] |> day))
+                    =? (([| 10N |] |> mg) /? ([| 1N |] |> day))
                 @>
 
 
             // Test that 20 mg * (1 x / 2 day) = 10 mg / day
             test
                 <@
-                    ([| 20N |] |> mg) * (([| 1N |] |> x) / ([| 1N |] |> day2))
-                    =? (([| 10N |] |> mg) / ([| 1N |] |> day))
+                    ([| 20N |] |> mg) *? (([| 1N |] |> x) /? ([| 1N |] |> day2))
+                    =? (([| 10N |] |> mg) /? ([| 1N |] |> day))
                 @>
 
             // Test that 2 day / 1 day = 2
-            test <@ ([| 1N |] |> day2) / ([| 1N |] |> day) =? ([| 2N |] |> x) @>
+            test <@ ([| 1N |] |> day2) /? ([| 1N |] |> day) =? ([| 2N |] |> x) @>
 
 
             // Test that 1 x / 2 week divide by 1 x / 14 days yields 1
             test
                 <@
-                    (([| 1N |] |> x) / ([| 1N |] |> week2))
-                    / (([| 1N |] |> x) / ([| 1N |] |> day14)) = ([| 1N |] |> x)
+                    (([| 1N |] |> x) /? ([| 1N |] |> week2))
+                    /? (([| 1N |] |> x) /? ([| 1N |] |> day14))
+                    =? ([| 1N |] |> x)
                 @>
 
 
@@ -179,10 +185,15 @@ module Tests =
 
     open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
+    //open Informedica.GenUnits.Lib
+
     open Informedica.GenUnits.Lib
-
+    open Informedica.GenUnits.Lib.Core
+    open Informedica.GenUnits.Lib.Types
     open Informedica.GenUnits.Lib.ValueUnit
+    open Informedica.GenUnits.Lib.ValueUnit.Operators
 
+    module Units = Informedica.GenUnits.Lib.Units
 
     let toString = toStringEngShort
 
@@ -193,7 +204,9 @@ module Tests =
 
     let (>>?) res exp =
         match exp |> fromString with
-        | Ok exp -> res = exp |> Expect.isTrue ""
+        // use =? (base-unit equality), NOT structural = which would compare
+        // the raw value-array + unit representation instead of base values
+        | Ok exp -> res =? exp |> Expect.isTrue ""
         | _ ->
             false |> Expect.isTrue ""
             failwith "can't run the test"
@@ -234,7 +247,7 @@ module Tests =
                 test "base value of 5 l = 5 l" { Expect.isTrue "should equal 5" (l5 |> toBase = 5m) }
 
                 test "count 3 times 5 ml results in 15 ml" {
-                    Expect.equal "should equal 0.015 L" 0.015m (ml5 * times3 |> toBase)
+                    Expect.equal "should equal 0.015 L" 0.015m (ml5 *? times3 |> toBase)
                 }
 
                 test "base value of 1 day" {
@@ -305,14 +318,14 @@ module Tests =
 
                 test "unit with unit number can find group" {
                     "4 weken"
-                    |> Units.stringWithGroup
+                    |> UnitsParse.stringWithGroup
                     |> Expect.equal "should be equal" "4 weken[Time]"
                 }
 
                 test "unit with invalid group should throw exception" {
                     fun () ->
                         "day[Invalid]"
-                        |> Units.fromString
+                        |> UnitsParse.fromString
                         |> fun u ->
                             printfn $"{u}"
                             u
@@ -499,7 +512,7 @@ module Tests =
 
                 test "ml50 = l5 should be false" { ml50 =? l5 |> Expect.isFalse "" }
 
-                test "ml50 * times 100 = l5 should be true" { ml50 * times100 =? l5 |> Expect.isTrue "" }
+                test "ml50 * times 100 = l5 should be true" { ml50 *? times100 =? l5 |> Expect.isTrue "" }
             ]
 
 
@@ -510,77 +523,81 @@ module Tests =
             "Calculation"
             [
 
-                test "3 times 3 = 9" { times3 * times3 |> toBaseValue = [| 9N |] |> Expect.isTrue "" }
+                test "3 times 3 = 9" { times3 *? times3 |> toBaseValue = [| 9N |] |> Expect.isTrue "" }
 
-                test "3 divided by 3 = 1" { times3 / times3 |> toBaseValue = [| 1N |] |> Expect.isTrue "" }
+                test "3 divided by 3 = 1" { times3 /? times3 |> toBaseValue = [| 1N |] |> Expect.isTrue "" }
 
-                test "3 plus 3 = 6" { times3 + times3 |> toBaseValue = [| 6N |] |> Expect.isTrue "" }
+                test "3 plus 3 = 6" { times3 +? times3 |> toBaseValue = [| 6N |] |> Expect.isTrue "" }
 
-                test "3 minus 3 = 0" { times3 - times3 |> toBaseValue = [| 0N |] |> Expect.isTrue "" }
+                test "3 minus 3 = 0" { times3 -? times3 |> toBaseValue = [| 0N |] |> Expect.isTrue "" }
 
                 test "can add or subtract within the same unit group" {
-                    (l5 + ml50) >? l5 |> Expect.isTrue ""
+                    (l5 +? ml50) >? l5 |> Expect.isTrue ""
 
-                    (l5 - ml50) <? l5 |> Expect.isTrue ""
+                    (l5 -? ml50) <? l5 |> Expect.isTrue ""
                 }
 
                 test "cannot add or subtract with different unit groups" {
-                    (fun _ -> (l5 + mg400) >? l5 |> ignore) |> Expect.throws ""
+                    (fun _ -> (l5 +? mg400) >? l5 |> ignore) |> Expect.throws ""
 
-                    (fun _ -> (l5 - mg400) <? l5 |> ignore) |> Expect.throws ""
+                    (fun _ -> (l5 -? mg400) <? l5 |> ignore) |> Expect.throws ""
                 }
 
                 test "division by unit with the same unit group results in a count" {
                     // division by a simple unit
-                    let _, u = (l5 / ml50) |> get
+                    let _, u = (l5 /? ml50) |> get
                     let g = u |> Group.unitToGroup
 
                     g = Group.CountGroup |> Expect.isTrue ""
 
                     // division by a more complex unit
-                    let vu1 = (mg400 / ml5 / day2)
-                    let vu2 = (mg400 / l5 / hour3)
+                    let vu1 = (mg400 /? ml5 /? day2)
+                    let vu2 = (mg400 /? l5 /? hour3)
 
-                    vu1 / vu2 |> get |> snd |> Group.unitToGroup |> Expect.equal "" Group.CountGroup
+                    vu1 /? vu2
+                    |> get
+                    |> snd
+                    |> Group.unitToGroup
+                    |> Expect.equal "" Group.CountGroup
                 }
 
                 test "can calculate with units" {
-                    (mg400 + mg400)
+                    (mg400 +? mg400)
                     // 400 mg + 400 mg = 800 mg
                     >>? "800 mg[Mass]"
-                    |> (fun vu -> vu / ml50)
+                    |> (fun vu -> vu /? ml50)
                     // 800 mg / 50 ml = 16 mg/ml
                     >>? "16 mg[Mass]/ml[Volume]"
-                    |> (fun vu -> vu * ml50)
+                    |> (fun vu -> vu *? ml50)
                     // 16 mg/ml * 50 ml = 800 mg
                     >>? "800 mg[Mass]"
                     // 800 mg - 400 mg = 400 mg
-                    |> (fun vu -> vu - mg400)
+                    |> (fun vu -> vu -? mg400)
                     >>? "400 mg[Mass]"
                     |> ignore
                 }
 
                 test "division with 3 unit values" {
-                    let vu = mg400 / (mg400 / ml50) // equals mg400 * (ml50 / mg400) = mg50
+                    let vu = mg400 /? (mg400 /? ml50) // equals mg400 * (ml50 / mg400) = mg50
 
                     Expect.equal "should be 50 ml" ml50 vu
                 }
 
                 test "more complicated division" {
-                    let vu = (mg400 / ml50) / (day2 / ml50) // equals (mg400 / ml50) * (ml50 / day2) = mg400 / day2
+                    let vu = (mg400 /? ml50) /? (day2 /? ml50) // equals (mg400 / ml50) * (ml50 / day2) = mg400 / day2
 
-                    Expect.equal "" (mg400 / day2) vu
+                    Expect.equal "" (mg400 /? day2) vu
                 }
 
                 test "division resulting in combi with 3 units" {
-                    mg400 / kg10 / day2
+                    mg400 /? kg10 /? day2
                     |> toStringEngShort
                     |> Expect.equal "should be equal" "20 mg[Mass]/kg[Weight]/day[Time]"
 
                 }
 
                 test "multiplying with a combi with 3 units with the middle unit" {
-                    (mg400 / kg10 / day2) * kg10
+                    (mg400 /? kg10 /? day2) *? kg10
                     |> toStringEngShort
                     |> Expect.equal "should be equal" "200 mg[Mass]/day[Time]"
                 }
@@ -601,7 +618,7 @@ module Tests =
                 }
 
                 test "unit group from 400 mg / day = mass per timegroup" {
-                    (mg400 / (1N |> createSingle Units.Time.day))
+                    (mg400 /? (1N |> createSingle Units.Time.day))
                     |> get
                     |> snd
                     |> Group.unitToGroup
@@ -611,15 +628,15 @@ module Tests =
 
                 test "the number of possible units is the permutation of the units in each unitgroup" {
                     // get the number of units in the mass group
-                    let mc = Group.MassGroup |> Group.getUnits |> List.length
+                    let mc = Group.MassGroup |> Group.getUnitCombinations |> List.length
                     // get the number of units in the volume group
-                    let vc = Group.VolumeGroup |> Group.getUnits |> List.length
+                    let vc = Group.VolumeGroup |> Group.getUnitCombinations |> List.length
 
-                    (mg400 / ml50)
+                    (mg400 /? ml50)
                     |> get
                     |> snd
                     |> Group.unitToGroup
-                    |> Group.getUnits
+                    |> Group.getUnitCombinations
                     |> List.length
                     // the number of units for the Mass/Volume group is
                     // the multiple of mc * vc
@@ -660,6 +677,78 @@ module Tests =
 
                 }
 
+                test "same group, different unit is equal" {
+                    Group.eqsGroup (Mass(KiloGram 1N)) (Mass(Gram 1N)) |> Expect.isTrue ""
+                }
+
+                test "different group is not equal" {
+                    Group.eqsGroup (Mass(KiloGram 1N)) (Volume(Liter 1N)) |> Expect.isFalse ""
+                }
+
+                test "commutative: (mass*vol)/(wt*time) = (vol*mass)/(time*wt)" {
+                    let a =
+                        CombiUnit(
+                            CombiUnit(Mass(KiloGram 1N), OpTimes, Volume(Liter 1N)),
+                            OpPer,
+                            CombiUnit(Weight(WeightKiloGram 1N), OpTimes, Time(Hour 1N))
+                        )
+
+                    let b =
+                        CombiUnit(
+                            CombiUnit(Volume(Liter 1N), OpTimes, Mass(KiloGram 1N)),
+                            OpPer,
+                            CombiUnit(Time(Hour 1N), OpTimes, Weight(WeightKiloGram 1N))
+                        )
+
+                    Group.eqsGroup a b |> Expect.isTrue "should be true"
+                }
+
+                test "associative: (mass*vol)/(wt*time) = mass*vol/wt/time" {
+                    let a =
+                        CombiUnit(
+                            CombiUnit(Mass(KiloGram 1N), OpTimes, Volume(Liter 1N)),
+                            OpPer,
+                            CombiUnit(Weight(WeightKiloGram 1N), OpTimes, Time(Hour 1N))
+                        )
+
+                    let c =
+                        CombiUnit(
+                            CombiUnit(
+                                CombiUnit(Mass(KiloGram 1N), OpTimes, Volume(Liter 1N)),
+                                OpPer,
+                                Weight(WeightKiloGram 1N)
+                            ),
+                            OpPer,
+                            Time(Hour 1N)
+                        )
+
+                    Group.eqsGroup a c |> Expect.isTrue "should be true"
+                }
+
+                test "divide by quotient: vol/(wt/time) = (vol*time)/wt" {
+                    let e =
+                        CombiUnit(Volume(Liter 1N), OpPer, CombiUnit(Weight(WeightKiloGram 1N), OpPer, Time(Hour 1N)))
+
+                    let f =
+                        CombiUnit(CombiUnit(Volume(Liter 1N), OpTimes, Time(Hour 1N)), OpPer, Weight(WeightKiloGram 1N))
+
+                    Group.eqsGroup e f |> Expect.isTrue "should be true"
+                }
+
+                // pins the documented behaviour: eqsGroup does NOT reduce to lowest terms
+                test "does not cancel common factors: (mass*vol)/vol <> mass" {
+                    let d =
+                        CombiUnit(CombiUnit(Mass(KiloGram 1N), OpTimes, Volume(Liter 1N)), OpPer, Volume(Liter 1N))
+
+                    Group.eqsGroup d (Mass(KiloGram 1N)) |> Expect.isFalse ""
+                }
+
+                test "does not treat Count as identity: mass*count <> mass" {
+                    let g = CombiUnit(Mass(KiloGram 1N), OpTimes, Count(Times 1N))
+
+                    Group.eqsGroup g (Mass(KiloGram 1N)) |> Expect.isFalse ""
+                }
+
             ]
 
 
@@ -669,16 +758,89 @@ module Tests =
             [
                 test "100 mg/mL droplet fluid with 40 droplets per mL then 1 droplet = 2.5 mg" {
                     let fluid =
-                        100N |> createSingle (Units.Mass.milliGram |> Units.per Units.Volume.milliLiter)
+                        100N
+                        |> createSingle (Units.Mass.milliGram |> ValueUnit.per Units.Volume.milliLiter)
 
                     let dr = 1N |> createSingle (Units.Volume.dropletWithDropsPerMl 40N)
                     let exp = 25N / 10N |> createSingle Units.Mass.milliGram
 
-                    (fluid * dr) =? exp
-                    |> Expect.isTrue $"should be 2.5 mg/ml, actual: {(fluid * dr)}"
+                    (fluid *? dr) =? exp
+                    |> Expect.isTrue $"should be 2.5 mg/ml, actual: {(fluid *? dr)}"
 
                 }
 
+            ]
+
+
+    // Regression tests pinning the fixes / decisions from the code review.
+    let regressionTests =
+        testList
+            "Review regressions"
+            [
+                test "opFromString maps each operator token correctly" {
+                    Core.opFromString "/" |> Expect.equal "/" OpPer
+                    Core.opFromString "*" |> Expect.equal "*" OpTimes
+                    Core.opFromString "+" |> Expect.equal "+" OpPlus
+                    Core.opFromString "-" |> Expect.equal "-" OpMinus
+                }
+
+                test "opFromString throws on an unknown token" {
+                    (fun () -> Core.opFromString "?" |> ignore)
+                    |> Expect.throws "should throw on unknown operator"
+                }
+
+                test "1 hour base value is 3600 seconds" {
+                    let vu = 1N |> singleWithUnit Units.Time.hour
+                    vu |> toBaseValue |> Expect.equal "1 hr = 3600 s" [| 3600N |]
+                }
+
+                test "60 minutes equals 1 hour" {
+                    let min60 = 60N |> singleWithUnit Units.Time.minute
+                    let hr1 = 1N |> singleWithUnit Units.Time.hour
+                    min60 =? hr1 |> Expect.isTrue "60 min should equal 1 hr"
+                }
+
+                test "eqsUnit on General is value-sensitive (same name + value equal)" {
+                    Units.eqsUnit (General("x", 1N)) (General("x", 1N))
+                    |> Expect.isTrue "same name and value should be equal"
+                }
+
+                test "eqsUnit on General differs when only the value differs" {
+                    Units.eqsUnit (General("x", 1N)) (General("x", 2N))
+                    |> Expect.isFalse "different value should not be equal"
+                }
+
+                test "eqsUnit on General differs when the name differs" {
+                    Units.eqsUnit (General("x", 1N)) (General("y", 1N))
+                    |> Expect.isFalse "different name should not be equal"
+                }
+
+                test "kg parses into the Weight group, not Mass (intentional filter)" {
+                    "10 kg"
+                    |> fromString
+                    |> function
+                        | Ok vu -> vu
+                        | Error err -> $"can't run this test: {err}" |> failwith
+                    |> getUnit
+                    |> Group.unitToGroup
+                    |> Expect.equal "kg should resolve to Weight" Group.WeightGroup
+                }
+
+                test "medianValue picks the upper-middle element for an even set" {
+                    [| 1N; 2N; 3N; 4N |]
+                    |> create Units.Mass.gram
+                    |> medianValue
+                    |> Option.map getValue
+                    |> Expect.equal "median of [1;2;3;4] g is 3" (Some [| 3N |])
+                }
+
+                test "medianValue picks the middle element for an odd set" {
+                    [| 1N; 2N; 3N |]
+                    |> create Units.Mass.gram
+                    |> medianValue
+                    |> Option.map getValue
+                    |> Expect.equal "median of [1;2;3] g is 2" (Some [| 2N |])
+                }
             ]
 
 
@@ -709,6 +871,7 @@ module Tests =
                 unitTests
                 groupTests
                 useCaseTests
+                regressionTests
 
                 test "Unquote tests" {
                     try

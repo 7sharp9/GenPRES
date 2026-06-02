@@ -42,7 +42,7 @@ let pcmSupp =
     let au = Units.Weight.kiloGram
     let fu = Units.General.general "stuk"
     let su = Units.Mass.milliGram
-    let cu = su |> Units.per fu
+    let cu = su |> ValueUnit.per fu
     let tu = Units.Time.day
 
     { Medication.template with
@@ -83,8 +83,8 @@ let pcmSupp =
                                         AdjustUnit = su |> Some
                                         QuantityAdjust =
                                             MinMax.createInclIncl
-                                                (10N |> ValueUnit.singleWithUnit (su |> Units.per au))
-                                                (20N |> ValueUnit.singleWithUnit (su |> Units.per au))
+                                                (10N |> ValueUnit.singleWithUnit (su |> ValueUnit.per au))
+                                                (20N |> ValueUnit.singleWithUnit (su |> ValueUnit.per au))
                                     }
                                     |> Some
                             }
@@ -94,7 +94,10 @@ let pcmSupp =
         Route = "RECTAAL"
         OrderType = DiscontinuousOrder
         Adjust = 14N |> ValueUnit.singleWithUnit au |> Some
-        Frequencies = [| 3N; 4N |] |> ValueUnit.withUnit (Units.Count.times |> Units.per tu) |> Some
+        Frequencies =
+            [| 3N; 4N |]
+            |> ValueUnit.withUnit (Units.Count.times |> ValueUnit.per tu)
+            |> Some
         DoseCount = 1N |> ValueUnit.singleWithUnit Units.Count.times |> MinMax.createExact
         Dose =
             { DoseLimit.limit with Quantity = 1N |> ValueUnit.singleWithUnit fu |> MinMax.createExact }
@@ -106,8 +109,8 @@ let amfo =
     let au = Units.Weight.kiloGram
     let fu = Units.Volume.milliLiter
     let su = Units.Mass.milliGram
-    let du = Units.Mass.milliGram |> Units.per au |> Units.per Units.Time.day
-    let cu = su |> Units.per fu
+    let du = Units.Mass.milliGram |> ValueUnit.per au |> ValueUnit.per Units.Time.day
+    let cu = su |> ValueUnit.per fu
 
     { Medication.template with
         Id = "1"
@@ -118,7 +121,7 @@ let amfo =
         Adjust = 14N |> ValueUnit.singleWithUnit au |> Some
         Frequencies =
             Units.Count.times
-            |> Units.per Units.Time.day
+            |> ValueUnit.per Units.Time.day
             |> ValueUnit.singleWithValue 1N
             |> Some
         DoseCount = 1N |> ValueUnit.singleWithUnit Units.Count.times |> MinMax.createExact
@@ -135,7 +138,7 @@ let amfo =
                                 Name = "saccharose"
                                 Concentrations =
                                     Units.Mass.milliGram
-                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.per Units.Volume.milliLiter
                                     |> ValueUnit.singleWithValue 72N
                                     |> Some
                             }
@@ -143,7 +146,7 @@ let amfo =
                                 Name = "amfotericine b liposomaal"
                                 Concentrations =
                                     Units.Mass.milliGram
-                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.per Units.Volume.milliLiter
                                     |> ValueUnit.singleWithValue 4N
                                     |> Some
                                 Dose =
@@ -164,13 +167,13 @@ let amfo =
                                             { MinMax.empty with
                                                 Min =
                                                     su
-                                                    |> Units.per Units.Volume.milliLiter
+                                                    |> ValueUnit.per Units.Volume.milliLiter
                                                     |> ValueUnit.singleWithValue (2N / 10N)
                                                     |> Limit.inclusive
                                                     |> Some
                                                 Max =
                                                     su
-                                                    |> Units.per Units.Volume.milliLiter
+                                                    |> ValueUnit.per Units.Volume.milliLiter
                                                     |> ValueUnit.singleWithValue 2N
                                                     |> Limit.inclusive
                                                     |> Some
@@ -191,7 +194,7 @@ let amfo =
                                 Name = "energie"
                                 Concentrations =
                                     Units.Energy.kiloCalorie
-                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.per Units.Volume.milliLiter
                                     |> ValueUnit.singleWithValue (4N / 10N)
                                     |> Some
                             }
@@ -199,7 +202,7 @@ let amfo =
                                 Name = "koolhydraat"
                                 Concentrations =
                                     Units.Mass.gram
-                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.per Units.Volume.milliLiter
                                     |> ValueUnit.singleWithValue (1N / 10N)
                                     |> Some
                             }
@@ -215,9 +218,9 @@ let morfCont =
     let au = Units.Weight.kiloGram
     let fu = Units.Volume.milliLiter
     let su = Units.Mass.milliGram
-    let du = Units.Mass.microGram |> Units.per au |> Units.per Units.Time.hour
-    let cu = su |> Units.per fu
-    let ru = fu |> Units.per Units.Time.hour
+    let du = Units.Mass.microGram |> ValueUnit.per au |> ValueUnit.per Units.Time.hour
+    let cu = su |> ValueUnit.per fu
+    let ru = fu |> ValueUnit.per Units.Time.hour
 
     { Medication.template with
         Id = "1"
@@ -255,7 +258,7 @@ let morfCont =
                                             { MinMax.empty with
                                                 Max =
                                                     su
-                                                    |> Units.per Units.Volume.milliLiter
+                                                    |> ValueUnit.per Units.Volume.milliLiter
                                                     |> ValueUnit.singleWithValue 1N
                                                     |> Limit.inclusive
                                                     |> Some
@@ -276,7 +279,7 @@ let morfCont =
                                 Name = "energie"
                                 Concentrations =
                                     Units.Energy.kiloCalorie
-                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.per Units.Volume.milliLiter
                                     |> ValueUnit.singleWithValue (4N / 10N)
                                     |> Some
                             }
@@ -284,7 +287,7 @@ let morfCont =
                                 Name = "koolhydraat"
                                 Concentrations =
                                     Units.Mass.gram
-                                    |> Units.per Units.Volume.milliLiter
+                                    |> ValueUnit.per Units.Volume.milliLiter
                                     |> ValueUnit.singleWithValue (1N / 10N)
                                     |> Some
                             }
@@ -308,7 +311,7 @@ let pcmDrink =
     let au = Units.Weight.kiloGram
     let fu = Units.Volume.milliLiter
     let su = Units.Mass.milliGram
-    let cu = su |> Units.per fu
+    let cu = su |> ValueUnit.per fu
     let tu = Units.Time.day
 
     { Medication.template with
@@ -332,8 +335,14 @@ let pcmDrink =
                                         AdjustUnit = su |> Some
                                         PerTimeAdjust =
                                             MinMax.createInclIncl
-                                                (60N |> ValueUnit.singleWithUnit (su |> Units.per au |> Units.per tu))
-                                                (90N |> ValueUnit.singleWithUnit (su |> Units.per au |> Units.per tu))
+                                                (60N
+                                                 |> ValueUnit.singleWithUnit (
+                                                     su |> ValueUnit.per au |> ValueUnit.per tu
+                                                 ))
+                                                (90N
+                                                 |> ValueUnit.singleWithUnit (
+                                                     su |> ValueUnit.per au |> ValueUnit.per tu
+                                                 ))
                                     }
                                     |> Some
                             }
@@ -345,7 +354,7 @@ let pcmDrink =
         Adjust = 10N |> ValueUnit.singleWithUnit au |> Some
         Frequencies =
             [| 3N; 4N; 6N |]
-            |> ValueUnit.withUnit (Units.Count.times |> Units.per tu)
+            |> ValueUnit.withUnit (Units.Count.times |> ValueUnit.per tu)
             |> Some
         DoseCount = 1N |> ValueUnit.singleWithUnit Units.Count.times |> MinMax.createExact
     }
@@ -355,7 +364,7 @@ let cotrim =
     let au = Units.Weight.kiloGram
     let fu = Units.Volume.milliLiter
     let su = Units.Mass.milliGram
-    let cu = su |> Units.per fu
+    let cu = su |> ValueUnit.per fu
     let tu = Units.Time.day
 
     { Medication.template with
@@ -379,8 +388,8 @@ let cotrim =
                                         AdjustUnit = su |> Some
                                         QuantityAdjust =
                                             MinMax.createInclIncl
-                                                (27N |> ValueUnit.singleWithUnit (su |> Units.per au))
-                                                (30N |> ValueUnit.singleWithUnit (su |> Units.per au))
+                                                (27N |> ValueUnit.singleWithUnit (su |> ValueUnit.per au))
+                                                (30N |> ValueUnit.singleWithUnit (su |> ValueUnit.per au))
                                     }
                                     |> Some
                             }
@@ -393,8 +402,8 @@ let cotrim =
                                         AdjustUnit = su |> Some
                                         QuantityAdjust =
                                             MinMax.createInclIncl
-                                                (6N - 6N / 10N |> ValueUnit.singleWithUnit (su |> Units.per au))
-                                                (6N |> ValueUnit.singleWithUnit (su |> Units.per au))
+                                                (6N - 6N / 10N |> ValueUnit.singleWithUnit (su |> ValueUnit.per au))
+                                                (6N |> ValueUnit.singleWithUnit (su |> ValueUnit.per au))
                                     }
                                     |> Some
                             }
@@ -403,7 +412,7 @@ let cotrim =
             ]
         Route = "or"
         OrderType = DiscontinuousOrder
-        Frequencies = [| 2N |] |> ValueUnit.withUnit (Units.Count.times |> Units.per tu) |> Some
+        Frequencies = [| 2N |] |> ValueUnit.withUnit (Units.Count.times |> ValueUnit.per tu) |> Some
         Adjust = 10N |> ValueUnit.singleWithUnit au |> Some
         DoseCount = 1N |> ValueUnit.singleWithUnit Units.Count.times |> MinMax.createExact
         Dose =
@@ -412,7 +421,11 @@ let cotrim =
                 AdjustUnit = au |> Some
                 QuantityAdjust =
                     { MinMax.empty with
-                        Max = 10N |> ValueUnit.singleWithUnit (fu |> Units.per au) |> Limit.inclusive |> Some
+                        Max =
+                            10N
+                            |> ValueUnit.singleWithUnit (fu |> ValueUnit.per au)
+                            |> Limit.inclusive
+                            |> Some
                     }
             }
             |> Some
@@ -428,7 +441,7 @@ let tpnComplete =
         Adjust = 11N |> ValueUnit.singleWithUnit Units.Weight.kiloGram |> Some
         Frequencies =
             1N
-            |> ValueUnit.singleWithUnit (Units.Count.times |> Units.per Units.Time.day)
+            |> ValueUnit.singleWithUnit (Units.Count.times |> ValueUnit.per Units.Time.day)
             |> Some
         Time =
             { MinMax.empty with
@@ -443,7 +456,7 @@ let tpnComplete =
                     { MinMax.empty with
                         Max =
                             (755N / 10N)
-                            |> ValueUnit.singleWithUnit (Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram)
+                            |> ValueUnit.singleWithUnit (Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram)
                             |> Limit.inclusive
                             |> Some
                     }
@@ -471,14 +484,14 @@ let tpnComplete =
                                     Min =
                                         10N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
                                     Max =
                                         25N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
@@ -492,7 +505,7 @@ let tpnComplete =
                                 Concentrations =
                                     (32N / 100N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Energy.kiloCalorie |> Units.per Units.Volume.milliLiter
+                                        Units.Energy.kiloCalorie |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                             }
@@ -500,7 +513,9 @@ let tpnComplete =
                                 Name = "eiwit"
                                 Concentrations =
                                     (8N / 100N)
-                                    |> ValueUnit.singleWithUnit (Units.Mass.gram |> Units.per Units.Volume.milliLiter)
+                                    |> ValueUnit.singleWithUnit (
+                                        Units.Mass.gram |> ValueUnit.per Units.Volume.milliLiter
+                                    )
                                     |> Some
                                 Solution =
                                     { SolutionLimit.limit with
@@ -510,7 +525,7 @@ let tpnComplete =
                                                 Max =
                                                     5N / 100N
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Mass.gram |> Units.per Units.Volume.milliLiter
+                                                        Units.Mass.gram |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -523,7 +538,7 @@ let tpnComplete =
                                 Concentrations =
                                     (1N / 100N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                                 Solution =
@@ -534,7 +549,7 @@ let tpnComplete =
                                                 Max =
                                                     (5N / 10N)
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -547,7 +562,7 @@ let tpnComplete =
                                 Concentrations =
                                     (2N / 100N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                                 Solution =
@@ -558,7 +573,7 @@ let tpnComplete =
                                                 Max =
                                                     (5N / 10N)
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -571,7 +586,7 @@ let tpnComplete =
                                 Concentrations =
                                     (3N / 100N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                             }
@@ -580,7 +595,7 @@ let tpnComplete =
                                 Concentrations =
                                     (2N / 100N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                             }
@@ -589,7 +604,7 @@ let tpnComplete =
                                 Concentrations =
                                     (1N / 100N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                             }
@@ -598,7 +613,7 @@ let tpnComplete =
                                 Concentrations =
                                     (7N / 100N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                             }
@@ -619,14 +634,14 @@ let tpnComplete =
                                     Min =
                                         6N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
                                     Max =
                                         6N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
@@ -640,7 +655,7 @@ let tpnComplete =
                                 Concentrations =
                                     (5N / 10N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                                 Solution =
@@ -651,7 +666,7 @@ let tpnComplete =
                                                 Max =
                                                     (5N / 10N)
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -664,7 +679,7 @@ let tpnComplete =
                                 Concentrations =
                                     (5N / 10N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                             }
@@ -685,14 +700,14 @@ let tpnComplete =
                                     Min =
                                         2N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
                                     Max =
                                         2N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
@@ -706,7 +721,7 @@ let tpnComplete =
                                 Concentrations =
                                     1N
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                                 Solution =
@@ -717,7 +732,7 @@ let tpnComplete =
                                                 Max =
                                                     (5N / 10N)
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -730,7 +745,7 @@ let tpnComplete =
                                 Concentrations =
                                     1N
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                             }
@@ -749,7 +764,7 @@ let tpnComplete =
                                 Concentrations =
                                     (4N / 10N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Energy.kiloCalorie |> Units.per Units.Volume.milliLiter
+                                        Units.Energy.kiloCalorie |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                             }
@@ -757,7 +772,9 @@ let tpnComplete =
                                 Name = "koolhydraat"
                                 Concentrations =
                                     (1N / 10N)
-                                    |> ValueUnit.singleWithUnit (Units.Mass.gram |> Units.per Units.Volume.milliLiter)
+                                    |> ValueUnit.singleWithUnit (
+                                        Units.Mass.gram |> ValueUnit.per Units.Volume.milliLiter
+                                    )
                                     |> Some
                             }
                         ]
@@ -775,7 +792,7 @@ let tpn =
         Adjust = 11N |> ValueUnit.singleWithUnit Units.Weight.kiloGram |> Some
         Frequencies =
             1N
-            |> ValueUnit.singleWithUnit (Units.Count.times |> Units.per Units.Time.day)
+            |> ValueUnit.singleWithUnit (Units.Count.times |> ValueUnit.per Units.Time.day)
             |> Some
         Time =
             { MinMax.empty with
@@ -790,7 +807,7 @@ let tpn =
                     { MinMax.empty with
                         Max =
                             (755N / 10N)
-                            |> ValueUnit.singleWithUnit (Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram)
+                            |> ValueUnit.singleWithUnit (Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram)
                             |> Limit.inclusive
                             |> Some
                     }
@@ -818,14 +835,14 @@ let tpn =
                                     Min =
                                         10N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
                                     Max =
                                         25N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
@@ -838,7 +855,9 @@ let tpn =
                                 Name = "eiwit"
                                 Concentrations =
                                     (8N / 100N)
-                                    |> ValueUnit.singleWithUnit (Units.Mass.gram |> Units.per Units.Volume.milliLiter)
+                                    |> ValueUnit.singleWithUnit (
+                                        Units.Mass.gram |> ValueUnit.per Units.Volume.milliLiter
+                                    )
                                     |> Some
                                 Solution =
                                     { SolutionLimit.limit with
@@ -848,7 +867,7 @@ let tpn =
                                                 Max =
                                                     (5N / 100N)
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Mass.gram |> Units.per Units.Volume.milliLiter
+                                                        Units.Mass.gram |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -861,7 +880,7 @@ let tpn =
                                 Concentrations =
                                     (1N / 100N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                                 Solution =
@@ -872,7 +891,7 @@ let tpn =
                                                 Max =
                                                     (5N / 10N)
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -885,7 +904,7 @@ let tpn =
                                 Concentrations =
                                     (2N / 100N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                                 Solution =
@@ -896,7 +915,7 @@ let tpn =
                                                 Max =
                                                     (5N / 10N)
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -921,14 +940,14 @@ let tpn =
                                     Min =
                                         6N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
                                     Max =
                                         6N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
@@ -942,7 +961,7 @@ let tpn =
                                 Concentrations =
                                     (5N / 10N)
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                                 Solution =
@@ -953,7 +972,7 @@ let tpn =
                                                 Max =
                                                     (5N / 10N)
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -978,14 +997,14 @@ let tpn =
                                     Min =
                                         2N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
                                     Max =
                                         2N
                                         |> ValueUnit.singleWithUnit (
-                                            Units.Volume.milliLiter |> Units.per Units.Weight.kiloGram
+                                            Units.Volume.milliLiter |> ValueUnit.per Units.Weight.kiloGram
                                         )
                                         |> Limit.inclusive
                                         |> Some
@@ -999,7 +1018,7 @@ let tpn =
                                 Concentrations =
                                     1N
                                     |> ValueUnit.singleWithUnit (
-                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                     )
                                     |> Some
                                 Solution =
@@ -1010,7 +1029,7 @@ let tpn =
                                                 Max =
                                                     (5N / 10N)
                                                     |> ValueUnit.singleWithUnit (
-                                                        Units.Molar.milliMole |> Units.per Units.Volume.milliLiter
+                                                        Units.Molar.milliMole |> ValueUnit.per Units.Volume.milliLiter
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
@@ -1032,7 +1051,9 @@ let tpn =
                                 Name = "koolhydraat"
                                 Concentrations =
                                     (1N / 10N)
-                                    |> ValueUnit.singleWithUnit (Units.Mass.gram |> Units.per Units.Volume.milliLiter)
+                                    |> ValueUnit.singleWithUnit (
+                                        Units.Mass.gram |> ValueUnit.per Units.Volume.milliLiter
+                                    )
                                     |> Some
                             }
                         ]
@@ -1163,8 +1184,8 @@ let fullMedication =
     let massUnit = Units.Mass.milliGram
     let weightUnit = Units.Weight.kiloGram
     let timeUnit = Units.Time.day
-    let concUnit = massUnit |> Units.per volUnit
-    let molarConcUnit = Units.Molar.milliMole |> Units.per volUnit
+    let concUnit = massUnit |> ValueUnit.per volUnit
+    let molarConcUnit = Units.Molar.milliMole |> ValueUnit.per volUnit
 
     { Medication.template with
         Id = "full-med-test-001"
@@ -1179,7 +1200,7 @@ let fullMedication =
         OrderType = TimedOrder
         Frequencies =
             [| 1N; 2N |]
-            |> ValueUnit.withUnit (Units.Count.times |> Units.per timeUnit)
+            |> ValueUnit.withUnit (Units.Count.times |> ValueUnit.per timeUnit)
             |> Some
         Time =
             { MinMax.empty with
@@ -1219,12 +1240,12 @@ let fullMedication =
                                 { MinMax.empty with
                                     Min =
                                         1N
-                                        |> ValueUnit.singleWithUnit (volUnit |> Units.per weightUnit)
+                                        |> ValueUnit.singleWithUnit (volUnit |> ValueUnit.per weightUnit)
                                         |> Limit.inclusive
                                         |> Some
                                     Max =
                                         5N
-                                        |> ValueUnit.singleWithUnit (volUnit |> Units.per weightUnit)
+                                        |> ValueUnit.singleWithUnit (volUnit |> ValueUnit.per weightUnit)
                                         |> Limit.inclusive
                                         |> Some
                                 }
@@ -1254,14 +1275,14 @@ let fullMedication =
                                                 Min =
                                                     1N
                                                     |> ValueUnit.singleWithUnit (
-                                                        massUnit |> Units.per weightUnit |> Units.per timeUnit
+                                                        massUnit |> ValueUnit.per weightUnit |> ValueUnit.per timeUnit
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
                                                 Max =
                                                     10N
                                                     |> ValueUnit.singleWithUnit (
-                                                        massUnit |> Units.per weightUnit |> Units.per timeUnit
+                                                        massUnit |> ValueUnit.per weightUnit |> ValueUnit.per timeUnit
                                                     )
                                                     |> Limit.inclusive
                                                     |> Some
