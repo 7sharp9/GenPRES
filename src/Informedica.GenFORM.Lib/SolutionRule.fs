@@ -89,7 +89,7 @@ module SolutionRule =
     let map routeMapping (parenteral: Product[]) products data : Result<_, Message list> =
         data
         |> Array.groupBy (fun r ->
-            let du = r.Unit |> Units.fromString
+            let du = r.Unit |> UnitsParse.fromString
 
             {
                 Generic = r.Generic
@@ -133,10 +133,10 @@ module SolutionRule =
                 Volume = (r.MinVol, r.MaxVol) |> fromTupleInclIncl (Some Units.mL)
                 VolumeAdjust =
                     (r.MinVolAdj, r.MaxVolAdj)
-                    |> fromTupleInclIncl (Units.mL |> Units.per Units.Weight.kiloGram |> Some)
+                    |> fromTupleInclIncl (Units.mL |> ValueUnit.per Units.Weight.kiloGram |> Some)
                 DripRate =
                     (r.MinDrip, r.MaxDrip)
-                    |> fromTupleInclIncl (Some(Units.Volume.milliLiter |> Units.per Units.Time.hour))
+                    |> fromTupleInclIncl (Some(Units.Volume.milliLiter |> ValueUnit.per Units.Time.hour))
                 DosePerc = (r.MinPerc, r.MaxPerc) |> fromTupleInclIncl (Some Units.Count.times)
                 SolutionLimits = [||]
             }
@@ -146,8 +146,8 @@ module SolutionRule =
                 SolutionLimits =
                     rs
                     |> Array.map (fun l ->
-                        let u = l.Unit |> Units.fromString
-                        let au = u |> Option.map (Units.per Units.Weight.kiloGram)
+                        let u = l.Unit |> UnitsParse.fromString
+                        let au = u |> Option.map (ValueUnit.per Units.Weight.kiloGram)
 
                         {
                             SolutionLimitTarget =
@@ -165,7 +165,7 @@ module SolutionRule =
                                     | None -> None
                                     | Some u -> l.Quantities |> ValueUnit.withUnit u |> Some
                             Concentration =
-                                let u = u |> Option.map (Units.per Units.Volume.milliLiter)
+                                let u = u |> Option.map (ValueUnit.per Units.Volume.milliLiter)
                                 (l.MinConc, l.MaxConc) |> fromTupleInclIncl u
                             Products =
                                 products

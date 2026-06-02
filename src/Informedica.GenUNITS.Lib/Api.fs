@@ -1,10 +1,9 @@
 namespace Informedica.GenUnits.Lib
 
-
 module Api =
 
     open Informedica.Utils.Lib.BCL
-
+    open Informedica.GenUnits.Lib
 
     /// <summary>
     /// Evaluates a string to a ValueUnit
@@ -34,14 +33,14 @@ module Api =
             | Ok vu -> Some vu
             | Error _ -> None
 
-        let opts s =
+        let opts s : ValueUnit -> ValueUnit -> ValueUnit =
             let s = s |> String.trim
 
             match s with
-            | _ when s = "*" -> (*)
-            | _ when s = "/" -> (/)
-            | _ when s = "+" -> (+)
-            | _ when s = "-" -> (-)
+            | _ when s = "*" -> (fun a b -> a * b)
+            | _ when s = "/" -> (fun a b -> a / b)
+            | _ when s = "+" -> (fun a b -> a + b)
+            | _ when s = "-" -> (fun a b -> a - b)
             | _ -> failwith <| $"Cannot evaluate string %s{s}"
 
         let rec eval' acc terms =
@@ -86,7 +85,7 @@ module Api =
                 | Error _ -> None
                 | Ok vu -> vu |> Some
 
-        match vu, s2 |> Units.fromString with
+        match vu, s2 |> UnitsParse.fromString with
         | Some vu, Some u ->
             vu
             |> ValueUnit.convertTo u

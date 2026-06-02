@@ -32,6 +32,15 @@ let getClientIP (context: HttpContext) =
     | ip -> ip.ToString()
 
 
+// Load .env so GENPRES_* variables are available even when the server
+// binary is launched directly (e.g. via Rider/VS Code) without first
+// sourcing .env in the shell. loadDotEnv only sets variables that are
+// not already present, preserving the shell/CI/Docker > .env > defaults
+// override chain.
+let loadEnvironment () = Env.loadDotEnv () |> ignore
+
+
+loadEnvironment ()
 let tryGetEnv key = Env.getItem key
 
 

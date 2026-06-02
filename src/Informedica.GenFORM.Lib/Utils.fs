@@ -169,13 +169,13 @@ module Utils =
                     "times[Count]"
                 else
                     $"{s}[Time]"
-                |> Units.fromString
+                |> UnitsParse.fromString
 
         let freqUnit s =
             if s |> String.isNullOrWhiteSpace then
                 None
             else
-                $"times[Count]/{s}[Time]" |> Units.fromString
+                $"times[Count]/{s}[Time]" |> UnitsParse.fromString
 
         let adjustUnit s =
             match s with

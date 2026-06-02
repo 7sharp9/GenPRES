@@ -147,7 +147,7 @@ module Mapping =
             unitMapping
             |> Array.tryFind (fun r -> r.Long = s || r.Short = s || r.MV = s)
             |> function
-                | Some r -> $"{r.Short}[{r.Group}]" |> Units.fromString
+                | Some r -> $"{r.Short}[{r.Group}]" |> UnitsParse.fromString
                 | None -> None
 
 

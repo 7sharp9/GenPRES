@@ -248,7 +248,7 @@ module Pipeline =
                     let ord0 = mkConstrainedOrder ()
                     // Switch to Discontinuous and clear its dose via the change API
                     let ord =
-                        let hz = Units.per Units.Time.hour Units.Count.times
+                        let hz = ValueUnit.per Units.Time.hour Units.Count.times
 
                         { ord0 with
                             Schedule =
@@ -274,7 +274,7 @@ module Pipeline =
 
                 test "Timed TimeCleared re-applies time constraints and values" {
                     let ord0 = mkConstrainedOrder ()
-                    let hz = Units.per Units.Time.hour Units.Count.times
+                    let hz = ValueUnit.per Units.Time.hour Units.Count.times
 
                     let frq =
                         ord0.Schedule
@@ -317,7 +317,7 @@ module ToOrderDto =
 
         let limToDto = Option.map Limit.getValueUnit >> vuToDto
 
-        let oru = Units.Volume.milliLiter |> Units.per Units.Time.hour
+        let oru = Units.Volume.milliLiter |> ValueUnit.per Units.Time.hour
 
         let standDoseRate un (orbDto: Order.Orderable.Dto.Dto) =
             orbDto.Dose.Rate.Constraints.IncrOpt <- 1N / 10N |> createSingleValueUnitDto un
@@ -697,7 +697,7 @@ module DosePrintoutTests =
                 Name = "Dose Printout Test Order"
                 OrderType = DiscontinuousOrder
                 Frequencies =
-                    ValueUnit.create (Units.Count.times |> Units.per Units.Time.day) [| 2N |]
+                    ValueUnit.create (Units.Count.times |> ValueUnit.per Units.Time.day) [| 2N |]
                     |> Some
                 Components =
                     [
@@ -940,7 +940,7 @@ module DosePrintoutTests =
                     "Edge cases and integration"
                     [
                         test "Once order with useAdj=true shows QuantityAdjust constraints correctly" {
-                            let un = Units.Mass.milliGram |> Units.per Units.Weight.kiloGram
+                            let un = Units.Mass.milliGram |> ValueUnit.per Units.Weight.kiloGram
 
                             let medOrd =
                                 { Medication.template with

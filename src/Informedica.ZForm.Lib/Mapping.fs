@@ -51,7 +51,7 @@ module Mapping =
                             ZIndexLong = r.zindexlong
                             ZIndexShort = r.zindexshort
                             MetaVision = r.mvunit
-                            Unit = $"{r.unit}[{r.group}]" |> Units.fromString |> Option.defaultValue NoUnit
+                            Unit = $"{r.unit}[{r.group}]" |> UnitsParse.fromString |> Option.defaultValue NoUnit
                         }
                     )
 
@@ -111,7 +111,7 @@ module Mapping =
                                         | None -> n |> Units.Count.nTimes
                                         | Some u -> n |> (u |> snd)
 
-                                Units.Count.times |> Units.per tu
+                                Units.Count.times |> ValueUnit.per tu
                         }
                     )
 

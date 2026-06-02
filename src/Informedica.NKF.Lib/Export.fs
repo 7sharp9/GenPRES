@@ -418,8 +418,8 @@ module Export =
                         return
                             xs
                             |> List.map (fun x ->
-                                let du = x.doseUnit |> Units.fromString
-                                let tu = x.freqUnit |> Units.fromString
+                                let du = x.doseUnit |> UnitsParse.fromString
+                                let tu = x.freqUnit |> UnitsParse.fromString
 
                                 {| x with
                                     hasMaxDose = "True"
@@ -445,7 +445,7 @@ module Export =
                                             match du, tu with
                                             | Some du, Some tu ->
                                                 d
-                                                |> ValueUnit.convertTo (du |> Units.per tu)
+                                                |> ValueUnit.convertTo (du |> ValueUnit.per tu)
                                                 |> ValueUnit.getValue
                                                 |> Array.tryHead
                                                 |> function

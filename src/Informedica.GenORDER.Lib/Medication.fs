@@ -349,7 +349,7 @@ module Medication =
                     if valueStr |> String.IsNullOrWhiteSpace then
                         () // Skip this field
                     elif fullLabel = DoseLimit.FieldLabels.DoseUnit then
-                        let dun = valueStr |> Units.fromString
+                        let dun = valueStr |> UnitsParse.fromString
 
                         match dun with
                         | Some un -> dl <- { dl with DoseUnit = un }
@@ -1010,8 +1010,8 @@ module Medication =
     let substanceItem = SubstanceItem.item
 
 
-    /// Shorthand for Units.stringWithGroup to append the unit group to a unit.
-    let unitGroup = Units.stringWithGroup
+    /// Shorthand for UnitsParse.stringWithGroup to append the unit group to a unit.
+    let unitGroup = UnitsParse.stringWithGroup
 
 
     /// <summary>
@@ -1562,7 +1562,7 @@ module Medication =
                 |> List.tryHead
                 |> Option.bind (fun p -> p.Quantities |> Option.map ValueUnit.getUnit)
 
-            let rateUnit = orderableUnit |> Option.map (Units.per Units.Time.hour)
+            let rateUnit = orderableUnit |> Option.map (ValueUnit.per Units.Time.hour)
 
             let freqTimeUnit =
                 med.Frequencies
@@ -1604,7 +1604,7 @@ module Medication =
 
                     match orderableUnit, freqTimeUnit with
                     | Some u, Some tu ->
-                        orbDto.Dose.PerTime.Constraints.MinOpt <- 0N |> createSingleValueUnitDto (u |> Units.per tu)
+                        orbDto.Dose.PerTime.Constraints.MinOpt <- 0N |> createSingleValueUnitDto (u |> ValueUnit.per tu)
                         orbDto.Dose.PerTime.Constraints.MinIncl <- false
                     | _ -> ()
 
@@ -1629,7 +1629,7 @@ module Medication =
                             match orderableUnit, freqTimeUnit with
                             | Some u, Some tu ->
                                 orbDto.Dose.PerTime.Constraints.MinOpt <-
-                                    0N |> createSingleValueUnitDto (u |> Units.per tu)
+                                    0N |> createSingleValueUnitDto (u |> ValueUnit.per tu)
 
                                 orbDto.Dose.PerTime.Constraints.MinIncl <- false
                             | _ -> ()

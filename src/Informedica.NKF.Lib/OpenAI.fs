@@ -54,7 +54,7 @@ module OpenAI =
                     let v = v |> String.replace "." "" |> String.replace "," "."
 
                     match
-                        v |> Double.tryParse |> Option.bind BigRational.fromFloat, $"{u}[Time]" |> Units.fromString
+                        v |> Double.tryParse |> Option.bind BigRational.fromFloat, $"{u}[Time]" |> UnitsParse.fromString
                     with
                     | Some v, Some u -> v |> ValueUnit.singleWithUnit u |> Some
                     | _ -> None
@@ -79,7 +79,8 @@ module OpenAI =
                         | _ -> None
 
                     match
-                        v |> Double.tryParse |> Option.bind BigRational.fromFloat, u |> Option.bind Units.fromString
+                        v |> Double.tryParse |> Option.bind BigRational.fromFloat,
+                        u |> Option.bind UnitsParse.fromString
                     with
                     | Some v, Some u -> v |> ValueUnit.singleWithUnit u |> Some
                     | _ -> None

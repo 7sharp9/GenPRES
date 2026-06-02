@@ -312,7 +312,7 @@ module Tests =
             Limit.Inclusive(ValueUnit.singleWithUnit u v)
 
         let mg = Units.Mass.milliGram
-        let mgPerKg = Units.Mass.milliGram |> Units.per Units.Weight.kiloGram
+        let mgPerKg = Units.Mass.milliGram |> ValueUnit.per Units.Weight.kiloGram
         let kg = Units.Weight.kiloGram
 
         let pat15kg =

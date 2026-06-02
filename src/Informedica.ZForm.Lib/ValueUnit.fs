@@ -14,7 +14,7 @@ module ValueUnit =
 
 
     /// Try create a Unit from a string.
-    let unitFromString = Units.fromString
+    let unitFromString = UnitsParse.fromString
 
 
     /// Return the Unit as a string.
@@ -23,15 +23,16 @@ module ValueUnit =
 
 
     /// Try create a Unit from a string.
-    let readableStringToWeightUnit s = $"%s{s}[Weight]" |> Units.fromString
+    let readableStringToWeightUnit s =
+        $"%s{s}[Weight]" |> UnitsParse.fromString
 
 
     /// Try create a BSA Unit from a string.
-    let readableStringToBSAUnit s = $"%s{s}[BSA]" |> Units.fromString
+    let readableStringToBSAUnit s = $"%s{s}[BSA]" |> UnitsParse.fromString
 
 
     /// Try create a Time Unit from a string.
-    let readableStringToTimeUnit s = $"%s{s}[Time]" |> Units.fromString
+    let readableStringToTimeUnit s = $"%s{s}[Time]" |> UnitsParse.fromString
 
 
     /// Create a unit from a UnitMapping.
@@ -106,7 +107,7 @@ module ValueUnit =
     /// Check whether a unit `u`
     /// is a time unit.
     let isTimeUnit u =
-        (u |> Group.unitToGroup) = Group.TimeGroup
+        (u |> ValueUnit.Group.unitToGroup) = Group.TimeGroup
 
 
     /// Helper functions to quicly create

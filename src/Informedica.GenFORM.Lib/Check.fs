@@ -90,9 +90,9 @@ module Check =
         let setUnits u =
             match adjUn, tu with
             | None, None -> u
-            | Some adj, None -> u |> Units.per adj
-            | None, Some tu -> u |> Units.per tu
-            | Some adj, Some tu -> u |> Units.per adj |> Units.per tu
+            | Some adj, None -> u |> ValueUnit.per adj
+            | None, Some tu -> u |> ValueUnit.per tu
+            | Some adj, Some tu -> u |> ValueUnit.per adj |> ValueUnit.per tu
 
         {
             Min =
@@ -310,7 +310,7 @@ module Check =
                                             None
                                         else
                                             Units.Count.times
-                                            |> Units.per fr.TimeUnit
+                                            |> ValueUnit.per fr.TimeUnit
                                             |> ValueUnit.withValue (fr.Frequencies |> List.toArray)
                                             |> Some
                                     )
