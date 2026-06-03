@@ -591,7 +591,11 @@ module Tests =
         let tot =
             try
                 GenPresProduct.get [] |> Array.length
-            with _ ->
+            with ex ->
+                // Don't crash the whole assembly during static init, but surface
+                // the failure rather than silently using 0 (which could let the
+                // tests that compare against `tot` pass vacuously).
+                eprintfn "GenPresProduct.get [] failed during module init (tot = 0): %s" ex.Message
                 0
 
 
