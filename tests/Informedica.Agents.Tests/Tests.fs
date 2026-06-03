@@ -361,6 +361,18 @@ module Tests =
             ]
 
 
+        // Poll until a condition holds or a timeout elapses. Used instead of a
+        // fixed Thread.Sleep so the property tests stay deterministic on slow or
+        // heavily-loaded CI runners (where a fixed wait can expire before the
+        // agent has drained its message queue).
+        let waitUntil (timeoutMs: int) (predicate: unit -> bool) =
+            let sw = Diagnostics.Stopwatch.StartNew()
+
+            while not (predicate ()) && sw.ElapsedMilliseconds < int64 timeoutMs do
+                Thread.Sleep 5
+
+            predicate ()
+
         // Property-based tests using FsCheck
         let propertyTests =
             testList "Property-based Tests" [
@@ -375,8 +387,9 @@ module Tests =
                         try
                             messages |> List.iter agent.Post
 
-                            // Wait for processing
-                            Thread.Sleep(messages.Length * 5 + 100)
+                            // Wait until every posted message has been processed.
+                            waitUntil 5000 (fun () -> List.length receivedMessages = List.length messages)
+                            |> ignore
 
                             let result = List.rev receivedMessages = messages
                             agent |> Agent.dispose
@@ -399,10 +412,12 @@ module Tests =
                         try
                             operations |> List.iter agent.Post
 
-                            // Wait for processing
-                            Thread.Sleep(operations.Length * 5 + 100)
-
                             let expectedSum = List.sum operations
+
+                            // Wait until the accumulated state reaches the expected sum.
+                            waitUntil 5000 (fun () -> finalState = Some expectedSum)
+                            |> ignore
+
                             let result = finalState = Some expectedSum
                             agent |> Agent.dispose
                             result
