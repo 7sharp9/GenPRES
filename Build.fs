@@ -106,7 +106,14 @@ Target.create
 
         let started = ref false
 
+        // Capture all output so we can surface the failing tests on a non-zero
+        // exit. The progress dots replace the raw `dotnet test` output, so
+        // without this the CI log shows no indication of *what* failed.
+        let captured = System.Collections.Generic.List<string>()
+
         let parseLine (line: string) =
+            captured.Add line
+
             if line.Contains("Passed:") && line.Contains("Failed:") && line.Contains("Total:") then
                 let grab (key: string) =
                     let i = line.IndexOf(key)
@@ -139,7 +146,13 @@ Target.create
 
                 printf "."
 
-        dotnet
+        // Build the process directly rather than via the `dotnet` helper: that
+        // helper attaches an `addOnExited` that throws on a non-zero exit code
+        // from inside `Proc.run`, which would pre-empt the result handler below
+        // (so the captured output would never be printed and the test summary
+        // never shown). Here we handle the exit code ourselves.
+        CreateProcess.fromRawCommand
+            "dotnet"
             [
                 "test"
                 sln
@@ -149,9 +162,14 @@ Target.create
                 "--logger"
                 "console;verbosity=minimal"
             ]
-            "."
+        |> CreateProcess.withWorkingDirectory "."
         |> CreateProcess.redirectOutputIfNotRedirected
-        |> CreateProcess.withOutputEventsNotNull parseLine (eprintfn "%s")
+        |> CreateProcess.withOutputEventsNotNull
+            parseLine
+            (fun line ->
+                captured.Add line
+                eprintfn "%s" line
+            )
         |> Proc.run
         |> fun result ->
             printfn ""
@@ -167,7 +185,19 @@ Target.create
             printfn "====================================================================="
 
             if result.ExitCode <> 0 then
+                // The progress dots replace the raw `dotnet test` output, so dump
+                // the captured output to reveal *what* failed. At minimal verbosity
+                // this is just the per-project summaries plus the failure blocks
+                // (no passing-test noise), so it stays readable.
+                printfn "------------------------- dotnet test output ----------------------------"
+                captured |> Seq.iter (printfn "%s")
+                printfn "-------------------------------------------------------------------------"
+
                 failwithf "Tests failed with exit code %d" result.ExitCode
+
+            if totalTests.Value = 0 then
+                failwith
+                    "No tests were discovered or run. The solution was likely not built/restored before 'dotnet test'."
     )
 
 
@@ -247,6 +277,8 @@ let dependencies =
 
         "RestoreClient" ==> "Build" ==> "TestHeadless"
         "RestoreClient" ==> "Build" ==> "WatchTests"
+
+        "Build" ==> "ServerTests"
     ]
 
 

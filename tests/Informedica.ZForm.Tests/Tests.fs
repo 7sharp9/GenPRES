@@ -146,6 +146,19 @@ module DoseRangeTests =
     module Dto = DoseRule.DoseRange.Dto
     module DoseRange = DoseRule.DoseRange
 
+    // Rendering a DoseRange to string loads unit mappings from Google Sheets,
+    // which requires GENPRES_URL_ID. When it is not configured (e.g. CI, where
+    // only demo/cached data is available) these tests cannot run, so skip them.
+    // The DTO round-trip tests below need no sheet data and always run.
+    // Resolution mirrors ZForm.Lib Web.genpresUrlId exactly.
+    let private hasUrlId =
+        Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
+        Informedica.Utils.Lib.Env.getItem "GENPRES_URL_ID" |> Option.isSome
+
+    /// `test` when GENPRES_URL_ID is configured, otherwise a skipped (pending) test.
+    let testUrl name =
+        if hasUrlId then test name else ptest name
+
     let setMinNormDose = Optic.set DoseRange.Optics.inclMinNormLens
     let setMaxNormDose = Optic.set DoseRange.Optics.inclMaxNormLens
 
@@ -215,7 +228,7 @@ module DoseRangeTests =
                     expct |> Dto.toDto |> Dto.fromDto |> Expect.equal "should be equal" expct
                 }
 
-                test "can create a dose range" {
+                testUrl "can create a dose range" {
                     DoseRange.empty
                     |> setMaxNormDose (vuFromStr 10N "milligram")
                     |> setMaxAbsDose (vuFromStr 100N "milligram")
@@ -223,7 +236,7 @@ module DoseRangeTests =
                     |> shouldContainAll "dose range" [ "10 mg"; "100 mg"; "maximaal" ]
                 }
 
-                test "can create a dose range with a rate" {
+                testUrl "can create a dose range with a rate" {
                     DoseRange.empty
                     |> setMinNormDose (vuFromStr 10N "milligram")
                     |> setMaxNormDose (vuFromStr 100N "milligram")
@@ -231,7 +244,7 @@ module DoseRangeTests =
                     |> shouldContainAll "dose range rate" [ "10 mg/uur"; "100 mg/uur" ]
                 }
 
-                test "can create a dose range with a rate per kg" {
+                testUrl "can create a dose range with a rate per kg" {
                     DoseRange.empty
                     |> setMinNormPerKgDose (vuFromStr (1N / 1_000N) "milligram")
                     |> setMaxNormPerKgDose (vuFromStr 1N "milligram")
@@ -240,7 +253,7 @@ module DoseRangeTests =
                     |> shouldContainAll "dose range rate per kg" [ "1 microg/kg/uur"; "1000 microg/kg/uur" ]
                 }
 
-                test "can covert a unit" {
+                testUrl "can covert a unit" {
                     DoseRange.empty
                     |> setMaxNormDose (vuFromStr 1N "milligram")
                     |> setMinNormDose (vuFromStr (1N / 1_000N) "milligram")
