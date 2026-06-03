@@ -608,10 +608,30 @@ module Tests =
                         Directory.Delete(path, true)
                 with _ -> ()
 
+            // Read with FileShare.ReadWrite so the read can coexist with the
+            // FileWriterAgent's still-open write handle. On Windows a plain
+            // File.ReadAllLines/ReadAllText (FileShare.Read) cannot open a file
+            // that already has an open write handle and throws — which the catch
+            // would otherwise turn into a misleading empty result. On Linux/macOS
+            // share modes are advisory so the plain read happened to work.
+            let openSharedRead (path: string) =
+                let fs =
+                    new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ||| FileShare.Delete)
+
+                new StreamReader(fs)
+
             let readAllLines path =
                 try
                     if File.Exists path then
-                        File.ReadAllLines(path)
+                        use sr = openSharedRead path
+                        let lines = ResizeArray<string>()
+                        let mutable line = sr.ReadLine()
+
+                        while not (isNull line) do
+                            lines.Add line
+                            line <- sr.ReadLine()
+
+                        lines.ToArray()
                     else
                         [||]
                 with _ -> [||]
@@ -619,7 +639,8 @@ module Tests =
             let readAllText path =
                 try
                     if File.Exists path then
-                        File.ReadAllText(path)
+                        use sr = openSharedRead path
+                        sr.ReadToEnd()
                     else
                         ""
                 with _ -> ""
