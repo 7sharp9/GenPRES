@@ -30,6 +30,32 @@ module Tests =
 
     module AgentTests  =
 
+        // Poll until a condition holds or a timeout elapses. Used instead of a
+        // fixed Async.Sleep/Thread.Sleep after Post so the tests stay deterministic
+        // on slow or heavily-loaded CI runners, where a fixed wait can expire
+        // before the agent has processed the posted message(s).
+        let waitUntil (timeoutMs: int) (predicate: unit -> bool) =
+            let sw = Diagnostics.Stopwatch.StartNew()
+
+            while not (predicate ()) && sw.ElapsedMilliseconds < int64 timeoutMs do
+                Thread.Sleep 5
+
+            predicate ()
+
+        // Async variant for use inside `testAsync` bodies. It MUST yield the
+        // thread (Async.Sleep) rather than block it (Thread.Sleep): Expecto runs
+        // tests in parallel, and the MailboxProcessor agents under test run their
+        // loops on thread-pool threads. A blocking wait here would occupy those
+        // threads and starve the agents — on a few-core CI runner that prevents
+        // the posted messages from ever being processed.
+        let waitUntilAsync (timeoutMs: int) (predicate: unit -> bool) =
+            async {
+                let sw = Diagnostics.Stopwatch.StartNew()
+
+                while not (predicate ()) && sw.ElapsedMilliseconds < int64 timeoutMs do
+                    do! Async.Sleep 5
+            }
+
         // Basic agent tests
         let basicAgentTests =
             testList "Basic Agent Operations" [
@@ -57,8 +83,7 @@ module Tests =
 
                     agent.Post "Hello, World!"
 
-                    // Give time for message processing
-                    do! Async.Sleep 100
+                    do! waitUntilAsync 5000 (fun () -> receivedMessage = Some "Hello, World!")
 
                     receivedMessage |> Expect.equal "Should receive the message" (Some "Hello, World!")
                     agent |> Agent.dispose
@@ -78,8 +103,7 @@ module Tests =
                     agent.Post "Second"
                     agent.Post "Third"
 
-                    // Give time for message processing
-                    do! Async.Sleep 200
+                    do! waitUntilAsync 5000 (fun () -> List.length receivedMessages = 3)
 
                     let expectedOrder = ["Third"; "Second"; "First"] // Reversed due to cons
                     receivedMessages |> Expect.equal "Should process messages in order" expectedOrder
@@ -97,11 +121,11 @@ module Tests =
                         })
 
                     agent.Post (SimpleMessage "test")
-                    do! Async.Sleep 50
+                    do! waitUntilAsync 5000 (fun () -> lastMessage = Some (SimpleMessage "test"))
                     lastMessage |> Expect.equal "Should handle SimpleMessage" (Some (SimpleMessage "test"))
 
                     agent.Post (NumberMessage 42)
-                    do! Async.Sleep 50
+                    do! waitUntilAsync 5000 (fun () -> lastMessage = Some (NumberMessage 42))
                     lastMessage |> Expect.equal "Should handle NumberMessage" (Some (NumberMessage 42))
 
                     agent |> Agent.dispose
@@ -184,8 +208,7 @@ module Tests =
 
                     agent.Post (ErrorMessage "trigger error")
 
-                    // Give time for error to propagate
-                    do! Async.Sleep 200
+                    do! waitUntilAsync 5000 (fun () -> errorReceived.IsSome)
 
                     errorReceived |> Expect.isSome "Should receive error event"
                     errorReceived.Value |> Expect.stringContains "Should contain error message" "Test exception"
@@ -207,13 +230,10 @@ module Tests =
                         | ex -> errorCount <- errorCount + 1)
 
                     agent.Post (SimpleMessage "first")
-                    do! Async.Sleep 50
-
                     agent.Post (ErrorMessage "error")
-                    do! Async.Sleep 50
-
                     agent.Post (SimpleMessage "second")
-                    do! Async.Sleep 50
+
+                    do! waitUntilAsync 5000 (fun () -> messageCount = 2 && errorCount = 1)
 
                     messageCount |> Expect.equal "Should process normal messages" 2
                     errorCount |> Expect.equal "Should handle one error" 1
@@ -311,8 +331,7 @@ module Tests =
                     for i in 1..messageCount do
                         agent.Post i
 
-                    // Wait for processing
-                    do! Async.Sleep 2000
+                    do! waitUntilAsync 10000 (fun () -> processedCount = messageCount)
 
                     processedCount |> Expect.equal "Should process all messages" messageCount
 
@@ -339,39 +358,32 @@ module Tests =
 
                 testAsync "disposal should stop agent processing" {
                     let mutable isProcessing = true
+                    let mutable started = false
 
                     let agent = Agent.Start (fun agent ->
                         async {
                             try
                                 while true do
                                     let! _ = agent.Receive()
-                                    ()
+                                    started <- true
                             finally
                                 isProcessing <- false
                         })
 
                     agent.Post "test"
-                    do! Async.Sleep 50
+                    // Make sure the agent is actually running its receive loop
+                    // before we dispose it, so the `finally` is reached.
+                    do! waitUntilAsync 5000 (fun () -> started)
 
                     agent |> Agent.dispose
-                    do! Async.Sleep 100
+                    // Disposal cancels the agent's Receive loop; wait for the
+                    // `finally` to run rather than guessing a fixed duration.
+                    do! waitUntilAsync 5000 (fun () -> not isProcessing)
 
                     isProcessing |> Expect.isFalse "Agent should stop processing after disposal"
                 }
             ]
 
-
-        // Poll until a condition holds or a timeout elapses. Used instead of a
-        // fixed Thread.Sleep so the property tests stay deterministic on slow or
-        // heavily-loaded CI runners (where a fixed wait can expire before the
-        // agent has drained its message queue).
-        let waitUntil (timeoutMs: int) (predicate: unit -> bool) =
-            let sw = Diagnostics.Stopwatch.StartNew()
-
-            while not (predicate ()) && sw.ElapsedMilliseconds < int64 timeoutMs do
-                Thread.Sleep 5
-
-            predicate ()
 
         // Property-based tests using FsCheck
         let propertyTests =
@@ -465,7 +477,7 @@ module Tests =
                             receivedNull <- true)
 
                     agent.Post null
-                    do! Async.Sleep 100
+                    do! waitUntilAsync 5000 (fun () -> receivedNull)
 
                     receivedNull |> Expect.isTrue "Should handle null messages"
                     agent |> Agent.dispose
