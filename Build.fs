@@ -168,6 +168,10 @@ Target.create
 
             if result.ExitCode <> 0 then
                 failwithf "Tests failed with exit code %d" result.ExitCode
+
+            if totalTests.Value = 0 then
+                failwith
+                    "No tests were discovered or run. The solution was likely not built/restored before 'dotnet test'."
     )
 
 
@@ -247,6 +251,8 @@ let dependencies =
 
         "RestoreClient" ==> "Build" ==> "TestHeadless"
         "RestoreClient" ==> "Build" ==> "WatchTests"
+
+        "Build" ==> "ServerTests"
     ]
 
 

@@ -14,6 +14,18 @@ module Tests =
     open Informedica.ZIndex.Lib
 
 
+    // Lay down the synthetic Z-Index fixture files BEFORE anything else in this
+    // file's static initializer. F# initializes every nested-module binding here
+    // as part of `$Tests..cctor` in source order, and several of those bindings
+    // (e.g. DoseRuleTests.frqs/rts) transitively touch raw ZIndex tables. Because
+    // .NET caches a type initializer's exception permanently, a single such touch
+    // before the fixtures exist would poison the ZIndex types for the whole test
+    // process. The `dotnet test` adapter bypasses Main.fs, so forcing the fixture
+    // here is what makes the synthetic-data tests pass under `dotnet test`.
+    // (Main.fs forces the same cached value for the `dotnet run` path.)
+    do FixtureSetup.fixtureCreatedFiles |> ignore
+
+
     module FilePathTests =
 
         let tests =
@@ -572,7 +584,15 @@ module Tests =
 
     module GenPresProductTests =
 
-        let tot = GenPresProduct.get [] |> Array.length
+        // Tolerant of a missing/unresolved product cache: module-level bindings
+        // in this file are evaluated eagerly during Tests static init (before any
+        // test runs), so an unguarded data access here would crash the whole
+        // assembly rather than fail a single test.
+        let tot =
+            try
+                GenPresProduct.get [] |> Array.length
+            with _ ->
+                0
 
 
         let tests =
