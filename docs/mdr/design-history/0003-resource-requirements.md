@@ -317,8 +317,9 @@ These fields define the clinical setting and patient category (demographic range
 
 - `Dep` - Department/ward (Setting.Department in GenFORM terminology)
 - `Gender` - Patient gender
-- `MinAge` - Minimum age in days (numeric, optional)
-- `MaxAge` - Maximum age in days (numeric, optional)
+- `IsAdult` - Positive-only adult-confirmation flag (optional; `"x"` or empty). `"x"` means the rule applies to adults so **age is not a concern**; consequently `MinAge` / `MaxAge` must be empty for that row. Empty carries **no** meaning (it does NOT assert "not an adult"). System-resolved by the extraction pipeline (preliminary keyword at Pass 1, confirmed at Pass 3); never a negative.
+- `MinAge` - Minimum age in days (numeric, optional; empty when `IsAdult = "x"`)
+- `MaxAge` - Maximum age in days (numeric, optional; empty when `IsAdult = "x"`)
 - `MinWeight` - Minimum weight in grams (numeric, optional)
 - `MaxWeight` - Maximum weight in grams (numeric, optional)
 - `MinBSA` - Minimum body surface area in m² (numeric, optional)
@@ -327,6 +328,8 @@ These fields define the clinical setting and patient category (demographic range
 - `MaxGestAge` - Maximum gestational age in days (numeric, optional)
 - `MinPMAge` - Minimum post-menstrual age in days (numeric, optional)
 - `MaxPMAge` - Maximum post-menstrual age in days (numeric, optional)
+
+> **Note (`IsAdult` — extraction-side today; blocking precondition before ingest).** This column is produced and enforced by the FTK extraction pipeline (`ftk_extract_v2.fsx`; see [`docs/data-extraction/doserule-extraction-flowchart.md`](../../data-extraction/doserule-extraction-flowchart.md)). It is **not yet consumed** by the GenFORM `.fs` source — `DoseRuleData` (`Types.fs`), the `DoseRule.getData` sheet parser, and the `PatientCategory` domain type currently use the numeric age ranges only. Because the pipeline empties `MinAge`/`MaxAge` when `IsAdult = "x"`, such a row has no age bound and an unconsumed flag, so **no `IsAdult = "x"` row may reach GenFORM ingest** until a maintainer change either parses the flag into `DoseRuleData` *and* enforces "adult patients only" in patient-matching, or treats it as a typed-emit-time assertion with an equivalent matching guard. Design rationale and rejected alternatives: [ADR-0021](0021-isadult-patient-category-facet.md).
 
 #### Dose Rule: Dose Configuration (Selection and Calculation Constraints)
 
