@@ -106,7 +106,9 @@ module FormularyService =
 
         let empt, rs =
             dsrs
-            |> Array.distinctBy (fun dr -> dr.Generic, dr.Form, dr.Route, dr.DoseType)
+            |> Array.distinctBy (fun dr ->
+                dr.Generic |> Generic.toString, dr.Generic.Form |> PharmaceuticalForm.toString, dr.Route, dr.DoseType
+            )
             |> Array.map (Check.checkDoseRule routeMapping pat)
             |> Array.partition (fun c -> c.didPass |> Array.isEmpty && c.didNotPass |> Array.isEmpty)
 
@@ -119,7 +121,7 @@ module FormularyService =
             | [||] ->
                 [|
                     for e in empt do
-                        $"geen doseer bewaking gevonden voor {e.doseRule.Generic}"
+                        $"geen doseer bewaking gevonden voor {e.doseRule.Generic |> Generic.toString}"
                 |]
                 |> Array.distinct
 

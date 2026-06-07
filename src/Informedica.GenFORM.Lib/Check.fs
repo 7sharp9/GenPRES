@@ -237,9 +237,11 @@ module Check =
 
     let filterPatient (pat: PatientCategory) (pdsg: Informedica.ZForm.Lib.Types.PatientDosage) =
         // TODO need to map G-stand age in mo to days (1 mo = 30 days)
+        let patAge = pat |> PatientCategory.getAge
+
         let age =
-            pat.Age = MinMax.empty && pdsg.Patient.Age = MinMax.empty
-            || (pdsg.Patient.Age |> MinMax.intersect pat.Age = MinMax.empty |> not)
+            patAge = MinMax.empty && pdsg.Patient.Age = MinMax.empty
+            || (pdsg.Patient.Age |> MinMax.intersect patAge = MinMax.empty |> not)
 
         let weight =
             pat.Weight = MinMax.empty && pdsg.Patient.Weight = MinMax.empty
@@ -254,7 +256,14 @@ module Check =
             zindex =
                 {|
                     dosages =
-                        createDoseRulesWithMapping routeMapping pat dr.Generic dr.Form dr.Route
+                        createDoseRulesWithMapping
+                            routeMapping
+                            pat
+                            // G-Standaard keys on the base substance name only;
+                            // the brand/form label would never match.
+                            (dr.Generic |> Generic.genericName)
+                            (dr.Generic.Form |> PharmaceuticalForm.toString)
+                            dr.Route
                         |> Seq.toList
                         |> List.collect _.IndicationsDosages
                         |> List.collect _.RouteDosages
@@ -536,7 +545,8 @@ module Check =
                 match dt with
                 | NoDoseType ->
                     [|
-                        Some false, $"{m.doseRule.Generic}\t{r}\t{p}\tdoseer type mist — kan niet vergelijken"
+                        Some false,
+                        $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tdoseer type mist — kan niet vergelijken"
                     |]
                 | _ ->
                     let rates = rateFieldsFor gstand.doseLimitTarget
@@ -558,9 +568,11 @@ module Check =
                             let s2 = vuS |> ValueUnit.toStringDecimalDutchShortWithPrec -1
 
                             if not b then
-                                Some b, $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} niet gelijk aan {s2}"
+                                Some b,
+                                $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tfrequenties {s1} niet gelijk aan {s2}"
                             else
-                                Some b, $"{m.doseRule.Generic}\t{r}\t{p}\tfrequenties {s1} is subset van {s2}"
+                                Some b,
+                                $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tfrequenties {s1} is subset van {s2}"
 
                     let quantityChecks () =
                         [|
@@ -764,7 +776,8 @@ module Check =
     let checkAll routeMapping (pat: Patient) (drs: DoseRule[]) =
         drs
         |> Array.mapi (fun i dr ->
-            writeInfoMessage $"{i}. checking {dr.Generic}\t{dr.Form}\t{dr.Route}"
+            writeInfoMessage
+                $"{i}. checking {dr.Generic |> Generic.toString}\t{dr.Generic.Form |> PharmaceuticalForm.toString}\t{dr.Route}"
 
             checkDoseRule routeMapping pat dr
         )

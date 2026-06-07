@@ -181,9 +181,9 @@ module OrderScenario =
         |> Array.map _.GPK
         |> create
             no
-            pr.DoseRule.Generic
+            (pr.DoseRule.Generic |> Generic.toString)
             pr.DoseRule.Indication
-            pr.DoseRule.Form
+            (pr.DoseRule.Generic.Form |> PharmaceuticalForm.toString)
             pr.DoseRule.Route
             pr.DoseRule.DoseType
             dil
@@ -195,7 +195,7 @@ module OrderScenario =
             ord
             useAdjust
             useRenalRule
-            pr.DoseRule.RenalRule
+            pr.DoseRule.RenalRuleSource
         |> setOrderTableFormat
 
 
@@ -345,7 +345,10 @@ module OrderContext =
                                             [|
                                                 cl.SubstanceLimits
                                                 |> Array.map (_.DoseLimitTarget >> LimitTarget.substanceTargetToString)
-                                                |> Product.create pr.DoseRule.Generic pr.DoseRule.Route
+                                                |> Product.create
+                                                    (pr.DoseRule.Generic |> Generic.toString)
+                                                    (pr.DoseRule.Generic.Form |> PharmaceuticalForm.toString)
+                                                    pr.DoseRule.Route
                                             |]
                                         else
                                             cl.Products |> Array.map (fun p -> { p with Divisible = None })

@@ -17,71 +17,72 @@ module Product =
     module ATCGroup = Informedica.ZIndex.Lib.ATCGroup
 
 
-    let getFormularyProducts dataUrlId =
+    let parseFormularyProducts (data: string[][]) : Result<FormularyProduct[], Message list> =
         try
-            Web.GoogleSheets.getCsvDataFromSheetSync dataUrlId "Formulary"
-            |> Result.bind (fun data ->
-                let getColumn = data |> Array.head |> Csv.getStringColumn
+            let getColumn = data |> Array.head |> Csv.getStringColumn
 
-                let products =
-                    data
-                    |> Array.tail
-                    |> Array.map (fun r ->
-                        let get = getColumn r
+            let products =
+                data
+                |> Array.tail
+                |> Array.map (fun r ->
+                    let get = getColumn r
 
-                        // Extract departments from the columns marked with 'x'
-                        let departments =
-                            [ "UMCU"; "ICC"; "NEO"; "ICK"; "HCK" ]
-                            |> List.filter (fun dept -> (get dept) = "x")
+                    // Extract departments from the columns marked with 'x'
+                    let departments =
+                        [ "UMCU"; "ICC"; "NEO"; "ICK"; "HCK" ]
+                        |> List.filter (fun dept -> (get dept) = "x")
 
-                        // Determine product type - this is a placeholder, actual logic needed
-                        let getProdType s =
-                            match s with
-                            | "medication" -> ProductType.MedicationProduct
-                            | "enteral" -> ProductType.EnteralProduct
-                            | "parenteral" -> ProductType.ParenteralProduct
-                            | _ -> ProductType.NoProduct
+                    // Determine product type - this is a placeholder, actual logic needed
+                    let getProdType s =
+                        match s with
+                        | "medication" -> ProductType.MedicationProduct
+                        | "enteral" -> ProductType.EnteralProduct
+                        | "parenteral" -> ProductType.ParenteralProduct
+                        | _ -> ProductType.NoProduct
 
-                        {
-                            GPK = get "GPKODE"
-                            ProductType = get "Type" |> getProdType
-                            Departments = departments
-                            Generic = get "Generic"
-                            TallMan = get "TallMan"
-                            Divisible = get "Divisible" |> Int32.tryParse
-                            UseGenName = get "UseGenName" = "x"
-                            UseForm = get "UseForm" = "x"
-                            UseBrand = get "UseBrand" = "x"
-                            Mmol = get "Mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            Form = get "Form" |> Option.ofObj
-                            Brand = get "Brand" |> Option.ofObj
-                            GenName = get "GenName" |> Option.ofObj
-                            Unit = get "Unit" |> Option.ofObj
-                            EnergyKCal = get "Energy kCal" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            CarbG = get "Carb g" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            ProtG = get "Prot g" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            LipG = get "Lip g" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            SodMmol = get "Sod mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            PotMmol = get "Pot mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            CalcMmol = get "Calc mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            PosphMmol = get "Posph mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            MagnMmol = get "Magn mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            ChlorMmol = get "Chlor mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            IronMmol = get "Iron mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            VitDIE = get "VitD IE" |> Double.tryParse |> Option.bind BigRational.fromFloat
-                            IsReconste = get "IsReconste" = "x"
-                            IsDilute = get "IsDilute" = "x"
-                            IsAdditive = get "IsAdditive" = "x"
-                        }
-                    )
-                    // filter out dummy
-                    |> Array.filter (fun fp -> fp.GPK = "0" |> not)
+                    {
+                        GPK = get "GPKODE"
+                        ProductType = get "Type" |> getProdType
+                        Departments = departments
+                        Generic = get "Generic"
+                        TallMan = get "TallMan"
+                        Divisible = get "Divisible" |> Int32.tryParse
+                        UseGenName = get "UseGenName" = "x"
+                        Mmol = get "Mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        Form = get "Form" |> Option.ofObj
+                        Brand = get "Brand" |> Option.ofObj
+                        GenName = get "GenName" |> Option.ofObj
+                        GStandName = get "GStand" |> Option.ofObj
+                        Unit = get "Unit" |> Option.ofObj
+                        EnergyKCal = get "Energy kCal" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        CarbG = get "Carb g" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        ProtG = get "Prot g" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        LipG = get "Lip g" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        SodMmol = get "Sod mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        PotMmol = get "Pot mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        CalcMmol = get "Calc mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        PosphMmol = get "Posph mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        MagnMmol = get "Magn mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        ChlorMmol = get "Chlor mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        IronMmol = get "Iron mmol" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        VitDIE = get "VitD IE" |> Double.tryParse |> Option.bind BigRational.fromFloat
+                        IsReconste = get "IsReconste" = "x"
+                        IsDilute = get "IsDilute" = "x"
+                        IsAdditive = get "IsAdditive" = "x"
+                    }
+                )
+                // filter out dummy
+                |> Array.filter (fun fp -> fp.GPK = "0" |> not)
 
-                Ok products
-            )
-            |> Result.mapError (fun err -> [ err |> Warning ])
+            Ok products
         with exn ->
-            GenFormResult.createError "getFormularyProducts" exn
+            Result.createError "getFormularyProducts" exn
+
+
+    let getFormularyProducts dataUrlId =
+        Web.GoogleSheets.getCsvDataFromSheetSync dataUrlId "Formulary"
+        |> Result.mapError (fun err -> [ err |> Warning ])
+        |> Result.bind parseFormularyProducts
 
 
     let getAdditionalSubstances (fp: FormularyProduct) =
@@ -135,9 +136,9 @@ module Product =
     module Reconstitution =
 
 
-        let get dataUrlId : Result<_, _> =
+        let parseReconstitution (data: string[][]) : Result<_, _> =
             try
-                Web.getDataFromSheet dataUrlId "Reconstitution"
+                data
                 |> fun data ->
 
                     let getColumn = data |> Array.head |> Csv.getStringColumn
@@ -167,7 +168,11 @@ module Product =
                     )
                 |> Ok
             with exn ->
-                GenFormResult.createError "Reconstiution.get" exn
+                Result.createError "Reconstiution.get" exn
+
+
+        let get dataUrlId : Result<_, _> =
+            Web.getDataFromSheet dataUrlId "Reconstitution" |> parseReconstitution
 
 
         let filter routeMapping (filter: DoseFilter) (rs: Reconstitution[]) =
@@ -222,12 +227,9 @@ module Product =
                 MainGroup = ""
                 SubGroup = ""
                 Generic = name
-                UseGenericName = false
-                UseForm = false
-                UseBrand = false
                 TallMan = "" //r.TallMan
                 Synonyms = [||]
-                Product = name
+                ProductLabels = [ name ]
                 Label = name
                 Form = "voeding"
                 Routes = [| "ORAAL" |]
@@ -251,6 +253,7 @@ module Product =
                         && (s.Concentration |> Option.isSome || s.MolarConcentration |> Option.isSome)
                     )
                     |> List.toArray
+                TradeProducts = []
             }
 
 
@@ -275,12 +278,9 @@ module Product =
                 MainGroup = ""
                 SubGroup = ""
                 Generic = name
-                UseGenericName = false
-                UseForm = false
-                UseBrand = false
                 TallMan = "" //r.TallMan
                 Synonyms = [||]
-                Product = name
+                ProductLabels = [ name ]
                 Label = name
                 Form = "vloeistof"
                 Routes = [| "INTRAVENEUS"; "ORAAL" |]
@@ -308,6 +308,7 @@ module Product =
                         s.Name |> String.notEmpty
                         && (s.Concentration |> Option.isSome || s.MolarConcentration |> Option.isSome)
                     )
+                TradeProducts = []
             }
 
         let get unitMapping (prods: FormularyProduct[]) =
@@ -316,21 +317,18 @@ module Product =
             |> Array.map (fun fp -> fp |> getAdditionalSubstances |> createProduct fp.Generic unitMapping)
 
 
-    let create gen rte substs =
+    let create gen frm rte substs =
         {
             GPK = ""
             ATC = ""
             MainGroup = ""
             SubGroup = ""
             Generic = gen
-            UseGenericName = false
-            UseForm = false
-            UseBrand = false
             TallMan = gen
             Synonyms = [||]
-            Product = gen
+            ProductLabels = [ gen ]
             Label = gen
-            Form = gen
+            Form = frm
             Routes = [| rte |]
             FormQuantities = ValueUnit.empty
             FormUnit = NoUnit
@@ -346,6 +344,7 @@ module Product =
                         MolarConcentration = None
                     }
                 )
+            TradeProducts = []
         }
 
 
@@ -362,7 +361,7 @@ module Product =
         name
         synonyms
         formQuantities
-        (fp: FormularyProduct)
+        (fpOpt: FormularyProduct option)
         (gp: Informedica.ZIndex.Lib.Types.GenericProduct)
         =
 
@@ -378,6 +377,36 @@ module Product =
 
         let formUnit = if not reqReconst then formUnit else Units.Volume.milliLiter
 
+        let mapSubst (s: Informedica.ZIndex.Lib.Types.ProductSubstance) =
+            let su =
+                s.SubstanceUnit
+                |> Mapping.mapUnit unitMapping
+                |> Option.map (fun u -> CombiUnit(u, OpPer, formUnit))
+                |> Option.defaultValue NoUnit
+
+            {
+                Name =
+                    s
+                    |> rename s.SubstanceName (fpOpt |> Option.map _.UseGenName |> Option.defaultValue false)
+                Concentration =
+                    s.SubstanceQuantity
+                    |> BigRational.fromFloat
+                    |> Option.map (ValueUnit.singleWithUnit su)
+                MolarConcentration =
+                    match fpOpt with
+                    | Some fp ->
+                        if
+                            fp.Mmol |> Option.isNone
+                            || s.SubstanceName |> String.equalsCapInsens name |> not
+                        then
+                            None
+                        // only apply mmol to substance with the same name as the product
+                        else
+                            let u = Units.Molar.milliMole |> ValueUnit.per formUnit
+                            fp.Mmol |> Option.map (ValueUnit.singleWithUnit u)
+                    | None -> None
+            }
+
         {
             GPK = $"{gp.Id}"
             ATC = gp.ATC |> String.trim
@@ -388,18 +417,13 @@ module Product =
                 |> Array.tryHead
                 |> Option.defaultValue ""
             Generic = name
-            UseGenericName = fp.UseGenName
-            UseForm = fp.UseForm
-            UseBrand = fp.UseBrand
             TallMan = ""
             Synonyms = synonyms
-            Product =
+            ProductLabels =
                 gp.PrescriptionProducts
                 |> Array.collect (fun pp -> pp.TradeProducts |> Array.map _.Label)
                 |> Array.distinct
-                |> function
-                    | [| p |] -> p
-                    | _ -> ""
+                |> Array.toList
             Label = gp.Label
             Form = gp.Form |> String.toLower
             Routes = gp.Route |> Array.choose (Mapping.mapRoute routeMapping)
@@ -408,7 +432,7 @@ module Product =
             RequiresReconstitution = reqReconst
             Reconstitution = reconstitution |> Array.filter (fun r -> r.GPK = $"{gp.Id}")
             Divisible =
-                match fp.Divisible with
+                match fpOpt |> Option.map _.Divisible |> Option.defaultValue None with
                 | Some d -> d |> BigRational.fromInt |> Some
                 | None ->
                     let rs =
@@ -422,56 +446,135 @@ module Product =
                     |> Array.filter (fun s -> s.SubstanceQuantity > 0. && s.IsAdditional)
 
                 let fpAdditional =
-                    fp
-                    |> getAdditionalSubstances
-                    |> List.choose (fun (s, q) ->
-                        let n, u =
-                            match s |> String.split " " with
-                            | [ n; u ] -> n |> String.trim, u |> String.trim
-                            | _ -> failwith $"cannot parse substance {s}"
+                    match fpOpt with
+                    | Some fp ->
 
-                        createSubstance n q u formUnit unitMapping
-                    )
-                    |> List.filter (fun s ->
-                        s.Name |> String.notEmpty
-                        && (s.Concentration |> Option.isSome || s.MolarConcentration |> Option.isSome)
-                    )
-                    |> List.toArray
+                        fp
+                        |> getAdditionalSubstances
+                        |> List.choose (fun (s, q) ->
+                            let n, u =
+                                match s |> String.split " " with
+                                | [ n; u ] -> n |> String.trim, u |> String.trim
+                                | _ -> failwith $"cannot parse substance {s}"
+
+                            createSubstance n q u formUnit unitMapping
+                        )
+                        |> List.filter (fun s ->
+                            s.Name |> String.notEmpty
+                            && (s.Concentration |> Option.isSome || s.MolarConcentration |> Option.isSome)
+                        )
+                        |> List.toArray
+                    | None -> [||]
 
                 gp.Substances
                 |> Array.filter (fun ps -> ps.SubstanceQuantity > 0.)
                 |> Array.append ppAdditional
-                // TODO should be group by as additional can have different concentrations
                 |> Array.distinctBy _.SubstanceId
-                |> Array.map (fun s ->
-                    let su =
-                        s.SubstanceUnit
-                        |> Mapping.mapUnit unitMapping
-                        |> Option.map (fun u -> CombiUnit(u, OpPer, formUnit))
-                        |> Option.defaultValue NoUnit
-
+                |> Array.map mapSubst
+                |> Array.append fpAdditional
+            TradeProducts =
+                gp.PrescriptionProducts
+                |> Array.collect _.TradeProducts
+                |> Array.map (fun tp ->
                     {
-                        Name = s |> rename s.SubstanceName fp.UseGenName
-                        Concentration =
-                            s.SubstanceQuantity
-                            |> BigRational.fromFloat
-                            |> Option.map (ValueUnit.singleWithUnit su)
-                        MolarConcentration =
-                            if
-                                fp.Mmol |> Option.isNone
-                                || s.SubstanceName |> String.equalsCapInsens name |> not
-                            then
-                                None
-                            // only apply mmol to substance with the same name as the product
-                            else
-                                let u = Units.Molar.milliMole |> ValueUnit.per formUnit
-                                fp.Mmol |> Option.map (ValueUnit.singleWithUnit u)
+                        HPK = tp.Id |> string //|> Hpk
+                        Brand = tp.Brand
+                        Substances = tp.Substances |> Array.map mapSubst |> Array.toList
+
                     }
                 )
-                |> Array.append fpAdditional
+                |> Array.toList
         }
 
 
+    /// <summary>
+    /// Pure: build the ProductComponent array from already-loaded ZIndex
+    /// GenPresProducts. Performs no IO so it is directly testable; the ZIndex
+    /// read is hoisted into the impure shell (see <c>get</c>).
+    /// </summary>
+    let fromGenPresProducts
+        unitMapping
+        routeMapping
+        validForms
+        formRoutes
+        reconstitution
+        parenteral
+        enteral
+        (formularyProducts: FormularyProduct[])
+        (genPresProducts: Informedica.ZIndex.Lib.Types.GenPresProduct[])
+        : ProductComponent[]
+        =
+        // build a GPK -> FormularyProduct lookup once, so matching is
+        // O(1) per GenericProduct instead of O(formularyProducts).
+        let formByGpk =
+            formularyProducts
+            |> Array.choose (fun fp -> fp.GPK |> Int32.tryParse |> Option.map (fun gpk -> gpk, fp))
+            |> Map.ofArray
+
+        // start from ALL GenPresProducts (not just formulary GPKs)
+        genPresProducts
+        // collect the GenericProducts
+        // filtered by "valid form" and
+        // at least one substance quantity > 0
+        |> Array.collect (fun gpp ->
+            gpp.GenericProducts
+            |> Array.filter (fun gp ->
+                validForms |> Array.exists (String.equalsCapInsens gp.Form)
+                && gp.Substances |> Array.exists (fun s -> s.SubstanceQuantity > 0.)
+            )
+        )
+        // match each GenericProduct with a formulary product by GPK;
+        // if none exists, synthesize a default so the generic product
+        // is still included.
+        |> Array.map (fun gp ->
+            let fp = formByGpk |> Map.tryFind gp.Id
+
+            fp, gp
+        )
+        // create the Product records
+        |> Array.map (fun (fp, gp) ->
+            // The Generic is the canonical match key: the official GStand generic
+            // name (falling back to the formulary Generic, then the ZIndex name).
+            // Any brand/form suffix the formulary adds is kept OUT of the match
+            // key so dose-rule selection by component name still matches, and is
+            // surfaced for display via Label instead.
+            let name =
+                fp
+                |> Option.map (fun fp -> fp.GStandName |> Option.defaultValue fp.Generic |> String.toLower)
+                |> Option.defaultValue gp.Name
+
+            // Display label: when the formulary Generic carries a brand/form
+            // suffix (i.e. differs from the GStand match key) keep it as the
+            // human-facing label; otherwise fall back to the ZIndex label.
+            let displayLabel =
+                match fp with
+                | Some fp when fp.Generic |> String.toLower <> name -> fp.Generic
+                | _ -> gp.Label
+
+            let synonyms =
+                gp.PrescriptionProducts
+                |> Array.collect (fun pp -> pp.TradeProducts |> Array.map _.Brand)
+                |> Array.distinct
+                |> Array.filter String.notEmpty
+
+            let formQuantities =
+                gp.PrescriptionProducts
+                |> Array.map _.Quantity
+                |> Array.choose BigRational.fromFloat
+                |> Array.filter (fun br -> br > 0N)
+                |> Array.distinct
+                |> fun xs -> if xs |> Array.isEmpty then [| 1N |] else xs
+
+            gp
+            |> map unitMapping routeMapping formRoutes reconstitution name synonyms formQuantities fp
+            |> fun prod -> { prod with Label = displayLabel }
+        )
+        |> Array.append parenteral
+        |> Array.append enteral
+
+
+    /// Impure adapter: reads the ZIndex GenPresProducts and delegates to the
+    /// pure <c>fromGenPresProducts</c>. Kept for existing callers/tests.
     let get
         unitMapping
         routeMapping
@@ -483,47 +586,117 @@ module Product =
         (formularyProducts: FormularyProduct[])
         =
         fun () ->
-            formularyProducts
-            |> Array.choose (fun fp -> fp.GPK |> Int32.tryParse |> Option.map (fun gpk -> gpk, fp))
-            // find the matching GenPresProducts
-            |> Array.collect (fun (gpk, fp) -> gpk |> GenPresProduct.findByGPK |> Array.map (fun gpp -> (gpk, fp, gpp)))
-            // collect the GenericProducts
-            // filtered by "valid form" and
-            // at least one substance quantity > 0
-            |> Array.collect (fun (gpk, fp, gpp) ->
-                gpp.GenericProducts
-                |> Array.filter (fun gp ->
-                    gp.Id = gpk
-                    && validForms |> Array.exists (String.equalsCapInsens gp.Form)
-                    && gp.Substances |> Array.exists (fun s -> s.SubstanceQuantity > 0.)
-                )
-                |> Array.map (fun gp -> fp, gp)
-            )
-            // create the Product records
-            |> Array.map (fun (fp, gp) ->
-                let name = fp.Generic |> String.toLower
-
-                let synonyms =
-                    gp.PrescriptionProducts
-                    |> Array.collect (fun pp -> pp.TradeProducts |> Array.map _.Brand)
-                    |> Array.distinct
-                    |> Array.filter String.notEmpty
-
-                let formQuantities =
-                    gp.PrescriptionProducts
-                    |> Array.map _.Quantity
-                    |> Array.choose BigRational.fromFloat
-                    |> Array.filter (fun br -> br > 0N)
-                    |> Array.distinct
-                    |> fun xs -> if xs |> Array.isEmpty then [| 1N |] else xs
-
-                gp
-                |> map unitMapping routeMapping formRoutes reconstitution name synonyms formQuantities fp
-            )
-            |> Array.append parenteral
-            |> Array.append enteral
-
+            GenPresProduct.get []
+            |> fromGenPresProducts
+                unitMapping
+                routeMapping
+                validForms
+                formRoutes
+                reconstitution
+                parenteral
+                enteral
+                formularyProducts
         |> StopWatch.clockFunc "created products"
+
+
+    /// <summary>
+    /// Pure: keep only the ZIndex GenericProducts referenced by dose-rule data,
+    /// applying "ID overrides name": if a row has GPKs match by gp.Id; else if it
+    /// has HPKs match by a TradeProduct id; else match the component name (== the
+    /// would-be ProductComponent.Generic) plus route. Returns GenPresProducts with
+    /// their GenericProducts narrowed (empties dropped). Built as a superset of the
+    /// per-group selection done later by DoseRule.addProducts, so the resulting
+    /// dose-rule output is unchanged while far fewer ProductComponents are built.
+    /// </summary>
+    let filterGenPresProductsByData
+        routeMapping
+        (formularyProducts: FormularyProduct[])
+        (data: DoseRuleData[])
+        (genPresProducts: Informedica.ZIndex.Lib.Types.GenPresProduct[])
+        : Informedica.ZIndex.Lib.Types.GenPresProduct[]
+        =
+
+        let formByGpk =
+            formularyProducts
+            |> Array.choose (fun fp -> fp.GPK |> Int32.tryParse |> Option.map (fun g -> g, fp))
+            |> Map.ofArray
+
+        // same normalization Product.filter uses for name comparison
+        let canon (s: string) =
+            s
+            |> String.replace "/" ""
+            |> String.replace "+" ""
+            |> String.replace "(" ""
+            |> String.replace ")" ""
+            |> String.trim
+            |> String.toLower
+
+        // indices built once from the data (ID overrides name per row)
+        let gpkSet = System.Collections.Generic.HashSet<string>()
+        let hpkSet = System.Collections.Generic.HashSet<string>()
+        // name rows: canonical route (via mapRoute) -> set of canonical component names
+        let nameByRoute =
+            System.Collections.Generic.Dictionary<string, System.Collections.Generic.HashSet<string>>()
+
+        for d in data do
+            if d.Generic.GPKs |> Array.isEmpty |> not then
+                d.Generic.GPKs |> Array.iter (gpkSet.Add >> ignore)
+            elif d.Generic.HPKs |> Array.isEmpty |> not then
+                d.Generic.HPKs |> Array.iter (hpkSet.Add >> ignore)
+            else
+                let cmp = d.ScheduleData.DoseLimitData.Component
+
+                let cmp =
+                    if cmp |> String.isNullOrWhiteSpace then
+                        d.Generic.Name
+                    else
+                        cmp
+
+                match d.Route |> Mapping.mapRoute routeMapping with
+                | Some r ->
+                    let set =
+                        match nameByRoute.TryGetValue r with
+                        | true, s -> s
+                        | _ ->
+                            let s = System.Collections.Generic.HashSet<string>()
+                            nameByRoute[r] <- s
+                            s
+
+                    set.Add(canon cmp) |> ignore
+                | None -> ()
+
+        // single pass: keep each GenericProduct if any criterion matches
+        let keepGp (gp: Informedica.ZIndex.Lib.Types.GenericProduct) =
+            gpkSet.Contains(string gp.Id)
+            || (gp.PrescriptionProducts
+                |> Array.collect _.TradeProducts
+                |> Array.exists (fun tp -> hpkSet.Contains(string tp.Id)))
+            || (let name =
+                    formByGpk
+                    |> Map.tryFind gp.Id
+                    |> Option.map (fun fp ->
+                        match fp.GStandName with
+                        | Some n -> n
+                        | None -> fp.Generic
+                        |> String.toLower
+                    )
+                    |> Option.defaultValue gp.Name
+                    |> canon
+
+                gp.Route
+                |> Array.choose (Mapping.mapRoute routeMapping)
+                |> Array.exists (fun r ->
+                    match nameByRoute.TryGetValue r with
+                    | true, s -> s.Contains name
+                    | _ -> false
+                ))
+
+        genPresProducts
+        |> Array.choose (fun gpp ->
+            match gpp.GenericProducts |> Array.filter keepGp with
+            | [||] -> None
+            | kept -> Some { gpp with GenericProducts = kept }
+        )
 
 
     /// <summary>
@@ -539,7 +712,7 @@ module Product =
     /// The reconstituted product or None if the product
     /// does not require reconstitution.
     /// </returns>
-    let reconstitute mapping loc dep rte (prod: Product) =
+    let reconstitute mapping loc dep rte (prod: ProductComponent) =
         let warnings = ResizeArray<string>()
         let eqsRoute = Mapping.eqsRoute mapping
 
@@ -602,15 +775,43 @@ module Product =
         prods, warnings |> Seq.distinct
 
 
+    let filterOutTradeProducts brand ids (prods: ProductComponent[]) =
+        if ids |> Array.isEmpty && brand |> String.isNullOrWhiteSpace then
+            prods
+        else
+            prods
+            |> Array.map (fun p ->
+                { p with
+                    TradeProducts =
+                        p.TradeProducts
+                        |> List.filter (fun tp ->
+                            if brand |> String.notEmpty then
+                                tp.Brand |> String.equalsCapInsens brand
+                            else
+                                ids |> Array.exists ((=) tp.HPK)
+                        )
+                }
+            )
+            |> Array.filter (_.TradeProducts >> List.isEmpty >> not)
+            |> Array.map (fun p ->
+                let substs = p.TradeProducts |> List.collect _.Substances
+                { p with Substances = p.Substances |> Array.filter (fun s -> substs |> List.exists ((=) s)) }
+            )
+
+
     /// <summary>
     /// Filter the Product array to get all the products
     /// </summary>
-    /// <param name="mapping"></param>
-    /// <param name="filter">The Filter</param>
+    /// <param name="mapping">The route mapping</param>
+    /// <param name="route">The route</param>
+    /// <param name="name">The Filter</param>
+    /// <param name="form"></param>
+    /// <param name="brand"></param>
+    /// <param name="gpks"></param>
+    /// <param name="hpks"></param>
     /// <param name="prods">The array of Products</param>
-    let filter mapping (filter: DoseFilter) (prods: Product[]) =
+    let filter mapping route name form brand gpks hpks (prods: ProductComponent[]) =
         let eqsRoute = Mapping.eqsRoute mapping
-        let recFilter = Reconstitution.filter mapping
 
         let repl s =
             s
@@ -620,30 +821,37 @@ module Product =
             |> String.replace ")" ""
             |> String.trim
 
-        let eqs s1 s2 =
-            match s1, s2 with
-            | Some s1, s2 ->
+        let eqsIfNotEmpty s1 s2 =
+            if s1 |> String.isNullOrWhiteSpace then
+                true
+            else
                 let s1 = s1 |> repl
                 let s2 = s2 |> repl
                 s1 |> String.equalsCapInsens s2
-            | _ -> true
+
+        let filterGPK gpk =
+            if gpks |> Array.length = 0 then
+                true
+            else
+                gpks |> Array.exists ((=) gpk)
 
         prods
         |> Array.filter (fun p ->
-            p.Generic |> eqs filter.Generic
-            && p.Form |> eqs filter.Form
-            && p.Routes |> Array.exists (eqsRoute filter.Route)
+            p.Generic |> eqsIfNotEmpty name
+            && p.Routes |> Array.exists (eqsRoute (Some route))
+            && p.Form |> eqsIfNotEmpty form
+            && filterGPK p.GPK
         )
-        |> Array.map (fun p -> { p with Reconstitution = p.Reconstitution |> recFilter filter })
+        |> filterOutTradeProducts brand hpks
 
 
     /// Get all Generics from the given Product array.
-    let generics (products: Product array) =
+    let generics (products: ProductComponent array) =
         products |> Array.map _.Generic |> Array.distinct
 
 
     /// Get all Synonyms from the given Product array.
-    let synonyms (products: Product array) =
+    let synonyms (products: ProductComponent array) =
         products
         |> Array.collect _.Synonyms
         |> Array.append (generics products)
@@ -651,5 +859,5 @@ module Product =
 
 
     /// Get all pharmaceutical forms from the given Product array.
-    let forms (products: Product array) =
+    let forms (products: ProductComponent array) =
         products |> Array.map _.Form |> Array.distinct

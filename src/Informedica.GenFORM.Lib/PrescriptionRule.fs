@@ -205,8 +205,10 @@ module PrescriptionRule =
             let filter =
                 { filter with
                     Indication = dr.Indication |> Some
-                    Generic = dr.Generic |> Some
-                    Form = dr.Form |> Some
+                    // RenalRule / SolutionRule sheets key on the base substance
+                    // name, not the brand/form label, so match on genericName.
+                    Generic = dr.Generic |> Generic.genericName |> Some
+                    Form = dr.Generic.Form |> PharmaceuticalForm.toString |> Some
                     Route = dr.Route |> Some
                     DoseType = dr.DoseType |> Some
                 }
@@ -216,9 +218,9 @@ module PrescriptionRule =
                 DoseRule = dr
                 SolutionRules =
                     let solFilter =
-                        { Filter.solutionFilter dr.Generic with
+                        { Filter.solutionFilter (dr.Generic |> Generic.genericName) with
                             Patient = pat
-                            Form = dr.Form |> Some
+                            Form = dr.Generic.Form |> PharmaceuticalForm.toString |> Some
                             Route = dr.Route |> Some
                             Indication = dr.Indication |> Some
                             Diluent = filter.Diluent

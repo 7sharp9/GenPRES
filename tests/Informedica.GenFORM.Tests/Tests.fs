@@ -76,6 +76,627 @@ module Generators =
         prop |> testPropertyWithConfig config testName
 
 
+module GenericLabelTests =
+
+
+    open Expecto
+    open Expecto.Flip
+    open Informedica.GenForm.Lib
+
+
+    /// Regression tests for the generic-name vs generic-label distinction.
+    /// External lookups (G-Standaard / dose checking) must key on the base
+    /// substance name, while selection/display uses the full label.
+    let tests =
+        testList
+            "GenericLabel name vs label"
+            [
+                test "genericName strips the brand qualifier" {
+                    GenericBrand("glycopyrronium", "Sialanar")
+                    |> GenericLabel.genericName
+                    |> Expect.equal "should be the base substance name" "glycopyrronium"
+                }
+
+                test "genericName strips the form qualifier" {
+                    GenericForm("paracetamol", "tablet")
+                    |> GenericLabel.genericName
+                    |> Expect.equal "should be the base substance name" "paracetamol"
+                }
+
+                test "toString keeps the brand qualifier for display/selection" {
+                    GenericBrand("glycopyrronium", "Sialanar")
+                    |> GenericLabel.toString
+                    |> Expect.equal "should be the full label" "glycopyrronium (Sialanar)"
+                }
+
+                test "Generic.genericName delegates to the label" {
+                    Generic.create (GenericBrand("glycopyrronium", "Sialanar")) (Solid "drank") []
+                    |> Generic.genericName
+                    |> Expect.equal "should be the base substance name" "glycopyrronium"
+                }
+
+                test "shorthand and canonical names are returned as-is" {
+                    Shorthand "amoxicilline"
+                    |> GenericLabel.genericName
+                    |> Expect.equal "shorthand is the name" "amoxicilline"
+
+                    Canonical [ "amoxicilline"; "clavulaanzuur" ]
+                    |> GenericLabel.genericName
+                    |> Expect.equal "canonical joins with /" "amoxicilline/clavulaanzuur"
+                }
+            ]
+
+
+module ProductFilterTests =
+
+
+    open MathNet.Numerics
+    open Informedica.GenUnits.Lib
+    open Expecto
+    open Expecto.Flip
+    open Informedica.GenForm.Lib
+
+
+    /// Route mapping covering the routes used by the test fixtures.
+    let routeMapping =
+        [|
+            {
+                Long = "oraal"
+                Short = "or"
+            }
+            {
+                Long = "iv"
+                Short = "iv"
+            }
+        |]
+
+
+    /// Build a Substance with only its name set.
+    let subst name : Substance =
+        {
+            Name = name
+            Concentration = None
+            MolarConcentration = None
+        }
+
+
+    let para = subst "paracetamol"
+    let sorbitol = subst "sorbitol"
+    let amox = subst "amoxicilline"
+
+
+    /// Build a TradeProduct.
+    let trade hpk brand substs : TradeProduct =
+        {
+            HPK = hpk
+            Brand = brand
+            Substances = substs
+        }
+
+
+    /// A ProductComponent with neutral defaults; only the fields that
+    /// drive Product.filter are overridden per fixture.
+    let baseProd: ProductComponent =
+        {
+            GPK = ""
+            ATC = ""
+            MainGroup = ""
+            SubGroup = ""
+            Generic = ""
+            TallMan = ""
+            Synonyms = [||]
+            ProductLabels = []
+            Label = ""
+            Form = ""
+            Routes = [||]
+            FormQuantities = ValueUnit.singleWithUnit Units.Mass.milliGram 1N
+            FormUnit = Units.Mass.milliGram
+            RequiresReconstitution = false
+            Reconstitution = [||]
+            Divisible = None
+            Substances = [||]
+            TradeProducts = []
+        }
+
+
+    // paracetamol tablet, oraal, two brands
+    let prodA =
+        { baseProd with
+            GPK = "1001"
+            Generic = "paracetamol"
+            Form = "tablet"
+            Routes = [| "oraal" |]
+            Substances = [| para |]
+            TradeProducts =
+                [
+                    trade "H1" "BrandX" [ para ]
+                    trade "H2" "BrandY" [ para ]
+                ]
+        }
+
+    // paracetamol drank, oraal; carries sorbitol that the trade product does not
+    let prodB =
+        { baseProd with
+            GPK = "1002"
+            Generic = "paracetamol"
+            Form = "drank"
+            Routes = [| "oraal" |]
+            Substances = [| para; sorbitol |]
+            TradeProducts = [ trade "H3" "BrandZ" [ para ] ]
+        }
+
+    // amoxicilline poeder, iv — should never match a paracetamol/oraal filter
+    let prodC =
+        { baseProd with
+            GPK = "2001"
+            Generic = "amoxicilline"
+            Form = "poeder"
+            Routes = [| "iv" |]
+            Substances = [| amox |]
+            TradeProducts = [ trade "H9" "BrandQ" [ amox ] ]
+        }
+
+    let prods = [| prodA; prodB; prodC |]
+
+
+    let tests =
+        testList
+            "Product.filter tests"
+            [
+
+                test "filter by required cmp name and route returns matching products" {
+                    prods
+                    |> Product.filter routeMapping "oraal" "paracetamol" "" "" [||] [||]
+                    |> Array.map _.GPK
+                    |> Array.sort
+                    |> Expect.equal "should return both paracetamol oraal products" [| "1001"; "1002" |]
+                }
+
+                test "filter excludes products whose route does not match" {
+                    prods
+                    |> Product.filter routeMapping "iv" "paracetamol" "" "" [||] [||]
+                    |> Expect.isEmpty "no paracetamol product has route iv"
+                }
+
+                test "filter excludes products whose cmp name does not match" {
+                    prods
+                    |> Product.filter routeMapping "iv" "amoxicilline" "" "" [||] [||]
+                    |> Array.map _.GPK
+                    |> Expect.equal "only the amoxicilline product matches" [| "2001" |]
+                }
+
+                test "form refines the selected set" {
+                    prods
+                    |> Product.filter routeMapping "oraal" "paracetamol" "tablet" "" [||] [||]
+                    |> Array.map _.GPK
+                    |> Expect.equal "only the tablet remains" [| "1001" |]
+                }
+
+                test "empty form does not refine the selected set" {
+                    prods
+                    |> Product.filter routeMapping "oraal" "paracetamol" "" "" [||] [||]
+                    |> Array.length
+                    |> Expect.equal "both forms still pass" 2
+                }
+
+                test "gpk list refines the selected set" {
+                    prods
+                    |> Product.filter routeMapping "oraal" "paracetamol" "" "" [| "1002" |] [||]
+                    |> Array.map _.GPK
+                    |> Expect.equal "only the listed gpk remains" [| "1002" |]
+                }
+
+                test "brand refines to products carrying that trade product" {
+                    let result =
+                        prods |> Product.filter routeMapping "oraal" "paracetamol" "" "BrandX" [||] [||]
+
+                    result
+                    |> Array.map _.GPK
+                    |> Expect.equal "only the product with a BrandX trade product remains" [| "1001" |]
+
+                    result[0].TradeProducts
+                    |> List.map _.HPK
+                    |> Expect.equal "trade products narrowed to the BrandX trade product" [ "H1" ]
+                }
+
+                test "hpk list refines and narrows substances to the trade product" {
+                    let result =
+                        prods |> Product.filter routeMapping "oraal" "paracetamol" "" "" [||] [| "H3" |]
+
+                    result
+                    |> Array.map _.GPK
+                    |> Expect.equal "only the product carrying HPK H3 remains" [| "1002" |]
+
+                    result[0].TradeProducts
+                    |> List.map _.HPK
+                    |> Expect.equal "trade products narrowed to H3" [ "H3" ]
+
+                    result[0].Substances
+                    |> Array.map _.Name
+                    |> Expect.equal "substances narrowed to those carried by H3" [| "paracetamol" |]
+                }
+
+                test "without brand or hpk the substances are not narrowed" {
+                    let result =
+                        prods
+                        |> Product.filter routeMapping "oraal" "paracetamol" "" "" [||] [||]
+                        |> Array.find (fun p -> p.GPK = "1002")
+
+                    result.Substances
+                    |> Array.map _.Name
+                    |> Expect.equal "all substances of the product kept" [| "paracetamol"; "sorbitol" |]
+                }
+            ]
+
+
+module DoseRuleProductTests =
+
+
+    open Expecto
+    open Expecto.Flip
+    open Informedica.GenForm.Lib
+
+
+    /// String non-empty (avoids depending on a BCL open in this module).
+    let private ne s =
+        s |> System.String.IsNullOrWhiteSpace |> not
+
+
+    module PT = ProductFilterTests
+
+    let private bp = PT.baseProd
+    let private sCita = PT.subst "citalopram"
+    let private sBup = PT.subst "bupropion"
+    let private sAdr = PT.subst "adrenaline"
+    let private sEth = PT.subst "ethanol"
+
+
+    /// Route mapping covering the routes used by the fixtures.
+    let routeMapping: RouteMapping[] =
+        [|
+            {
+                Long = "ORAAL"
+                Short = "or"
+            }
+            {
+                Long = "INTRAMUSCULAIR"
+                Short = "im"
+            }
+        |]
+
+
+    /// Minimal product set reproducing the real attachment behaviour:
+    /// two citalopram forms, two bupropion brands (one shared, one Wellbutrin-only),
+    /// three adrenaline injection products (two listed, one not).
+    let prods: ProductComponent[] =
+        [|
+            { bp with
+                GPK = "182729"
+                Generic = "citalopram"
+                Form = "tablet"
+                Routes = [| "ORAAL" |]
+                Substances = [| sCita |]
+                TradeProducts = [ PT.trade "2905779" "" [ sCita ] ]
+            }
+            { bp with
+                GPK = "106496"
+                Generic = "citalopram"
+                Form = "druppels voor oraal gebruik"
+                Routes = [| "ORAAL" |]
+                Substances = [| sEth; sCita |]
+                TradeProducts = [ PT.trade "1165933" "CIPRAMIL" [ sCita ] ]
+            }
+            { bp with
+                GPK = "109347"
+                Generic = "bupropion"
+                Form = "tablet met gereguleerde afgifte"
+                Routes = [| "ORAAL" |]
+                Substances = [| sBup |]
+                TradeProducts =
+                    [
+                        PT.trade "1181572" "ZYBAN" [ sBup ]
+                        PT.trade "1848437" "WELLBUTRIN" [ sBup ]
+                    ]
+            }
+            { bp with
+                GPK = "126969"
+                Generic = "bupropion"
+                Form = "tablet met gereguleerde afgifte"
+                Routes = [| "ORAAL" |]
+                Substances = [| sBup |]
+                TradeProducts = [ PT.trade "1848445" "WELLBUTRIN" [ sBup ] ]
+            }
+            { bp with
+                GPK = "170925"
+                Generic = "adrenaline"
+                Form = "injectievloeistof"
+                Routes = [| "INTRAMUSCULAIR"; "INTRAVENEUS" |]
+                Substances = [| sAdr |]
+                TradeProducts = [ PT.trade "786993" "EPIPEN" [ sAdr ] ]
+            }
+            { bp with
+                GPK = "170933"
+                Generic = "adrenaline"
+                Form = "injectievloeistof"
+                Routes = [| "INTRAMUSCULAIR" |]
+                Substances = [| sAdr |]
+                TradeProducts = [ PT.trade "787000" "EPIPEN JUNIOR" [ sAdr ] ]
+            }
+            { bp with
+                GPK = "170976"
+                Generic = "adrenaline"
+                Form = "injectievloeistof"
+                Routes = [| "INTRAMUSCULAIR"; "INTRAVENEUS" |]
+                Substances = [| sAdr |]
+                TradeProducts = [ PT.trade "2590654" "" [ sAdr ] ]
+            }
+        |]
+
+
+    // Neutral DoseRuleData defaults; mkData overrides only the narrowing fields.
+    let private emptyGen: GenericData =
+        {
+            Name = ""
+            Form = ""
+            Brand = ""
+            GPKs = [||]
+            HPKs = [||]
+        }
+
+    let private emptyDL: DoseLimitData =
+        {
+            CmpBased = false
+            Component = ""
+            Substance = ""
+            DoseUnit = ""
+            MinQty = None
+            MaxQty = None
+            MinQtyAdj = None
+            MaxQtyAdj = None
+            MinPerTime = None
+            MaxPerTime = None
+            MinPerTimeAdj = None
+            MaxPerTimeAdj = None
+            MinRate = None
+            MaxRate = None
+            MinRateAdj = None
+            MaxRateAdj = None
+        }
+
+    let private emptySched: ScheduleData =
+        {
+            // Once is always valid under doseRuleDataValidity, so each fixture
+            // survives addProductsWithWarnings without schedule plumbing.
+            DoseType = "once"
+            DoseText = ""
+            Freqs = [||]
+            AdjustUnit = ""
+            FreqUnit = ""
+            RateUnit = ""
+            MinTime = None
+            MaxTime = None
+            TimeUnit = ""
+            MinInt = None
+            MaxInt = None
+            IntUnit = ""
+            MinDur = None
+            MaxDur = None
+            DurUnit = ""
+            DoseLimitData = emptyDL
+        }
+
+    let private emptyPat: PatientCategoryData =
+        {
+            Location = ""
+            Dep = ""
+            IsAdult = false
+            Gender = AnyGender
+            MinAge = None
+            MaxAge = None
+            MinWeight = None
+            MaxWeight = None
+            MinBSA = None
+            MaxBSA = None
+            MinGestAge = None
+            MaxGestAge = None
+            MinPMAge = None
+            MaxPMAge = None
+        }
+
+    let private baseData: DoseRuleData =
+        {
+            Id = ""
+            GrpId = ""
+            SortNo = 1
+            Source = "FTK"
+            SourceText = ""
+            Generic = emptyGen
+            Indication = "test"
+            Route = ""
+            PatientText = ""
+            Patient = emptyPat
+            ScheduleText = ""
+            ScheduleData = emptySched
+            Products = [||]
+        }
+
+
+    /// Build a DoseRuleData row with the given generic, route and narrowing.
+    /// Component is set to the generic so products match by component name.
+    let mkData gen rte form brand gpks hpks : DoseRuleData =
+        { baseData with
+            Route = rte
+            Generic =
+                { emptyGen with
+                    Name = gen
+                    Form = form
+                    Brand = brand
+                    GPKs = gpks
+                    HPKs = hpks
+                }
+            ScheduleData = { emptySched with DoseLimitData = { emptyDL with Component = gen } }
+        }
+
+
+    /// Build the DoseRules for the given raw rows (empty FormRoutes is safe:
+    /// addFormLimits only sets FormLimit, product attachment is unaffected).
+    let buildRules (data: DoseRuleData[]) =
+        DoseRule.fromData routeMapping [||] prods data |> Result.toOption |> Option.get
+
+
+    /// Sorted, distinct GPKs attached to a set of DoseRules.
+    let attachedGpks (rules: DoseRule[]) =
+        rules
+        |> Array.collect (fun r -> r.ComponentLimits |> Array.collect _.Products)
+        |> Array.map _.GPK
+        |> Array.filter ne
+        |> Array.distinct
+        |> Array.sort
+
+
+    let builtGpks data = data |> buildRules |> attachedGpks
+
+
+    /// Apply the production single-narrowing normaliser (as parseDoseRuleData does).
+    let normalize (d: DoseRuleData) =
+        { d with Generic = d.Generic |> DoseRule.withSingleNarrowing }
+
+
+    let formRow = mkData "citalopram" "ORAAL" "tablet" "" [||] [||]
+    let brandRow = mkData "bupropion" "ORAAL" "" "Zyban" [||] [||]
+
+    let gpksRow =
+        mkData "adrenaline" "INTRAMUSCULAIR" "" "" [| "170925"; "170933" |] [||]
+    // Same gpks narrowing, plus a Form that would (if applied) exclude every
+    // adrenaline injection product — proves Form is dropped when GPKs win.
+    let gpksFormRow =
+        mkData "adrenaline" "INTRAMUSCULAIR" "tablet" "" [| "170925"; "170933" |] [||]
+
+
+    let tests =
+        testList
+            "DoseRule.fromData product attachment"
+            [
+
+                test "form narrowing attaches only the matching-form product" {
+                    builtGpks [| formRow |]
+                    |> Expect.equal "only the tablet GPK attaches (drank/druppels excluded)" [| "182729" |]
+                }
+
+                test "brand narrowing attaches only the branded product" {
+                    let rules = buildRules [| brandRow |]
+
+                    rules
+                    |> attachedGpks
+                    |> Expect.equal "only the Zyban-carrying GPK attaches" [| "109347" |]
+
+                    rules
+                    |> Array.collect (fun r -> r.ComponentLimits |> Array.collect _.Products)
+                    |> Array.collect (_.TradeProducts >> List.toArray)
+                    |> Array.map _.Brand
+                    |> Array.distinct
+                    |> Array.sort
+                    |> Expect.equal "trade products narrowed to the Zyban brand" [| "ZYBAN" |]
+                }
+
+                test "gpks narrowing attaches exactly the listed gpks" {
+                    builtGpks [| gpksRow |]
+                    |> Expect.equal "the two listed GPKs attach (170976 excluded)" [| "170925"; "170933" |]
+                }
+
+                test "precedence: GPKs win over Form (Form is ignored)" {
+                    let normalized = builtGpks [| normalize gpksFormRow |]
+
+                    normalized
+                    |> Expect.equal "normalised row attaches the GPK-narrowed products" [| "170925"; "170933" |]
+
+                    // Without normalisation the conflicting Form would exclude all
+                    // injection products: this contrast proves Form was dropped.
+                    let raw = builtGpks [| gpksFormRow |]
+
+                    raw |> Expect.isEmpty "raw (unnormalised) gpks+form row attaches nothing"
+
+                    normalized |> Expect.notEqual "normalisation changes the outcome" raw
+                }
+
+                test "each narrowed row yields exactly one DoseRule with products" {
+                    for row in [| formRow; brandRow; gpksRow |] do
+                        let rules = buildRules [| row |]
+
+                        rules |> Array.length |> Expect.equal "one DoseRule built" 1
+
+                        rules[0].ComponentLimits
+                        |> Array.collect _.Products
+                        |> Array.isEmpty
+                        |> Expect.isFalse "the DoseRule carries attached products"
+                }
+
+                // --- unit tests for the extracted addProductsWithWarnings helpers ---
+
+                test "groupRows groups by selection key" {
+                    let r1 = mkData "citalopram" "ORAAL" "tablet" "" [||] [||]
+                    let r3 = mkData "citalopram" "INTRAMUSCULAIR" "tablet" "" [||] [||]
+
+                    DoseRule.groupRows [| r1; r1; r3 |]
+                    |> Array.length
+                    |> Expect.equal "same key merges, different route splits" 2
+                }
+
+                test "candidateProducts keeps only products matching a group component" {
+                    DoseRule.candidateProducts prods [| mkData "citalopram" "ORAAL" "" "" [||] [||] |]
+                    |> Array.map _.Generic
+                    |> Array.distinct
+                    |> Array.sort
+                    |> Expect.equal "only citalopram products" [| "citalopram" |]
+                }
+
+                test "expandRowByForm yields one row per pharmaceutical form" {
+                    let cit = mkData "citalopram" "ORAAL" "" "" [||] [||]
+                    let citProds = prods |> Array.filter (fun p -> p.Generic = "citalopram")
+
+                    DoseRule.expandRowByForm routeMapping (DoseRule.groupKey cit) cit citProds
+                    |> Array.map (fun r -> r.Products |> Array.map _.GPK |> Array.sort)
+                    |> Array.sortBy (Array.tryHead >> Option.defaultValue "")
+                    |> Expect.equal
+                        "one row per form, each with that form's product"
+                        [| [| "106496" |]; [| "182729" |] |]
+                }
+
+                test "processGroup with no matching products yields a placeholder row and one warning" {
+                    let nope = mkData "citalopram" "ORAAL" "" "" [| "999999" |] [||]
+
+                    let rows, warns =
+                        DoseRule.processGroup routeMapping prods (DoseRule.groupKey nope, [| nope |])
+
+                    rows |> Array.length |> Expect.equal "one placeholder row" 1
+
+                    rows
+                    |> Array.collect _.Products
+                    |> Array.map _.GPK
+                    |> Expect.equal "placeholder carries no real GPK" [| "" |]
+
+                    warns |> List.length |> Expect.equal "one no-products warning" 1
+                }
+
+                test "processGroup with matching products yields expanded rows and no warnings" {
+                    let adr = mkData "adrenaline" "INTRAMUSCULAIR" "" "" [| "170925"; "170933" |] [||]
+
+                    let rows, warns =
+                        DoseRule.processGroup routeMapping prods (DoseRule.groupKey adr, [| adr |])
+
+                    warns |> Expect.isEmpty "no warnings"
+
+                    rows
+                    |> Array.collect _.Products
+                    |> Array.map _.GPK
+                    |> Array.filter ne
+                    |> Array.distinct
+                    |> Array.sort
+                    |> Expect.equal "expanded rows carry the gpks-narrowed products" [| "170925"; "170933" |]
+                }
+            ]
+
+
 module Tests =
 
 
@@ -450,7 +1071,7 @@ module Tests =
                             Location = None
                             Department = None
                             Gender = AnyGender
-                            Age = MinMax.empty
+                            Age = MinMax.empty |> AbsoluteAge
                             Weight = MinMax.empty
                             BSA = MinMax.empty
                             GestAge = MinMax.empty
@@ -483,9 +1104,10 @@ module Tests =
                     test "an empty filter and a patient category with a max age of 7" {
                         { patCat with
                             Age =
-                                { patCat.Age with
+                                { MinMax.empty with
                                     Max = 7N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                         }
                         |> PatientCategory.filter filter
                         |> Expect.isFalse "should return false"
@@ -494,9 +1116,10 @@ module Tests =
                     test "a filter with age 5 and a patient category with a max age of 7" {
                         { patCat with
                             Age =
-                                { patCat.Age with
+                                { MinMax.empty with
                                     Max = 7N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                         }
                         |> PatientCategory.filter
                             { filter with
@@ -509,9 +1132,10 @@ module Tests =
                     test "a filter with age 5 and a patient category with a min age of 1 week" {
                         { patCat with
                             Age =
-                                { patCat.Age with
+                                { MinMax.empty with
                                     Min = 1N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                         }
                         |> PatientCategory.filter
                             { filter with
@@ -528,6 +1152,7 @@ module Tests =
                                     Min = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 7N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                         }
                         |> PatientCategory.filter
                             { filter with
@@ -546,6 +1171,7 @@ module Tests =
                                     Min = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 7N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                         }
                         |> PatientCategory.filter
                             { filter with
@@ -564,6 +1190,7 @@ module Tests =
                                     Min = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 7N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                         }
                         |> PatientCategory.filter
                             { filter with
@@ -596,6 +1223,7 @@ module Tests =
                                     Min = 0N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = None
                                 }
+                                |> AbsoluteAge
                         }
                         |> PatientCategory.filter
                             { filter with
@@ -616,6 +1244,7 @@ module Tests =
                                     Min = 0N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = None
                                 }
+                                |> AbsoluteAge
                         }
                         |> PatientCategory.filter
                             { filter with
@@ -638,6 +1267,7 @@ module Tests =
                                     Min = 0N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 28N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                             GestAge =
                                 {
                                     Min = 28N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
@@ -663,6 +1293,7 @@ module Tests =
                                     Min = 0N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 28N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                             GestAge =
                                 {
                                     Min = 28N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
@@ -688,6 +1319,7 @@ module Tests =
                                     Min = 0N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 28N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                             GestAge =
                                 {
                                     Min = 28N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
@@ -714,6 +1346,7 @@ module Tests =
                                     Min = 0N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 28N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                             PMAge =
                                 {
                                     Min = 28N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
@@ -741,6 +1374,7 @@ module Tests =
                                     Min = 0N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 28N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                             PMAge =
                                 {
                                     Min = 28N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
@@ -768,6 +1402,7 @@ module Tests =
                                     Min = 0N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 28N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                             PMAge =
                                 {
                                     Min = 28N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
@@ -790,9 +1425,10 @@ module Tests =
                         "a filter with age 0, ga = 32 and weight 1.45 with a patient category with max age = 30 and max gest 37 and max weight 1.5" {
                         { patCat with
                             Age =
-                                { patCat.Age with
+                                { MinMax.empty with
                                     Max = 30N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                             Weight =
                                 { patCat.Weight with
                                     Max =
@@ -832,6 +1468,7 @@ module Tests =
                                     Min = 30N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 720N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                         }
                         |> PatientCategory.filter
                             { filter with
@@ -854,6 +1491,7 @@ module Tests =
                                     Min = 0N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                     Max = 28N |> ValueUnit.singleWithUnit Units.Time.day |> Limit.Inclusive |> Some
                                 }
+                                |> AbsoluteAge
                             PMAge =
                                 {
                                     Min = 36N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
@@ -902,6 +1540,7 @@ module Tests =
                                                         ValueUnit.singleWithUnit Units.Time.day >> Limit.Inclusive
                                                     )
                                             }
+                                            |> AbsoluteAge
                                     }
 
                                 let emptyPatCat = PatientCategory.empty
@@ -977,6 +1616,7 @@ module Tests =
                                                         ValueUnit.singleWithUnit Units.Time.day >> Limit.Inclusive
                                                     )
                                             }
+                                            |> AbsoluteAge
                                     }
 
                                 let patCatToWatch = PatientCategory.empty
@@ -1214,4 +1854,7 @@ module Tests =
                 PatientCategoryTests.tests
                 DoseTypeTests.tests
                 LimitTargetTests.tests
+                GenericLabelTests.tests
+                ProductFilterTests.tests
+                DoseRuleProductTests.tests
             ]

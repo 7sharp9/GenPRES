@@ -103,13 +103,13 @@ module GenFormTools =
 
     let doseRuleToOutput (dr: DoseRule) : DoseRuleOutput =
         {
-            Generic = dr.Generic
+            Generic = dr.Generic |> Generic.toString
             Indication = dr.Indication
             Route = dr.Route
-            Form = dr.Form
+            Form = dr.Generic.Form |> PharmaceuticalForm.toString
             DoseType = dr.DoseType |> DoseType.toString
-            MinAge = dr.PatientCategory.Age.Min |> limitToFloat
-            MaxAge = dr.PatientCategory.Age.Max |> limitToFloat
+            MinAge = (dr.PatientCategory |> PatientCategory.getAge).Min |> limitToFloat
+            MaxAge = (dr.PatientCategory |> PatientCategory.getAge).Max |> limitToFloat
             MinWeight = dr.PatientCategory.Weight.Min |> limitToFloat
             MaxWeight = dr.PatientCategory.Weight.Max |> limitToFloat
             ComponentCount = dr.ComponentLimits |> Array.length

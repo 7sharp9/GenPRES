@@ -21,13 +21,17 @@ module Helpers =
             GetValidForms = fun () -> Ok [||]
             GetFormRoutes = fun _ -> Ok [||]
             GetFormularyProducts = fun () -> Ok [||]
+            GetGenPresProducts = fun () -> Ok [||]
+            GetDoseRuleData = fun () -> Ok [||]
+            GetSolutionRuleData = fun () -> Ok [||]
+            GetRenalRuleData = fun () -> Ok [||]
             GetReconstitution = fun () -> Ok [||]
             GetParenteralMeds = fun _ -> Ok [||]
             GetEnteralFeeding = fun _ -> Ok [||]
-            GetProducts = fun _ _ _ _ _ _ _ _ -> [||]
-            GetDoseRules = fun _ _ _ -> Ok [||]
-            GetSolutionRules = fun _ _ _ -> Ok [||]
-            GetRenalRules = fun () -> Ok [||]
+            GetProducts = fun _ _ _ _ _ _ _ _ _ -> [||]
+            GetDoseRules = fun _ _ _ _ -> Ok([||], [])
+            GetSolutionRules = fun _ _ _ _ -> Ok [||]
+            GetRenalRules = fun _ -> Ok [||]
         }
 
 
@@ -99,7 +103,7 @@ module ResourceErrorTests =
 
                 test "last getter (GetRenalRules) returns Error propagates" {
                     let config =
-                        { okConfig with GetRenalRules = fun () -> Error [ errMsg "renal rules failed" ] }
+                        { okConfig with GetRenalRules = fun _ -> Error [ errMsg "renal rules failed" ] }
 
                     config
                     |> loadAllResourcesWithConfig

@@ -128,31 +128,42 @@ module Types =
             MolarConcentration: ValueUnit option
         }
 
-    /// A Product type.
-    type Product =
+    type Brand = string
+    type HPK = string
+
+    type TradeProduct =
         {
-            // The GPK id of the Product
-            GPK: string
+            HPK: HPK
+            Brand: Brand
+            Substances: Substance list
+        }
+
+    type GPK = string
+    type ATC = string
+    type MainGroup = string
+    type SubGroup = string
+
+    type GenericName = string
+
+    /// A Product type.
+    type ProductComponent =
+        {
+            // The GPK id of the Generic Product
+            GPK: GPK
             // The ATC code of the Product
-            ATC: string
+            ATC: ATC
             // The ATC main group of the Product
-            MainGroup: string
+            MainGroup: MainGroup
             // The ATC subgroup of the Product
-            SubGroup: string
+            SubGroup: SubGroup
             // The Generic name of the Product
-            Generic: string
-            // Use Generic Substance Name
-            UseGenericName: bool
-            // Use pharmaceutical form
-            UseForm: bool
-            // Use Brand
-            UseBrand: bool
+            Generic: GenericName
             // A tall-man representation of the Generic name of the Product
             TallMan: string
             // Synonyms for the Product
             Synonyms: string array
             // The full product name of the Product
-            Product: string
+            ProductLabels: string list
             // The label of the Product
             Label: string
             // The pharmaceutical form of the Product
@@ -171,6 +182,8 @@ module Types =
             Divisible: BigRational option
             // The Substances in the Product
             Substances: Substance array
+            // Brand products
+            TradeProducts: TradeProduct list
         }
 
 
@@ -192,10 +205,6 @@ module Types =
             Divisible: int option
             /// Use generic name
             UseGenName: bool
-            /// Use form
-            UseForm: bool
-            /// Use brand
-            UseBrand: bool
             /// Mmol
             Mmol: BigRational option
             /// Form
@@ -204,6 +213,8 @@ module Types =
             Brand: string option
             /// Generic name
             GenName: string option
+            /// GStand generic name
+            GStandName: string option
             /// Unit
             Unit: string option
             /// Energy in kCal
@@ -284,13 +295,20 @@ module Types =
         }
 
 
+    /// Either an absolute age is required or the
+    /// patient just is "Adult"
+    type Age =
+        | AbsoluteAge of MinMax
+        | IsAdult
+
+
     /// A PatientCategory to which a Rule applies.
     type PatientCategory =
         {
             Location: string option
             Department: string option
             Gender: Gender
-            Age: MinMax
+            Age: Age
             Weight: MinMax
             BSA: MinMax
             GestAge: MinMax
@@ -356,62 +374,92 @@ module Types =
             (fun (p: Patient) -> p.Location), (fun l (p: Patient) -> { p with Location = l })
 
 
+    /// Raw dose rule data
     type DoseRuleData =
         {
-            AdjustUnit: string
-            Brand: string
-            Component: string
-            Department: string
-            DoseText: string
-            DoseType: string
-            DoseUnit: string
-            DurUnit: string
-            FreqUnit: string
-            Frequencies: BigRational array
-            GPKs: string array
-            Gender: Gender
-            Generic: string
-            Indication: string
-            IntervalUnit: string
-            MaxAge: BigRational option
-            MaxBSA: BigRational option
-            MaxDur: BigRational option
-            MaxGestAge: BigRational option
-            MaxInterval: BigRational option
-            MaxPMAge: BigRational option
-            MaxPerTime: BigRational option
-            MaxPerTimeAdj: BigRational option
-            MaxQty: BigRational option
-            MaxQtyAdj: BigRational option
-            MaxRate: BigRational option
-            MaxRateAdj: BigRational option
-            MaxTime: BigRational option
-            MaxWeight: BigRational option
-            MinAge: BigRational option
-            MinBSA: BigRational option
-            MinDur: BigRational option
-            MinGestAge: BigRational option
-            MinInterval: BigRational option
-            MinPMAge: BigRational option
-            MinPerTime: BigRational option
-            MinPerTimeAdj: BigRational option
-            MinQty: BigRational option
-            MinQtyAdj: BigRational option
-            MinRate: BigRational option
-            MinRateAdj: BigRational option
-            MinTime: BigRational option
-            MinWeight: BigRational option
-            RateUnit: string
-            Route: string
-            ScheduleText: string
-            Form: string
+            Id: string
+            GrpId: string
+            SortNo: int
             Source: string
-            Substance: string
-            TimeUnit: string
-            Products: Product[]
+            SourceText: string
+            Generic: GenericData
+            Indication: string
+            Route: string
+            PatientText: string
+            Patient: PatientCategoryData
+            ScheduleText: string
+            ScheduleData: ScheduleData
+            Products: ProductComponent[]
         }
 
+    and GenericData =
+        {
+            Name: string
+            Form: string
+            Brand: string
+            GPKs: string array
+            HPKs: string array
+        }
 
+    and PatientCategoryData =
+        {
+            Location: string
+            Dep: string
+            IsAdult: bool
+            Gender: Gender
+            MinAge: BigRational option
+            MaxAge: BigRational option
+            MinWeight: BigRational option
+            MaxWeight: BigRational option
+            MinBSA: BigRational option
+            MaxBSA: BigRational option
+            MinGestAge: BigRational option
+            MaxGestAge: BigRational option
+            MinPMAge: BigRational option
+            MaxPMAge: BigRational option
+        }
+
+    and ScheduleData =
+        {
+            DoseType: string
+            DoseText: string
+            Freqs: BigRational array
+            AdjustUnit: string
+            FreqUnit: string
+            RateUnit: string
+            MinTime: BigRational option
+            MaxTime: BigRational option
+            TimeUnit: string
+            MinInt: BigRational option
+            MaxInt: BigRational option
+            IntUnit: string
+            MinDur: BigRational option
+            MaxDur: BigRational option
+            DurUnit: string
+            DoseLimitData: DoseLimitData
+        }
+
+    and DoseLimitData =
+        {
+            CmpBased: bool
+            Component: string
+            Substance: string
+            DoseUnit: string
+            MinQty: BigRational option
+            MaxQty: BigRational option
+            MinQtyAdj: BigRational option
+            MaxQtyAdj: BigRational option
+            MinPerTime: BigRational option
+            MaxPerTime: BigRational option
+            MinPerTimeAdj: BigRational option
+            MaxPerTimeAdj: BigRational option
+            MinRate: BigRational option
+            MaxRate: BigRational option
+            MinRateAdj: BigRational option
+            MaxRateAdj: BigRational option
+        }
+
+    /// Raw solution rule data
     type SolutionRuleData =
         {
             // solution rule section
@@ -458,6 +506,7 @@ module Types =
         }
 
 
+    /// Raw renal rule data
     type RenalRuleData =
         {
             Generic: string
@@ -500,55 +549,121 @@ module Types =
         }
 
 
+    type ProductId =
+        | Gpk of string
+        | Hpk of string
+
+
     type ComponentLimit =
         {
             Name: string
             // Specific GPKs
-            GPKs: string array
+            ProductIds: ProductId array
             Limit: DoseLimit option
-            Products: Product[]
+            Products: ProductComponent[]
             SubstanceLimits: DoseLimit[]
         }
 
 
-    /// The DoseRule type. Identifies exactly one DoseRule
-    /// for a specific PatientCategory, Indication, Generic, pharmaceutical form, Route and DoseType.
+    type Source =
+        | Identified of string
+        | Other of string
+
+    type DoseRuleId = string
+    type DataId = string
+    type DoseRuleGroupId = string
+    type SortNo = int
+
+
+    /// Generic can be constructed by
+    /// different pathways
+    type GenericLabel =
+        // Constructed by the list of active substances
+        // concatenated by "/"
+        | Canonical of string list
+        // A short hand name
+        | Shorthand of string
+        // The canonical name appended with the form
+        | GenericForm of gen: string * form: string
+        // The canonical name appended with the brand
+        | GenericBrand of gen: string * brand: string
+
+
+    /// Distinguish between a solution
+    /// and a solid pharmaceutical form
+    type PharmaceuticalForm =
+        | Solution of string
+        | Solid of string
+
+
+    type Generic =
+        {
+            Label: GenericLabel
+            Form: PharmaceuticalForm
+            Products: ProductId list
+        }
+
+
+    type Indication = string
+
+
+    type Route = string
+
+
+    /// The DoseRule type. A DoseRule is uniquely identified by the combination of
+    /// Source, Generic, pharmaceutical form, Brand, Route, Indication, PatientCategory and DoseType
+    /// (where DoseType also carries the original dose text as its case payload).
     type DoseRule =
         {
-            Source: string
+            // Unique identifier of this DoseRule. Treated as opaque by consumers.
+            Id: DoseRuleId
+            // Date id, the unique identifier of the orginal dose rule data
+            DataId: DataId
+            // Identifier shared by every DoseRule that belongs to the same rule group, i.e. the same
+            // clinical context (Source, Generic, Form, Brand, Route, Indication, PatientCategory).
+            // Rules in one group differ only in DoseType and dose schedule. Treated as opaque.
+            GroupId: DoseRuleGroupId
+            // Ordinal rank within a rule group, used for stable presentation order.
+            SortNo: SortNo
+            // The original source of the dose rule
+            Source: Source
+            // The original source text of the dose rule, before structured decomposition.
+            SourceText: string
             // The Indication of the DoseRule
-            Indication: string
+            Indication: Indication
             // The Generic of the DoseRule
-            Generic: string
-            // The pharmaceutical pharmaceutical form of the DoseRule
-            Form: string
-            // The brand of the doserule
-            Brand: string option
+            Generic: Generic
             // The Route of administration of the DoseRule
-            Route: string
-            // The PatientCategory of the DoseRule
+            Route: Route
+            // The original text describing the patient category this rule applies to.
+            PatientText: string
+            // The PatientCategory the rule applies to. Whether the rule applies specifically to
+            // adults is expressed by the Age case (AbsoluteAge | IsAdult).
             PatientCategory: PatientCategory
-            // the original dose schedule text
+            // The original text describing the dose schedule.
             ScheduleText: string
-            // The DoseType of the DoseRule
+            // The DoseType of the DoseRule. Each case (Once/OnceTimed/Discontinuous/Timed/Continuous)
+            // carries the original dose text as its string payload, so DoseType captures both
+            // the temporal category and the free-text description of the dose.
             DoseType: DoseType
             // The unit to adjust dosing with
             AdjustUnit: Unit option
             // The possible Frequencies of the DoseRule
             Frequencies: ValueUnit option
-            // The MinMax Administration Time of the DoseRule
+            // MinMax administration time. The time unit is part of the MinMax value.
             AdministrationTime: MinMax
-            // The MinMax Interval Time of the DoseRule
+            // MinMax interval between administrations. The time unit is part of the MinMax value.
             IntervalTime: MinMax
-            // The MinMax Duration of the DoseRule
+            // MinMax total duration of the order. The time unit is part of the MinMax value.
             Duration: MinMax
             // the limits based upon the pharmaceutical form and route
             FormLimit: DoseLimit option
             // the limits for the component and substances
             // in the component
             ComponentLimits: ComponentLimit[]
-            // an optional renal rule
-            RenalRule: string option
+            // Reference to a renal-adjustment rule that applies on top of this DoseRule.
+            // TODO: replace with a structured RenalRule type once the renal rule layer is finalised.
+            RenalRuleSource: string option
         }
 
 
@@ -566,7 +681,7 @@ module Types =
             // The Minmax Concentration of the Substance for the SolutionLimit
             Concentration: MinMax
             // The Products the SolutionRule applies to
-            Products: Product[]
+            Products: ProductComponent[]
         }
 
 
@@ -589,7 +704,7 @@ module Types =
             // The MinMax Dose range of the SolutionRule
             Dose: MinMax
             // The possible Solutions to use
-            Diluents: Product[]
+            Diluents: ProductComponent[]
             // An optional dividability option
             Div: BigRational option
             // The possible Volumes to use
@@ -691,6 +806,7 @@ module Types =
             Patient: Patient
         }
 
+
     type SolutionFilter =
         {
             // The Generic of the SolutionRule
@@ -733,3 +849,6 @@ module Types =
         | ErrorMsg of (string * exn option)
 
         interface IMessage
+
+
+open Types

@@ -19,9 +19,9 @@ module SolutionRule =
     let fromTupleInclIncl = MinMax.fromTuple Inclusive Inclusive
 
 
-    let getData dataUrlId =
+    let parseSolutionRuleData (data: string[][]) : Result<_, Message list> =
         try
-            Web.getDataFromSheet dataUrlId "SolutionRules"
+            data
             |> fun data ->
                 let getColumn = data |> Array.head |> Csv.getStringColumn
 
@@ -83,10 +83,14 @@ module SolutionRule =
                 )
             |> Ok
         with exn ->
-            GenFormResult.createError "Error in SolutionRule.getResult: " exn
+            Result.createError "Error in SolutionRule.getResult: " exn
 
 
-    let map routeMapping (parenteral: Product[]) products data : Result<_, Message list> =
+    let getData dataUrlId =
+        Web.getDataFromSheet dataUrlId "SolutionRules" |> parseSolutionRuleData
+
+
+    let map routeMapping (parenteral: ProductComponent[]) products data : Result<_, Message list> =
         data
         |> Array.groupBy (fun r ->
             let du = r.Unit |> UnitsParse.fromString
@@ -112,7 +116,7 @@ module SolutionRule =
                             if r.CVL = "x" then CVL
                             else if r.PVL = "x" then PVL
                             else AnyAccess
-                        Age = (r.MinAge, r.MaxAge) |> fromTupleInclExcl (Some Units.day)
+                        Age = (r.MinAge, r.MaxAge) |> fromTupleInclExcl (Some Units.day) |> AbsoluteAge
                         Weight = (r.MinWeight, r.MaxWeight) |> fromTupleInclExcl (Some Units.weightGram)
                         GestAge = (r.MinGestAge, r.MaxGestAge) |> fromTupleInclExcl (Some Units.day)
                     }
@@ -192,11 +196,11 @@ module SolutionRule =
         |> Ok
 
 
-    let get dataUrlId routeMapping (parenteral: Product[]) products : Result<_, Message list> =
+    let get dataUrlId routeMapping (parenteral: ProductComponent[]) products : Result<_, Message list> =
         try
             dataUrlId |> getData |> Result.bind (map routeMapping parenteral products)
         with exn ->
-            GenFormResult.createError "Error in SolutionRule.getResult: " exn
+            Result.createError "Error in SolutionRule.getResult: " exn
 
 
     /// <summary>
@@ -472,7 +476,7 @@ module SolutionRule =
                                      r.rules
                                      |> Array.groupBy (fun r ->
                                          {|
-                                             Age = r.PatientCategory.Age
+                                             Age = r.PatientCategory |> PatientCategory.getAge
                                              Weight = r.PatientCategory.Weight
                                              Dose = r.Dose
                                              DoseType = r.DoseType

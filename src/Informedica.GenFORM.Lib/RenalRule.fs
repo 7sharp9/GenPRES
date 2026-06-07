@@ -87,9 +87,9 @@ module RenalRule =
         }
 
 
-    let getData dataUrlId : Result<_, Message list> =
+    let parseRenalRuleData (data: string[][]) : Result<_, Message list> =
         try
-            Web.getDataFromSheet dataUrlId "RenalRules"
+            data
             |> fun data ->
                 let getColumn = data |> Array.head |> Csv.getStringColumn
 
@@ -141,7 +141,11 @@ module RenalRule =
                 )
             |> Ok
         with exn ->
-            GenFormResult.createError "Error in RenalRule.getDetails: " exn
+            Result.createError "Error in RenalRule.getDetails: " exn
+
+
+    let getData dataUrlId : Result<_, Message list> =
+        Web.getDataFromSheet dataUrlId "RenalRules" |> parseRenalRuleData
 
 
     let fromTupleInclExcl = MinMax.fromTuple Inclusive Exclusive
@@ -414,7 +418,7 @@ module RenalRule =
     let adjustDoseRule (renalRule: RenalRule) (doseRule: DoseRule) =
 
         { doseRule with
-            RenalRule = Some renalRule.Source
+            RenalRuleSource = Some renalRule.Source
             Frequencies =
                 if renalRule.Frequencies |> Option.isNone then
                     doseRule.Frequencies
