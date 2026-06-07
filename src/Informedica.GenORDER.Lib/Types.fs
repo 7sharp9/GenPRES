@@ -452,8 +452,8 @@ module Types =
     type NormDose = Informedica.GenForm.Lib.Types.NormDose
 
 
-    /// Type alias for Product from Informedica.GenForm.Lib.Types
-    type Product = Informedica.GenForm.Lib.Types.Product
+    /// Type alias for the GenForm product component (formerly `Product`).
+    type Product = Informedica.GenForm.Lib.Types.ProductComponent
 
 
     type TextBlock =

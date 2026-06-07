@@ -24,7 +24,7 @@ module Utils =
         let createExnMsg source exn = (source, Some exn) |> ErrorMsg
 
 
-    module GenFormResult =
+    module Result =
 
 
         let createError source exn : Result<_, Message list> =

@@ -8,6 +8,8 @@ module Resources =
     open FsToolkit.ErrorHandling.ResultCE
 
 
+    /// Resource provider abstraction. Returns the fully built, in-memory
+    /// resource collections. Product collections are v2 `ProductComponent`s.
     type IResourceProvider =
         abstract member GetUnitMappings: unit -> UnitMapping[]
         abstract member GetRouteMappings: unit -> RouteMapping[]
@@ -15,9 +17,9 @@ module Resources =
         abstract member GetFormRoutes: unit -> FormRoute[]
         abstract member GetFormularyProducts: unit -> FormularyProduct[]
         abstract member GetReconstitution: unit -> Reconstitution[]
-        abstract member GetParenteralMeds: unit -> Product[]
-        abstract member GetEnteralFeeding: unit -> Product[]
-        abstract member GetProducts: unit -> Product[]
+        abstract member GetParenteralMeds: unit -> ProductComponent[]
+        abstract member GetEnteralFeeding: unit -> ProductComponent[]
+        abstract member GetProducts: unit -> ProductComponent[]
         abstract member GetDoseRules: unit -> DoseRule[]
         abstract member GetSolutionRules: unit -> SolutionRule[]
         abstract member GetRenalRules: unit -> RenalRule[]
@@ -31,17 +33,15 @@ module Resources =
         }
 
 
+    /// Standalone v2 resource state. The raw, source-loaded data lives in the
+    /// nested `Data` record; the built domain collections live at the top level.
     type ResourceState =
         {
-            UnitMappings: UnitMapping[]
-            RouteMappings: RouteMapping[]
-            ValidForms: string[]
-            FormRoutes: FormRoute[]
-            FormularyProducts: FormularyProduct[]
+            Data: Data
             Reconstitution: Reconstitution[]
-            ParenteralMeds: Product[]
-            EnteralFeeding: Product[]
-            Products: Product[]
+            ParenteralMeds: ProductComponent[]
+            EnteralFeeding: ProductComponent[]
+            Products: ProductComponent[]
             DoseRules: DoseRule[]
             SolutionRules: SolutionRule[]
             RenalRules: RenalRule[]
@@ -50,86 +50,40 @@ module Resources =
             LastReloaded: DateTime
         }
 
-        interface IResourceProvider with
-            member this.GetUnitMappings() = this.UnitMappings
-            member this.GetRouteMappings() = this.RouteMappings
-            member this.GetValidForms() = this.ValidForms
-            member this.GetFormRoutes() = this.FormRoutes
-            member this.GetFormularyProducts() = this.FormularyProducts
-            member this.GetReconstitution() = this.Reconstitution
-            member this.GetParenteralMeds() = this.ParenteralMeds
-            member this.GetEnteralFeeding() = this.EnteralFeeding
-            member this.GetProducts() = this.Products
-            member this.GetDoseRules() = this.DoseRules
-            member this.GetSolutionRules() = this.SolutionRules
-            member this.GetRenalRules() = this.RenalRules
-
-            member this.GetResourceInfo() =
-                {
-                    Messages = this.Messages
-                    LastUpdated = this.LastReloaded
-                    IsLoaded = this.IsLoaded
-                }
+    and Data =
+        {
+            UnitMappings: UnitMapping[]
+            RouteMappings: RouteMapping[]
+            ValidForms: string[]
+            FormRoutes: FormRoute[]
+            FormularyProducts: FormularyProduct[]
+            GenPresProducts: Informedica.ZIndex.Lib.Types.GenPresProduct[]
+            DoseRuleData: DoseRuleData[]
+            SolutionRuleData: SolutionRuleData[]
+            RenalRuleData: RenalRuleData[]
+        }
 
 
-    type ResourceProvider(state: ResourceState) =
-        interface IResourceProvider with
-            member _.GetUnitMappings() = state.UnitMappings
-            member _.GetRouteMappings() = state.RouteMappings
-            member _.GetValidForms() = state.ValidForms
-            member _.GetFormRoutes() = state.FormRoutes
-            member _.GetFormularyProducts() = state.FormularyProducts
-            member _.GetReconstitution() = state.Reconstitution
-            member _.GetParenteralMeds() = state.ParenteralMeds
-            member _.GetEnteralFeeding() = state.EnteralFeeding
-            member _.GetProducts() = state.Products
-            member _.GetDoseRules() = state.DoseRules
-            member _.GetSolutionRules() = state.SolutionRules
-            member _.GetRenalRules() = state.RenalRules
-
-            member _.GetResourceInfo() =
-                {
-                    Messages = state.Messages
-                    LastUpdated = state.LastReloaded
-                    IsLoaded = state.IsLoaded
-                }
+    let private emptyData =
+        {
+            UnitMappings = [||]
+            RouteMappings = [||]
+            ValidForms = [||]
+            FormRoutes = [||]
+            FormularyProducts = [||]
+            GenPresProducts = [||]
+            DoseRuleData = [||]
+            SolutionRuleData = [||]
+            RenalRuleData = [||]
+        }
 
 
-    let createProvider
-        unitMappings
-        routeMappings
-        validForms
-        formRoutes
-        formularyProducts
-        reconstitution
-        parenteralMeds
-        enteralFeeding
-        products
-        doseRules
-        solutionRules
-        renalRules
-        msgs
-        =
-        let state =
-            {
-                UnitMappings = unitMappings
-                RouteMappings = routeMappings
-                ValidForms = validForms
-                FormRoutes = formRoutes
-                FormularyProducts = formularyProducts
-                Reconstitution = reconstitution
-                ParenteralMeds = parenteralMeds
-                EnteralFeeding = enteralFeeding
-                Products = products
-                DoseRules = doseRules
-                SolutionRules = solutionRules
-                RenalRules = renalRules
-                Messages = msgs
-                LastReloaded = DateTime.UtcNow
-                IsLoaded = true
-            }
-
-        ResourceProvider state :> IResourceProvider
+    let private resourceInfo (state: ResourceState) =
+        {
+            Messages = state.Messages
+            LastUpdated = state.LastReloaded
+            IsLoaded = state.IsLoaded
+        }
 
 
     type ResourceConfig =
@@ -139,55 +93,95 @@ module Resources =
             GetValidForms: unit -> Result<string[], Message list>
             GetFormRoutes: UnitMapping[] -> Result<FormRoute[], Message list>
             GetFormularyProducts: unit -> Result<FormularyProduct[], Message list>
+            GetGenPresProducts: unit -> Result<Informedica.ZIndex.Lib.Types.GenPresProduct[], Message list>
+            GetDoseRuleData: unit -> Result<DoseRuleData[], Message list>
+            GetSolutionRuleData: unit -> Result<SolutionRuleData[], Message list>
+            GetRenalRuleData: unit -> Result<RenalRuleData[], Message list>
             GetReconstitution: unit -> Result<Reconstitution[], Message list>
-            GetParenteralMeds: UnitMapping[] -> Result<Product[], Message list>
-            GetEnteralFeeding: UnitMapping[] -> Result<Product[], Message list>
+            GetParenteralMeds: UnitMapping[] -> Result<ProductComponent[], Message list>
+            GetEnteralFeeding: UnitMapping[] -> Result<ProductComponent[], Message list>
+            // Pure: builds the products from already-loaded raw data (the ZIndex
+            // GenPresProducts are the last parameter — read at the impure edge).
             GetProducts:
                 UnitMapping[]
                     -> RouteMapping[]
                     -> string[]
                     -> FormRoute[]
                     -> Reconstitution[]
-                    -> Product[]
-                    -> Product[]
+                    -> ProductComponent[]
+                    -> ProductComponent[]
                     -> FormularyProduct[]
-                    -> Product[]
-            GetDoseRules: RouteMapping[] -> FormRoute[] -> Product[] -> Result<DoseRule[], Message list>
-            GetSolutionRules: RouteMapping[] -> Product[] -> Product[] -> Result<SolutionRule[], Message list>
-            GetRenalRules: unit -> Result<RenalRule[], Message list>
+                    -> Informedica.ZIndex.Lib.Types.GenPresProduct[]
+                    -> ProductComponent[]
+            // Pure: builds the rules from already-loaded raw *Data.
+            // Returns the built DoseRules together with the product-matching
+            // warnings, which the shell surfaces in ResourceState.Messages.
+            GetDoseRules:
+                DoseRuleData[]
+                    -> RouteMapping[]
+                    -> FormRoute[]
+                    -> ProductComponent[]
+                    -> Result<DoseRule[] * Message list, Message list>
+            GetSolutionRules:
+                SolutionRuleData[]
+                    -> RouteMapping[]
+                    -> ProductComponent[]
+                    -> ProductComponent[]
+                    -> Result<SolutionRule[], Message list>
+            GetRenalRules: RenalRuleData[] -> Result<RenalRule[], Message list>
         }
 
 
-    let inline delay f = fun () -> f
-
-
-    /// Default resource configuration using the standard get functions
+    /// Default resource configuration using the standard v2 get functions.
+    ///
+    /// Every sheet/network load is deferred into the thunks below so that it
+    /// happens inside loadAllResourcesWithConfig's guarded result CE, not
+    /// eagerly at config-construction time.
+    ///
+    /// `lazy` memoises the formulary products so the shared value is fetched
+    /// only once across GetFormularyProducts / GetParenteralMeds /
+    /// GetEnteralFeeding, while still loading lazily on first access.
     let defaultResourceConfig dataUrlId =
-        let unitMapping = Mapping.getUnitMapping dataUrlId
-        let formProds = Product.getFormularyProducts dataUrlId
+        let formProds = lazy (Product.getFormularyProducts dataUrlId)
 
         {
-            GetUnitMappings = fun () -> unitMapping
-            GetRouteMappings = Mapping.getRouteMapping dataUrlId |> delay
-            GetValidForms = Mapping.getValidForms dataUrlId |> delay
+            GetUnitMappings = fun () -> Mapping.getUnitMapping dataUrlId
+            GetRouteMappings = fun () -> Mapping.getRouteMapping dataUrlId
+            GetValidForms = fun () -> Mapping.getValidForms dataUrlId
             GetFormRoutes = Mapping.getFormRoutes dataUrlId
-            GetFormularyProducts = fun () -> formProds
-            GetReconstitution = Product.Reconstitution.get dataUrlId |> delay
+            GetFormularyProducts = fun () -> formProds.Value
+            GetReconstitution = fun () -> Product.Reconstitution.get dataUrlId
             GetParenteralMeds =
-                fun mapping -> formProds |> Result.map (fun prods -> prods |> Product.Parenteral.get mapping)
+                fun mapping ->
+                    formProds.Value
+                    |> Result.map (fun prods -> prods |> Product.Parenteral.get mapping)
             GetEnteralFeeding =
-                fun mapping -> formProds |> Result.map (fun prods -> prods |> Product.Enteral.get mapping)
-            GetProducts = Product.get
-            GetDoseRules = DoseRule.get dataUrlId
-            GetSolutionRules = SolutionRule.get dataUrlId
-            GetRenalRules = RenalRule.get dataUrlId |> delay
+                fun mapping ->
+                    formProds.Value
+                    |> Result.map (fun prods -> prods |> Product.Enteral.get mapping)
+            // IO edge: read raw source data once.
+            GetGenPresProducts =
+                fun () ->
+                    try
+                        Informedica.ZIndex.Lib.GenPresProduct.get [] |> Ok
+                    with exn ->
+                        Utils.Result.createError "GetGenPresProducts" exn
+            GetDoseRuleData = fun () -> DoseRule.getData dataUrlId
+            GetSolutionRuleData = fun () -> SolutionRule.getData dataUrlId
+            GetRenalRuleData = fun () -> RenalRule.getData dataUrlId
+            // Pure transforms: operate on the already-loaded raw data.
+            GetProducts = Product.fromGenPresProducts
+            GetDoseRules = fun data rm fr prods -> DoseRule.fromDataWithWarnings rm fr prods data
+            GetSolutionRules = fun data rm parenteral prods -> SolutionRule.map rm parenteral prods data
+            GetRenalRules = fun data -> RenalRule.map data
         }
 
 
-    /// Load all resources at once using provided configuration
+    /// Load all resources at once using the provided configuration.
     let loadAllResourcesWithConfig (config: ResourceConfig) =
         try
             result {
+                // ── IO edge: load all raw data up front ──
                 let! unitMappings = config.GetUnitMappings()
                 let! routeMappings = config.GetRouteMappings()
                 let! validForms = config.GetValidForms()
@@ -196,6 +190,18 @@ module Resources =
                 let! reconstitution = config.GetReconstitution()
                 let! parenteralMeds = config.GetParenteralMeds unitMappings
                 let! enteralFeeding = config.GetEnteralFeeding unitMappings
+                let! genPresProducts = config.GetGenPresProducts()
+                let! doseRuleData = config.GetDoseRuleData()
+                let! solutionRuleData = config.GetSolutionRuleData()
+                let! renalRuleData = config.GetRenalRuleData()
+
+                // ── pure core: domain create functions on plain data ──
+                // narrow the raw ZIndex products to those referenced by dose rules
+                // (ID overrides name) BEFORE building, so discarded products are
+                // never constructed.
+                let filteredGpps =
+                    genPresProducts
+                    |> Product.filterGenPresProductsByData routeMappings formularyProducts doseRuleData
 
                 let products =
                     config.GetProducts
@@ -207,18 +213,27 @@ module Resources =
                         parenteralMeds
                         enteralFeeding
                         formularyProducts
+                        filteredGpps
 
-                let! doseRules = config.GetDoseRules routeMappings formRoutes products
-                let! solutionRules = config.GetSolutionRules routeMappings parenteralMeds products
-                let! renalRules = config.GetRenalRules()
+                let! doseRules, doseMsgs = config.GetDoseRules doseRuleData routeMappings formRoutes products
+                let! solutionRules = config.GetSolutionRules solutionRuleData routeMappings parenteralMeds products
+                let! renalRules = config.GetRenalRules renalRuleData
 
+                // ── assemble nested ResourceState ──
                 return
                     {
-                        UnitMappings = unitMappings
-                        RouteMappings = routeMappings
-                        ValidForms = validForms
-                        FormRoutes = formRoutes
-                        FormularyProducts = formularyProducts
+                        Data =
+                            {
+                                UnitMappings = unitMappings
+                                RouteMappings = routeMappings
+                                ValidForms = validForms
+                                FormRoutes = formRoutes
+                                FormularyProducts = formularyProducts
+                                GenPresProducts = genPresProducts
+                                DoseRuleData = doseRuleData
+                                SolutionRuleData = solutionRuleData
+                                RenalRuleData = renalRuleData
+                            }
                         Reconstitution = reconstitution
                         ParenteralMeds = parenteralMeds
                         EnteralFeeding = enteralFeeding
@@ -226,7 +241,7 @@ module Resources =
                         DoseRules = doseRules
                         SolutionRules = solutionRules
                         RenalRules = renalRules
-                        Messages = [||]
+                        Messages = doseMsgs |> List.toArray
                         LastReloaded = DateTime.UtcNow
                         IsLoaded = true
                     }
@@ -235,40 +250,30 @@ module Resources =
             [ ("Failed to load resources", Some exn) |> ErrorMsg ] |> Error
 
 
-    /// Load all resources at once using default configuration
+    /// Load all resources at once using the default configuration.
     let loadAllResources dataUrlId =
         loadAllResourcesWithConfig (defaultResourceConfig dataUrlId)
 
 
-    /// Create a test resource configuration with mock data
-    let createTestResourceConfig
-        (unitMappings: UnitMapping[])
-        (routeMappings: RouteMapping[])
-        (validForms: string[])
-        (formRoutes: FormRoute[])
-        (formularyProducts: FormularyProduct[])
-        (reconstitution: Reconstitution[])
-        (enteralFeeding: Product[])
-        (parenteralMeds: Product[])
-        =
-        {
-            GetUnitMappings = failwith "Not implemented"
-            GetRouteMappings = failwith "Not implemented"
-            GetValidForms = failwith "Not implemented"
-            GetFormRoutes = failwith "Not implemented"
-            GetFormularyProducts = failwith "Not implemented"
-            GetReconstitution = failwith "Not implemented"
-            GetEnteralFeeding = failwith "Not implemented"
-            GetParenteralMeds = failwith "Not implemented"
-            GetProducts = failwith "Not implemented"
-            GetDoseRules = failwith "Not implemented"
-            GetSolutionRules = failwith "Not implemented"
-            GetRenalRules = failwith "Not implemented"
-        }
-        |> Ok
+    /// A plain provider over an already-built ResourceState.
+    type ResourceProvider(state: ResourceState) =
+        interface IResourceProvider with
+            member _.GetUnitMappings() = state.Data.UnitMappings
+            member _.GetRouteMappings() = state.Data.RouteMappings
+            member _.GetValidForms() = state.Data.ValidForms
+            member _.GetFormRoutes() = state.Data.FormRoutes
+            member _.GetFormularyProducts() = state.Data.FormularyProducts
+            member _.GetReconstitution() = state.Reconstitution
+            member _.GetParenteralMeds() = state.ParenteralMeds
+            member _.GetEnteralFeeding() = state.EnteralFeeding
+            member _.GetProducts() = state.Products
+            member _.GetDoseRules() = state.DoseRules
+            member _.GetSolutionRules() = state.SolutionRules
+            member _.GetRenalRules() = state.RenalRules
+            member _.GetResourceInfo() = resourceInfo state
 
 
-    /// Create a cached resource provider with TTL
+    /// Create a cached resource provider with an optional TTL (in minutes).
     type CachedResourceProvider(loadAllResources: unit -> Result<ResourceState, Message list>, ttlMinutes: int option) =
         let mutable cachedState: (ResourceState * DateTime) option = None
         let lockObj = obj ()
@@ -288,14 +293,10 @@ module Resources =
                 // Return empty state on error and cache it to prevent retry on every request
                 let emptyState =
                     {
-                        UnitMappings = [||]
-                        RouteMappings = [||]
-                        ValidForms = [||]
-                        FormRoutes = [||]
-                        FormularyProducts = [||]
+                        Data = emptyData
                         Reconstitution = [||]
-                        EnteralFeeding = [||]
                         ParenteralMeds = [||]
+                        EnteralFeeding = [||]
                         Products = [||]
                         DoseRules = [||]
                         SolutionRules = [||]
@@ -326,11 +327,14 @@ module Resources =
                 )
 
         interface IResourceProvider with
-            member this.GetUnitMappings() = this.getFromCache _.UnitMappings
-            member this.GetRouteMappings() = this.getFromCache _.RouteMappings
-            member this.GetValidForms() = this.getFromCache _.ValidForms
-            member this.GetFormRoutes() = this.getFromCache _.FormRoutes
-            member this.GetFormularyProducts() = this.getFromCache _.FormularyProducts
+            member this.GetUnitMappings() = this.getFromCache _.Data.UnitMappings
+            member this.GetRouteMappings() = this.getFromCache _.Data.RouteMappings
+            member this.GetValidForms() = this.getFromCache _.Data.ValidForms
+            member this.GetFormRoutes() = this.getFromCache _.Data.FormRoutes
+
+            member this.GetFormularyProducts() =
+                this.getFromCache _.Data.FormularyProducts
+
             member this.GetReconstitution() = this.getFromCache _.Reconstitution
             member this.GetEnteralFeeding() = this.getFromCache _.EnteralFeeding
             member this.GetParenteralMeds() = this.getFromCache _.ParenteralMeds
@@ -338,27 +342,18 @@ module Resources =
             member this.GetDoseRules() = this.getFromCache _.DoseRules
             member this.GetSolutionRules() = this.getFromCache _.SolutionRules
             member this.GetRenalRules() = this.getFromCache _.RenalRules
-
-            member this.GetResourceInfo() =
-                this.getFromCache (fun s ->
-                    {
-                        Messages = s.Messages
-                        LastUpdated = s.LastReloaded
-                        IsLoaded = s.IsLoaded
-                    }
-                )
+            member this.GetResourceInfo() = this.getFromCache resourceInfo
 
 
 module Api =
 
-    open System
     open Informedica.Logging.Lib
 
     open Resources
 
 
-    let private logGenFormMessages (logger: Logger) provider =
-        (provider :> IResourceProvider).GetResourceInfo().Messages
+    let private logGenFormMessages (logger: Logger) (provider: IResourceProvider) =
+        provider.GetResourceInfo().Messages
         |> Array.iter (fun m ->
             match m with
             | Info _ -> Logging.logInfo logger m
@@ -367,10 +362,10 @@ module Api =
         )
 
 
-    let getCachedProviderWithDataUrlId (logger: Logger) dataUrlId =
+    let getCachedProviderWithDataUrlId (logger: Logger) dataUrlId : IResourceProvider =
         let provider = CachedResourceProvider((fun () -> loadAllResources dataUrlId), None)
 
-        provider |> logGenFormMessages logger
+        (provider :> IResourceProvider) |> logGenFormMessages logger
         provider
 
 
@@ -378,7 +373,7 @@ module Api =
         match provider with
         | :? CachedResourceProvider as cachedProvider ->
             cachedProvider.ReloadCache()
-            cachedProvider |> logGenFormMessages logger
+            (cachedProvider :> IResourceProvider) |> logGenFormMessages logger
         | _ -> failwith "Provider is not a CachedResourceProvider instance"
 
 
@@ -428,6 +423,4 @@ module Api =
         )
         |> Async.Parallel
         |> Async.RunSynchronously
-        |> Utils.GenFormResult.foldResults
-
-//PrescriptionRule.filter doseRules solutionRules renalRules routeMappings filter
+        |> Utils.Result.foldResults

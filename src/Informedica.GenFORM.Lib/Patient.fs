@@ -71,7 +71,7 @@ module PatientCategory =
             Location = None
             Department = None
             Gender = AnyGender
-            Age = MinMax.empty
+            Age = MinMax.empty |> AbsoluteAge
             Weight = MinMax.empty
             BSA = MinMax.empty
             GestAge = MinMax.empty
@@ -85,6 +85,17 @@ module PatientCategory =
             Department = p.Department
             Access = p.Access
         } = p
+
+
+    // NOTE: the `IsAdult` case returns an empty age range, which the age filter
+    // treats as "no age restriction". `IsAdult` is therefore not yet enforced in
+    // patient matching — it is gated at the extraction boundary (no `IsAdult="x"`
+    // row may reach GenFORM ingest) until a structured adult facet is added. See
+    // ADR-0021 and ADR-0003 (DoseRules `IsAdult` note).
+    let getAge (pat: PatientCategory) =
+        match pat.Age with
+        | AbsoluteAge a -> a
+        | IsAdult -> MinMax.empty
 
 
     /// <summary>
@@ -111,7 +122,7 @@ module PatientCategory =
                     | Some x -> x |> BigRational.ToInt32
             | None -> def
 
-        (pat.Age.Min |> toInt 0 |> (fun i -> if i > 0 then i + 300 else i))
+        ((pat |> getAge).Min |> toInt 0 |> (fun i -> if i > 0 then i + 300 else i))
         + (pat.GestAge.Min |> toInt (7 * 39))
         + (pat.PMAge.Min |> toInt (7 * 39))
         + (pat.Weight.Min |> toInt 0 |> (fun w -> w / 1000))
@@ -137,7 +148,7 @@ module PatientCategory =
              // if either filter department or patient category department is None, pass; otherwise must match
              fun (p: PatientCategory) -> filter.Patient.Department |> eqs p.Department
              // patient age must be within patient category age range (if specified)
-             fun (p: PatientCategory) -> filter.Patient.Age |> MinMax.inRange p.Age
+             fun (p: PatientCategory) -> filter.Patient.Age |> MinMax.inRange (p |> getAge)
              // patient weight must be within patient category weight range (if specified)
              fun (p: PatientCategory) -> filter.Patient.Weight |> MinMax.inRange p.Weight
              // if both weight and height are given, calculate BSA and check if within patient category BSA range
@@ -202,7 +213,7 @@ module PatientCategory =
         ([| patCat |],
          [|
              fun (p: PatientCategory) -> pat.Department |> eqs p.Department
-             fun (p: PatientCategory) -> pat.Age |> MinMax.inRange p.Age
+             fun (p: PatientCategory) -> pat.Age |> MinMax.inRange (p |> getAge)
              fun (p: PatientCategory) -> pat.Weight |> MinMax.inRange p.Weight
              fun (p: PatientCategory) ->
                  match pat.Weight, pat.Height with
@@ -262,7 +273,7 @@ module PatientCategory =
         ([| patCat2 |],
          [|
              fun (p: PatientCategory) -> patCat1.Department |> eqsOpt p.Department
-             fun (p: PatientCategory) -> p.Age |> inRange patCat1.Age
+             fun (p: PatientCategory) -> p |> getAge |> inRange (patCat1 |> getAge)
              fun (p: PatientCategory) -> p.GestAge |> inRange patCat1.GestAge
              fun (p: PatientCategory) -> p.PMAge |> inRange patCat1.PMAge
              fun (p: PatientCategory) -> p.Weight |> inRange patCat1.Weight
@@ -334,7 +345,7 @@ module PatientCategory =
 
         let gender = pat.Gender |> Gender.toString
 
-        let age = pat.Age |> printAgeMinMax
+        let age = pat |> getAge |> printAgeMinMax
 
         let neonate =
             let s =

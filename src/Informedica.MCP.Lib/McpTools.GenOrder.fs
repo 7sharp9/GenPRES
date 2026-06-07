@@ -186,10 +186,10 @@ module GenOrderTools =
         Formulary.getDoseRules provider filter
         |> Array.map (fun dr ->
             {|
-                Generic = dr.Generic
+                Generic = dr.Generic |> Generic.toString
                 Indication = dr.Indication
                 Route = dr.Route
-                Form = dr.Form
+                Form = dr.Generic.Form |> PharmaceuticalForm.toString
                 DoseType = dr.DoseType |> sprintf "%A"
                 ComponentCount = dr.ComponentLimits |> Array.length
             |}

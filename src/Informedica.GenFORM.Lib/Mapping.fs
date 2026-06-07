@@ -26,27 +26,29 @@ module Mapping =
         let formRouteSheet = "FormRoute"
 
 
-    let getData dataUrlId sheet f =
+    let parseSheet apply (data: string[][]) =
         try
-            Web.getDataFromSheet dataUrlId sheet
-            |> fun data ->
-                match data |> Array.tryHead with
-                | None -> [ ("Sheet is empty or not found", None) |> ErrorMsg ] |> Error
-                | Some h ->
-                    let getStringColumn = Csv.getStringColumn h
-                    let getFloatOptColumn = Csv.getFloatOptionColumn h
+            match data |> Array.tryHead with
+            | None -> [ ("Sheet is empty or not found", None) |> ErrorMsg ] |> Error
+            | Some h ->
+                let getStringColumn = Csv.getStringColumn h
+                let getFloatOptColumn = Csv.getFloatOptionColumn h
 
-                    data
-                    |> Array.tail
-                    |> Array.map (fun r ->
-                        let getString = getStringColumn r
-                        let getFloat = getFloatOptColumn r
+                data
+                |> Array.tail
+                |> Array.map (fun r ->
+                    let getString = getStringColumn r
+                    let getFloat = getFloatOptColumn r
 
-                        f getString getFloat
-                    )
-                    |> Ok
+                    apply getString getFloat
+                )
+                |> Ok
         with exn ->
-            GenFormResult.createError "getData" exn
+            Result.createError "getData" exn
+
+
+    let getData dataUrlId sheet apply =
+        Web.getDataFromSheet dataUrlId sheet |> parseSheet apply
 
 
     let getRouteMapping dataUrlId =
@@ -56,7 +58,7 @@ module Mapping =
                 Short = get "ShortDutch"
             }
         |> getData dataUrlId Constants.routesSheet
-        |> GenFormResult.mapErrorSource "getRouteMapping"
+        |> Result.mapErrorSource "getRouteMapping"
 
 
     let getUnitMapping dataUrlId =
@@ -68,7 +70,7 @@ module Mapping =
                 Group = get "Group"
             }
         |> getData dataUrlId Constants.unitsSheet
-        |> GenFormResult.mapErrorSource "getUnitMapping"
+        |> Result.mapErrorSource "getUnitMapping"
 
 
     let mapUnit (mapping: UnitMapping array) s =
@@ -160,7 +162,7 @@ module Mapping =
                 IsSolution = getStr "IsSolution" |> String.equalsCapInsens "true"
             }
         |> getData dataUrlId Constants.formRouteSheet
-        |> GenFormResult.mapErrorSource "getFormRoutes"
+        |> Result.mapErrorSource "getFormRoutes"
 
 
     let filterFormRoutes routeMapping (mapping: FormRoute[]) rte form unt =
@@ -195,4 +197,4 @@ module Mapping =
     let getValidForms dataUrlId =
         fun get _ -> get "Form"
         |> getData dataUrlId Constants.validFormsSheet
-        |> GenFormResult.mapErrorSource "getValidFormResult"
+        |> Result.mapErrorSource "getValidFormResult"

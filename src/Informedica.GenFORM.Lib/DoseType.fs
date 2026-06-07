@@ -42,22 +42,32 @@ module DoseType =
         | _ -> false
 
 
-    /// Get a dose type from a string.
-    let fromString doseType doseText =
+    /// Parse a dose type from a string. Pure: returns the DoseType together with
+    /// an optional warning message (Some when the type is non-empty but unknown).
+    /// No console IO, so callers can surface the warning as data.
+    let parse doseType doseText =
         let doseType = doseType |> String.toLower |> String.trim
         let withText c = doseText |> c
 
         match doseType with
-        | "once" -> Once |> withText
-        | "oncetimed" -> OnceTimed |> withText
-        | "timed" -> Timed |> withText
-        | "discontinuous" -> Discontinuous |> withText
-        | "continuous" -> Continuous |> withText
+        | "once" -> Once |> withText, None
+        | "oncetimed" -> OnceTimed |> withText, None
+        | "timed" -> Timed |> withText, None
+        | "discontinuous" -> Discontinuous |> withText, None
+        | "continuous" -> Continuous |> withText, None
         | _ ->
-            if doseType |> String.notEmpty then
-                $"{doseType} is not a valid dose type!" |> writeWarningMessage
+            let warn =
+                if doseType |> String.notEmpty then
+                    Some $"{doseType} is not a valid dose type!"
+                else
+                    None
 
-            NoDoseType
+            NoDoseType, warn
+
+
+    /// Get a dose type from a string. Pure wrapper over <c>parse</c> that
+    /// discards the warning.
+    let fromString doseType doseText = parse doseType doseText |> fst
 
 
     let toString doseType =
@@ -68,7 +78,7 @@ module DoseType =
         | Discontinuous s -> "discontinuous", s
         | Continuous s -> "continuous", s
         | NoDoseType -> "", ""
-        |> fun (s1, s2) -> if String.isNullOrWhiteSpace (s2) then s1 else $"{s1} {s2}"
+        |> fun (s1, s2) -> if String.isNullOrWhiteSpace s2 then s1 else $"{s1} {s2}"
 
 
     /// Get a string representation of a dose type.
