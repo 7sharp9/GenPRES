@@ -11,6 +11,19 @@ module Tests =
     open System.Threading
 
 
+    // The property tests below post to MailboxProcessor agents (whose Receive
+    // loops run on thread-pool threads) while blocking-waiting on the calling
+    // (test) thread. On low-core CI runners the default minimum thread count
+    // equals the core count, so the pool injects extra threads only every
+    // ~500ms; a burst of blocking waits then starves the agents and the 5s
+    // waits expire (observed only on windows-latest). Raise the worker-thread
+    // floor so the agents are always schedulable. Runs at module init, which
+    // also covers the `dotnet test` adapter path (Main.fs is bypassed there).
+    do
+        let workers, io = ThreadPool.GetMinThreads()
+        ThreadPool.SetMinThreads(max workers 64, io) |> ignore
+
+
     // Test message types
     type TestMessage =
         | SimpleMessage of string
@@ -400,7 +413,7 @@ module Tests =
                             messages |> List.iter agent.Post
 
                             // Wait until every posted message has been processed.
-                            waitUntil 5000 (fun () -> List.length receivedMessages = List.length messages)
+                            waitUntil 30000 (fun () -> List.length receivedMessages = List.length messages)
                             |> ignore
 
                             let result = List.rev receivedMessages = messages
@@ -427,7 +440,7 @@ module Tests =
                             let expectedSum = List.sum operations
 
                             // Wait until the accumulated state reaches the expected sum.
-                            waitUntil 5000 (fun () -> finalState = Some expectedSum)
+                            waitUntil 30000 (fun () -> finalState = Some expectedSum)
                             |> ignore
 
                             let result = finalState = Some expectedSum
