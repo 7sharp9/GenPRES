@@ -300,14 +300,34 @@ Sample data:
 
 #### Dose Rule: Basic Identification (Selection Constraints)
 
-- `Source` - Data source identifier (e.g., "NKF", "FK")
+- `Id` - Unique dose rule identifier (opaque to consumers; GenFORM `DoseRule.Id`)
+- `GrpId` - Rule-group identifier shared by every rule belonging to the same
+  clinical context (Source, Generic, Form, Brand, Route, Indication, Patient
+  Category); rules in one group differ only in dose type/schedule. GenFORM
+  `DoseRule.GroupId`
+- `SortNo` - Ordinal rank within a rule group, for stable presentation order
+  (GenFORM `DoseRule.SortNo`)
+- `Source` - Data source identifier (e.g., "NKF", "FK"). Parsed into the GenFORM
+  `Source` DU (`Identified`/`Other`)
 - `Indication` - Clinical indication for the medication
-- `Generic` - Generic medication name
+- `Generic` - Generic (base) substance name. Combined at ingest with `Form` /
+  `Brand` into the GenFORM `Generic` record (`GenericLabel`): brand takes
+  precedence over form when both are present. The **base** name (without the
+  form/brand qualifier) is what external sources such as the G-Standaard are
+  keyed on for dose checking
 - `Form` - Pharmaceutical form (Form in GenFORM terminology)
 - `Brand` - Brand name (optional)
 - `Route` - Administration route
-- `GPKs` - Generic Product Codes (semicolon-separated list)
+- `GPKs` - Generic Product Codes (semicolon-separated list); narrows the attached
+  product components
+- `HPKs` - Trade/prescription product codes (HPK; semicolon-separated). Narrows
+  the attached trade products (takes precedence over `GPKs`/`Brand`/`Form`)
+- `SourceText` - Original source text before structured decomposition (GenFORM
+  `DoseRule.SourceText`)
+- `PatientText` - Original free-text description of the patient category (GenFORM
+  `DoseRule.PatientText`)
 - `ScheduleText` - Dosing schedule description (Source.Text in GenFORM)
+- `CmpBased` - Component-based flag for combination products
 - `Component` - Component name for combination products
 - `Substance` - Active substance name
 
@@ -877,3 +897,57 @@ This change supports MDR compliance by:
 - Discrepancies analysis document updated (`docs/discrepancies-analysis.md`)
 - Shape → Form migration marked as complete in appendix
 - Documentation recommendations updated to reflect completed migration
+
+## Design History: GenFORM v2 Domain-Model Rewrite
+
+### Date: June 7, 2026
+
+### Change Description
+
+Migrated the GenFORM.Lib v2 domain-model rewrite into source. The change is a
+type-model rewrite, not a sheet-schema rewrite — most spreadsheet columns are
+unchanged. The schema-relevant points are recorded here for traceability.
+
+### Spreadsheet schema impact
+
+**DoseRules sheet** (Section 9) gained columns now parsed by
+`DoseRuleData`/`DoseRule.getData`:
+
+- `Id`, `GrpId`, `SortNo` — rule provenance / grouping / ordering.
+- `SourceText`, `PatientText` — original free text behind the structured row.
+- `HPKs` — trade-product (HPK) narrowing, alongside the existing `GPKs`.
+- `CmpBased` — component-based flag for combination products.
+
+`Generic` + `Form` + `Brand` are combined at ingest into the GenFORM `Generic`
+record (`GenericLabel` = `Shorthand` / `Canonical` / `GenericForm` /
+`GenericBrand`), with brand taking precedence over form when both restrict.
+
+**Formulary sheet** (Section 8) is unchanged. The existing `GStand` column now
+maps to `FormularyProduct.GStandName` (the `UseForm` / `UseBrand` columns are
+still read by the sheet contract but are no longer surfaced as type fields).
+
+### G-Standaard dose-check semantics (safety-relevant)
+
+Dose checking (`Check.fs` → `GStand.createDoseRules`) and solution/renal rule
+matching key on the **base** generic substance name, not the display label. A
+branded rule such as `GenericBrand("glycopyrronium", "Sialanar")` resolves to
+`"glycopyrronium"` for these lookups (via `Generic.genericName`), while the full
+label (`"glycopyrronium (Sialanar)"`) is retained for selection and display.
+Regression test: `GenericLabel name vs label` in
+`tests/Informedica.GenFORM.Tests`.
+
+### Type-model changes (no sheet impact)
+
+- `Product` → `ProductComponent` (adds `TradeProducts`; drops
+  `UseGenericName`/`UseForm`/`UseBrand`/flat `Product`).
+- `DoseRule` adds `Id`/`DataId`/`GroupId`/`SortNo`/`SourceText`/`PatientText`;
+  `Generic` is a record, `Source` a DU, `RenalRule` → `RenalRuleSource`.
+- `PatientCategory.Age`: `MinMax` → `Age` DU (`AbsoluteAge` / `IsAdult`).
+- `ComponentLimit.GPKs` → `ProductIds: ProductId[]`.
+
+### Verification
+
+- `dotnet build GenPRES.sln` clean across the solution.
+- `dotnet run servertests` green (GenFORM, GenORDER, Server, GenSOLVER, …); the
+  one unrelated red is `ZIndex.Tests` requiring the proprietary
+  `data/zindex/BST052T` file absent from the checkout.
