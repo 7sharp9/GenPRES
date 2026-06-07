@@ -127,9 +127,9 @@ module DoseRuleData =
                 d.Generic.Name
                 d.Generic.Form
                 d.Generic.Brand
+                d.Route
                 d.Generic.GPKs |> String.concat ";"
                 d.Generic.HPKs |> String.concat ";"
-                d.Route
                 d.Indication
                 d.SourceText
                 d.PatientText

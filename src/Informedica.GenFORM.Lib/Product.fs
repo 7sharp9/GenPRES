@@ -795,7 +795,17 @@ module Product =
             |> Array.filter (_.TradeProducts >> List.isEmpty >> not)
             |> Array.map (fun p ->
                 let substs = p.TradeProducts |> List.collect _.Substances
-                { p with Substances = p.Substances |> Array.filter (fun s -> substs |> List.exists ((=) s)) }
+                // Match by substance name only: the generic-product substances and
+                // the trade-product substances are separate ZIndex records, so a
+                // concentration/unit/BigRational rounding difference would make
+                // structural (=) drop a substance that is in fact the same one.
+                { p with
+                    Substances =
+                        p.Substances
+                        |> Array.filter (fun s ->
+                            substs |> List.exists (fun ts -> ts.Name |> String.equalsCapInsens s.Name)
+                        )
+                }
             )
 
 
