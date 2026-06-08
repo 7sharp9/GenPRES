@@ -13,7 +13,7 @@ module FilePath =
 
     /// Find the data directory by searching up from the given starting directory
     /// The data directory must contain a 'zindex' subfolder to be valid
-    let private findDataDir startDir =
+    let findDataDir startDir =
         let rec search dir =
             if String.IsNullOrEmpty(dir) then
                 None
@@ -35,7 +35,7 @@ module FilePath =
 
 
     /// Get the base data path, searching from current directory or assembly location
-    let private getDataPath () =
+    let getDataPath () =
         // First try current directory (for production scenarios)
         match findDataDir Environment.CurrentDirectory with
         | Some p -> p
