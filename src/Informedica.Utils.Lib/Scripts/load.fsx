@@ -30,6 +30,7 @@
 #load "../Web.fs"
 #load "../Env.fs"
 #load "../App.fs"
+#load "../AppPath.fs"
 #load "../Console.fs"
 #load "../ConsoleTables.fs"
 #load "../StopWatch.fs"

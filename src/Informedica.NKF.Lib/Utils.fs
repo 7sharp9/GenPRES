@@ -37,8 +37,8 @@ module Utils =
 
         open System.IO
 
-        [<Literal>]
-        let cachePath = "pediatric.cache"
+        let cachePath =
+            Path.Combine(Informedica.Utils.Lib.AppPath.cacheDir (), "pediatric.cache")
 
         (*
         *)

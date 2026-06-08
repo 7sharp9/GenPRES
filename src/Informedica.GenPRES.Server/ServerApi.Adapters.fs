@@ -9,7 +9,7 @@ module Adapters =
     let private interactionJsonCache =
         lazy
             (let path =
-                System.IO.Path.Combine(Logging.getServerDataPath (), "data", "cache", "interactions", "Data.JSON")
+                System.IO.Path.Combine(Informedica.Utils.Lib.AppPath.interactionsDir (), "Data.JSON")
                 |> System.IO.Path.GetFullPath
 
              if System.IO.File.Exists(path) then

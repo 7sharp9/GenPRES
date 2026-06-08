@@ -48,6 +48,8 @@
 !/data/
 !/data/cache/
 !/data/cache/*.demo
+!/data/cache/interactions/
+!/data/cache/interactions/*.JSON
 !/data/zindex/
 
 # Informedica.Utils.Lib
@@ -94,11 +96,6 @@
 !/src/Informedica.GenPRES.Shared/
 # Informedica.GenPRES.Server
 !/src/Informedica.GenPRES.Server/
-!/src/Informedica.GenPRES.Server/data
-!/src/Informedica.GenPRES.Server/data/cache
-!/src/Informedica.GenPRES.Server/data/cache/*.demo
-!/src/Informedica.GenPRES.Server/data/cache/interactions/
-!/src/Informedica.GenPRES.Server/data/cache/interactions/*.JSON
 # Informedica.GenPRES.Client
 !/src/Informedica.GenPRES.Client/
 !/src/Informedica.GenPRES.Client/public/
