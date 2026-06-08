@@ -34,7 +34,12 @@ module FilePath =
 
 
     /// Get the base data path (internal for testing)
-    /// Parameters allow injecting different directory sources for testing
+    /// Parameters allow injecting different directory sources for testing.
+    /// NOTE: this helper is retained only for the existing FilePath unit tests
+    /// (it is no longer used at runtime — runtime paths go through AppPath). Its
+    /// relative "./data" fallback is intentionally left unchanged to preserve the
+    /// existing test contract and must not be "unified" with AppPath's
+    /// CurrentDirectory fallback without updating those tests.
     let getDataPathInternal currentDir assemblyPath =
         match findDataDir currentDir with
         | Some p -> p

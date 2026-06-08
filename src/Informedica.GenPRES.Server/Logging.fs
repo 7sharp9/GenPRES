@@ -38,16 +38,8 @@ module ServerLogging =
 let MAX_LOG_FILES = 10_000
 
 
-/// The server's root directory — the directory that contains the shared
-/// `data/` folder — resolved by the unified AppPath resolver.
-let getServerDataPath () = AppPath.rootPath ()
-
-
 let getRecommendedLogPath (componentName: string option) =
-    let serverRoot = getServerDataPath ()
-
-    // Use Server's data directory structure
-    let logDir = Path.Combine(serverRoot, "data", "logs")
+    let logDir = AppPath.logsDir ()
     Directory.CreateDirectory(logDir) |> ignore
 
     let componentName = componentName |> Option.defaultValue "general"
@@ -64,7 +56,7 @@ let getDirAgent (path: string) =
     let dir =
         match Path.GetDirectoryName path with
         | null
-        | "" -> getServerDataPath ()
+        | "" -> AppPath.rootPath ()
         | d -> d
 
     agent |> FileDirectoryAgent.setPolicyWithPattern dir MAX_LOG_FILES "*.log"
