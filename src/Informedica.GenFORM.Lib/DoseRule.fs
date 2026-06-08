@@ -1168,7 +1168,7 @@ module DoseRule =
                         |> Array.toList
 
                     let substs = if substs |> List.isEmpty then [ cl.Name ] else substs
-                    { dr with Generic = { dr.Generic with Label = GenericLabel.fromCanonical substs } }
+                    { dr with DoseRule.Generic.Label = GenericLabel.fromCanonical substs }
                 | _ -> dr
             | _ -> dr
 
