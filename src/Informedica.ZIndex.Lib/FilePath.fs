@@ -5,7 +5,6 @@ module FilePath =
 
     open System
     open System.IO
-    open System.Reflection
 
     open Informedica.Utils.Lib
     open Informedica.Utils.Lib.ConsoleWriter.NewLineNoTime
@@ -34,29 +33,6 @@ module FilePath =
     let findDataDirInternal startDir = findDataDir startDir
 
 
-    /// Get the base data path, searching from current directory or assembly location
-    let private getDataPath () =
-        // First try current directory (for production scenarios)
-        match findDataDir Environment.CurrentDirectory with
-        | Some p -> p
-        | None ->
-            // Fall back to assembly location (for dotnet test scenarios)
-            let assemblyPath =
-                try
-                    let location = Assembly.GetExecutingAssembly().Location
-
-                    if not (String.IsNullOrEmpty(location)) then
-                        Path.GetDirectoryName(location)
-                    else
-                        ""
-                with _ ->
-                    ""
-
-            match findDataDir assemblyPath with
-            | Some p -> p
-            | None -> "./data" // Last resort fallback
-
-
     /// Get the base data path (internal for testing)
     /// Parameters allow injecting different directory sources for testing
     let getDataPathInternal currentDir assemblyPath =
@@ -68,7 +44,8 @@ module FilePath =
             | None -> "./data"
 
 
-    let data = getDataPath () + "/"
+    // The base data directory, resolved by the unified AppPath resolver.
+    let data = AppPath.dataDir () + "/"
 
     let GStandPath = data + "zindex/"
 

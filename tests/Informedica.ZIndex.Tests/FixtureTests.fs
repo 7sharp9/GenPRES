@@ -10,29 +10,7 @@ open System.IO
 [<AutoOpen>]
 module FixtureSetup =
 
-    let private findRepoRoot () =
-        let assemblyDir =
-            System.Reflection.Assembly.GetExecutingAssembly().Location
-            |> Path.GetDirectoryName
-
-        let rec walk (dir: string) =
-            let zindexDir = Path.Combine(dir, "data/zindex")
-
-            if Directory.Exists(zindexDir) then
-                dir
-            else
-                let parent = Directory.GetParent(dir)
-
-                if parent = null then
-                    failwith "Could not find repo root (data/zindex directory)"
-                else
-                    walk parent.FullName
-
-        walk assemblyDir
-
-    let fixtureZindexDir =
-        let repoRoot = findRepoRoot ()
-        Path.Combine(repoRoot, "data/zindex")
+    let fixtureZindexDir = Informedica.Utils.Lib.AppPath.zindexDir ()
 
     // Run fixture setup at module initialization time (before any test runs).
     // Pre-existing BST files are backed up and restored via ProcessExit handler.

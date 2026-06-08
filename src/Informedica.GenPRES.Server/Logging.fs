@@ -1,7 +1,6 @@
 module Logging
 
 open System
-open System.Reflection
 open System.IO
 
 open IcedTasks.Polyfill.Async
@@ -39,47 +38,9 @@ module ServerLogging =
 let MAX_LOG_FILES = 10_000
 
 
-let getAssemblyPath () =
-    let assembly = Assembly.GetExecutingAssembly()
-    let location = assembly.Location
-    Path.GetDirectoryName(location)
-
-
-let getServerDataPath () =
-    let assemblyPath = getAssemblyPath ()
-
-    let currentDir =
-        if assemblyPath |> String.isNullOrWhiteSpace then
-            Environment.CurrentDirectory
-        else
-            assemblyPath
-
-    // Navigate up from assembly location to find server root directory
-    let rec findServerRoot dir =
-        // First priority: Check for a development scenario (Server.fs exists)
-        if File.Exists(Path.Combine(dir, "Server.fs")) then
-            dir
-        // Second priority: Check if we're in a typical development structure with data folder and Server.fs
-        elif
-            Directory.Exists(Path.Combine(dir, "data"))
-            && File.Exists(Path.Combine(dir, "Server.fs"))
-        then
-            dir
-        else
-            let parent = Directory.GetParent(dir)
-
-            if parent <> null then
-                findServerRoot parent.FullName
-            else if
-                // Last resort: Check for a production scenario (Server.dll exists, but no Server.fs)
-                File.Exists(Path.Combine(currentDir, "Server.dll"))
-                && not (File.Exists(Path.Combine(currentDir, "Server.fs")))
-            then
-                currentDir
-            else
-                Environment.CurrentDirectory // Final fallback
-
-    findServerRoot currentDir
+/// The server's root directory — the directory that contains the shared
+/// `data/` folder — resolved by the unified AppPath resolver.
+let getServerDataPath () = AppPath.rootPath ()
 
 
 let getRecommendedLogPath (componentName: string option) =
