@@ -34,24 +34,23 @@ module Check =
         | UnitMismatch // kg vs m2 — cannot compare
         | NotComparable // missing dose type / both ranges empty
         | FrequencyMismatch // entered frequency not in the rule (IR 4.5.2)
+        | NoMonitoring // no G-Standaard rule exists for the selection (info only)
 
 
-    /// Scalar IR 4.6.2 flow: absolute max is only decisive once norm max is
-    /// exceeded, and the two carry different severity.
+    /// Scalar IR 4.6.2 flow. The absolute max is the hard ceiling and is checked
+    /// first, so a breach is caught even when no norm max is present (norm <= abs
+    /// in valid G-Standaard data, so this matches the IR "norm exceeded then abs"
+    /// flow while also being safe when normMax = None).
     let classify (dose: BigRational) normMax absMax normMin : Severity =
-        let overNorm =
+        match absMax with
+        | Some a when dose > a -> OverAbsolute
+        | _ ->
             match normMax with
-            | Some n -> dose > n
-            | None -> false
-
-        if overNorm then
-            match absMax with
-            | Some a when dose > a -> OverAbsolute
-            | _ -> AdvisoryOverNorm
-        else
-            match normMin with
-            | Some n when dose < n -> UnderNorm
-            | _ -> Within
+            | Some n when dose > n -> AdvisoryOverNorm
+            | _ ->
+                match normMin with
+                | Some n when dose < n -> UnderNorm
+                | _ -> Within
 
 
     /// IR 4.6.1 limit-selection priority: m2 (BSA) -> per kg -> absolute. Prefer
@@ -369,6 +368,10 @@ module Check =
                                     |> List.distinct
                             }
                     Rules = rest |> List.collect _.Rules |> List.append dosage.Rules
+                    // OR the GPRISC high-risk flag across all merged dosages: if any
+                    // overlapping patient-band dosage is narrow-TI, the merged result
+                    // must stay high risk so marginedTestRange suppresses the margin.
+                    HighRisk = dosage.HighRisk || (rest |> List.exists _.HighRisk)
                 }
                 |> Some
 
@@ -657,11 +660,15 @@ module Check =
                     let nb, nmsg = inRangeOf msg normRef test
                     let ab, amsg = inRangeOf msg absRef test
 
+                    // The absolute ceiling breach is checked first so that even
+                    // inconsistent G-Standaard data (normRef.Max > absRef.Max) can
+                    // never silently downgrade an over-absolute dose to Within.
+                    // For valid data (norm ⊆ abs) this is equivalent to norm-first.
                     match nb, ab with
                     | None, None -> None, ""
+                    | _, Some false -> Some OverAbsolute, amsg
                     | Some true, _ -> Some Within, nmsg
                     | None, Some true -> Some Within, amsg
-                    | _, Some false -> Some OverAbsolute, amsg
                     | Some false, _ -> Some AdvisoryOverNorm, nmsg
 
                 // Adjust-unit-gated grade: only compares ranges whose adjust unit

@@ -1889,6 +1889,9 @@ module Tests =
                     }
             }
 
+        let private mkRiskDosage highRisk : Informedica.ZForm.Lib.Types.Dosage =
+            { mkDosage 1N 1N with HighRisk = highRisk }
+
         let tests =
             testList
                 "Check IR-doseringscontrole fixes"
@@ -1926,6 +1929,12 @@ module Tests =
 
                         Check.classify 1N (Some 10N) (Some 20N) (Some 2N)
                         |> Expect.equal "under" Check.UnderNorm
+                    }
+
+                    test "MEDIUM-2 classify catches absolute breach when normMax is None" {
+                        // Hard ceiling must dominate even without a norm max.
+                        Check.classify 25N None (Some 20N) None
+                        |> Expect.equal "over absolute" Check.OverAbsolute
                     }
 
                     test "HIGH-1 marginedTestRange is risk-aware and one-sided" {
@@ -1991,6 +2000,15 @@ module Tests =
                         Check.pickAdjust (single.AbsWeight |> fst) (single.AbsBSA |> fst) convKg convM2
                         |> maxVal
                         |> Expect.equal "picks m2 abs" (Some [| 100.0 |])
+                    }
+
+                    test "HIGH-1 maximizeDosages ORs HighRisk across merged dosages" {
+                        // First dosage not high risk, a later one is: the merge must
+                        // stay high risk so the margin is suppressed (HIGH-1 safety).
+                        [ mkRiskDosage false; mkRiskDosage true ]
+                        |> Check.maximizeDosages
+                        |> Option.map _.HighRisk
+                        |> Expect.equal "merged stays high risk" (Some true)
                     }
                 ]
 

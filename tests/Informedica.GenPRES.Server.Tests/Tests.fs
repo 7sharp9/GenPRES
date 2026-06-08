@@ -692,7 +692,7 @@ module DoseCheckTests =
                 }
 
                 test "only 'geen doseer bewaking' sentinel → Caution (blue info)" {
-                    let sentinel = Check.NotComparable, "geen doseer bewaking gevonden voor paracetamol"
+                    let sentinel = Check.NoMonitoring, "geen doseer bewaking gevonden voor paracetamol"
 
                     let result = [| sentinel |] |> DoseCheck.build parseTextItem true
 
@@ -704,8 +704,8 @@ module DoseCheckTests =
                 test "multiple 'geen doseer bewaking' sentinels → all Caution" {
                     let lines =
                         [|
-                            Check.NotComparable, "geen doseer bewaking gevonden voor aciclovir"
-                            Check.NotComparable, "geen doseer bewaking gevonden voor paracetamol"
+                            Check.NoMonitoring, "geen doseer bewaking gevonden voor aciclovir"
+                            Check.NoMonitoring, "geen doseer bewaking gevonden voor paracetamol"
                         |]
 
                     let result = lines |> DoseCheck.build parseTextItem false
@@ -785,7 +785,7 @@ module DoseCheckTests =
                 }
 
                 test "violation alongside sentinel → sentinel dropped" {
-                    let sentinel = Check.NotComparable, "geen doseer bewaking gevonden voor paracetamol"
+                    let sentinel = Check.NoMonitoring, "geen doseer bewaking gevonden voor paracetamol"
 
                     let breach =
                         sigOf Check.OverAbsolute "paracetamol" "oraal" "0-1 jaar" "keer dosering niet in bereik"
@@ -803,16 +803,6 @@ module DoseCheckTests =
 
                     DoseCheck.isFrequency freqLine |> Expect.isTrue "frequency"
                     DoseCheck.isFrequency doseLine |> Expect.isFalse "not frequency"
-                }
-
-                test "isNoMonitoring matches the sentinel by substring" {
-                    "geen doseer bewaking gevonden voor paracetamol"
-                    |> DoseCheck.isNoMonitoring
-                    |> Expect.isTrue "sentinel"
-
-                    "frequenties 4 x per dag niet gelijk aan 6 x per dag"
-                    |> DoseCheck.isNoMonitoring
-                    |> Expect.isFalse "not sentinel"
                 }
             ]
 

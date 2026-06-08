@@ -47,13 +47,6 @@ module FormularyService =
             | [| _; _; _; msg |] -> msg.Contains "frequenties"
             | _ -> false
 
-        /// True for the "no monitoring data" sentinel emitted when no rules
-        /// match and no violations are reported. These lines have no tab
-        /// separators, so the severity classifier must detect them by
-        /// substring and treat them as non-violations.
-        let isNoMonitoring (s: string) =
-            s.Contains "geen doseer bewaking gevonden"
-
         /// Format a raw check line for display. `singleRule` drops the
         /// patient-category field when only one dose rule is in scope.
         let formatLine (singleRule: bool) (s: string) =
@@ -69,7 +62,7 @@ module FormularyService =
         /// case. This is what gives the UI its advisory-vs-absolute grading:
         ///   - OverAbsolute                         → red (Alert)
         ///   - AdvisoryOverNorm/UnderNorm/Frequency → orange (Warning)
-        ///   - UnitMismatch/NotComparable           → blue (Caution)
+        ///   - UnitMismatch/NotComparable/NoMonitor → blue (Caution)
         ///   - Within                               → green (Valid)
         let severityWrap (sev: Check.Severity) : TextItem[] -> TextBlock =
             match sev with
@@ -79,7 +72,8 @@ module FormularyService =
             | Check.UnderNorm
             | Check.FrequencyMismatch -> Warning
             | Check.UnitMismatch
-            | Check.NotComparable -> Caution
+            | Check.NotComparable
+            | Check.NoMonitoring -> Caution
 
         /// Build the colored TextBlock[] for the Formulary's DoseCheck field from
         /// the graded dose-check signals.
@@ -90,7 +84,7 @@ module FormularyService =
         ///   - otherwise              → one block per signal, colored by its
         ///                              Severity (advisory = orange, absolute =
         ///                              red, etc.)
-        /// "no monitoring" sentinels are dropped once real violations exist so a
+        /// `NoMonitoring` sentinels are dropped once real violations exist so a
         /// non-violation isn't painted as a violation.
         let build
             (parseTextItem: string -> TextItem[])
@@ -98,15 +92,13 @@ module FormularyService =
             (signals: (Check.Severity * string)[])
             : TextBlock[]
             =
-            let violations = signals |> Array.filter (snd >> isNoMonitoring >> not)
+            // Sentinel identity is carried by the Severity, not the message text.
+            let violations = signals |> Array.filter (fst >> (<>) Check.NoMonitoring)
 
-            // "no monitoring" only: signals is non-empty but consists solely of
-            // sentinel lines. Distinct from the pure pass-through (signals = [||])
-            // which keeps the green "Ok!" badge.
-            let allNoMonitoring =
-                violations |> Array.isEmpty
-                && signals |> Array.isEmpty |> not
-                && signals |> Array.forall (snd >> isNoMonitoring)
+            // "no monitoring" only: signals is non-empty but every signal is a
+            // NoMonitoring sentinel. Distinct from the pure pass-through
+            // (signals = [||]) which keeps the green "Ok!" badge.
+            let allNoMonitoring = violations |> Array.isEmpty && signals |> Array.isEmpty |> not
 
             if signals |> Array.isEmpty then
                 [| "Ok!" |> parseTextItem |> Valid |]
@@ -138,7 +130,7 @@ module FormularyService =
             | [||] ->
                 [|
                     for e in empt do
-                        Check.NotComparable,
+                        Check.NoMonitoring,
                         $"geen doseer bewaking gevonden voor {e.doseRule.Generic |> Generic.toString}"
                 |]
                 |> Array.distinct
