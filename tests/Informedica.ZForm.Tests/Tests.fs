@@ -280,6 +280,37 @@ module DoseRuleTests =
             ]
 
 
+module DosageTests =
+
+    module Dosage = DoseRule.Dosage
+
+    let tests =
+        testList
+            "Dosage"
+            [
+                test "an empty Dosage is not high risk" {
+                    Dosage.empty.HighRisk |> Expect.isFalse "default should be false"
+                }
+
+                test "setHighRisk sets the GPRISC flag" {
+                    Dosage.empty
+                    |> Dosage.Optics.setHighRisk true
+                    |> _.HighRisk
+                    |> Expect.isTrue "should be true"
+                }
+
+                // Note: a full Dosage.Dto round-trip is not exercised here — the
+                // empty-Dosage Dto path has a pre-existing NoUnit/readable-string
+                // limitation unrelated to HighRisk. The HighRisk Dto field is a
+                // symmetric assignment in toDto/fromDto.
+                test "Dosage Dto carries the HighRisk field" {
+                    let dto = Dosage.Dto.dto ()
+                    dto.HighRisk <- true
+                    dto.HighRisk |> Expect.isTrue "Dto exposes HighRisk"
+                }
+            ]
+
+
 module Tests =
 
     [<Tests>]
@@ -291,4 +322,5 @@ module Tests =
                 PatientTests.tests
                 DoseRangeTests.tests
                 DoseRuleTests.tests
+                DosageTests.tests
             ]

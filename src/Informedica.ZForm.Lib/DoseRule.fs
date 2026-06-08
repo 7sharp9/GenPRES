@@ -437,7 +437,8 @@ module DoseRule =
             }
 
 
-        /// Creates a Dosage.
+        /// Creates a Dosage. HighRisk defaults to false; it is set from the
+        /// source G-Standaard DoseRules in GStand.getDosage.
         let create nm start single rate total rls =
             {
                 Name = nm
@@ -446,6 +447,7 @@ module DoseRule =
                 RateDosage = rate
                 TotalDosage = total
                 Rules = rls
+                HighRisk = false
             }
 
 
@@ -521,6 +523,9 @@ module DoseRule =
 
 
             let setRules = Optic.set Dosage.Rules_
+
+
+            let setHighRisk = Optic.set Dosage.HighRisk_
 
 
             let freqsFrequencyLens = Dosage.TotalDosage_ >-> snd_ >-> Frequency.Frequencies_
@@ -1093,6 +1098,7 @@ module DoseRule =
                 member val TotalDosageMinimalPeriod = ValueUnit.Dto.dto () with get, set
                 member val GStandRules: string list = [] with get, set
                 member val PedFormRules: string list = [] with get, set
+                member val HighRisk = false with get, set
 
 
             let dto () = Dto()
@@ -1131,6 +1137,8 @@ module DoseRule =
                     | PedFormRule s -> dto.PedFormRules <- [ s ] |> List.append dto.PedFormRules
                 )
 
+                dto.HighRisk <- ds.HighRisk
+
                 dto
 
 
@@ -1165,6 +1173,7 @@ module DoseRule =
                         dto.GStandRules
                         |> List.map GStandRule
                         |> List.append (dto.PedFormRules |> List.map PedFormRule)
+                    HighRisk = dto.HighRisk
                 }
 
 

@@ -1844,6 +1844,175 @@ module Tests =
                 ]
 
 
+    /// IR Doseringscontrole V-5-0-1 conformance fixes (see code review
+    /// docs/code-reviews/genform-check-vs-ir-doseringscontrole-v5-0-1.md).
+    module CheckTests =
+
+        open Informedica.Utils.Lib.BCL
+
+        module ZFDR = Informedica.ZForm.Lib.DoseRule
+
+        let private maxVal (mm: MinMax) =
+            mm.Max
+            |> Option.map (Limit.getValueUnit >> ValueUnit.getValue >> Array.map BigRational.toDouble)
+
+        let private minVal (mm: MinMax) =
+            mm.Min
+            |> Option.map (Limit.getValueUnit >> ValueUnit.getValue >> Array.map BigRational.toDouble)
+
+        let private mk v u =
+            v |> ValueUnit.singleWithUnit u |> Limit.inclusive
+
+        let private mmOf vmin vmax u =
+            {
+                Min = Some(mk vmin u)
+                Max = Some(mk vmax u)
+            }
+
+        let private adjUnitStr (mm: MinMax) =
+            match mm.Min |> Option.map Limit.getValueUnit with
+            | Some vu -> vu |> ValueUnit.getUnit |> Check.unitToString
+            | None -> "<empty>"
+
+        let private convKg = Check.setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) None
+        let private convM2 = Check.setAdjustAndOrTimeUnit (Some Units.BSA.m2) None
+
+        let private mkMgMax (v: BigRational) =
+            { MinMax.empty with Max = v |> ValueUnit.singleWithUnit Units.Mass.milliGram |> Limit.inclusive |> Some }
+
+        let private mkDosage normMax absMax : Informedica.ZForm.Lib.Types.Dosage =
+            { ZFDR.Dosage.empty with
+                SingleDosage =
+                    { ZFDR.DoseRange.empty with
+                        Norm = mkMgMax normMax
+                        Abs = mkMgMax absMax
+                    }
+            }
+
+        let private mkRiskDosage highRisk : Informedica.ZForm.Lib.Types.Dosage =
+            { mkDosage 1N 1N with HighRisk = highRisk }
+
+        let tests =
+            testList
+                "Check IR-doseringscontrole fixes"
+                [
+                    test "MEDIUM-1 pickAdjust prefers BSA when both present" {
+                        Check.pickAdjust
+                            (mmOf 5N 10N Units.Mass.milliGram)
+                            (mmOf 50N 100N Units.Mass.milliGram)
+                            convKg
+                            convM2
+                        |> adjUnitStr
+                        |> Expect.equal "BSA wins" "mg/m2"
+                    }
+
+                    test "MEDIUM-1 pickAdjust weight only falls back to kg" {
+                        Check.pickAdjust (mmOf 5N 10N Units.Mass.milliGram) MinMax.empty convKg convM2
+                        |> adjUnitStr
+                        |> Expect.equal "kg" "mg/kg"
+                    }
+
+                    test "MEDIUM-1 pickAdjust neither yields empty" {
+                        Check.pickAdjust MinMax.empty MinMax.empty convKg convM2
+                        |> Expect.equal "empty" MinMax.empty
+                    }
+
+                    test "MEDIUM-2 classify within/advisory/absolute/under" {
+                        Check.classify 5N (Some 10N) (Some 20N) (Some 2N)
+                        |> Expect.equal "within" Check.Within
+
+                        Check.classify 15N (Some 10N) (Some 20N) (Some 2N)
+                        |> Expect.equal "advisory" Check.AdvisoryOverNorm
+
+                        Check.classify 25N (Some 10N) (Some 20N) (Some 2N)
+                        |> Expect.equal "absolute" Check.OverAbsolute
+
+                        Check.classify 1N (Some 10N) (Some 20N) (Some 2N)
+                        |> Expect.equal "under" Check.UnderNorm
+                    }
+
+                    test "MEDIUM-2 classify catches absolute breach when normMax is None" {
+                        // Hard ceiling must dominate even without a norm max.
+                        Check.classify 25N None (Some 20N) None
+                        |> Expect.equal "over absolute" Check.OverAbsolute
+                    }
+
+                    test "HIGH-1 marginedTestRange is risk-aware and one-sided" {
+                        let vu = 100N |> ValueUnit.singleWithUnit Units.Mass.milliGram |> Some
+
+                        Check.marginedTestRange true (12N / 10N) vu
+                        |> maxVal
+                        |> Expect.equal "risk: no margin" (Some [| 100.0 |])
+
+                        Check.marginedTestRange false (12N / 10N) vu
+                        |> maxVal
+                        |> Expect.equal "non-risk: 120%" (Some [| 120.0 |])
+
+                        Check.marginedTestRange false (12N / 10N) vu
+                        |> minVal
+                        |> Expect.equal "min unchanged" (Some [| 100.0 |])
+                    }
+
+                    test "MEDIUM-3 monthsMinMaxToDays at 30 days/month" {
+                        let d = Check.monthsMinMaxToDays (mmOf 1N 3N Units.Time.month)
+                        d |> minVal |> Expect.equal "1mo -> 30d" (Some [| 30.0 |])
+                        d |> maxVal |> Expect.equal "3mo -> 90d" (Some [| 90.0 |])
+                    }
+
+                    test "LOW-3 interchangeable frequency time units" {
+                        Check.interchangeable "per maand" "per 4 weken"
+                        |> Expect.isTrue "maand ~ 4 weken"
+
+                        Check.interchangeable "per 12 weken" "per 3 maanden"
+                        |> Expect.isFalse "12 weken != 3 maanden"
+                    }
+
+                    test "LOW-4 freqMsg granularity" {
+                        Check.freqMsg true false |> Expect.equal "24" "tekst 24 (aantal verschilt)"
+
+                        Check.freqMsg false true
+                        |> Expect.equal "25" "tekst 25 (tijdseenheid verschilt)"
+
+                        Check.freqMsg true true
+                        |> Expect.equal "8" "tekst 8 (aantal en/of tijdseenheid verschilt)"
+                    }
+
+                    test "HIGH-2 rateScopeLabel labels or drops" {
+                        Check.rateScopeLabel Check.LabelRateChecksOutOfScope "x"
+                        |> Expect.equal "label" (Some "[buiten G-Standaard doseringscontrole] x")
+
+                        Check.rateScopeLabel Check.DropRateChecks "x" |> Expect.equal "drop" None
+                    }
+
+                    test "BUG-B maximizeDosages merges Abs from Abs (not Norm)" {
+                        [ mkDosage 3N 5N; mkDosage 3N 9N ]
+                        |> Check.maximizeDosages
+                        |> Option.bind (fun d -> d.SingleDosage.Abs.Max)
+                        |> Option.map (Limit.getValueUnit >> ValueUnit.getValue >> Array.map BigRational.toDouble)
+                        |> Expect.equal "Abs.Max 9 (was 3)" (Some [| 9.0 |])
+                    }
+
+                    test "BUG-A per-m2 absolute single-dose limit is picked up" {
+                        // mirrors createMapping.quantityAdjustAbs: both ranges from
+                        // SingleDosage (the m2 branch previously read StartDosage).
+                        let single = { ZFDR.DoseRange.empty with AbsBSA = (mkMgMax 100N, Units.BSA.m2) }
+
+                        Check.pickAdjust (single.AbsWeight |> fst) (single.AbsBSA |> fst) convKg convM2
+                        |> maxVal
+                        |> Expect.equal "picks m2 abs" (Some [| 100.0 |])
+                    }
+
+                    test "HIGH-1 maximizeDosages ORs HighRisk across merged dosages" {
+                        // First dosage not high risk, a later one is: the merge must
+                        // stay high risk so the margin is suppressed (HIGH-1 safety).
+                        [ mkRiskDosage false; mkRiskDosage true ]
+                        |> Check.maximizeDosages
+                        |> Option.map _.HighRisk
+                        |> Expect.equal "merged stays high risk" (Some true)
+                    }
+                ]
+
+
     [<Tests>]
     let tests =
         testList
@@ -1857,4 +2026,5 @@ module Tests =
                 GenericLabelTests.tests
                 ProductFilterTests.tests
                 DoseRuleProductTests.tests
+                CheckTests.tests
             ]

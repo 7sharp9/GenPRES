@@ -98,6 +98,9 @@ module Types =
             TotalDosage: DoseRange * Frequency
             /// List of original DoseRules
             Rules: Rule list
+            /// True when any source G-Standaard DoseRule is high risk
+            /// (GPRISC = "*"); narrow-therapeutic-index, no dose-check margin.
+            HighRisk: bool
         }
 
         static member Name_: (Dosage -> string) * (string -> Dosage -> Dosage) =
@@ -117,6 +120,9 @@ module Types =
 
         static member Rules_: (Dosage -> Rule list) * (Rule list -> Dosage -> Dosage) =
             _.Rules, (fun rs d -> { d with Rules = rs })
+
+        static member HighRisk_: (Dosage -> bool) * (bool -> Dosage -> Dosage) =
+            _.HighRisk, (fun hr d -> { d with HighRisk = hr })
 
     /// The frequencies of a TotalDosage
     and Frequency =

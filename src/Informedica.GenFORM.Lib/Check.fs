@@ -24,6 +24,143 @@ module Check =
     let unitToString = Units.toStringDutchShort >> String.removeBrackets
 
 
+    /// Graded outcome of a dose-check signal (IR Doseringscontrole 4.6.2).
+    /// `Within` is a pass; the others are signals of decreasing/typed concern.
+    type Severity =
+        | Within
+        | AdvisoryOverNorm // > norm max, <= absolute max (IR tekst 1)
+        | OverAbsolute // > absolute max (IR tekst 3)
+        | UnderNorm // < norm min (IR tekst 2)
+        | UnitMismatch // kg vs m2 — cannot compare
+        | NotComparable // missing dose type / both ranges empty
+        | FrequencyMismatch // entered frequency not in the rule (IR 4.5.2)
+        | NoMonitoring // no G-Standaard rule exists for the selection (info only)
+
+
+    /// Scalar IR 4.6.2 flow. The absolute max is the hard ceiling and is checked
+    /// first, so a breach is caught even when no norm max is present (norm <= abs
+    /// in valid G-Standaard data, so this matches the IR "norm exceeded then abs"
+    /// flow while also being safe when normMax = None).
+    let classify (dose: BigRational) normMax absMax normMin : Severity =
+        match absMax with
+        | Some a when dose > a -> OverAbsolute
+        | _ ->
+            match normMax with
+            | Some n when dose > n -> AdvisoryOverNorm
+            | _ ->
+                match normMin with
+                | Some n when dose < n -> UnderNorm
+                | _ -> Within
+
+
+    /// IR 4.6.1 limit-selection priority: m2 (BSA) -> per kg -> absolute. Prefer
+    /// the BSA range when present, else weight, else empty. `convWeight`/`convBSA`
+    /// stamp the adjust (and optional time) unit.
+    let pickAdjust
+        (weightMM: MinMax)
+        (bsaMM: MinMax)
+        (convWeight: MinMax -> MinMax)
+        (convBSA: MinMax -> MinMax)
+        : MinMax
+        =
+        if bsaMM <> MinMax.empty then bsaMM |> convBSA
+        elif weightMM <> MinMax.empty then weightMM |> convWeight
+        else MinMax.empty
+
+
+    /// Convert a months-based age MinMax to days at the IR 3.3 rate of
+    /// 30 days/month, so a ZForm (month) age can be intersected with a GenFORM
+    /// (day) age.
+    let monthsMinMaxToDays (mm: MinMax) : MinMax =
+        let toDays lim =
+            lim
+            |> Limit.getValueUnit
+            |> ValueUnit.convertTo Units.Time.month
+            |> ValueUnit.applyToValue (Array.map ((*) 30N))
+            |> ValueUnit.setUnit Units.Time.day
+            |> Limit.inclusive
+
+        {
+            Min = mm.Min |> Option.map toDays
+            Max = mm.Max |> Option.map toDays
+        }
+
+
+    /// IR 3.4 interchangeable frequency time-unit groups. per-12-weken vs
+    /// per-3-maanden are deliberately NOT interchangeable.
+    let interchangeGroups =
+        [
+            set [ "per 2 dagen"; "om de dag" ]
+            set [ "per 4 weken"; "per maand" ]
+            set [ "per 8 weken"; "per 2 maanden" ]
+            set [ "per half jaar"; "per 6 maanden" ]
+        ]
+
+    let canonTimeUnit (u: string) =
+        interchangeGroups
+        |> List.tryFind (Set.contains u)
+        |> Option.map Set.minElement
+        |> Option.defaultValue u
+
+    let interchangeable a b = canonTimeUnit a = canonTimeUnit b
+
+
+    /// IR 4.5.2 frequency message granularity (tekst 24 / 25 / 8).
+    let freqMsg (aantalDiff: bool) (eenheidDiff: bool) =
+        match aantalDiff, eenheidDiff with
+        | true, false -> "tekst 24 (aantal verschilt)"
+        | false, true -> "tekst 25 (tijdseenheid verschilt)"
+        | _ -> "tekst 8 (aantal en/of tijdseenheid verschilt)"
+
+
+    /// IR 1.3.2 (5,6): toedieningssnelheid/-duur are out of the dose-check scope.
+    type RateCheckMode =
+        | DropRateChecks // strict IR conformance
+        | LabelRateChecksOutOfScope // keep the signal, but tag it (recommended)
+
+    let rateScopeLabel (mode: RateCheckMode) (msg: string) =
+        match mode with
+        | DropRateChecks -> None
+        | LabelRateChecksOutOfScope -> Some $"[buiten G-Standaard doseringscontrole] {msg}"
+
+
+    /// IR 4.6.1.3/4.6.1.4 replacement for the old symmetric +-10% band.
+    /// `isRisk = true` (GPRISC = "*") => exact, no margin. Otherwise the margin is
+    /// one-sided on the max (`marginUpper`, e.g. 12/10 for 120%).
+    let marginedTestRange (isRisk: bool) (marginUpper: BigRational) (vuOpt: ValueUnit option) : MinMax =
+        match vuOpt with
+        | None -> MinMax.empty
+        | Some vu when isRisk ->
+            {
+                Min = Some(vu |> Limit.inclusive)
+                Max = Some(vu |> Limit.inclusive)
+            }
+        | Some vu ->
+            let factor = [| marginUpper |] |> ValueUnit.withUnit Units.Count.times
+
+            {
+                Min = Some(vu |> Limit.inclusive)
+                Max = Some(vu * factor |> Limit.inclusive)
+            }
+
+
+    /// Configuration for `checkDoseRuleWith`: the (provider-configurable) upper
+    /// margin and how infusion-rate checks are handled.
+    type CheckConfig =
+        {
+            // Upper margin multiplier on the G-Standaard max for non-risk substances
+            MarginUpper: BigRational
+            // Whether infusion-rate rows are dropped or kept-but-labelled (HIGH-2)
+            RateCheckMode: RateCheckMode
+        }
+
+    let checkConfigDef =
+        {
+            MarginUpper = 12N / 10N
+            RateCheckMode = LabelRateChecksOutOfScope
+        }
+
+
     let checkAdjustUnit (mm1: MinMax) (mm2: MinMax) =
         let getAdj mm =
             match mm.Min |> Option.map Limit.getValueUnit, mm.Max |> Option.map Limit.getValueUnit with
@@ -178,7 +315,7 @@ module Check =
                                 dr.NormBSA |> snd
                             else
                                 acc.NormBSA |> snd
-                        Abs = maximize [ dr.Norm; acc.Norm ]
+                        Abs = maximize [ dr.Abs; acc.Abs ]
                         AbsWeight =
                             [ acc.AbsWeight |> fst; dr.AbsWeight |> fst ] |> maximize,
                             if acc.AbsWeight |> snd = NoUnit then
@@ -231,17 +368,24 @@ module Check =
                                     |> List.distinct
                             }
                     Rules = rest |> List.collect _.Rules |> List.append dosage.Rules
+                    // OR the GPRISC high-risk flag across all merged dosages: if any
+                    // overlapping patient-band dosage is narrow-TI, the merged result
+                    // must stay high risk so marginedTestRange suppresses the margin.
+                    HighRisk = dosage.HighRisk || (rest |> List.exists _.HighRisk)
                 }
                 |> Some
 
 
     let filterPatient (pat: PatientCategory) (pdsg: Informedica.ZForm.Lib.Types.PatientDosage) =
-        // TODO need to map G-stand age in mo to days (1 mo = 30 days)
         let patAge = pat |> PatientCategory.getAge
+        // IR 3.3: the ZForm/G-Standaard age is in months; the GenFORM patient
+        // category age is in days. Normalise to days (30 days/month) before
+        // intersecting so the two are comparable on the same unit.
+        let zformAge = pdsg.Patient.Age |> monthsMinMaxToDays
 
         let age =
-            patAge = MinMax.empty && pdsg.Patient.Age = MinMax.empty
-            || (pdsg.Patient.Age |> MinMax.intersect patAge = MinMax.empty |> not)
+            patAge = MinMax.empty && zformAge = MinMax.empty
+            || (zformAge |> MinMax.intersect patAge = MinMax.empty |> not)
 
         let weight =
             pat.Weight = MinMax.empty && pdsg.Patient.Weight = MinMax.empty
@@ -388,56 +532,36 @@ module Check =
                                                     x.StartDosage.Abs
                                                 else
                                                     x.SingleDosage.Abs
+                                            // IR 4.6.1 priority: BSA (m2) before kg.
                                             quantityAdjustNorm =
-                                                if x.SingleDosage.NormWeight |> fst = MinMax.empty then
-                                                    if x.SingleDosage.NormBSA |> fst = MinMax.empty then
-                                                        MinMax.empty
-                                                    else
-                                                        x.SingleDosage.NormBSA
-                                                        |> fst
-                                                        |> setAdjustAndOrTimeUnit (Some Units.BSA.m2) None
-                                                else
-                                                    x.SingleDosage.NormWeight
-                                                    |> fst
-                                                    |> setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) None
+                                                pickAdjust
+                                                    (x.SingleDosage.NormWeight |> fst)
+                                                    (x.SingleDosage.NormBSA |> fst)
+                                                    (setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) None)
+                                                    (setAdjustAndOrTimeUnit (Some Units.BSA.m2) None)
+                                            // BUG-A fix: both ranges read from SingleDosage
+                                            // (the m2 branch previously read StartDosage.AbsBSA).
                                             quantityAdjustAbs =
-                                                if x.SingleDosage.AbsWeight |> fst = MinMax.empty then
-                                                    if x.StartDosage.AbsBSA |> fst = MinMax.empty then
-                                                        MinMax.empty
-                                                    else
-                                                        x.StartDosage.AbsBSA
-                                                        |> fst
-                                                        |> setAdjustAndOrTimeUnit (Some Units.BSA.m2) None
-                                                else
-                                                    x.SingleDosage.AbsWeight
-                                                    |> fst
-                                                    |> setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) None
+                                                pickAdjust
+                                                    (x.SingleDosage.AbsWeight |> fst)
+                                                    (x.SingleDosage.AbsBSA |> fst)
+                                                    (setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) None)
+                                                    (setAdjustAndOrTimeUnit (Some Units.BSA.m2) None)
                                             perTimeNorm = x.TotalDosage |> fst |> _.Norm |> convert None
                                             perTimeAbs = x.TotalDosage |> fst |> _.Abs |> convert None
                                             perTimeAdjustNorm =
-                                                let normWeight = x.TotalDosage |> fst |> _.NormWeight
-
-                                                if normWeight |> fst = MinMax.empty then
-                                                    let normBSA = x.TotalDosage |> fst |> _.NormBSA
-
-                                                    if normBSA |> fst = MinMax.empty then
-                                                        MinMax.empty
-                                                    else
-                                                        normBSA |> fst |> convert (Some Units.BSA.m2)
-                                                else
-                                                    normWeight |> fst |> convert (Some Units.Weight.kiloGram)
+                                                pickAdjust
+                                                    (x.TotalDosage |> fst |> _.NormWeight |> fst)
+                                                    (x.TotalDosage |> fst |> _.NormBSA |> fst)
+                                                    (convert (Some Units.Weight.kiloGram))
+                                                    (convert (Some Units.BSA.m2))
                                             perTimeAdjustAbs =
-                                                let absWeight = x.TotalDosage |> fst |> _.AbsWeight
-
-                                                if absWeight |> fst = MinMax.empty then
-                                                    let absBSA = x.TotalDosage |> fst |> _.AbsBSA
-
-                                                    if absBSA |> fst = MinMax.empty then
-                                                        MinMax.empty
-                                                    else
-                                                        absBSA |> fst |> convert (Some Units.BSA.m2)
-                                                else
-                                                    absWeight |> fst |> convert (Some Units.Weight.kiloGram)
+                                                pickAdjust
+                                                    (x.TotalDosage |> fst |> _.AbsWeight |> fst)
+                                                    (x.TotalDosage |> fst |> _.AbsBSA |> fst)
+                                                    (convert (Some Units.Weight.kiloGram))
+                                                    (convert (Some Units.BSA.m2))
+                                            highRisk = x.HighRisk
                                         |}
                                     )
                             |}
@@ -446,23 +570,11 @@ module Check =
         |}
 
 
-    let checkDoseRule routeMapping (pat: Patient) (dr: DoseRule) =
+    let checkDoseRuleWith (cfg: CheckConfig) routeMapping (pat: Patient) (dr: DoseRule) =
         let m = dr |> matchWithZIndex routeMapping pat |> createMapping
 
         let eqsAny (candidates: DoseType list) (dt: DoseType) =
             candidates |> List.exists (DoseType.eqsType dt)
-
-        let toMinMax vuOpt =
-            {
-                Min =
-                    vuOpt
-                    |> Option.map ((*) ([| 90N / 100N |] |> ValueUnit.withUnit Units.Count.times))
-                    |> Option.map Limit.inclusive
-                Max =
-                    vuOpt
-                    |> Option.map ((*) ([| 110N / 100N |] |> ValueUnit.withUnit Units.Count.times))
-                    |> Option.map Limit.inclusive
-            }
 
         // Derive rate fields for a given dose-limit target from m.zindex.dosages,
         // mirroring the perTimeAdjust* pattern in createMapping.
@@ -487,26 +599,19 @@ module Check =
                     {|
                         rateNorm = dr.Norm |> setAdjustAndOrTimeUnit None (Some rateUnit)
                         rateAbs = dr.Abs |> setAdjustAndOrTimeUnit None (Some rateUnit)
+                        // IR 4.6.1 priority: BSA (m2) before kg.
                         rateAdjustNorm =
-                            if dr.NormWeight |> fst = MinMax.empty then
-                                if dr.NormBSA |> fst = MinMax.empty then
-                                    MinMax.empty
-                                else
-                                    dr.NormBSA |> fst |> setAdjustAndOrTimeUnit (Some Units.BSA.m2) (Some rateUnit)
-                            else
-                                dr.NormWeight
-                                |> fst
-                                |> setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) (Some rateUnit)
+                            pickAdjust
+                                (dr.NormWeight |> fst)
+                                (dr.NormBSA |> fst)
+                                (setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) (Some rateUnit))
+                                (setAdjustAndOrTimeUnit (Some Units.BSA.m2) (Some rateUnit))
                         rateAdjustAbs =
-                            if dr.AbsWeight |> fst = MinMax.empty then
-                                if dr.AbsBSA |> fst = MinMax.empty then
-                                    MinMax.empty
-                                else
-                                    dr.AbsBSA |> fst |> setAdjustAndOrTimeUnit (Some Units.BSA.m2) (Some rateUnit)
-                            else
-                                dr.AbsWeight
-                                |> fst
-                                |> setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) (Some rateUnit)
+                            pickAdjust
+                                (dr.AbsWeight |> fst)
+                                (dr.AbsBSA |> fst)
+                                (setAdjustAndOrTimeUnit (Some Units.Weight.kiloGram) (Some rateUnit))
+                                (setAdjustAndOrTimeUnit (Some Units.BSA.m2) (Some rateUnit))
                     |}
             )
             |> Option.defaultValue empty
@@ -527,7 +632,7 @@ module Check =
         m.mapping.doseLimits
         |> Array.collect (fun dl ->
             match dl.gstand with
-            | None -> [| (None: bool option), "" |]
+            | None -> [| (None: Severity option), "" |]
             | Some gstand ->
                 let dt = m.doseRule.DoseType
                 let p = m.doseRule.PatientCategory |> PatientCategory.toString
@@ -542,10 +647,48 @@ module Check =
                         Some true,
                         $"{gstand.doseLimitTarget}\t{r}\t{p}\t{msg}: kan niet worden gechecked vanwege foutmelding"
 
+                // HIGH-1: one-sided, risk-aware margin on the norm dose. Risk
+                // substances (GPRISC = "*") get no margin.
+                let toMinMax vuOpt =
+                    vuOpt |> marginedTestRange gstand.highRisk cfg.MarginUpper
+
+                // MEDIUM-2: grade a test range against the advisory (norm) and the
+                // absolute reference ranges (IR 4.6.2): a norm breach is advisory,
+                // an absolute breach is serious, and absolute is only decisive once
+                // norm is exceeded.
+                let grade msg (normRef: MinMax) (absRef: MinMax) (test: MinMax) : Severity option * string =
+                    let nb, nmsg = inRangeOf msg normRef test
+                    let ab, amsg = inRangeOf msg absRef test
+
+                    // The absolute ceiling breach is checked first so that even
+                    // inconsistent G-Standaard data (normRef.Max > absRef.Max) can
+                    // never silently downgrade an over-absolute dose to Within.
+                    // For valid data (norm ⊆ abs) this is equivalent to norm-first.
+                    match nb, ab with
+                    | None, None -> None, ""
+                    | _, Some false -> Some OverAbsolute, amsg
+                    | Some true, _ -> Some Within, nmsg
+                    | None, Some true -> Some Within, amsg
+                    | Some false, _ -> Some AdvisoryOverNorm, nmsg
+
+                // Adjust-unit-gated grade: only compares ranges whose adjust unit
+                // matches the test's, and substitutes the unit into the message.
+                let gradeAdjust (msgFor: string -> string) normRef absRef test : Severity option * string =
+                    let na = test |> checkAdjustUnit normRef
+                    let aa = test |> checkAdjustUnit absRef
+
+                    match na, aa with
+                    | None, None -> None, ""
+                    | _ ->
+                        let adj = (na |> Option.orElse aa |> Option.get) |> unitToString
+                        let normRef = if na |> Option.isSome then normRef else MinMax.empty
+                        let absRef = if aa |> Option.isSome then absRef else MinMax.empty
+                        grade (msgFor adj) normRef absRef test
+
                 match dt with
                 | NoDoseType ->
                     [|
-                        Some false,
+                        Some NotComparable,
                         $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tdoseer type mist — kan niet vergelijken"
                     |]
                 | _ ->
@@ -557,133 +700,103 @@ module Check =
                     let runRate = dt |> eqsAny [ Continuous ""; Timed ""; OnceTimed "" ]
                     let runFrequencies = dt |> eqsAny [ Discontinuous ""; Timed "" ]
 
-                    let freqRow () =
+                    let freqRow () : Severity option * string =
                         match m.mapping.frequencies.genform, m.mapping.frequencies.gstand with
                         | None, _
-                        | _, None -> (None: bool option), ""
+                        | _, None -> None, ""
                         | Some vuG, Some vuS ->
-                            let b = vuG |> ValueUnit.isSubset vuS
-
                             let s1 = vuG |> ValueUnit.toStringDecimalDutchShortWithPrec -1
                             let s2 = vuS |> ValueUnit.toStringDecimalDutchShortWithPrec -1
 
-                            if not b then
-                                Some b,
-                                $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tfrequenties {s1} niet gelijk aan {s2}"
-                            else
-                                Some b,
+                            // LOW-3 (IR 3.4): treat interchangeable time units as equal.
+                            let tokenOf vu =
+                                match vu |> ValueUnit.getUnit |> ValueUnit.getUnits with
+                                | [ _; tu ]
+                                | [ _; tu; _ ] -> "per " + (tu |> unitToString)
+                                | _ -> ""
+
+                            let unitsInterchangeable = interchangeable (tokenOf vuG) (tokenOf vuS)
+                            let aantalDiff = (vuG |> ValueUnit.getValue) <> (vuS |> ValueUnit.getValue)
+
+                            let b = (vuG |> ValueUnit.isSubset vuS) || (unitsInterchangeable && not aantalDiff)
+
+                            if b then
+                                Some Within,
                                 $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tfrequenties {s1} is subset van {s2}"
+                            else
+                                // LOW-4 (IR 4.5.2): granular tekst 24 / 25 / 8.
+                                let eenheidDiff = tokenOf vuG <> tokenOf vuS && not unitsInterchangeable
 
+                                Some FrequencyMismatch,
+                                $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tfrequenties {s1} %s{freqMsg aantalDiff eenheidDiff} t.o.v. {s2}"
+
+                    // Each gradeable quantity yields ONE graded row (norm+abs
+                    // combined). The margined row applies the HIGH-1 risk-aware band.
                     let quantityChecks () =
+                        let adjMsg adj = $"keer dosering per %s{adj}"
+
                         [|
-                            dl.genForm.Quantity |> inRangeOf "keer dosering" gstand.quantityNorm
+                            grade "keer dosering" gstand.quantityNorm gstand.quantityAbs dl.genForm.Quantity
 
-                            dl.genForm.Quantity |> inRangeOf "keer dosering" gstand.quantityAbs
-
-                            match dl.genForm.QuantityAdjust |> checkAdjustUnit gstand.quantityAdjustNorm with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-
+                            gradeAdjust
+                                adjMsg
+                                gstand.quantityAdjustNorm
+                                gstand.quantityAdjustAbs
                                 dl.genForm.QuantityAdjust
-                                |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustNorm
 
-                            match dl.genForm.QuantityAdjust |> checkAdjustUnit gstand.quantityAdjustAbs with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-
-                                dl.genForm.QuantityAdjust
-                                |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
-
-                            let mm = dl.genForm.QuantityAdjust |> DoseLimit.getNormDose |> toMinMax
-
-                            match mm |> checkAdjustUnit gstand.quantityAdjustNorm with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-                                mm |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustNorm
-
-                            match mm |> checkAdjustUnit gstand.quantityAdjustAbs with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-                                mm |> inRangeOf $"keer dosering per %s{adj}" gstand.quantityAdjustAbs
+                            dl.genForm.QuantityAdjust
+                            |> DoseLimit.getNormDose
+                            |> toMinMax
+                            |> gradeAdjust adjMsg gstand.quantityAdjustNorm gstand.quantityAdjustAbs
                         |]
 
                     let perTimeChecks () =
+                        let adjMsg adj = $"dosering per %s{adj} per <TIMEUNIT>"
+
                         [|
-                            dl.genForm.PerTime |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeNorm
+                            grade "dosering per <TIMEUNIT>" gstand.perTimeNorm gstand.perTimeAbs dl.genForm.PerTime
 
-                            dl.genForm.PerTime |> inRangeOf "dosering per <TIMEUNIT>" gstand.perTimeAbs
-
-                            match dl.genForm.PerTimeAdjust |> checkAdjustUnit gstand.perTimeAdjustNorm with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-
+                            gradeAdjust
+                                adjMsg
+                                gstand.perTimeAdjustNorm
+                                gstand.perTimeAdjustAbs
                                 dl.genForm.PerTimeAdjust
-                                |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustNorm
 
-                            match dl.genForm.PerTimeAdjust |> checkAdjustUnit gstand.perTimeAdjustAbs with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-
-                                dl.genForm.PerTimeAdjust
-                                |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustAbs
-
-                            let mm = dl.genForm.PerTimeAdjust |> DoseLimit.getNormDose |> toMinMax
-
-                            match mm |> checkAdjustUnit gstand.perTimeAdjustNorm with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-                                mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustNorm
-
-                            match mm |> checkAdjustUnit gstand.perTimeAdjustAbs with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-                                mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" gstand.perTimeAdjustAbs
+                            dl.genForm.PerTimeAdjust
+                            |> DoseLimit.getNormDose
+                            |> toMinMax
+                            |> gradeAdjust adjMsg gstand.perTimeAdjustNorm gstand.perTimeAdjustAbs
                         |]
 
+                    // HIGH-2: rate is out of IR scope. Drop the rows, or keep the
+                    // signal but tag the message as out-of-scope (default).
                     let rateChecks () =
-                        [|
-                            dl.genForm.Rate |> inRangeOf "infusiesnelheid per <TIMEUNIT>" rates.rateNorm
+                        let adjMsg adj = $"dosering per %s{adj} per <TIMEUNIT>"
 
-                            dl.genForm.Rate |> inRangeOf "infusiesnelheid per <TIMEUNIT>" rates.rateAbs
+                        let rows =
+                            [|
+                                grade "infusiesnelheid per <TIMEUNIT>" rates.rateNorm rates.rateAbs dl.genForm.Rate
 
-                            match dl.genForm.RateAdjust |> checkAdjustUnit rates.rateAdjustNorm with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
+                                gradeAdjust adjMsg rates.rateAdjustNorm rates.rateAdjustAbs dl.genForm.RateAdjust
 
                                 dl.genForm.RateAdjust
-                                |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" rates.rateAdjustNorm
+                                |> DoseLimit.getNormDose
+                                |> toMinMax
+                                |> gradeAdjust adjMsg rates.rateAdjustNorm rates.rateAdjustAbs
+                            |]
 
-                            match dl.genForm.RateAdjust |> checkAdjustUnit rates.rateAdjustAbs with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-
-                                dl.genForm.RateAdjust
-                                |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" rates.rateAdjustAbs
-
-                            let mm = dl.genForm.RateAdjust |> DoseLimit.getNormDose |> toMinMax
-
-                            match mm |> checkAdjustUnit rates.rateAdjustNorm with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-                                mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" rates.rateAdjustNorm
-
-                            match mm |> checkAdjustUnit rates.rateAdjustAbs with
-                            | None -> ()
-                            | Some adj ->
-                                let adj = adj |> unitToString
-                                mm |> inRangeOf $"dosering per %s{adj} per <TIMEUNIT>" rates.rateAdjustAbs
-                        |]
+                        match cfg.RateCheckMode with
+                        | DropRateChecks -> [||]
+                        | LabelRateChecksOutOfScope ->
+                            rows
+                            |> Array.map (fun (sev, msg) ->
+                                match sev with
+                                | Some s when s <> Within ->
+                                    match rateScopeLabel cfg.RateCheckMode msg with
+                                    | Some tagged -> sev, tagged
+                                    | None -> sev, msg
+                                | _ -> sev, msg
+                            )
 
                     // "non matching adjust units" detection. Only fires when both
                     // sides of the (DoseType-applicable) adjust ranges carry a
@@ -732,7 +845,7 @@ module Check =
                                 let gsU = gs |> List.head |> snd |> unitToString
 
                                 Some(
-                                    Some false,
+                                    Some UnitMismatch,
                                     $"{gstand.doseLimitTarget}\t{r}\t{p}\teenheden verschillen (kg vs m2) (doseer regel: %s{gfU}, G-Standaard controle: %s{gsU})"
                                 )
 
@@ -751,26 +864,36 @@ module Check =
                     |]
         )
         |> fun xs ->
-            let didNotPass =
+            // Graded signals (skip the non-applicable None rows).
+            let signals =
                 xs
                 |> Array.choose (
                     function
-                    | Some false, s -> Some s
-                    | _ -> None
+                    | Some sev, s -> Some(sev, s)
+                    | None, _ -> None
                 )
 
+            // didPass/didNotPass kept as string[] projections for back-compat:
+            // Within -> pass, every other graded signal -> did-not-pass.
             let didPass =
-                xs
-                |> Array.choose (
-                    function
-                    | Some true, s -> Some s
-                    | _ -> None
-                )
+                signals
+                |> Array.choose (fun (sev, s) -> if sev = Within then Some s else None)
+                |> Array.filter String.notEmpty
+
+            let didNotPass =
+                signals
+                |> Array.choose (fun (sev, s) -> if sev = Within then None else Some s)
+                |> Array.filter String.notEmpty
 
             {| m with
                 didNotPass = didNotPass
                 didPass = didPass
+                signals = signals
             |}
+
+
+    let checkDoseRule routeMapping (pat: Patient) (dr: DoseRule) =
+        checkDoseRuleWith checkConfigDef routeMapping pat dr
 
 
     let checkAll routeMapping (pat: Patient) (drs: DoseRule[]) =
