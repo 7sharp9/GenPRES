@@ -472,6 +472,9 @@ module GStand =
 
                     dsr.doserules |> List.map (DR.toString2 >> GStandRule)
                 )
+                // GPRISC high-risk flag carried from the source G-Standaard
+                // DoseRules (narrow-TI substances get no dose-check margin).
+                |> Dosage.Optics.setHighRisk (dsr.doserules |> List.exists _.HighRisk)
                 |> (fun ds ->
                     match tu with
                     | _ when tu = Unit.NoUnit || (tu |> ValueUnit.isCountUnit) ->

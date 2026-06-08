@@ -65,40 +65,57 @@ module FormularyService =
                     $"%s{s1} %s{p} %s{s2}"
             | _ -> s
 
-        /// Build the colored TextBlock[] for the Formulary's DoseCheck field.
+        /// Map a GenFORM dose-check Severity to the Formulary's colored TextBlock
+        /// case. This is what gives the UI its advisory-vs-absolute grading:
+        ///   - OverAbsolute                         → red (Alert)
+        ///   - AdvisoryOverNorm/UnderNorm/Frequency → orange (Warning)
+        ///   - UnitMismatch/NotComparable           → blue (Caution)
+        ///   - Within                               → green (Valid)
+        let severityWrap (sev: Check.Severity) : TextItem[] -> TextBlock =
+            match sev with
+            | Check.Within -> Valid
+            | Check.OverAbsolute -> Alert
+            | Check.AdvisoryOverNorm
+            | Check.UnderNorm
+            | Check.FrequencyMismatch -> Warning
+            | Check.UnitMismatch
+            | Check.NotComparable -> Caution
+
+        /// Build the colored TextBlock[] for the Formulary's DoseCheck field from
+        /// the graded dose-check signals.
         ///   - empty input            → single green "Ok!" block
         ///   - only "no monitoring"   → blue (Caution) info blocks; signals
         ///                              no G-Standaard rule exists for the
         ///                              selection
-        ///   - only frequency issues  → orange (Warning) blocks
-        ///   - any dose-range issue   → red (Alert) blocks
-        /// When severity is Warning or Alert, "no monitoring" sentinels are
-        /// dropped from the display so a non-violation isn't painted as a
-        /// violation.
-        let build (parseTextItem: string -> TextItem[]) (singleRule: bool) (rawLines: string[]) : TextBlock[] =
-            let violations = rawLines |> Array.filter (isNoMonitoring >> not)
+        ///   - otherwise              → one block per signal, colored by its
+        ///                              Severity (advisory = orange, absolute =
+        ///                              red, etc.)
+        /// "no monitoring" sentinels are dropped once real violations exist so a
+        /// non-violation isn't painted as a violation.
+        let build
+            (parseTextItem: string -> TextItem[])
+            (singleRule: bool)
+            (signals: (Check.Severity * string)[])
+            : TextBlock[]
+            =
+            let violations = signals |> Array.filter (snd >> isNoMonitoring >> not)
 
-            // "no monitoring" only: rawLines is non-empty but consists
-            // solely of sentinel lines. Distinct from the pure pass-through
-            // (rawLines = [||]) which keeps the green "Ok!" badge.
+            // "no monitoring" only: signals is non-empty but consists solely of
+            // sentinel lines. Distinct from the pure pass-through (signals = [||])
+            // which keeps the green "Ok!" badge.
             let allNoMonitoring =
                 violations |> Array.isEmpty
-                && rawLines |> Array.isEmpty |> not
-                && rawLines |> Array.forall isNoMonitoring
+                && signals |> Array.isEmpty |> not
+                && signals |> Array.forall (snd >> isNoMonitoring)
 
-            let wrap =
-                if allNoMonitoring then Caution
-                elif violations |> Array.isEmpty then Valid
-                elif violations |> Array.forall isFrequency then Warning
-                else Alert
-
-            let displayLines = if violations |> Array.isEmpty then rawLines else violations
-
-            let formatted = displayLines |> Array.map (formatLine singleRule)
-
-            match formatted with
-            | [||] -> [| "Ok!" |> parseTextItem |> Valid |]
-            | xs -> xs |> Array.map (parseTextItem >> wrap)
+            if signals |> Array.isEmpty then
+                [| "Ok!" |> parseTextItem |> Valid |]
+            elif allNoMonitoring then
+                signals
+                |> Array.map (fun (_, s) -> s |> formatLine singleRule |> parseTextItem |> Caution)
+            else
+                violations
+                |> Array.map (fun (sev, s) -> s |> formatLine singleRule |> parseTextItem |> severityWrap sev)
 
 
     let checkDoseRules provider pat (dsrs: DoseRule[]) =
@@ -114,13 +131,14 @@ module FormularyService =
 
         rs
         |> Array.filter (_.didNotPass >> Array.isEmpty >> not)
-        |> Array.collect _.didNotPass
-        |> Array.filter String.notEmpty
+        |> Array.collect _.signals
+        |> Array.filter (fun (sev, s) -> sev <> Check.Within && s |> String.notEmpty)
         |> Array.distinct
         |> function
             | [||] ->
                 [|
                     for e in empt do
+                        Check.NotComparable,
                         $"geen doseer bewaking gevonden voor {e.doseRule.Generic |> Generic.toString}"
                 |]
                 |> Array.distinct
