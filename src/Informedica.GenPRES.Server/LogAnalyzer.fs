@@ -1046,7 +1046,7 @@ let private fileNamePattern = Regex(@"^genpres_[A-Za-z0-9_]+\.log$")
 
 
 let listLogFiles () =
-    let logDir = Path.Combine(Logging.getServerDataPath (), "data", "logs")
+    let logDir = Informedica.Utils.Lib.AppPath.logsDir ()
 
     if not (Directory.Exists(logDir)) then
         [||]
@@ -1081,7 +1081,7 @@ let analyzeFile (fileName: string) : Result<string, string[]> =
     elif not (fileNamePattern.IsMatch(fileName)) then
         Error [| "Invalid file name format" |]
     else
-        let logDir = Path.Combine(Logging.getServerDataPath (), "data", "logs")
+        let logDir = Informedica.Utils.Lib.AppPath.logsDir ()
         let fullPath = Path.Combine(logDir, fileName)
 
         if not (File.Exists(fullPath)) then

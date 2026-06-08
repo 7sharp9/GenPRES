@@ -12,7 +12,7 @@ let sln = "GenPRES.sln"
 let sharedPath = Path.getFullName "src/Informedica.GenPRES.Shared"
 let serverPath = Path.getFullName "src/Informedica.GenPRES.Server"
 let clientPath = Path.getFullName "src/Informedica.GenPRES.Client"
-let dataPath = Path.getFullName "src/Informedica.GenPRES.Server/data"
+let dataPath = Path.getFullName "data"
 
 let deployPath = Path.getFullName "deploy"
 
@@ -58,7 +58,11 @@ Target.create
         let deployDataPath = Path.combine deployPath "data"
         printfn $"Copying data to {deployDataPath} ..."
 
-        Shell.copyDir deployDataPath dataPath (fun _ -> true)
+        // Copy only the curated subset needed at runtime (the cache).
+        [ "cache" ]
+        |> List.iter (fun sub ->
+            Shell.copyDir (Path.combine deployDataPath sub) (Path.combine dataPath sub) (fun _ -> true)
+        )
 
         let logPath = Path.combine deployDataPath "logs"
         Shell.cleanDir logPath

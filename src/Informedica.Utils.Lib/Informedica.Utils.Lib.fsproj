@@ -35,6 +35,7 @@
     <Compile Include="Csv.fs" />
     <Compile Include="Env.fs" />
     <Compile Include="App.fs" />
+    <Compile Include="AppPath.fs" />
     <Compile Include="Console.fs" />
     <Compile Include="ConsoleTables.fs" />
     <Compile Include="StopWatch.fs" />

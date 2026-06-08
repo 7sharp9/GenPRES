@@ -27,6 +27,9 @@ COPY Build.fsproj .
 COPY Build.fs .
 COPY Helpers.fs .
 COPY src/ src/
+# The Bundle target copies the curated runtime data (the cache) from the
+# repo-root data/ folder into deploy/data.
+COPY data/cache data/cache
 RUN dotnet run bundle
 
 
@@ -36,6 +39,11 @@ COPY --from=app-build /workspace/deploy /app
 ENV GENPRES_LOG=0
 ENV GENPRES_PROD="1"
 ENV GENPRES_DEBUG="0"
+
+# Application root: the directory containing data/ (cache, config, logs).
+# The deploy bundle is copied to /app, so /app/data is the resolved data root.
+# Set explicitly so AppPath resolves without relying on the cwd fallback.
+ENV GENPRES_ROOT="/app"
 
 # SECURITY: GENPRES_URL_ID is a proprietary FAIR asset and MUST NOT be
 # baked into the published image. Inject it at container runtime instead, e.g.:
