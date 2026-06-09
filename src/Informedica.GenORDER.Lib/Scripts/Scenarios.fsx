@@ -20,6 +20,16 @@ open Informedica.GenOrder.Lib
 open Patient.Optics
 
 
+/// Scenario markdown is written to the repo's docs/scenarios folder, anchored to
+/// the script's own location so it never depends on the FSI working directory
+/// (previously the files landed in the repo root).
+let scenarioOutputDir =
+    IO.Path.Combine(__SOURCE_DIRECTORY__, "..", "..", "..", "docs", "scenarios")
+    |> IO.Path.GetFullPath
+
+IO.Directory.CreateDirectory scenarioOutputDir |> ignore
+
+
 module GenFormResult =
 
     let defaultValue value res =
@@ -98,6 +108,10 @@ let createScenarios (ctx: OrderContext) =
 
 
 let printScenarios path pat (scs: Result<OrderContext, string * OrderContext> list) =
+    // Start from an empty file so re-runs overwrite rather than append to the
+    // existing docs/scenarios markdown.
+    File.writeTextToFile path ""
+
     let append s = File.appendTextToFile path $"{s}\n"
 
     let printMd sl =
@@ -280,7 +294,7 @@ scenarios
         | _ when n = "Adult" -> Patient.adult
         | _ -> failwith $"not recognized: {n}"
 
-    ctxs |> printScenarios $"{n}.md" pat
+    ctxs |> printScenarios (IO.Path.Combine(scenarioOutputDir, $"{n}.md")) pat
 )
 
 
