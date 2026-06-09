@@ -125,7 +125,7 @@ module BST001T =
         _records
         |> Array.toList
         |> List.filter (fun d -> d.MDBST = name)
-        |> List.map (fun d -> d.MDRLEN)
+        |> List.map _.MDRLEN
 
 
     /// <summary>
@@ -133,7 +133,7 @@ module BST001T =
     /// </summary>
     /// <param name="n">The name of the file</param>
     let recordLength n =
-        _records |> Seq.filter (fun r -> r.MDBST = n) |> Seq.sumBy (fun r -> r.MDRLEN)
+        _records |> Seq.filter (fun r -> r.MDBST = n) |> Seq.sumBy _.MDRLEN
 
 
     /// <summary>

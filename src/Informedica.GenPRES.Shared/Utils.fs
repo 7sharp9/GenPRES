@@ -435,7 +435,7 @@ module Csv =
         |> Array.filter (String.isNullOrWhiteSpace >> not)
         |> Array.map (String.replace "\",\"" "|")
         |> Array.map (String.replace "\"" "")
-        |> Array.map (fun s -> s.Split("|") |> Array.map (fun s -> s.Trim()))
+        |> Array.map (fun s -> s.Split("|") |> Array.map _.Trim())
 
 
 module TextBlock =

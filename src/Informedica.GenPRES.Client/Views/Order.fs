@@ -96,7 +96,7 @@ module Order =
                                     let s =
                                         substs
                                         |> Array.tryFind (fun i -> i.Name |> Some = itm)
-                                        |> Option.map (fun s -> s.Name)
+                                        |> Option.map _.Name
                                         |> Option.defaultValue (substs[0].Name)
                                         |> Some
 
@@ -224,7 +224,7 @@ module Order =
                 match state.Order with
                 | Some ord ->
                     let msg =
-                        { ord with Schedule = { ord.Schedule with Frequency = ord.Schedule.Frequency |> setOvar s } }
+                        { ord with Order.Schedule.Frequency = ord.Schedule.Frequency |> setOvar s }
                         |> UpdateOrderScenario
 
                     { state with Order = None }, Cmd.ofMsg msg
@@ -234,7 +234,7 @@ module Order =
                 match state.Order with
                 | Some ord ->
                     let msg =
-                        { ord with Schedule = { ord.Schedule with Time = ord.Schedule.Time |> setOvar s } }
+                        { ord with Order.Schedule.Time = ord.Schedule.Time |> setOvar s }
                         |> UpdateOrderScenario
 
                     { state with Order = None }, Cmd.ofMsg msg
@@ -260,10 +260,8 @@ module Order =
                                                             match state.SelectedItem with
                                                             | Some subst when subst = itm.Name ->
                                                                 { itm with
-                                                                    Dose =
-                                                                        { itm.Dose with
-                                                                            Quantity = itm.Dose.Quantity |> setOvar s
-                                                                        }
+                                                                    Item.Dose.Quantity =
+                                                                        itm.Dose.Quantity |> setOvar s
                                                                 }
                                                             | _ -> itm
                                                         )
@@ -333,10 +331,7 @@ module Order =
                                                             match state.SelectedItem with
                                                             | Some subst when subst = itm.Name ->
                                                                 { itm with
-                                                                    Dose =
-                                                                        { itm.Dose with
-                                                                            PerTime = itm.Dose.PerTime |> setOvar s
-                                                                        }
+                                                                    Item.Dose.PerTime = itm.Dose.PerTime |> setOvar s
                                                                 }
                                                             | _ -> itm
                                                         )
@@ -408,10 +403,7 @@ module Order =
                                                             match state.SelectedItem with
                                                             | Some subst when subst = itm.Name ->
                                                                 { itm with
-                                                                    Dose =
-                                                                        { itm.Dose with
-                                                                            Rate = itm.Dose.Rate |> setOvar s
-                                                                        }
+                                                                    Item.Dose.Rate = itm.Dose.Rate |> setOvar s
                                                                 }
                                                             | _ -> itm
                                                         )
@@ -581,11 +573,7 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Dose =
-                                        { ord.Orderable.Dose with Quantity = ord.Orderable.Dose.Quantity |> setOvar s }
-                                }
+                            Order.Orderable.Dose.Quantity = ord.Orderable.Dose.Quantity |> setOvar s
 
                         }
                         |> UpdateOrderScenario
@@ -598,10 +586,7 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Dose = { ord.Orderable.Dose with Rate = ord.Orderable.Dose.Rate |> setOvar s }
-                                }
+                            Order.Orderable.Dose.Rate = ord.Orderable.Dose.Rate |> setOvar s
 
                         }
                         |> UpdateOrderScenario
@@ -614,8 +599,7 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with OrderableQuantity = ord.Orderable.OrderableQuantity |> setOvar s }
+                            Order.Orderable.OrderableQuantity = ord.Orderable.OrderableQuantity |> setOvar s
 
                         }
                         |> UpdateOrderScenario
@@ -755,7 +739,7 @@ module Order =
             | Recalculating pr ->
                 pr.Scenarios
                 |> Array.tryExactlyOne
-                |> Option.map (fun sc -> sc.UseAdjust)
+                |> Option.map _.UseAdjust
                 |> Option.defaultValue false
             | _ -> false
 

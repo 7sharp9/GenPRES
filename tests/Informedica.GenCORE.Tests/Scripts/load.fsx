@@ -8,7 +8,7 @@
 open System
 open Informedica.Utils.Lib
 
-fsi.AddPrinter<DateTime>(fun dt -> dt.ToString("dd-MMM-yy"))
+fsi.AddPrinter<DateTime>(_.ToString("dd-MMM-yy"))
 
 let zindexPath = __SOURCE_DIRECTORY__ |> Path.combineWith "../../../"
 Environment.CurrentDirectory <- zindexPath

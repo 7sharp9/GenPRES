@@ -248,7 +248,7 @@ module DoseRangeTests =
                     DoseRange.empty
                     |> setMinNormPerKgDose (vuFromStr (1N / 1_000N) "milligram")
                     |> setMaxNormPerKgDose (vuFromStr 1N "milligram")
-                    |> DoseRange.convertTo (ValueUnit.Units.mcg)
+                    |> DoseRange.convertTo ValueUnit.Units.mcg
                     |> DoseRange.toString (Some ValueUnit.Units.hour)
                     |> shouldContainAll "dose range rate per kg" [ "1 microg/kg/uur"; "1000 microg/kg/uur" ]
                 }
@@ -257,7 +257,7 @@ module DoseRangeTests =
                     DoseRange.empty
                     |> setMaxNormDose (vuFromStr 1N "milligram")
                     |> setMinNormDose (vuFromStr (1N / 1_000N) "milligram")
-                    |> DoseRange.convertTo (ValueUnit.Units.mcg)
+                    |> DoseRange.convertTo ValueUnit.Units.mcg
                     |> drToStr
                     |> shouldContainAll "unit conversion" [ "1 microg"; "1000 microg" ]
                 }

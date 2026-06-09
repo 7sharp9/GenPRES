@@ -1073,7 +1073,7 @@ module Tests =
                     let validLines =
                         lines
                         |> List.filter (fun s -> s <> null)
-                        |> List.map (fun s -> s.Replace("\n", "").Replace("\r", ""))
+                        |> List.map _.Replace("\n", "").Replace("\r", "")
                         |> List.filter (fun s -> s.Length <= 50)
                         |> List.truncate 25
 
@@ -1102,7 +1102,7 @@ module Tests =
                     let validContent =
                         initialContent
                         |> List.filter (fun s -> s <> null)
-                        |> List.map (fun s -> s.Replace("\n", "").Replace("\r", ""))
+                        |> List.map _.Replace("\n", "").Replace("\r", "")
                         |> List.filter (fun s -> s.Length <= 50)
                         |> List.truncate 20
 
@@ -1138,14 +1138,14 @@ module Tests =
                     let validLines1 =
                         lines1
                         |> List.filter (fun s -> s <> null)
-                        |> List.map (fun s -> s.Replace("\n", "").Replace("\r", ""))
+                        |> List.map _.Replace("\n", "").Replace("\r", "")
                         |> List.filter (fun s -> s.Length <= 50)
                         |> List.truncate 15
 
                     let validLines2 =
                         lines2
                         |> List.filter (fun s -> s <> null)
-                        |> List.map (fun s -> s.Replace("\n", "").Replace("\r", ""))
+                        |> List.map _.Replace("\n", "").Replace("\r", "")
                         |> List.filter (fun s -> s.Length <= 50)
                         |> List.truncate 15
 

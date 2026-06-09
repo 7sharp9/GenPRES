@@ -144,7 +144,7 @@ module Interactions =
             let il = il |> tupelizeInteractions
 
             [
-                for (c1, c2, n1, n2) in il do
+                for c1, c2, n1, n2 in il do
                     if dl |> List.exists (eqs n1) && dl |> List.exists (eqs n2) then
                         {
                             DrugInteraction.Name = c1, c2
@@ -175,7 +175,7 @@ module Data =
             let getDrugs n =
                 d.DrugClasses
                 |> List.filter (fun dc -> dc.Name = n)
-                |> List.collect (fun dc -> dc.Drugs)
+                |> List.collect _.Drugs
 
             d.Interactions
             |> List.map (fun

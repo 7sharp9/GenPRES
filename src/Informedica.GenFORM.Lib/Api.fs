@@ -171,7 +171,7 @@ module Resources =
             GetRenalRuleData = fun () -> RenalRule.getData dataUrlId
             // Pure transforms: operate on the already-loaded raw data.
             GetProducts = Product.fromGenPresProducts
-            GetDoseRules = fun data rm fr prods -> DoseRule.fromDataWithWarnings rm fr prods data
+            GetDoseRules = fun data rm fr prods -> DoseRule.fromData rm fr prods data
             GetSolutionRules = fun data rm parenteral prods -> SolutionRule.map rm parenteral prods data
             GetRenalRules = fun data -> RenalRule.map data
         }

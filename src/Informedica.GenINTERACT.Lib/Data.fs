@@ -18,9 +18,7 @@ module Data =
         fromCache json
         |> fun d ->
             let getDrugs n =
-                d.DrugClasses
-                |> List.filter (fun dc -> dc.Name = n)
-                |> List.collect (fun dc -> dc.Drugs)
+                d.DrugClasses |> List.filter (fun dc -> dc.Name = n) |> List.collect _.Drugs
 
             d.Interactions
             |> List.map (fun

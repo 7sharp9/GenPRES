@@ -849,8 +849,7 @@ module private Elmish =
         | LoadOrderContextResult(_, Finished(Error err)) ->
             Logging.warning "order context error, resetting" err
 
-            let isNoRulesError =
-                err |> Array.exists (fun e -> e.ToLower().Contains("geen doseerregels"))
+            let isNoRulesError = err |> Array.exists _.ToLower().Contains("geen doseerregels")
 
             { state with
                 OrderContext = HasNotStartedYet

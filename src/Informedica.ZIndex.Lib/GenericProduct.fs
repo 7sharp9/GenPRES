@@ -52,7 +52,7 @@ module GenericProduct =
             |> Array.collect (fun hp ->
                 Zindex.BST760T.records ()
                 |> Array.filter (fun rt -> rt.MUTKOD <> 1 && rt.HPKODE = hp.HPKODE)
-                |> Array.map (_.ENKTDW)
+                |> Array.map _.ENKTDW
             )
             |> Array.distinct
             |> Array.map (fun rt -> Names.getThes rt Names.Route Names.Fifty)

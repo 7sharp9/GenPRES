@@ -96,7 +96,7 @@ module DoseRuleData =
             |> Result.toOption
             |> function
                 | None -> [||]
-                | Some data -> data
+                | Some(data, _) -> data
             |> Array.groupBy (DoseRule.mapToDoseRule >> Result.toOption)
             |> Array.filter (fst >> Option.isSome)
             |> Array.map (fun (dr, details) -> dr.Value, details)

@@ -44,7 +44,7 @@ module ResponsiveTable =
                     let rowId =
                         row.cells
                         |> Array.tryFind (fun c -> c.field = "id")
-                        |> Option.map (fun c -> c.value)
+                        |> Option.map _.value
                         |> Option.defaultValue ""
 
                     let handleClick = fun _ -> props.onRowClick rowId
@@ -305,7 +305,7 @@ module ResponsiveTable =
                 | Some column ->
                     let data =
                         props.rows
-                        |> Array.map (fun r -> r.cells)
+                        |> Array.map _.cells
                         |> Array.map (Array.filter (fun cell -> cell.field = column.field))
                         |> Array.collect (Array.map _.value)
                         |> Array.distinct
@@ -431,8 +431,8 @@ module ResponsiveTable =
         else
             let rows =
                 rows
-                |> Array.map (fun r -> r.cells)
-                |> Array.map (Array.map (fun r -> r.value))
+                |> Array.map _.cells
+                |> Array.map (Array.map _.value)
                 |> Array.map props.rowCreate
 
             let toolbar () =

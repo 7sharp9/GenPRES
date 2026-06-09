@@ -66,7 +66,7 @@ module FixtureTests =
                     test "BST711T paracetamol has correct ATC code" {
                         Zindex.BST711T.records ()
                         |> Array.tryFind (fun r -> r.GPKODE = 694554)
-                        |> Option.map (fun r -> r.ATCODE.Trim())
+                        |> Option.map _.ATCODE.Trim()
                         |> Option.defaultValue ""
                         |> Expect.equal "paracetamol ATC should be N02BE01" "N02BE01"
                     }

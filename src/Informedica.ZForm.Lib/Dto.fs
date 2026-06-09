@@ -378,7 +378,7 @@ module Dto =
                     let rds = id.RouteDosages
 
                     if rds |> Seq.length <> 1 then
-                        let rts = rds |> List.map (_.Route) |> String.concat ", "
+                        let rts = rds |> List.map _.Route |> String.concat ", "
 
                         printfn
                             $"wrong rds count: %i{rds |> Seq.length} for %s{prodName} with routes: %s{rts} using route: %s{rte}"

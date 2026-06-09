@@ -11,8 +11,8 @@ module Generators =
 
     let bigRGen (n, d) =
         let d = if d = 0 then 1 else d
-        let n = abs (n) |> BigRational.FromInt
-        let d = abs (d) |> BigRational.FromInt
+        let n = abs n |> BigRational.FromInt
+        let d = abs d |> BigRational.FromInt
         n / d
 
 
@@ -541,7 +541,10 @@ module DoseRuleProductTests =
     /// Build the DoseRules for the given raw rows (empty FormRoutes is safe:
     /// addFormLimits only sets FormLimit, product attachment is unaffected).
     let buildRules (data: DoseRuleData[]) =
-        DoseRule.fromData routeMapping [||] prods data |> Result.toOption |> Option.get
+        DoseRule.fromData routeMapping [||] prods data
+        |> Result.toOption
+        |> Option.get
+        |> fst
 
 
     /// Sorted, distinct GPKs attached to a set of DoseRules.
@@ -631,6 +634,76 @@ module DoseRuleProductTests =
                         |> Expect.isFalse "the DoseRule carries attached products"
                 }
 
+                // Regression (PR #361 GenFORM v2): a component-based combination
+                // dose rule must keep its combination generic label, not be
+                // collapsed onto its single marker substance. Otherwise the
+                // combination (e.g. amoxicilline/clavulaanzuur) is filed under the
+                // marker generic (amoxicilline) and becomes un-prescribable.
+                test "combination generic label is preserved (not collapsed to marker substance)" {
+                    let comboRow =
+                        { baseData with
+                            Route = "ORAAL"
+                            Generic = { emptyGen with Name = "amoxicilline/clavulaanzuur" }
+                            ScheduleData =
+                                { emptySched with
+                                    DoseLimitData =
+                                        { emptyDL with
+                                            Component = "amoxicilline/clavulaanzuur"
+                                            Substance = "amoxicilline"
+                                        }
+                                }
+                        }
+
+                    let rules = buildRules [| comboRow |]
+
+                    rules |> Array.length |> Expect.equal "one DoseRule built" 1
+
+                    rules[0].Generic
+                    |> Generic.toString
+                    |> Expect.equal "label stays the combination, not the marker substance" "amoxicilline/clavulaanzuur"
+                }
+
+                // Regression (PR #361 GenFORM v2): the substance rows of one
+                // component must collapse into a single DoseRule with one
+                // component carrying every substance limit. Rows are grouped by
+                // semantic identity (hashId), never by DataId/GroupId/SortNo,
+                // which are source-row bookkeeping that may be unset or differ
+                // between substance rows. Otherwise amoxicilline/clavulaanzuur
+                // splits into separate single-substance rules.
+                test "combination substances collapse into one component (not split by DataId/SortNo)" {
+                    let mk subst sortNo dataId =
+                        { baseData with
+                            Id = dataId
+                            SortNo = sortNo
+                            Route = "ORAAL"
+                            Generic = { emptyGen with Name = "amoxicilline/clavulaanzuur" }
+                            ScheduleData =
+                                { emptySched with
+                                    DoseLimitData =
+                                        { emptyDL with
+                                            Component = "amoxicilline/clavulaanzuur"
+                                            Substance = subst
+                                        }
+                                }
+                        }
+
+                    // distinct DataId + SortNo per substance row, as the source data may carry
+                    let rules = buildRules [| mk "amoxicilline" 1 "A"; mk "clavulaanzuur" 2 "B" |]
+
+                    rules
+                    |> Array.length
+                    |> Expect.equal "substance rows collapse into one DoseRule" 1
+
+                    rules[0].ComponentLimits
+                    |> Array.length
+                    |> Expect.equal "one component, not split per substance" 1
+
+                    rules[0].ComponentLimits[0].SubstanceLimits
+                    |> Array.map (_.DoseLimitTarget >> LimitTarget.toString)
+                    |> Array.sort
+                    |> Expect.equal "both substances live in the one component" [| "amoxicilline"; "clavulaanzuur" |]
+                }
+
                 // --- unit tests for the extracted addProductsWithWarnings helpers ---
 
                 test "groupRows groups by selection key" {
@@ -654,7 +727,7 @@ module DoseRuleProductTests =
                     let cit = mkData "citalopram" "ORAAL" "" "" [||] [||]
                     let citProds = prods |> Array.filter (fun p -> p.Generic = "citalopram")
 
-                    DoseRule.expandRowByForm routeMapping (DoseRule.groupKey cit) cit citProds
+                    DoseRule.expandRowByFormAndUnitGroup routeMapping (DoseRule.groupKey cit) cit citProds
                     |> Array.map (fun r -> r.Products |> Array.map _.GPK |> Array.sort)
                     |> Array.sortBy (Array.tryHead >> Option.defaultValue "")
                     |> Expect.equal
@@ -735,9 +808,7 @@ module Tests =
 
                         result |> Expect.isNonEmpty "should contain value"
 
-                        result
-                        |> fun s -> s.Contains("[rate]")
-                        |> Expect.isTrue "should contain label"
+                        result |> _.Contains("[rate]") |> Expect.isTrue "should contain label"
                     }
 
                     test "printMinMaxDose with label and perDose suffix" {
@@ -749,11 +820,9 @@ module Tests =
 
                         let result = DoseLimit.printMinMaxDose "[qty]" "/dosis" minMax
 
-                        result
-                        |> fun s -> s.Contains("/dosis")
-                        |> Expect.isTrue "should contain perDose suffix"
+                        result |> _.Contains("/dosis") |> Expect.isTrue "should contain perDose suffix"
 
-                        result |> (fun s -> s.Contains("[qty]")) |> Expect.isTrue "should contain label"
+                        result |> _.Contains("[qty]") |> Expect.isTrue "should contain label"
                     }
 
                     test "printMinMaxDose with empty label uses decimal format" {
@@ -816,13 +885,9 @@ module Tests =
 
                         let result = dl |> DoseLimit.toString |> List.head
 
-                        result
-                        |> fun s -> s.Contains("[qty]")
-                        |> Expect.isTrue "should contain [qty] label"
+                        result |> _.Contains("[qty]") |> Expect.isTrue "should contain [qty] label"
 
-                        result
-                        |> fun s -> s.Contains("/dosis")
-                        |> Expect.isTrue "should contain /dosis suffix"
+                        result |> _.Contains("/dosis") |> Expect.isTrue "should contain /dosis suffix"
                     }
 
                     test "toString with PerTime includes [per-time] label" {
@@ -838,7 +903,7 @@ module Tests =
                         let result = dl |> DoseLimit.toString |> List.head
 
                         result
-                        |> fun s -> s.Contains("[per-time]")
+                        |> _.Contains("[per-time]")
                         |> Expect.isTrue "should contain [per-time] label"
                     }
 
@@ -859,12 +924,10 @@ module Tests =
 
                         let result = dl |> DoseLimit.toString |> List.head
 
-                        result
-                        |> fun s -> s.Contains("[qty]")
-                        |> Expect.isTrue "should contain [qty] label"
+                        result |> _.Contains("[qty]") |> Expect.isTrue "should contain [qty] label"
 
                         result
-                        |> fun s -> s.Contains("[per-time]")
+                        |> _.Contains("[per-time]")
                         |> Expect.isTrue "should contain [per-time] label"
                     }
 
@@ -881,7 +944,7 @@ module Tests =
                         let result = dl |> DoseLimit.toString |> List.head
 
                         result
-                        |> fun s -> s.Contains("[per-time-adj]")
+                        |> _.Contains("[per-time-adj]")
                         |> Expect.isTrue "should contain [per-time-adj] label"
                     }
 
@@ -1123,8 +1186,7 @@ module Tests =
                         }
                         |> PatientCategory.filter
                             { filter with
-                                Patient =
-                                    { filter.Patient with Age = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Some }
+                                DoseFilter.Patient.Age = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Some
                             }
                         |> Expect.isTrue "should return true"
                     }
@@ -1139,8 +1201,7 @@ module Tests =
                         }
                         |> PatientCategory.filter
                             { filter with
-                                Patient =
-                                    { filter.Patient with Age = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Some }
+                                DoseFilter.Patient.Age = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Some
                             }
                         |> Expect.isFalse "should return false"
                     }
@@ -1156,8 +1217,7 @@ module Tests =
                         }
                         |> PatientCategory.filter
                             { filter with
-                                Patient =
-                                    { filter.Patient with Age = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Some }
+                                DoseFilter.Patient.Age = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Some
                             }
                         |> Expect.isTrue "should return true"
                     }
@@ -1175,8 +1235,7 @@ module Tests =
                         }
                         |> PatientCategory.filter
                             { filter with
-                                Patient =
-                                    { filter.Patient with Age = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Some }
+                                DoseFilter.Patient.Age = 5N |> ValueUnit.singleWithUnit Units.Time.day |> Some
                             }
                         |> Expect.isFalse "should return false"
                     }
@@ -1438,10 +1497,7 @@ module Tests =
                                         |> Limit.Inclusive
                                         |> Some
                                 }
-                            GestAge =
-                                { patCat.GestAge with
-                                    Max = 37N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
-                                }
+                            GestAge.Max = 37N |> ValueUnit.singleWithUnit Units.Time.week |> Limit.Inclusive |> Some
                         }
                         |> PatientCategory.filter
                             { filter with
@@ -1987,7 +2043,7 @@ module Tests =
                     test "BUG-B maximizeDosages merges Abs from Abs (not Norm)" {
                         [ mkDosage 3N 5N; mkDosage 3N 9N ]
                         |> Check.maximizeDosages
-                        |> Option.bind (fun d -> d.SingleDosage.Abs.Max)
+                        |> Option.bind _.SingleDosage.Abs.Max
                         |> Option.map (Limit.getValueUnit >> ValueUnit.getValue >> Array.map BigRational.toDouble)
                         |> Expect.equal "Abs.Max 9 (was 3)" (Some [| 9.0 |])
                     }

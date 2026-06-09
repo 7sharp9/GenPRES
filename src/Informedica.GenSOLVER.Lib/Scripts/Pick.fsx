@@ -262,7 +262,7 @@ module Solve =
                         | [| lv; rv |] ->
                             orb.Components
                             |> List.map (fun c -> rv.Replace("cmp", c.Name))
-                            |> String.concat (" + ")
+                            |> String.concat " + "
                             |> fun s -> $"{lv} = {s}"
                         | _ -> ""
                     )

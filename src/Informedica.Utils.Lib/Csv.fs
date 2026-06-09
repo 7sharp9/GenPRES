@@ -102,7 +102,7 @@ module Csv =
         // remove quotes
         |> Array.map (String.replace "\"" "")
         // split on special character
-        |> Array.map (fun s -> s.Split("") |> Array.map (fun s -> s.Trim()))
+        |> Array.map (fun s -> s.Split("") |> Array.map _.Trim())
 
 
     module Tests =

@@ -2,16 +2,14 @@
 
 // load demo or product cache
 
+#load "load.fsx"
+
+
 open System
 
 Informedica.Utils.Lib.Env.loadDotEnv () |> ignore
 Environment.SetEnvironmentVariable("GENPRES_DEBUG", "0")
 Environment.SetEnvironmentVariable("GENPRES_PROD", "1")
-
-Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
-
-
-#load "load.fsx"
 
 
 open Informedica.Utils.Lib
@@ -99,7 +97,7 @@ let createScenarios (ctx: OrderContext) =
     ]
 
 
-let printScenarios path pat (scs: Result<OrderContext, (string * OrderContext)> list) =
+let printScenarios path pat (scs: Result<OrderContext, string * OrderContext> list) =
     let append s = File.appendTextToFile path $"{s}\n"
 
     let printMd sl =
@@ -306,7 +304,7 @@ module Order =
 
     module Dto =
 
-        let fromDto: (Order.Dto.Dto -> Order) =
+        let fromDto: Order.Dto.Dto -> Order =
             Order.Dto.fromDto
             >> (function
             | Ok ord -> ord
@@ -317,7 +315,7 @@ let dro =
     Patient.newBorn
     |> Api.getPrescriptionRules provider
     |> Result.get
-    |> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "MM met BMF")
+    |> Array.filter (fun pr -> pr.DoseRule.Generic |> Generic.genericName |> String.equalsCapInsens "MM met BMF")
     |> Array.head
     |> Medication.fromRule Logging.noOp
     |> Array.head
@@ -330,7 +328,7 @@ let ord =
     Patient.newBorn
     |> Api.getPrescriptionRules provider
     |> Result.get
-    |> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "MM met BMF")
+    |> Array.filter (fun pr -> pr.DoseRule.Generic |> Generic.genericName |> String.equalsCapInsens "MM met BMF")
     |> Array.head
     |> Medication.fromRule Logging.noOp
     |> Array.head
@@ -345,7 +343,7 @@ Patient.teenager
 |> Patient.setWeight (33m |> Kilogram |> Some)
 |> Api.getPrescriptionRules provider
 |> Result.get
-|> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "piperacilline/tazobactam")
+|> Array.filter (fun pr -> pr.DoseRule.Generic |> Generic.genericName |> String.equalsCapInsens "piperacilline/tazobactam")
 |> Array.head
 |> Medication.fromRule Logging.noOp
 |> Array.head
@@ -359,7 +357,7 @@ Patient.teenager
 |> Patient.setWeight (33m |> Kilogram |> Some)
 |> Api.getPrescriptionRules provider
 |> Result.get
-|> Array.filter (fun pr -> pr.DoseRule.Generic |> String.equalsCapInsens "noradrenaline")
+|> Array.filter (fun pr -> pr.DoseRule.Generic |> Generic.genericName |> String.equalsCapInsens "noradrenaline")
 |> Array.head
 |> Medication.fromRule Logging.noOp
 |> Array.head

@@ -19,7 +19,7 @@ module Localization =
         =
 
         let context: Global.Context = React.useContext Global.context
-        let anchorElLang, setAnchorElLang = React.useState (None)
+        let anchorElLang, setAnchorElLang = React.useState None
 
         let handleOpenLangMenu = fun ev -> ev?currentTarget |> setAnchorElLang
         let handleCloseLangMenu = fun _ -> setAnchorElLang None

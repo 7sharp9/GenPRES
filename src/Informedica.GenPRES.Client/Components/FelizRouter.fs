@@ -110,7 +110,7 @@ module Router =
         else
             history.replaceState (null, "", encodeParts xs routeMode)
 
-        let ev = document.createEvent ("CustomEvent")
+        let ev = document.createEvent "CustomEvent"
 
         ev.initEvent (customNavigationEvent, true, true)
         window.dispatchEvent ev |> ignore
@@ -188,7 +188,7 @@ module Router =
 
             // trigger navigation event on mount
             React.useEffectOnce (fun () ->
-                let ev = document.createEvent ("CustomEvent")
+                let ev = document.createEvent "CustomEvent"
                 ev.initEvent (customNavigationEvent, true, true)
                 window.dispatchEvent ev |> ignore
             )
@@ -1641,7 +1641,7 @@ type Router =
 
     static member inline navigateBack() = Browser.Dom.history.back ()
     static member inline navigateBack(n: int) = Browser.Dom.history.go (-n)
-    static member inline navigateForward(n: int) = Browser.Dom.history.go (n)
+    static member inline navigateForward(n: int) = Browser.Dom.history.go n
 
     static member inline navigatePath([<ParamArray>] xs: string array) =
         Router.nav (List.ofArray xs) HistoryMode.PushState RouteMode.Path
@@ -3032,10 +3032,10 @@ type Cmd =
         Cmd.ofEffect (fun _ -> Browser.Dom.history.go (-n))
 
     static member inline navigateForward(n: int) : Cmd<_> =
-        Cmd.ofEffect (fun _ -> Browser.Dom.history.go (n))
+        Cmd.ofEffect (fun _ -> Browser.Dom.history.go n)
 
     static member inline navigate([<ParamArray>] xs: string array) : Cmd<_> =
-        Cmd.ofEffect (fun _ -> Router.navigate (xs))
+        Cmd.ofEffect (fun _ -> Router.navigate xs)
 
     static member inline navigate(xs: string list, queryString: (string * string) list) : Cmd<_> =
         Cmd.ofEffect (fun _ -> Router.navigate (xs, queryString))
@@ -3463,7 +3463,7 @@ type Cmd =
         Cmd.ofEffect (fun _ -> Router.navigate (segment1, segment2, segment3, segment4, segment5, queryString, mode))
 
     static member inline navigate(fullPath: string) : Cmd<'Msg> =
-        Cmd.ofEffect (fun _ -> Router.navigate (fullPath))
+        Cmd.ofEffect (fun _ -> Router.navigate fullPath)
 
     static member inline navigate(fullPath: string, mode: HistoryMode) : Cmd<'Msg> =
         Cmd.ofEffect (fun _ -> Router.navigate (fullPath, mode))
@@ -3554,7 +3554,7 @@ type Cmd =
         Cmd.ofEffect (fun _ -> Router.navigate (segment1, value1, value2, segment2, mode))
 
     static member inline navigatePath([<ParamArray>] xs: string array) =
-        Cmd.ofEffect (fun _ -> Router.navigatePath (xs))
+        Cmd.ofEffect (fun _ -> Router.navigatePath xs)
 
     static member inline navigatePath(xs: string list, queryString: (string * string) list) =
         Cmd.ofEffect (fun _ -> Router.navigatePath (xs, queryString))
@@ -4006,7 +4006,7 @@ type Cmd =
         )
 
     static member inline navigatePath(fullPath: string) : Cmd<'Msg> =
-        Cmd.ofEffect (fun _ -> Router.navigatePath (fullPath))
+        Cmd.ofEffect (fun _ -> Router.navigatePath fullPath)
 
     static member inline navigatePath(fullPath: string, mode: HistoryMode) : Cmd<'Msg> =
         Cmd.ofEffect (fun _ -> Router.navigatePath (fullPath, mode))
@@ -4124,8 +4124,10 @@ module Route =
 
     let (|Bool|_|) (input: string) =
         match input.ToLower() with
-        | ("1" | "true") -> Some true
-        | ("0" | "false") -> Some false
+        | "1"
+        | "true" -> Some true
+        | "0"
+        | "false" -> Some false
         | "" -> Some true
         | _ -> None
 

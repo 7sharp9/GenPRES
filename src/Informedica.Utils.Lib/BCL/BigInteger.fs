@@ -9,7 +9,7 @@ module BigInteger =
 
 
     /// Create a `bigint` from an `int`
-    let fromInt (x: int) = bigint (x)
+    let fromInt (x: int) = bigint x
 
 
     /// Create an `int` from a `bigint`

@@ -268,7 +268,7 @@ module GenOrderTools =
                     SelectedRoute = result.Filter.Route
                     SelectedForm = result.Filter.Form
                     ScenarioCount = result.Scenarios |> Array.length
-                    SelectedScenario = result.Scenarios |> Array.tryExactlyOne |> Option.map (fun sc -> sc.Name)
+                    SelectedScenario = result.Scenarios |> Array.tryExactlyOne |> Option.map _.Name
                     FilterOptions = filterOpts
                 }
 

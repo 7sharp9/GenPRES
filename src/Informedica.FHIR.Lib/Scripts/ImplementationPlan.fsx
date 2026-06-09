@@ -1367,7 +1367,7 @@ let fromFhirMedicationRequest
             req.Note
             |> List.ofSeq
             |> List.tryHead
-            |> Option.map (fun a -> a.Text.ToString())
+            |> Option.map _.Text.ToString()
             |> Option.defaultValue ""
         WeightKg = weightKg; HeightCm = heightCm; Gender = gender
         Indication = indication; MedicationName = medicationName
