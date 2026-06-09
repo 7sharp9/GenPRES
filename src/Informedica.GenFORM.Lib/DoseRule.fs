@@ -1226,27 +1226,16 @@ module DoseRule =
             let rules =
                 let chunkBySize = Parallel.totalWorders
 
-                // Group rows into one DoseRule per SEMANTIC identity: the
-                // documented-identity domain fields only.
-                // DoseRules. The representative record is the group head; the rows
-                // are reunited so addDoseLimits assembles one component with all
-                // its substance limits.
-                let semanticKey (r: DoseRule) =
-                    [
-                        r.Source |> Source.toString
-                        r.Generic.Label |> GenericLabel.toString
-                        r.Generic.Form |> PharmaceuticalForm.toString
-                        r.Route
-                        r.Indication
-                        r.PatientCategory |> PatientCategory.toString
-                        r.DoseType |> DoseType.toString
-                    ]
-                    |> List.map normaliseWhiteSpaceLower
-
+                // Group rows into one DoseRule per documented identity. r.Id is the
+                // content hash of exactly those identity fields (set by mapToDoseRule
+                // via hashId), so grouping by it reunites the substance fan-outs of
+                // one logical rule. The group head is the representative; the rows are
+                // reunited so addDoseLimits assembles one component with all its
+                // substance limits.
                 let grouped =
                     rules
                     |> Array.map (fun (d, r) -> r |> Result.get, d)
-                    |> Array.groupBy (fun (r, _) -> semanticKey r)
+                    |> Array.groupBy (fun (r, _) -> r.Id)
                     |> Array.map (fun (_, items) -> (items |> Array.head |> fst), items)
 
                 grouped
@@ -1263,7 +1252,7 @@ module DoseRule =
 
 
     /// Impure adapter: loads DoseRuleData via the `getData` thunk and delegates
-    /// to the pure <c>fromDataWithWarnings</c>, carrying the product warnings.
+    /// to the pure <c>fromData</c>, carrying the product warnings.
     /// Kept for existing callers/tests.
     let get getData routeMapping formRoutes prods : Result<DoseRule[] * Message list, Message list> =
         getData () |> Result.bind (fromData routeMapping formRoutes prods)
