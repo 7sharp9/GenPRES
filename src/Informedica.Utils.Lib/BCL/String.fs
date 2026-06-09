@@ -66,7 +66,7 @@ module String =
 
     /// Convert object to string
     let toString o =
-        o |> NullCheck.nullOrDef (fun o' -> o'.ToString()) ""
+        o |> NullCheck.nullOrDef _.ToString() ""
 
 
     /// Get a substring starting at `start` with length `length`
@@ -242,3 +242,16 @@ module String =
 
 
     let removeExtraSpaces (input: string) : string = Regex.Replace(input, @"\s{2,}", " ")
+
+
+    /// Hash a key field list to a 12-char lowercase hex
+    let sha1Short (fields: string list) =
+        let joined = fields |> String.concat "\t"
+        let bytes = System.Text.Encoding.UTF8.GetBytes joined
+
+        use sha = System.Security.Cryptography.SHA1.Create()
+
+        sha.ComputeHash bytes
+        |> Array.take 6
+        |> Array.map (fun b -> b.ToString "x2")
+        |> String.concat ""

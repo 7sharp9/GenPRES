@@ -18,8 +18,8 @@ module Generators =
 
     let bigRGen (n, d) =
         let d = if d = 0 then 1 else d
-        let n = abs (n) |> BigRational.FromInt
-        let d = abs (d) |> BigRational.FromInt
+        let n = abs n |> BigRational.FromInt
+        let d = abs d |> BigRational.FromInt
         n / d
 
 

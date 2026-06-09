@@ -54,14 +54,14 @@ type ZFormCommand =
     /// Get dose rules restricted to a specific patient category
     | GetPatientDoseRules of
         config: GStandQueryConfig *
-        patient: RuleFinder.Patient *
+        patient: Types.PatientFilter *
         generic: string *
         form: string *
         route: string
     /// Get the per-substance dose breakdown for a patient
     | GetSubstanceDoses of
         config: GStandQueryConfig *
-        patient: RuleFinder.Patient *
+        patient: Types.PatientFilter *
         generic: string *
         form: string *
         route: string
@@ -71,7 +71,11 @@ type ZFormCommand =
 [<RequireQualifiedAccess>]
 type ZFormResponse =
     | DoseRules of DoseRule seq
-    | SubstanceDoses of GStand.SubstanceDose seq
+    | SubstanceDoses of
+        {|
+            indications: string list
+            dosage: Informedica.ZForm.Lib.Types.Dosage
+        |} seq
     | Error of string
 
 
@@ -88,12 +92,12 @@ type ZFormState = unit // stateless — ZForm reads from ZIndex cache
 // Command processor
 // ============================================================
 
-let inline toGStandConfig (cfg: GStandQueryConfig) : GStand.Config =
+let inline toGStandConfig (cfg: GStandQueryConfig) : Informedica.ZForm.Lib.Types.CreateConfig =
     {
         GPKs = cfg.GPKs
         IsRate = cfg.IsRate
-        SubstanceUnit = cfg.SubstanceUnit
-        TimeUnit = cfg.TimeUnit
+        SubstanceUnit = cfg.SubstanceUnit |> Option.map Mapping.stringToUnit
+        TimeUnit = cfg.TimeUnit |> Option.map Mapping.stringToUnit
     }
 
 
@@ -108,9 +112,9 @@ let processCommand (_state: ZFormState) (cmd: ZFormCommand) : ZFormResponse * ZF
             // RuleFinder returns ZIndex rules; GStand turns them into structured doses
             let rules =
                 {
-                    RuleFinder.Patient = patient
-                    RuleFinder.Product =
-                        RuleFinder.GenericFormRoute
+                    Patient = patient
+                    Product =
+                        Types.GenericFormRoute
                             {
                                 Generic = generic
                                 Form = form
@@ -129,8 +133,8 @@ let processCommand (_state: ZFormState) (cmd: ZFormCommand) : ZFormResponse * ZF
             // Return dose rules via the standard path instead
             GStand.createDoseRules
                 (toGStandConfig cfg)
-                (Some patient.Age)
-                (Some patient.Weight)
+                patient.Age
+                patient.Weight
                 None
                 None
                 generic
@@ -141,9 +145,9 @@ let processCommand (_state: ZFormState) (cmd: ZFormCommand) : ZFormResponse * ZF
         | ZFormCommand.GetSubstanceDoses(cfg, patient, generic, form, route) ->
             let rules =
                 {
-                    RuleFinder.Patient = patient
-                    RuleFinder.Product =
-                        RuleFinder.GenericFormRoute
+                    Patient = patient
+                    Product =
+                        Types.GenericFormRoute
                             {
                                 Generic = generic
                                 Form = form
@@ -171,7 +175,7 @@ let createZFormAgent () =
 // Helper
 // ============================================================
 
-let ask (agent: Agent<ZFormCommand * AsyncReplyChannel<ZFormResponse>>) cmd = agent |> Agent.postAndReply cmd
+let ask cmd (agent: Agent<ZFormCommand * AsyncReplyChannel<ZFormResponse>>) = agent |> Agent.postAndReply cmd
 
 
 // ============================================================
@@ -209,7 +213,7 @@ with
 // 2. Get substance doses for a specific patient
 printfn "\n2. Substance doses for a 10 kg, 4-year-old patient:"
 
-let patient: RuleFinder.Patient =
+let patient: Types.PatientFilter =
     {
         Age = Some 4. // years
         Weight = Some 10. // kg

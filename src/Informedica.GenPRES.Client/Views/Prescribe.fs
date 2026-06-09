@@ -162,7 +162,7 @@ module Prescribe =
                 let onClick (sc: OrderScenario) =
                     let ctx =
                         { pr with
-                            Filter = { pr.Filter with Form = Some sc.Form }
+                            OrderContext.Filter.Form = Some sc.Form
                             Scenarios = [| sc |]
                         }
 

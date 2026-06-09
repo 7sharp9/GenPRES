@@ -219,7 +219,7 @@ module Tests =
                             s.Name,
                             Substance.get ()
                             |> Array.filter (fun s2 -> s2.Id = s.Pk)
-                            |> Array.map (fun s2 -> s2.Name)
+                            |> Array.map _.Name
                             |> Array.distinct
                             |> String.concat ", "
                         )
@@ -244,7 +244,7 @@ module Tests =
                 [
 
                     test "should have at consumer product for tradeperoduct with id = 2956608" {
-                        ConsumerProduct.get (2956608) |> Array.length |> Expect.equal "shoudl be 1" 1
+                        ConsumerProduct.get 2956608 |> Array.length |> Expect.equal "shoudl be 1" 1
                     }
 
                     test "should have genpresproducts" {
@@ -318,7 +318,7 @@ module Tests =
                 DoseRule.get []
             with _ ->
                 [||]
-            |> Array.collect (fun dr -> dr.Routes)
+            |> Array.collect _.Routes
             |> Array.sort
             |> Array.distinct
 
@@ -346,7 +346,7 @@ module Tests =
                     test "should have different dose units" {
                         // Get all possible dose units
                         DoseRule.get []
-                        |> Array.map (fun dr -> dr.Unit)
+                        |> Array.map _.Unit
                         |> Array.distinct
                         |> Array.length
                         |> fun x -> x >= 10
@@ -356,7 +356,7 @@ module Tests =
                     test "should have 3 gender possibilities" {
                         // Get all possible patient gender
                         DoseRule.get []
-                        |> Array.map (fun dr -> dr.Gender)
+                        |> Array.map _.Gender
                         |> Array.distinct
                         |> Array.length
                         |> Expect.equal "should be three" 3
@@ -514,9 +514,7 @@ module Tests =
                                 |}
                             )
 
-                        let totRs =
-                            rs
-                            |> Array.collect (fun r -> r.pats |> Array.collect (fun p -> p.pat.doserules))
+                        let totRs = rs |> Array.collect (fun r -> r.pats |> Array.collect _.pat.doserules)
 
                         totRs
                         |> Array.length
@@ -650,7 +648,7 @@ module Tests =
                         GenPresProduct.get []
                         |> Array.collect (fun gpp ->
                             gpp.GenericProducts
-                            |> Array.collect (fun gp -> gp.Substances |> Array.map (fun s -> s.GenericUnit))
+                            |> Array.collect (fun gp -> gp.Substances |> Array.map _.GenericUnit)
                         )
                         |> Array.distinct
                         |> Array.sort
@@ -677,7 +675,7 @@ module Tests =
                         |> Array.forall (fun gpp ->
                             let ss =
                                 gpp.GenericProducts
-                                |> Array.collect (fun gp -> gp.Substances |> Array.map (fun s -> s.SubstanceName))
+                                |> Array.collect (fun gp -> gp.Substances |> Array.map _.SubstanceName)
 
                             gpp.Name
                             |> String.split "/"
@@ -696,7 +694,7 @@ module Tests =
                     test "at least 2232 products have bar codes" {
                         // get barcodes
                         GenPresProduct.get []
-                        |> Array.collect (fun gpp -> gpp.GenericProducts)
+                        |> Array.collect _.GenericProducts
                         |> Array.collect (fun gp ->
                             //    gp.Label,
                             gp.PrescriptionProducts
@@ -719,7 +717,7 @@ module Tests =
 
                     test "insuline has correct unit" {
                         GenPresProduct.get []
-                        |> Array.collect (fun gpp -> gpp.GenericProducts)
+                        |> Array.collect _.GenericProducts
                         |> Array.filter (fun gp -> gp.Name |> String.toLower |> String.contains "insuline")
                         |> Array.map (fun gp -> gp.Id, gp.Label, gp.Substances[0].SubstanceUnit)
                         |> Array.forall (fun (_, _, u) -> u |> String.containsCapsInsens "eenheid")

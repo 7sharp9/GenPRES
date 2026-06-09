@@ -177,10 +177,8 @@ module Nutrition =
                                         |> Array.map (fun cmp ->
                                             if cmp.Name = cmpName then
                                                 { cmp with
-                                                    Dose =
-                                                        { cmp.Dose with
-                                                            QuantityAdjust = cmp.Dose.QuantityAdjust |> setOvar s
-                                                        }
+                                                    Component.Dose.QuantityAdjust =
+                                                        cmp.Dose.QuantityAdjust |> setOvar s
                                                 }
                                             else
                                                 cmp
@@ -196,12 +194,7 @@ module Nutrition =
                 match state.Order with
                 | Some ord ->
                     let msg =
-                        { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Dose = { ord.Orderable.Dose with Rate = ord.Orderable.Dose.Rate |> setOvar s }
-                                }
-                        }
+                        { ord with Order.Orderable.Dose.Rate = ord.Orderable.Dose.Rate |> setOvar s }
                         |> UpdateOrderScenario
 
                     { state with Order = None }, Cmd.ofMsg msg
@@ -211,10 +204,7 @@ module Nutrition =
                 match state.Order with
                 | Some ord ->
                     let msg =
-                        { ord with
-                            Orderable =
-                                { ord.Orderable with OrderableQuantity = ord.Orderable.OrderableQuantity |> setOvar s }
-                        }
+                        { ord with Order.Orderable.OrderableQuantity = ord.Orderable.OrderableQuantity |> setOvar s }
                         |> UpdateOrderScenario
 
                     { state with Order = None }, Cmd.ofMsg msg
@@ -224,7 +214,7 @@ module Nutrition =
                 match state.Order with
                 | Some ord ->
                     let msg =
-                        { ord with Schedule = { ord.Schedule with Frequency = ord.Schedule.Frequency |> setOvar s } }
+                        { ord with Order.Schedule.Frequency = ord.Schedule.Frequency |> setOvar s }
                         |> UpdateOrderScenario
 
                     { state with Order = None }, Cmd.ofMsg msg
@@ -234,13 +224,7 @@ module Nutrition =
                 match state.Order with
                 | Some ord ->
                     let msg =
-                        { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Dose =
-                                        { ord.Orderable.Dose with Quantity = ord.Orderable.Dose.Quantity |> setOvar s }
-                                }
-                        }
+                        { ord with Order.Orderable.Dose.Quantity = ord.Orderable.Dose.Quantity |> setOvar s }
                         |> UpdateOrderScenario
 
                     { state with Order = None }, Cmd.ofMsg msg
@@ -676,7 +660,7 @@ module Nutrition =
             |> fun updCtx ->
                 // In Nutrition, Generic is upstream of Indication.
                 // Clear Indication selection (but NOT the Indications list — server repopulates it).
-                { updCtx with Filter = { updCtx.Filter with Indication = None } }
+                { updCtx with OrderContext.Filter.Indication = None }
             |> fun updCtx -> Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.UpdateOrderContext, updCtx)
             |> props.nutritionPlanMsg
 

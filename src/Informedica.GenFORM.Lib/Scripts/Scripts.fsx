@@ -18,7 +18,13 @@ let dataUrlId = Environment.GetEnvironmentVariable("GENPRES_URL_ID")
 #load "../LimitTarget.fs"
 #load "../DoseLimit.fs"
 #load "../DoseType.fs"
+#load "../GenericLabel.fs"
+#load "../PharmaceuticalForm.fs"
+#load "../ProductId.fs"
+#load "../Generic.fs"
+#load "../Source.fs"
 #load "../DoseRule.fs"
+#load "../DoseRuleData.fs"
 #load "../Check.fs"
 #load "../SolutionLimit.fs"
 #load "../SolutionRule.fs"
@@ -38,7 +44,7 @@ open Informedica.GenForm.Lib
 module GenFormResult =
 
     let defaultValue value res =
-        res |> Result.map fst |> Result.defaultValue value
+        res |> Result.defaultValue value
 
 
 let provider: Resources.IResourceProvider =
@@ -57,12 +63,12 @@ provider.GetFormRoutes()
 
 provider.GetDoseRules()
 |> Array.filter (_.DoseType >> _.IsOnce)
-|> Array.filter (_.Generic >> ((=) "albutrepenonacog alfa"))
+|> Array.filter (_.Generic >> Generic.genericName >> (=) "albutrepenonacog alfa")
 
 
 provider.GetDoseRules()
 |> Array.filter (_.DoseType >> _.IsOnce)
-|> Array.filter (_.Generic >> ((=) "vancomycine"))
+|> Array.filter (_.Generic >> Generic.genericName >> (=) "vancomycine")
 
 
 provider.GetDoseRules()
@@ -99,11 +105,11 @@ dr
 |> DoseRule.addFormLimits (provider.GetRouteMappings()) (provider.GetFormRoutes())
 
 
-let doseRuleData = DoseRule.getData dataUrlId |> GenFormResult.defaultValue [||]
+let doseRuleData = DoseRule.getData dataUrlId |> Result.defaultValue [||]
 
 
 doseRuleData
-|> Array.filter (fun dr -> dr.Generic = "zoledroninezuur")
+|> Array.filter (fun dr -> dr.Generic.Name = "zoledroninezuur")
 |> Array.map DoseRule.doseRuleDataIsValid
 
 

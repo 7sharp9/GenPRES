@@ -16,7 +16,13 @@ let dataUrlId = Environment.GetEnvironmentVariable("GENPRES_URL_ID")
 #load "../LimitTarget.fs"
 #load "../DoseLimit.fs"
 #load "../DoseType.fs"
+#load "../GenericLabel.fs"
+#load "../PharmaceuticalForm.fs"
+#load "../ProductId.fs"
+#load "../Generic.fs"
+#load "../Source.fs"
 #load "../DoseRule.fs"
+#load "../DoseRuleData.fs"
 #load "../Check.fs"
 #load "../SolutionLimit.fs"
 #load "../SolutionRule.fs"
@@ -34,7 +40,7 @@ open Informedica.GenForm.Lib
 
 let inline resultGet r =
     match r with
-    | Ok(mapping, _) -> mapping
+    | Ok x -> x
     | Error _ -> failwith "Failed to get result"
 
 let routeMapping = Mapping.getRouteMapping dataUrlId |> resultGet
@@ -42,12 +48,15 @@ let routeMapping = Mapping.getRouteMapping dataUrlId |> resultGet
 
 let unitMapping = Mapping.getUnitMapping dataUrlId |> resultGet
 
-let parenterals = Product.Parenteral.get dataUrlId unitMapping |> resultGet
+let parenterals =
+    Product.getFormularyProducts dataUrlId
+    |> Result.map (Product.Parenteral.get unitMapping)
+    |> resultGet
 
 
 SolutionRule.getData dataUrlId
 |> function
-    | Ok(data, _) ->
+    | Ok data ->
         data
         |> Array.filter (_.Generic >> (=) "Samenstelling C")
         |> SolutionRule.map routeMapping parenterals [||]

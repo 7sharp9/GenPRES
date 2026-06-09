@@ -194,7 +194,7 @@ module Tests =
                         Logging.logError filteredLogger msg // Should pass through
 
                         Expect.hasLength events 2 "Only Warning and Error should pass through"
-                        let levels = events |> List.map (fun e -> e.Level)
+                        let levels = events |> List.map _.Level
                         Expect.contains levels Level.Warning "Warning should be included"
                         Expect.contains levels Level.Error "Error should be included"
                     }
@@ -686,7 +686,7 @@ module Tests =
                         let! lines = logger.ReportAsync()
 
                         // Should only have the last 3 messages (plus headers)
-                        let messageLines = lines |> Array.filter (fun l -> l.Contains("Message"))
+                        let messageLines = lines |> Array.filter _.Contains("Message")
                         Expect.hasLength messageLines 3 "Should only keep last 3 messages"
                         Expect.stringContains (String.concat "" messageLines) "Message 8" "Should contain Message 8"
                         Expect.stringContains (String.concat "" messageLines) "Message 9" "Should contain Message 9"
@@ -714,7 +714,7 @@ module Tests =
                         do! Async.Sleep 1000
 
                         let! lines = logger.ReportAsync()
-                        let messageLines = lines |> Array.filter (fun l -> l.Contains("Value ="))
+                        let messageLines = lines |> Array.filter _.Contains("Value =")
 
                         Expect.isGreaterThan messageLines.Length 0 "Should have processed some messages"
                         printfn $"Processed {messageLines.Length} messages in {sw.ElapsedMilliseconds}ms"
@@ -740,7 +740,7 @@ module Tests =
                         do! Async.Sleep 500
 
                         let! lines = logger.ReportAsync()
-                        let messageLines = lines |> Array.filter (fun l -> l.Contains("Text = \"error\""))
+                        let messageLines = lines |> Array.filter _.Contains("Text = \"error\"")
 
                         // Should only have the error message
                         Expect.hasLength messageLines 1 "Should only log error messages"
@@ -830,7 +830,7 @@ module Tests =
                         do! Async.Sleep 1000
 
                         let! lines = logger.ReportAsync()
-                        let messageLines = lines |> Array.filter (fun l -> l.Contains("Value ="))
+                        let messageLines = lines |> Array.filter _.Contains("Value =")
 
                         Expect.isGreaterThan messageLines.Length 500 "Should have processed most messages"
 
@@ -904,7 +904,7 @@ module Tests =
                         do! Async.Sleep 100
 
                         let! lines = logger.ReportAsync()
-                        let messageLines = lines |> Array.filter (fun l -> l.Contains("Text = \"Quick"))
+                        let messageLines = lines |> Array.filter _.Contains("Text = \"Quick")
                         Expect.isGreaterThan messageLines.Length 0 "Should have processed some messages"
 
                         do! logger.StopAsync()
@@ -924,7 +924,7 @@ module Tests =
                         do! Async.Sleep 300
 
                         let! lines = logger.ReportAsync()
-                        let messageLines = lines |> Array.filter (fun l -> l.Contains("Value ="))
+                        let messageLines = lines |> Array.filter _.Contains("Value =")
                         Expect.isGreaterThan messageLines.Length 10 "Should have processed many messages"
 
                         do! logger.StopAsync()
@@ -950,7 +950,7 @@ module Tests =
                         do! Async.Sleep 150
 
                         let! lines = logger.ReportAsync()
-                        let messageLines = lines |> Array.filter (fun l -> l.Contains("Text = \"Config"))
+                        let messageLines = lines |> Array.filter _.Contains("Text = \"Config")
                         Expect.hasLength messageLines 2 "Should only keep last 2 messages due to limit"
 
                         do! logger.StopAsync()
@@ -973,8 +973,7 @@ module Tests =
 
                         let! lines = logger.ReportAsync()
 
-                        let messageLines =
-                            lines |> Array.filter (fun l -> l.Contains("Text = \"error-level\""))
+                        let messageLines = lines |> Array.filter _.Contains("Text = \"error-level\"")
 
                         Expect.hasLength messageLines 1 "Should only log error messages"
 

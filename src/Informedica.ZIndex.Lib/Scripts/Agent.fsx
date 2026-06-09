@@ -19,6 +19,7 @@
 open System
 
 open Informedica.Utils.Lib
+open Informedica.Utils.Lib.BCL
 open Informedica.ZIndex.Lib
 open Informedica.Agents.Lib
 
@@ -108,10 +109,7 @@ let processCommand (state: ZIndexState) (cmd: ZIndexCommand) : ZIndexResponse * 
 
         | ZIndexCommand.FilterByBrand brand -> GenPresProduct.findByBrand brand |> ZIndexResponse.Products
 
-        | ZIndexCommand.FindByGPK gpk ->
-            match GenPresProduct.findByGPK gpk with
-            | Some p -> ZIndexResponse.Products [| p |]
-            | None -> ZIndexResponse.Products [||]
+        | ZIndexCommand.FindByGPK gpk -> GenPresProduct.findByGPK gpk |> ZIndexResponse.Products
 
         | ZIndexCommand.GetDoseRules -> ZIndexResponse.DoseRules state.DoseRules
 
@@ -140,7 +138,7 @@ let createZIndexAgent () =
 // Helper: send a command and get a typed response
 // ============================================================
 
-let ask (agent: Agent<ZIndexCommand * AsyncReplyChannel<ZIndexResponse>>) cmd = agent |> Agent.postAndReply cmd
+let ask cmd (agent: Agent<ZIndexCommand * AsyncReplyChannel<ZIndexResponse>>) = agent |> Agent.postAndReply cmd
 
 
 // ============================================================

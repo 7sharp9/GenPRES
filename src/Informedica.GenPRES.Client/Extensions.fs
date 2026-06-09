@@ -83,7 +83,7 @@ module Log =
     /// Logs error to the console during development
     let developmentError (error: exn) =
         if isDevelopment then
-            Browser.Dom.console.error (error)
+            Browser.Dom.console.error error
 
 module Cmd =
     /// Converts an asynchronous operation that returns a message into into a command of that message.

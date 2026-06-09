@@ -52,6 +52,69 @@ open Informedica.GenForm.Lib
 open Informedica.GenForm.Lib.Utils
 
 
+// The flat, one-row-per-dose-limit shape this tool extracts to, serialises to
+// the canonical Pass-4 TSV, and re-parses for benchmark scoring. This is the
+// pre-v2 GenFORM `DoseRuleData` layout; GenFORM v2 replaced it with a nested
+// record (GenericData / PatientCategoryData / ScheduleData), so we keep the flat
+// shape locally — it shadows `Informedica.GenForm.Lib.Types.DoseRuleData` for the
+// conversion/TSV utilities below. The build path (buildDoseRules) goes through
+// the canonical TSV and the v2 GenFORM parser, so it does not use this type.
+type DoseRuleData =
+    {
+        Source: string
+        Indication: string
+        Generic: string
+        Form: string
+        Brand: string
+        GPKs: string array
+        Route: string
+        Department: string
+        ScheduleText: string
+        Gender: Gender
+        MinAge: BigRational option
+        MaxAge: BigRational option
+        MinWeight: BigRational option
+        MaxWeight: BigRational option
+        MinBSA: BigRational option
+        MaxBSA: BigRational option
+        MinGestAge: BigRational option
+        MaxGestAge: BigRational option
+        MinPMAge: BigRational option
+        MaxPMAge: BigRational option
+        DoseType: string
+        DoseText: string
+        Frequencies: BigRational array
+        DoseUnit: string
+        AdjustUnit: string
+        FreqUnit: string
+        RateUnit: string
+        MinTime: BigRational option
+        MaxTime: BigRational option
+        TimeUnit: string
+        MinInterval: BigRational option
+        MaxInterval: BigRational option
+        IntervalUnit: string
+        MinDur: BigRational option
+        MaxDur: BigRational option
+        DurUnit: string
+        Component: string
+        Substance: string
+        MinQty: BigRational option
+        MaxQty: BigRational option
+        MinQtyAdj: BigRational option
+        MaxQtyAdj: BigRational option
+        MinPerTime: BigRational option
+        MaxPerTime: BigRational option
+        MinPerTimeAdj: BigRational option
+        MaxPerTimeAdj: BigRational option
+        MinRate: BigRational option
+        MaxRate: BigRational option
+        MinRateAdj: BigRational option
+        MaxRateAdj: BigRational option
+        Products: ProductComponent array
+    }
+
+
 // =======================================================
 // Config
 // =======================================================
@@ -1141,31 +1204,24 @@ module Pipeline =
     /// Feed the parsed `DoseRuleData` through the same post-processing
     /// chain as `DoseRule.get` (processDoseRuleData → mapToDoseRule →
     /// addDoseLimits) and return the resulting DoseRule array.
-    let buildDoseRules (data: DoseRuleData[]) =
+    let buildDoseRules (rules: Schema.DoseRuleExtracted[]) =
         let prods = Config.provider.GetProducts()
         let routeMapping = Config.provider.GetRouteMappings()
         let formRoutes = Config.provider.GetFormRoutes()
 
-        data
-        |> DoseRule.processDoseRuleData prods routeMapping
-        |> Result.map (fun processed ->
-            let oks, _errs =
-                processed
-                |> Array.map (fun d -> d, d |> DoseRule.mapToDoseRule)
-                |> Array.partition (snd >> Result.isOk)
+        // Serialise the extracted rules to the canonical Pass-4 TSV and run that
+        // through the v2 GenFORM build chain (parseDoseRuleData -> addProducts ->
+        // mapToDoseRule -> addDoseLimits), exactly as DoseRule.get does. The v2
+        // rewrite removed the flat DoseRule.processDoseRuleData entry point, so we
+        // go through the TSV/parser path instead.
+        let matrix =
+            {| rules = rules |}
+            |> Conversion.toTsv
+            |> _.Split('\n')
+            |> Array.map _.Split('\t')
 
-            oks
-            |> Array.map (fun (d, r) ->
-                match r with
-                | Ok dr -> dr, d
-                | Error _ -> failwith "unreachable: already filtered to Ok"
-            )
-            |> Array.groupBy fst
-            |> Array.map (fun (dr, rs) ->
-                dr
-                |> DoseRule.addDoseLimits routeMapping formRoutes (rs |> Array.map snd)
-            )
-        )
+        DoseRule.get (fun () -> DoseRule.parseDoseRuleData matrix) routeMapping formRoutes prods
+        |> Result.map fst
 
 
     /// End-to-end: free text → `DoseRuleExtractionResult` via Ollama →
@@ -1182,14 +1238,11 @@ module Pipeline =
             match res with
             | Error e -> return Error $"LLM/JSON error: {e}"
             | Ok payload ->
-                let data =
-                    payload.rules |> Array.collect Conversion.toDoseRuleData
-
-                if Array.isEmpty data then
+                if Array.isEmpty payload.rules then
                     return Error "LLM returned zero rules"
                 else
-                    match buildDoseRules data with
-                    | Error msgs -> return Error $"processDoseRuleData failed: {msgs}"
+                    match buildDoseRules payload.rules with
+                    | Error msgs -> return Error $"buildDoseRules failed: {msgs}"
                     | Ok rules -> return rules |> DoseRule.Print.toMarkdown |> Ok
         }
 

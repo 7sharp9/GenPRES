@@ -55,7 +55,7 @@ module Interactions =
             let il = il |> tupleizeInteractions
 
             [
-                for (c1, c2, n1, n2) in il do
+                for c1, c2, n1, n2 in il do
                     if dl |> List.exists (eqs n1) && dl |> List.exists (eqs n2) then
                         {
                             DrugInteraction.Name = c1, c2

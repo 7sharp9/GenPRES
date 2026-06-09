@@ -20,7 +20,7 @@ module Calculator = Informedica.GenSolver.Lib.Variable.ValueRange.MinMaxCalculat
 module Variable = Informedica.GenSolver.Lib.Variable
 
 MMTests.scenarios "mult"
-|> List.filter (fun s -> s.StartsWith("299"))
+|> List.filter _.StartsWith("299")
 |> List.map (fun s -> MMTests.scenarioToString Calculator.multiplication "x" 298 MMTests.validPermutations[299]
 
 )

@@ -350,26 +350,15 @@ module DoseRule =
     /// Trim, collapse internal whitespace (tabs/newlines included),
     /// lowercase. Tab is the key separator, so it must not survive
     /// inside a field.
-    let normaliseIdField (s: string) =
+    let normaliseWhiteSpaceLower (s: string) =
         if isNull s then
             ""
         else
-            System.Text.RegularExpressions.Regex.Replace(s, @"\s+", " ").Trim().ToLowerInvariant()
+            s |> String.regexReplace @"\s+" " " |> String.trim |> _.ToLowerInvariant()
 
 
-    /// Hash a key field list to a 12-char lowercase hex, the same
-    /// mechanism used for the Pass-4 dose rule data id
-    /// (Informedica.NLP.Lib.fsx, Phase4Pure.sha1Short).
-    let sha1Short (fields: string list) =
-        let joined = fields |> String.concat "\t"
-        let bytes = System.Text.Encoding.UTF8.GetBytes joined
-
-        use sha = System.Security.Cryptography.SHA1.Create()
-
-        sha.ComputeHash bytes
-        |> Array.take 6
-        |> Array.map (fun b -> b.ToString "x2")
-        |> String.concat ""
+    /// Hash a key field list to a 12-char lowercase hex
+    let sha1Short = String.sha1Short
 
 
     /// Content hash of a DoseRule's documented identity (Source,
@@ -387,7 +376,7 @@ module DoseRule =
             dr.PatientCategory |> PatientCategory.toString
             dr.DoseType |> DoseType.toString
         ]
-        |> List.map normaliseIdField
+        |> List.map normaliseWhiteSpaceLower
         |> sha1Short
 
 
@@ -404,7 +393,7 @@ module DoseRule =
 
         try
             {
-                Id = r.Id
+                Id = "" // will be set by the dr dose rule identity hash
                 DataId = r.Id
                 GroupId = r.GrpId
                 SortNo = r.SortNo
@@ -491,7 +480,7 @@ module DoseRule =
     /// HPKs > GPKs > Brand > Form: keep the highest-precedence field that is
     /// present and clear every lower-precedence one. Rows with no narrowing are
     /// left unchanged (they remain generic-wide rules).
-    let withSingleNarrowing (g: GenericData) : GenericData =
+    let withSingleNarrowing (g: GenericData) =
         let hasHpks = g.HPKs |> Array.isEmpty |> not
         let hasGpks = g.GPKs |> Array.isEmpty |> not
         let hasBrand = g.Brand |> String.notEmpty
@@ -513,7 +502,7 @@ module DoseRule =
             g
 
 
-    let parseDoseRuleData (data: string[][]) : Result<_, Message list> =
+    let parseDoseRuleData data =
         try
             data
             |> fun data ->
@@ -625,8 +614,8 @@ module DoseRule =
                         Products = [||]
                     }
                 )
-            // Reduce each row to a single product narrowing by precedence
-            // HPKs > GPKs > Brand > Form before deduping.
+            // Keep one product-selection narrowing per row, by precedence
+            // HPKs > GPKs > Brand > Form, then dedupe.
             |> Array.map (fun d -> { d with Generic = d.Generic |> withSingleNarrowing })
             |> Array.distinct
             |> Ok
@@ -634,12 +623,12 @@ module DoseRule =
             Result.createError "getDataResult" exn
 
 
-    let getData dataUrlId : Result<_, Message list> =
+    let getData dataUrlId =
         Web.getDataFromSheet dataUrlId "DoseRules" |> parseDoseRuleData
 
 
     /// Pretty print dose rule data for  logging
-    let doseRuleDataToString (dd: DoseRuleData) =
+    let doseRuleDataToString dd =
         let showOpt = Option.map string >> Option.defaultValue "-"
 
         let showStr s =
@@ -695,12 +684,11 @@ module DoseRule =
         |> String.concat "\n"
 
 
-    /// Pure: determine whether a raw DoseRuleData row is valid, returning the
+    /// Determine whether a raw DoseRuleData row is valid, returning the
     /// validity flag together with an optional concise, dedup-friendly warning
     /// (Some when invalid and the dose type is non-empty). The warning combines
-    /// the invalid-reason details and any dose-type parse warning. No console IO,
-    /// so callers can surface the warning through the resources Message list.
-    let doseRuleDataValidity (dd: DoseRuleData) =
+    /// the invalid-reason details and any dose-type parse warning.
+    let doseRuleDataValidity dd =
         let missing cond reason = if cond then None else Some reason
 
         let doseType, doseTypeWarn =
@@ -784,9 +772,11 @@ module DoseRule =
         isValid, warning
 
 
-    /// Pure predicate: true when the raw DoseRuleData row is valid. Thin wrapper
+    /// <summary>
+    /// Predicate: true when the raw DoseRuleData row is valid. Thin wrapper
     /// over <c>doseRuleDataValidity</c> that discards the warning. No console IO.
-    let doseRuleDataIsValid (dd: DoseRuleData) = dd |> doseRuleDataValidity |> fst
+    /// </summary>
+    let doseRuleDataIsValid dd = dd |> doseRuleDataValidity |> fst
 
 
     /// Selection key that groups raw dose rule rows into independent units of
@@ -802,9 +792,22 @@ module DoseRule =
         }
 
 
+    /// The grouping key of a row. Rows are normalised to a single narrowing at
+    /// parse time (withSingleNarrowing), so a row never restricts both form and
+    /// brand here.
+    let groupKey (d: DoseRuleData) =
+        {
+            Source = d.Source
+            Indication = d.Indication
+            Generic = d.Generic
+            Patient = d.Patient
+            Route = d.Route
+        }
+
+
     /// Keep only the valid rows; return them together with the deduped validity
-    /// warnings (invalid dose rule data / invalid dose type), as data — no IO.
-    let partitionValidRows (data: DoseRuleData[]) : DoseRuleData[] * Message list =
+    /// warnings (invalid dose rule data / invalid dose type).
+    let partitionValidRows data =
         let validated = data |> Array.map (fun d -> d, d |> doseRuleDataValidity)
 
         let validRows =
@@ -821,26 +824,13 @@ module DoseRule =
         validRows, warnings
 
 
-    /// The grouping key of a row. Rows are normalised to a single narrowing at
-    /// parse time (withSingleNarrowing), so a row never restricts both form and
-    /// brand here.
-    let groupKey (d: DoseRuleData) : ProductGroupKey =
-        {
-            Source = d.Source
-            Indication = d.Indication
-            Generic = d.Generic
-            Patient = d.Patient
-            Route = d.Route
-        }
-
-
     /// Group rows into independent (key, rows) units of work.
-    let groupRows (data: DoseRuleData[]) : (ProductGroupKey * DoseRuleData[])[] = data |> Array.groupBy groupKey
+    let groupRows (data: DoseRuleData[]) = data |> Array.groupBy groupKey
 
 
     /// Cheap pre-filter: keep only products whose Generic matches a component
     /// used somewhere in the group, before the per-row narrowing.
-    let candidateProducts (prods: ProductComponent[]) (rs: DoseRuleData[]) : ProductComponent[] =
+    let candidateProducts (prods: ProductComponent[]) (rs: DoseRuleData[]) =
         let cmps = rs |> Array.map _.ScheduleData.DoseLimitData.Component
 
         prods
@@ -852,16 +842,20 @@ module DoseRule =
         prods |> Product.filter routeMapping route cmp g.Form g.Brand g.GPKs g.HPKs
 
 
-    /// Expand a row over its matched products: one row variant per pharmaceutical
-    /// Form and per FormUnit unit-group, each carrying that bucket's products.
-    /// The original restriction stays on the generic; the grouping form is derived
-    /// from the attached products in mapToDoseRule.
-    let expandRowByForm
+    /// Split one dose-rule row into several variants, one per Form-and-unit-group
+    /// of products. Grouping is two-level: first by the product's pharmaceutical Form (tablet,
+    /// solution, ...), then within each Form by the unit-group of its FormUnit
+    /// (FormUnit mapped to mass / volume / count / ... via
+    /// ValueUnit.Group.unitToGroup). So every product in a variant shares the same
+    /// Form and the same unit dimension (no mixing mass-based with volume-based).
+    /// Each variant carries only its group's products. The row's dose restriction
+    /// is left on the generic, not stamped onto the Form here; the grouping Form is
+    /// derived later from the attached products in mapToDoseRule.
+    let expandRowByFormAndUnitGroup
         routeMapping
         (grp: ProductGroupKey)
         (r: DoseRuleData)
         (matched: ProductComponent[])
-        : DoseRuleData[]
         =
         let cmp = r.ScheduleData.DoseLimitData.Component
 
@@ -895,7 +889,7 @@ module DoseRule =
 
     /// No-products fallback row: a single synthetic product built from the
     /// substances of the group's rows that share this row's component.
-    let placeholderRow (grp: ProductGroupKey) (rs: DoseRuleData[]) (r: DoseRuleData) : DoseRuleData =
+    let placeholderRow (grp: ProductGroupKey) (rs: DoseRuleData[]) (r: DoseRuleData) =
         let cmp = r.ScheduleData.DoseLimitData.Component
 
         let substances =
@@ -914,7 +908,7 @@ module DoseRule =
 
 
     /// Deduplication key + message for a row whose narrowing matched no products.
-    let noProductsWarning (grp: ProductGroupKey) (r: DoseRuleData) : string * string =
+    let noProductsWarning (grp: ProductGroupKey) (r: DoseRuleData) =
         let key = $"{grp.Generic.Name} {grp.Route}"
 
         let msg =
@@ -926,12 +920,7 @@ module DoseRule =
     /// Pure: expand every row of a group against the products, collecting the
     /// expanded rows and any (key, message) no-products warnings (no IO, no
     /// shared mutable state).
-    let processGroup
-        routeMapping
-        (prods: ProductComponent[])
-        (grp: ProductGroupKey, rs: DoseRuleData[])
-        : DoseRuleData[] * (string * string) list
-        =
+    let processGroup routeMapping (prods: ProductComponent[]) (grp: ProductGroupKey, rs: DoseRuleData[]) =
         let candidates = candidateProducts prods rs
 
         let rowChunks, warns =
@@ -945,7 +934,7 @@ module DoseRule =
                     if matched |> Array.isEmpty then
                         [| placeholderRow grp rs r |] :: rowAcc, noProductsWarning grp r :: warnAcc
                     else
-                        expandRowByForm routeMapping grp r matched :: rowAcc, warnAcc
+                        expandRowByFormAndUnitGroup routeMapping grp r matched :: rowAcc, warnAcc
                 )
                 ([], [])
 
@@ -954,12 +943,7 @@ module DoseRule =
 
     /// Run all groups chunked + in parallel, concatenating rows and warnings in
     /// deterministic group order.
-    let runGroupsParallel
-        routeMapping
-        (prods: ProductComponent[])
-        (groups: (ProductGroupKey * DoseRuleData[])[])
-        : DoseRuleData[] * (string * string) list
-        =
+    let runGroupsParallel routeMapping (prods: ProductComponent[]) (groups: (ProductGroupKey * DoseRuleData[])[]) =
         let results =
             groups
             |> Array.chunkBySize Parallel.totalWorders
@@ -972,7 +956,7 @@ module DoseRule =
 
     /// Dedup no-products warnings by key (first occurrence wins), sort by key,
     /// format as "key: message" warnings.
-    let dedupeNoProductWarnings (warns: (string * string) list) : Message list =
+    let dedupeNoProductWarnings (warns: (string * string) list) =
         warns
         |> List.fold
             (fun (seen: Set<string>, acc) (k, m) ->
@@ -987,25 +971,13 @@ module DoseRule =
         |> List.map (fun (k, m) -> $"%s{k}: %s{m}" |> Warning)
 
 
-    let addProductsWithWarnings
-        (prods: ProductComponent[])
-        routeMapping
-        data
-        : Result<DoseRuleData[] * Message list, Message list>
-        =
+    let addProducts (prods: ProductComponent[]) routeMapping data =
         let validRows, validityWarnings = partitionValidRows data
 
         let rows, noProdWarns =
             validRows |> groupRows |> runGroupsParallel routeMapping prods
 
         (rows, validityWarnings @ dedupeNoProductWarnings noProdWarns) |> Ok
-
-
-    /// Stable wrapper: same product matching, warnings discarded. Kept so
-    /// existing callers (and the NLP Phase-5 diagnose path) that only need the
-    /// data keep their `Result<DoseRuleData[], Message list>` signature.
-    let addProducts (prods: ProductComponent[]) routeMapping data : Result<DoseRuleData[], Message list> =
-        addProductsWithWarnings prods routeMapping data |> Result.map fst
 
 
     let addFormLimits routeMapping formRoutes (dr: DoseRule) =
@@ -1155,6 +1127,13 @@ module DoseRule =
         // directly, so the canonical name (the component's substances) applies
         // instead of a shorthand. Multi-component rules and form/brand-restricted
         // labels are left untouched.
+        //
+        // The relabel is only applied when it is IDENTITY-PRESERVING, i.e. the
+        // canonical substance string equals the original generic name. This guards
+        // combination products (e.g. "amoxicilline/clavulaanzuur") whose single
+        // component is dosed on one marker substance ("amoxicilline"): rewriting
+        // their label to the marker substance would file the rule under a
+        // different generic and make the combination un-prescribable.
         let refineLabel (dr: DoseRule) =
             match dr.Generic.Label with
             | Shorthand g ->
@@ -1168,7 +1147,12 @@ module DoseRule =
                         |> Array.toList
 
                     let substs = if substs |> List.isEmpty then [ cl.Name ] else substs
-                    { dr with DoseRule.Generic.Label = GenericLabel.fromCanonical substs }
+
+                    // keep the shorthand unless the canonical name is the same generic
+                    if substs |> String.concat "/" |> String.equalsCapInsens g then
+                        { dr with DoseRule.Generic.Label = GenericLabel.fromCanonical substs }
+                    else
+                        dr
                 | _ -> dr
             | _ -> dr
 
@@ -1223,22 +1207,16 @@ module DoseRule =
 
 
     /// <summary>
-    /// Pure: build the DoseRules from raw DoseRuleData plus the route mapping,
+    /// Build the DoseRules from raw DoseRuleData plus the route mapping,
     /// form/route table and the product set. Performs no IO and no console/timing
     /// side effects, so it is directly testable. Returns the built rules together
     /// with the "no products found" warnings collected during product matching.
     /// </summary>
-    let fromDataWithWarnings
-        routeMapping
-        formRoutes
-        prods
-        (data: DoseRuleData[])
-        : Result<DoseRule[] * Message list, Message list>
-        =
+    let fromData routeMapping formRoutes prods (data: DoseRuleData[]) =
         let addDoseLimits = addDoseLimits routeMapping formRoutes
 
         result {
-            let! data, warns = data |> addProductsWithWarnings prods routeMapping
+            let! data, warns = data |> addProducts prods routeMapping
             // split in ok and error results
             let rules, _ =
                 data
@@ -1248,8 +1226,17 @@ module DoseRule =
             let rules =
                 let chunkBySize = Parallel.totalWorders
 
+                // Group rows into one DoseRule per documented identity. r.Id is the
+                // content hash of exactly those identity fields (set by mapToDoseRule
+                // via hashId), so grouping by it reunites the substance fan-outs of
+                // one logical rule. The group head is the representative; the rows are
+                // reunited so addDoseLimits assembles one component with all its
+                // substance limits.
                 let grouped =
-                    rules |> Array.map (fun (d, r) -> r |> Result.get, d) |> Array.groupBy fst
+                    rules
+                    |> Array.map (fun (d, r) -> r |> Result.get, d)
+                    |> Array.groupBy (fun (r, _) -> r.Id)
+                    |> Array.map (fun (_, items) -> (items |> Array.head |> fst), items)
 
                 grouped
                 |> Array.chunkBySize chunkBySize
@@ -1264,17 +1251,11 @@ module DoseRule =
         }
 
 
-    /// Stable wrapper: builds the DoseRules and discards the warnings. Kept so
-    /// existing callers keep the `Result<DoseRule[], Message list>` signature.
-    let fromData routeMapping formRoutes prods (data: DoseRuleData[]) : Result<DoseRule[], Message list> =
-        fromDataWithWarnings routeMapping formRoutes prods data |> Result.map fst
-
-
     /// Impure adapter: loads DoseRuleData via the `getData` thunk and delegates
-    /// to the pure <c>fromDataWithWarnings</c>, carrying the product warnings.
+    /// to the pure <c>fromData</c>, carrying the product warnings.
     /// Kept for existing callers/tests.
     let get getData routeMapping formRoutes prods : Result<DoseRule[] * Message list, Message list> =
-        getData () |> Result.bind (fromDataWithWarnings routeMapping formRoutes prods)
+        getData () |> Result.bind (fromData routeMapping formRoutes prods)
 
 
     /// Build a GetDoseRules-shaped function from a custom data source.

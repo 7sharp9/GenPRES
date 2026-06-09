@@ -149,7 +149,7 @@ module Tests =
                     }
 
                     test "getAge extracts min and max from Age variant" {
-                        let (minOpt, maxOpt) = ageTarget |> getAge
+                        let minOpt, maxOpt = ageTarget |> getAge
                         minOpt |> Expect.isSome "min age should be Some"
                         maxOpt |> Expect.isSome "max age should be Some"
                     }

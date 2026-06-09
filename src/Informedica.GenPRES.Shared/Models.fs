@@ -2119,7 +2119,7 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with Filter = { ctx.Filter with Indication = s } }
+                { ctx with OrderContext.Filter.Indication = s }
 
 
         let medicationChange s (ctx: OrderContext) : OrderContext =
@@ -2135,7 +2135,7 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with Filter = { ctx.Filter with Generic = s } }
+                { ctx with OrderContext.Filter.Generic = s }
 
 
         let routeChange s (ctx: OrderContext) : OrderContext =
@@ -2151,7 +2151,7 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with Filter = { ctx.Filter with Route = s } }
+                { ctx with OrderContext.Filter.Route = s }
 
 
         let formChange s (ctx: OrderContext) : OrderContext =
@@ -2167,15 +2167,15 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with Filter = { ctx.Filter with Form = s } }
+                { ctx with OrderContext.Filter.Form = s }
 
 
         let diluentChange s (ctx: OrderContext) : OrderContext =
-            { ctx with Filter = { ctx.Filter with Diluent = s } }
+            { ctx with OrderContext.Filter.Diluent = s }
 
 
         let componentsChange cs (ctx: OrderContext) : OrderContext =
-            { ctx with Filter = { ctx.Filter with SelectedComponents = cs } }
+            { ctx with OrderContext.Filter.SelectedComponents = cs }
 
 
         let doseTypeChange (dt: DoseType option) (ctx: OrderContext) : OrderContext =
@@ -2189,7 +2189,7 @@ module Models =
                     Scenarios = [||]
                 }
             else
-                { ctx with Filter = { ctx.Filter with DoseType = dt } }
+                { ctx with OrderContext.Filter.DoseType = dt }
 
 
         let syncFilterToFormulary (filter: Filter) (form: Formulary) : Formulary =

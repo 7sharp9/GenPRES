@@ -229,7 +229,7 @@ module EmergencyList =
                 let row = r.cells |> Array.map (fun c -> c.field, c.value) |> Map.ofArray
 
                 let get f =
-                    row |> Map.tryFind f |> Option.defaultValue "" |> (fun s -> s.Replace("*", ""))
+                    row |> Map.tryFind f |> Option.defaultValue "" |> _.Replace("*", "")
 
                 let id = get "id"
                 let catagory = get "catagory"

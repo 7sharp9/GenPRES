@@ -84,7 +84,7 @@ type LoggerType =
 let internal loggerLock = obj ()
 
 
-let mutable loggers: Map<(LoggerType * Informedica.Logging.Lib.Level), AgentLogging.AgentLogger> =
+let mutable loggers: Map<LoggerType * Informedica.Logging.Lib.Level, AgentLogging.AgentLogger> =
     [] |> Map.ofList
 
 

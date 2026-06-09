@@ -19,7 +19,13 @@ let dataUrlId = Environment.GetEnvironmentVariable("GENPRES_URL_ID")
 #load "../LimitTarget.fs"
 #load "../DoseLimit.fs"
 #load "../DoseType.fs"
+#load "../GenericLabel.fs"
+#load "../PharmaceuticalForm.fs"
+#load "../ProductId.fs"
+#load "../Generic.fs"
+#load "../Source.fs"
 #load "../DoseRule.fs"
+#load "../DoseRuleData.fs"
 #load "../Check.fs"
 #load "../SolutionLimit.fs"
 #load "../SolutionRule.fs"
@@ -57,7 +63,7 @@ let rules =
     Api.getDoseRules provider
     |> Array.filter (fun dr ->
         dr.PatientCategory |> PatientCategory.filterPatient pat &&
-        dr.Generic = "aciclovir" &&
+        (dr.Generic |> Generic.genericName) = "aciclovir" &&
         dr.Indication = "Herpes encefalitis (normale immuunrespons), primaire/recidiverende Varicella zoster-infectie bij immuungecompromitteerden" &&
         dr.Route = "INTRAVENEUS"
     )

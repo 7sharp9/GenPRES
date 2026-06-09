@@ -72,7 +72,7 @@ module ATCGroup =
                         |> Array.collect (fun r ->
                             Zindex.BST760T.records ()
                             |> Array.filter (fun r' -> r'.MUTKOD <> 1 && r'.HPKODE = r.HPKODE)
-                            |> Array.map (_.ENKTDW)
+                            |> Array.map _.ENKTDW
                         )
                         |> Array.distinct
                         |> Array.map (fun tdw -> Names.getThes tdw Names.Route Names.Fifty)

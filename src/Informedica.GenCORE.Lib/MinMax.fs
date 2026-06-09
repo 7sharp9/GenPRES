@@ -735,9 +735,9 @@ module MinMax =
     module Optics =
 
 
-        let min_ = (fun mm -> mm.Min), (fun v mm -> mm |> setMin (Some v))
+        let min_ = _.Min, (fun v mm -> mm |> setMin (Some v))
 
-        let max_ = (fun mm -> mm.Max), (fun v mm -> mm |> setMax (Some v))
+        let max_ = _.Max, (fun v mm -> mm |> setMax (Some v))
 
 
         let getMin = Optic.get min_

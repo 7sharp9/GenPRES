@@ -425,7 +425,7 @@ module OrderVariable =
     /// <param name="ovar">The OrderVariable</param>
     let map f (ovar: OrderVariable) =
         { ovar with
-            Variable = { ovar.Variable with Values = ovar.Variable.Values |> ValueRange.mapValueUnit f }
+            OrderVariable.Variable.Values = ovar.Variable.Values |> ValueRange.mapValueUnit f
 
         }
 

@@ -7,10 +7,7 @@ module Api =
     let getDrugNames (json: string option) : string list =
         let data = Data.fromCache json
 
-        data.DrugClasses
-        |> List.collect (fun dc -> dc.Drugs)
-        |> List.distinct
-        |> List.sort
+        data.DrugClasses |> List.collect _.Drugs |> List.distinct |> List.sort
 
 
     let checkInteractions (json: string option) (drugNames: DrugName list) : DrugInteraction list =

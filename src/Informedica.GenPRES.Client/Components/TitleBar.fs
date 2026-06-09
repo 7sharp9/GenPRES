@@ -27,12 +27,12 @@ module TitleBar =
 
         let context: Global.Context = React.useContext Global.context
 
-        let anchorElHosp, setAnchorElHosp = React.useState (None)
+        let anchorElHosp, setAnchorElHosp = React.useState None
 
         let handleOpenHospMenu = fun ev -> ev?currentTarget |> setAnchorElHosp
         let handleCloseHospMenu = fun _ -> setAnchorElHosp None
 
-        let anchorElLang, setAnchorElLang = React.useState (None)
+        let anchorElLang, setAnchorElLang = React.useState None
 
         let handleOpenLangMenu = fun ev -> ev?currentTarget |> setAnchorElLang
         let handleCloseLangMenu = fun _ -> setAnchorElLang None
