@@ -243,10 +243,19 @@ module String =
 
     let removeExtraSpaces (input: string) : string = Regex.Replace(input, @"\s{2,}", " ")
 
+    /// Trim, collapse internal whitespace (tabs/newlines included),
+    /// lowercase. Tab is the key separator, so it must not survive
+    /// inside a field.
+    let normaliseWhiteSpaceLower (s: string) =
+        if isNull s then
+            ""
+        else
+            s |> regexReplace @"\s+" " " |> trim |> _.ToLowerInvariant()
+
 
     /// Hash a key field list to a 12-char lowercase hex
     let sha1Short (fields: string list) =
-        let joined = fields |> String.concat "\t"
+        let joined = fields |> List.map normaliseWhiteSpaceLower |> String.concat "\t"
         let bytes = System.Text.Encoding.UTF8.GetBytes joined
 
         use sha = System.Security.Cryptography.SHA1.Create()

@@ -29,7 +29,7 @@ module Helpers =
             GetParenteralMeds = fun _ -> Ok [||]
             GetEnteralFeeding = fun _ -> Ok [||]
             GetProducts = fun _ _ _ _ _ _ _ _ _ -> [||]
-            GetDoseRules = fun _ _ _ _ -> Ok([||], [])
+            GetDoseRules = fun _ _ _ _ -> ([||], [])
             GetSolutionRules = fun _ _ _ _ -> Ok [||]
             GetRenalRules = fun _ -> Ok [||]
         }

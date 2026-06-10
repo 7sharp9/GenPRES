@@ -465,8 +465,8 @@ module DoseRuleProductTests =
 
     let private emptySched: ScheduleData =
         {
-            // Once is always valid under doseRuleDataValidity, so each fixture
-            // survives addProductsWithWarnings without schedule plumbing.
+            // Once is always valid under validateData, so each fixture
+            // survives fromData's validation without schedule plumbing.
             DoseType = "once"
             DoseText = ""
             Freqs = [||]
@@ -541,10 +541,7 @@ module DoseRuleProductTests =
     /// Build the DoseRules for the given raw rows (empty FormRoutes is safe:
     /// addFormLimits only sets FormLimit, product attachment is unaffected).
     let buildRules (data: DoseRuleData[]) =
-        DoseRule.fromData routeMapping [||] prods data
-        |> Result.toOption
-        |> Option.get
-        |> fst
+        DoseRule.fromData routeMapping [||] prods data |> fst
 
 
     /// Sorted, distinct GPKs attached to a set of DoseRules.
@@ -704,13 +701,14 @@ module DoseRuleProductTests =
                     |> Expect.equal "both substances live in the one component" [| "amoxicilline"; "clavulaanzuur" |]
                 }
 
-                // --- unit tests for the extracted addProductsWithWarnings helpers ---
+                // --- unit tests for the fromData build helpers ---
 
-                test "groupRows groups by selection key" {
+                test "dataGroupKey groups by selection key" {
                     let r1 = mkData "citalopram" "ORAAL" "tablet" "" [||] [||]
                     let r3 = mkData "citalopram" "INTRAMUSCULAIR" "tablet" "" [||] [||]
 
-                    DoseRule.groupRows [| r1; r1; r3 |]
+                    [| r1; r1; r3 |]
+                    |> Array.groupBy DoseRule.dataGroupKey
                     |> Array.length
                     |> Expect.equal "same key merges, different route splits" 2
                 }
@@ -723,49 +721,35 @@ module DoseRuleProductTests =
                     |> Expect.equal "only citalopram products" [| "citalopram" |]
                 }
 
-                test "expandRowByForm yields one row per pharmaceutical form" {
-                    let cit = mkData "citalopram" "ORAAL" "" "" [||] [||]
-                    let citProds = prods |> Array.filter (fun p -> p.Generic = "citalopram")
-
-                    DoseRule.expandRowByFormAndUnitGroup routeMapping (DoseRule.groupKey cit) cit citProds
-                    |> Array.map (fun r -> r.Products |> Array.map _.GPK |> Array.sort)
+                // An unnarrowed row expands to one DoseRule per pharmaceutical
+                // form, each carrying that form's product (the form fan-out that
+                // the old expandRowByFormAndUnitGroup tested, now driven through
+                // the public fromData build).
+                test "unnarrowed row expands to one DoseRule per pharmaceutical form" {
+                    buildRules [| mkData "citalopram" "ORAAL" "" "" [||] [||] |]
+                    |> Array.map (fun r ->
+                        r.ComponentLimits |> Array.collect _.Products |> Array.map _.GPK |> Array.sort
+                    )
                     |> Array.sortBy (Array.tryHead >> Option.defaultValue "")
                     |> Expect.equal
-                        "one row per form, each with that form's product"
+                        "one DoseRule per form, each with that form's product"
                         [| [| "106496" |]; [| "182729" |] |]
                 }
 
-                test "processGroup with no matching products yields a placeholder row and one warning" {
-                    let nope = mkData "citalopram" "ORAAL" "" "" [| "999999" |] [||]
+                // A narrowing that matches no product still yields a DoseRule, but
+                // built on a placeholder product carrying no real GPK. (The new
+                // pipeline does not emit a no-products warning; that diagnostic is
+                // a deferred follow-up.)
+                test "no matching products yields a placeholder DoseRule (no real product attached)" {
+                    let rules = buildRules [| mkData "citalopram" "ORAAL" "" "" [| "999999" |] [||] |]
 
-                    let rows, warns =
-                        DoseRule.processGroup routeMapping prods (DoseRule.groupKey nope, [| nope |])
+                    rules |> Array.length |> Expect.equal "one placeholder DoseRule built" 1
 
-                    rows |> Array.length |> Expect.equal "one placeholder row" 1
-
-                    rows
-                    |> Array.collect _.Products
-                    |> Array.map _.GPK
-                    |> Expect.equal "placeholder carries no real GPK" [| "" |]
-
-                    warns |> List.length |> Expect.equal "one no-products warning" 1
-                }
-
-                test "processGroup with matching products yields expanded rows and no warnings" {
-                    let adr = mkData "adrenaline" "INTRAMUSCULAIR" "" "" [| "170925"; "170933" |] [||]
-
-                    let rows, warns =
-                        DoseRule.processGroup routeMapping prods (DoseRule.groupKey adr, [| adr |])
-
-                    warns |> Expect.isEmpty "no warnings"
-
-                    rows
-                    |> Array.collect _.Products
+                    rules
+                    |> Array.collect (fun r -> r.ComponentLimits |> Array.collect _.Products)
                     |> Array.map _.GPK
                     |> Array.filter ne
-                    |> Array.distinct
-                    |> Array.sort
-                    |> Expect.equal "expanded rows carry the gpks-narrowed products" [| "170925"; "170933" |]
+                    |> Expect.isEmpty "placeholder carries no real GPK"
                 }
             ]
 

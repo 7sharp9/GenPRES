@@ -34,6 +34,8 @@
     <None Include="Scripts\Tests.fsx" />
     <None Include="Scripts\Check.fsx" />
     <None Include="Scripts\Api.fsx" />
+    <None Include="Scratch\Informedica.GenForm.Lib.fsx" />
+    <None Include="Scratch\load.fsx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Informedica.ZForm.Lib\Informedica.ZForm.Lib.fsproj" />

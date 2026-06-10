@@ -1,0 +1,133 @@
+# Session Log
+
+## DoseRule data roundtrip (raw DoseRuleData -> DoseRule -> DoseRuleData)
+
+**Deliverable:** `src/Informedica.GenFORM.Lib/Scripts/DoseRuleRoundtrip.fsx` (script-only,
+prototype reverse mapping for maintainer review/migration).
+
+**Built:** `DoseRule.toData : DoseRule -> DoseRuleData[]` — the missing reverse of the
+forward pipeline. Inverts `getDoseLimits`, `mapToDoseRule`, `toLabel`; explodes
+`ComponentLimits`/`SubstanceLimits` into one row per limit. `FormLimit` is NOT emitted
+(it is derived from the external `formRoutes` table, not an input row). Id/GrpId/SortNo
+are recomputed deterministically from row content on every pass (sha1Short of canonical
+keys), never passed through `DoseRule.DataId`/`GroupId`/`SortNo`.
+
+**Results (real doserules.tsv, full forward incl. product expansion, live provider):**
+- **PASS 2 fixpoint = TRUE**: `reverse(forward(out1)) == out1` over the FULL data incl
+  Id/GrpId/SortNo (0 diffs). The reverse mapping is sound and idempotent.
+- **PASS 1 = 98.4%**: 4794 / 4874 surviving input rows round-trip exactly modulo
+  Id/GrpId/SortNo. Residual 80 rows, all forward-side information loss (not reverse bugs):
+  - 24 **merge-loss**: source rows colliding on `hashId` identity (same Source/Generic/
+    Form/Route/Indication/PatientCategory/DoseType-incl-text) but differing in
+    ScheduleText/Frequencies/limit. The forward merges them, keeping one schedule + both
+    limits; reverse re-pairs lossily. The distinguishing data (e.g. neonatal birthweight)
+    lives only in ScheduleText, not the structured identity.
+  - 17 **narrowing-loss**: row-level form/GPK/HPK narrowing is **dissolved** by
+    `addProducts`/`groupRows` expansion — the DoseRule ends up generic-wide
+    (`label=Canonical`, `Generic.Products=[]`); expansion yields per-form rules. Only
+    **Brand** narrowing survives (in the `GenericBrand` label).
+  - 39 **truly-other**: near-duplicate rows / empty- or unparseable-limit rows that the
+    forward drops or dedups.
+
+**Forward-side losses surfaced (comparison gates these to match forward semantics):**
+- A schedule/limit value only survives when its unit is present: PerTime needs FreqUnit,
+  Rate needs RateUnit, *Adj needs AdjustUnit, all need DoseUnit. Values lacking their unit
+  are dropped by `getDoseLimits` (cannot be expressed).
+- `CmpBased` and `PatientCategory.Location` are parsed but never represented on DoseRule
+  (unrecoverable). RateUnit/FreqUnit/etc. columns are discarded unless attached to a value.
+
+**Key answer to design question:** form/GPK/HPK narrowing does NOT collapse back to the
+original — the expansion phase dissolves it into the generic-wide product group. Whether
+that is intended (expansion defines actual clinical products) or a gap is a design call.
+
+## Root cause + prototyped fix (per user's corrected model)
+
+User's model: DoseRules are always per-form (never multiform); narrowing is optional and only
+selects matched products, whose distinct forms drive the per-form expansion. Identity must
+include the narrowing so the roundtrip is total.
+
+Diagnosis: the GPK/HPK narrowing IS preserved on `DoseRule.Generic.Products` — but `hashId`
+(DoseRule.fs:369) excludes it, so two rows narrowed to different products (e.g. nadroparine
+GPK 108278 vs 103136) collide on identity and MERGE in `fromData`'s `groupBy hashId` (one wins,
+the other is lost). Confirmed: nadroparine had 47 rules, only 6 kept `Products=[Gpk 103136]`;
+108278 was absorbed.
+
+Prototyped fix in `DoseRuleRoundtrip.fsx` (`DoseRule.fromDataFixed` / `correctedId`): fold the
+sorted `Generic.Products` (GPK/HPK) contents into the identity; empty list contributes nothing.
+Real product expansion (`addProducts`) unchanged. Reverse unchanged (already reads
+`Generic.Products`). Result: exact 98.4% -> **98.6%**, narrowing-loss 17 -> **4**. The fix is a
+small change to `hashId` in DoseRule.fs (source; for maintainer to migrate).
+
+Remaining residual after the fix:
+- 4 narrowing-loss = FORM-narrowed rows (fluticason, nevirapine). Different mechanism: the
+  forward must emit a `GenericForm` label for form-narrowed rows instead of `Canonical`.
+  Separate small forward fix (not hashId+Products).
+- 24 merge-loss + 39 truly-other = rows sharing the full 7-point identity but differing only in
+  ScheduleText/Frequencies/limit (e.g. neonatal birthweight lives in ScheduleText, not the
+  structured PatientCategory) + near-duplicates. The identity genuinely does not capture the
+  distinction — needs a richer PatientCategory or is inherently ambiguous; NOT fixed by
+  hashId+Products.
+
+## Post-migration test fix + dead-code cleanup (DoseRule group-first pipeline)
+- Migration of the group-first build into DoseRule.fs left the test project broken + old
+  pipeline as commented dead code. fromData now returns a TUPLE (DoseRule[] * Message list),
+  not Result; Api.fs:221 destructures it.
+- Tests (tests/Informedica.GenFORM.Tests/Tests.fs): buildRules dropped Result.toOption|>Option.get
+  (now |> fst); groupKey→dataGroupKey; rewrote the expandRowByFormAndUnitGroup + processGroup
+  white-box tests as behavioral (via buildRules); deleted the redundant processGroup-matching test
+  (covered by the existing gpks-narrowing test). Decisions: rewrite-as-behavioral + accept the
+  dropped no-products warning (no warning assertion).
+- Server.Tests/Tests.fs: mock GetDoseRules Ok([||],[]) → ([||],[]) (field is now the tuple).
+- Dead code removed from DoseRule.fs: 3 commented (* *) blocks (old hashId, old per-row
+  mapToDoseRule, old addProducts/processGroup/expandRowByFormAndUnitGroup/groupKey/ProductGroupKey
+  pipeline) + the unused live addDoseLimits (carried refineLabel — its omission is the intended
+  label-preservation). ~447 lines gone. DoseRuleData.fs: removed commented dataToCsv block.
+- Stale comments fixed: getFromGetData doc (Result→tuple), candidateProducts doc (per-row→
+  per-component), "doset type" typo. Fantomas-formatted.
+- Verified: dotnet run build OK; full suite 5476 passed / 0 failed / 2 skipped.
+- Deferred (out of scope): restoring the no-products warning diagnostic.
+
+## fromData cold-start deadlock fix (post-migration)
+- Symptom: server startup hung "forever" in DoseRule.fromData on full/production data;
+  tests + warm FSI never reproduced it.
+- Root cause: the migrated fromData ran mapToDoseRule under the SECOND Async.Parallel.
+  On a COLD process the ~1155 parallel tasks trigger first-time CLR static/type
+  initialization of the unit/dose-limit modules (Units/ValueUnit/DoseLimit/DoseType,
+  via mapToComponentLimits->getDoseLimits) CONCURRENTLY from many threads -> mutually-
+  dependent .cctor lock cycle -> deadlock (~0% CPU, blocked not spinning). Diagnosed by:
+  cold parallel hangs; sequential warm-up then identical parallel run = 233ms.
+- Why the OLD pipeline was fine: it ran mapToDoseRule as a plain sequential Array.map
+  (warming those modules single-threaded) BEFORE its parallel addDoseLimits stage. The
+  migration parallelized that stage and removed the implicit warm-up. The product/mapping
+  modules are hit cold+parallel in both old (processGroup) and new (group) and are safe;
+  the cycle is only in the unit/dose path the old code warmed sequentially.
+- Why the scratch never hung: it was always WARM (long FSI session + my benchmarks ran
+  sequential warm-ups first). Same latent bug, just never run cold-first.
+- Fix (final): WARM-UP then parallel. In fromData, after the parallel `group` stage, run the
+  first chunk (Parallel.totalWorders groups) of mapToDoseRule|>addFormLimits SINGLE-THREADED
+  (forces the unit/dose module static init on one thread = whole type-init closure warmed),
+  then process the rest in parallel and `Array.append head`. Warming a chunk (not one group)
+  so coverage doesn't depend on which group is first.
+- Why NOT full serialize: addFormLimits with REAL formRoutes (Mapping.filterFormRoutes over
+  ~408 form-routes x ~7579 rules) is ~16-20s CPU. Measured warm in FSI: parallel fromData
+  Real 1.38s (CPU 20.5s, ~15x); fully-serial Real 12.7s. So parallelism is worth ~9x and the
+  warm-up keeps it. (Earlier "serialize costs ~1s" estimate was wrong — it excluded
+  addFormLimits.) Dead `fromDataSerial` variant removed.
+- Verified: cold cached-provider build completes (rules=7579, ~17s incl provider+product load;
+  previously hung indefinitely). Full suite 5476 passed / 0 failed / 2 skipped.
+
+## Product.fromGenPresProducts parallelized (next startup win)
+- After the dose-rule fix, the dominant startup cost was Product.fromGenPresProducts (~8s).
+  Profiled: prep (collect/filter/match) = 14ms; the per-product `map` = 7477ms (98.6%).
+- Thread-safety audit (clean): Mapping.mapUnit/mapRoute/requiresReconstitution/filterFormRoutes
+  are pure (read-only over passed arrays); ATCGroup.get + GenPresProduct caches use the
+  Map-based Memoization.memoize (concurrency-safe, lossy not corrupting) AND are already warm
+  before product build; NO memoizeOne/memoize2Int (Dictionary, corrupting) in the path. Only
+  cold-init concern = GenUnits type-init -> same warm-up pattern.
+- Change: in fromGenPresProducts, split the cheap prep (sequential) from the heavy per-product
+  build (`buildProduct`), then warm the first chunk single-threaded and run the rest in parallel
+  (Async.Parallel), `Array.append head` + parenteral + enteral. Same warm-up pattern as fromData.
+- Verified: per-product map 7477ms -> 755ms parallel (~10x); cold cached-provider build now
+  9.4s total (was ~17s; the ~7s product win realized), products=3014 rules=7579 (unchanged);
+  parallel output BYTE-IDENTICAL to sequential reference (full structural array equality, not
+  just count). Full suite 5476 passed / 0 failed / 2 skipped.

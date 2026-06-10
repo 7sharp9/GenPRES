@@ -8,9 +8,24 @@ module Resources =
     open FsToolkit.ErrorHandling.ResultCE
 
 
+    type Data =
+        {
+            UnitMappings: UnitMapping[]
+            RouteMappings: RouteMapping[]
+            ValidForms: string[]
+            FormRoutes: FormRoute[]
+            FormularyProducts: FormularyProduct[]
+            GenPresProducts: Informedica.ZIndex.Lib.Types.GenPresProduct[]
+            DoseRuleData: DoseRuleData[]
+            SolutionRuleData: SolutionRuleData[]
+            RenalRuleData: RenalRuleData[]
+        }
+
+
     /// Resource provider abstraction. Returns the fully built, in-memory
     /// resource collections. Product collections are v2 `ProductComponent`s.
     type IResourceProvider =
+        abstract member GetData: unit -> Data
         abstract member GetUnitMappings: unit -> UnitMapping[]
         abstract member GetRouteMappings: unit -> RouteMapping[]
         abstract member GetValidForms: unit -> string[]
@@ -48,19 +63,6 @@ module Resources =
             Messages: Message[]
             IsLoaded: bool
             LastReloaded: DateTime
-        }
-
-    and Data =
-        {
-            UnitMappings: UnitMapping[]
-            RouteMappings: RouteMapping[]
-            ValidForms: string[]
-            FormRoutes: FormRoute[]
-            FormularyProducts: FormularyProduct[]
-            GenPresProducts: Informedica.ZIndex.Lib.Types.GenPresProduct[]
-            DoseRuleData: DoseRuleData[]
-            SolutionRuleData: SolutionRuleData[]
-            RenalRuleData: RenalRuleData[]
         }
 
 
@@ -117,11 +119,7 @@ module Resources =
             // Returns the built DoseRules together with the product-matching
             // warnings, which the shell surfaces in ResourceState.Messages.
             GetDoseRules:
-                DoseRuleData[]
-                    -> RouteMapping[]
-                    -> FormRoute[]
-                    -> ProductComponent[]
-                    -> Result<DoseRule[] * Message list, Message list>
+                DoseRuleData[] -> RouteMapping[] -> FormRoute[] -> ProductComponent[] -> DoseRule[] * Message list
             GetSolutionRules:
                 SolutionRuleData[]
                     -> RouteMapping[]
@@ -215,7 +213,9 @@ module Resources =
                         formularyProducts
                         filteredGpps
 
-                let! doseRules, doseMsgs = config.GetDoseRules doseRuleData routeMappings formRoutes products
+                let doseRules, doseMsgs =
+                    config.GetDoseRules doseRuleData routeMappings formRoutes products
+
                 let! solutionRules = config.GetSolutionRules solutionRuleData routeMappings parenteralMeds products
                 let! renalRules = config.GetRenalRules renalRuleData
 
@@ -258,6 +258,7 @@ module Resources =
     /// A plain provider over an already-built ResourceState.
     type ResourceProvider(state: ResourceState) =
         interface IResourceProvider with
+            member _.GetData() = state.Data
             member _.GetUnitMappings() = state.Data.UnitMappings
             member _.GetRouteMappings() = state.Data.RouteMappings
             member _.GetValidForms() = state.Data.ValidForms
@@ -327,6 +328,7 @@ module Resources =
                 )
 
         interface IResourceProvider with
+            member this.GetData() = this.getFromCache _.Data
             member this.GetUnitMappings() = this.getFromCache _.Data.UnitMappings
             member this.GetRouteMappings() = this.getFromCache _.Data.RouteMappings
             member this.GetValidForms() = this.getFromCache _.Data.ValidForms
