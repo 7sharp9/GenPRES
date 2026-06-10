@@ -511,28 +511,23 @@ module Product =
             |> Array.choose (fun fp -> fp.GPK |> Int32.tryParse |> Option.map (fun gpk -> gpk, fp))
             |> Map.ofArray
 
-        // start from ALL GenPresProducts (not just formulary GPKs)
-        genPresProducts
-        // collect the GenericProducts
-        // filtered by "valid form" and
-        // at least one substance quantity > 0
-        |> Array.collect (fun gpp ->
-            gpp.GenericProducts
-            |> Array.filter (fun gp ->
-                validForms |> Array.exists (String.equalsCapInsens gp.Form)
-                && gp.Substances |> Array.exists (fun s -> s.SubstanceQuantity > 0.)
+        // start from ALL GenPresProducts (not just formulary GPKs), collect the
+        // GenericProducts filtered by "valid form" and at least one substance
+        // quantity > 0, then match each with a formulary product by GPK (None if
+        // absent, so the generic product is still included). This prep is cheap.
+        let pairs =
+            genPresProducts
+            |> Array.collect (fun gpp ->
+                gpp.GenericProducts
+                |> Array.filter (fun gp ->
+                    validForms |> Array.exists (String.equalsCapInsens gp.Form)
+                    && gp.Substances |> Array.exists (fun s -> s.SubstanceQuantity > 0.)
+                )
             )
-        )
-        // match each GenericProduct with a formulary product by GPK;
-        // if none exists, synthesize a default so the generic product
-        // is still included.
-        |> Array.map (fun gp ->
-            let fp = formByGpk |> Map.tryFind gp.Id
+            |> Array.map (fun gp -> (formByGpk |> Map.tryFind gp.Id), gp)
 
-            fp, gp
-        )
-        // create the Product records
-        |> Array.map (fun (fp, gp) ->
+        // Build one Product record per (formulary, generic-product) pair.
+        let buildProduct (fp: FormularyProduct option, gp: Informedica.ZIndex.Lib.Types.GenericProduct) =
             // The Generic is the canonical match key: the official GStand generic
             // name (falling back to the formulary Generic, then the ZIndex name).
             // Any brand/form suffix the formulary adds is kept OUT of the match
@@ -568,7 +563,27 @@ module Product =
             gp
             |> map unitMapping routeMapping formRoutes reconstitution name synonyms formQuantities fp
             |> fun prod -> { prod with Label = displayLabel }
-        )
+
+        // Build the products in parallel: buildProduct is pure but heavy
+        // (~99% of this function). Warm a single chunk single-threaded first to
+        // force the one-time (static) initialization of the unit modules on one
+        // thread, avoiding a cold concurrent type-initialization deadlock when the
+        // parallel tasks below trigger those inits at once.
+        let warm, tail =
+            if pairs |> Array.length <= Parallel.totalWorders then
+                pairs, [||]
+            else
+                pairs[.. Parallel.totalWorders - 1], pairs[Parallel.totalWorders ..]
+
+        let head = warm |> Array.map buildProduct
+
+        tail
+        |> Array.chunkBySize Parallel.totalWorders
+        |> Array.map (fun chunk -> async { return chunk |> Array.map buildProduct })
+        |> Async.Parallel
+        |> Async.RunSynchronously
+        |> Array.collect id
+        |> Array.append head
         |> Array.append parenteral
         |> Array.append enteral
 
