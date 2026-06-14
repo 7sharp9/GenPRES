@@ -25,6 +25,9 @@ module Mapping =
         [<Literal>]
         let formRouteSheet = "FormRoute"
 
+        [<Literal>]
+        let totalsSheet = "Totals"
+
 
     let parseSheet apply (data: string[][]) =
         try
@@ -71,6 +74,28 @@ module Mapping =
             }
         |> getData dataUrlId Constants.unitsSheet
         |> Result.mapErrorSource "getUnitMapping"
+
+
+    let getTotals dataUrlId =
+        fun get _ ->
+            let toBrOpt = BigRational.toBrs >> Array.tryHead
+
+            {
+                Name = get "Name"
+                MinAge = get "MinAge" |> toBrOpt
+                MaxAge = get "MaxAge" |> toBrOpt
+                MinWeight = get "MinWeight" |> toBrOpt
+                MaxWeight = get "MaxWeight" |> toBrOpt
+                Unit = get "Unit" |> UnitsParse.fromString
+                Adj = get "Adj" |> UnitsParse.fromString
+                TimeUnit = get "TimeUnit" |> UnitsParse.fromString
+                MinPerTime = get "MinPerTime" |> toBrOpt
+                MaxPerTime = get "MaxPerTime" |> toBrOpt
+                MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt
+                MaxPerTimeAdj = get "MaxPerTimeAdj" |> toBrOpt
+            }
+        |> getData dataUrlId Constants.totalsSheet
+        |> Result.mapErrorSource "getTotals"
 
 
     let mapUnit (mapping: UnitMapping array) s =

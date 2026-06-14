@@ -22,13 +22,13 @@ test_projects=(
     "tests/Informedica.Utils.Tests/Informedica.Utils.Tests.fsproj"
     "tests/Informedica.Agents.Tests/Informedica.Agents.Tests.fsproj"
     "tests/Informedica.Logging.Tests/Informedica.Logging.Tests.fsproj"
-    "tests/Informedica.GenUnits.Tests/Informedica.GenUnits.Tests.fsproj"
-    "tests/Informedica.GenCore.Tests/Informedica.GenCore.Tests.fsproj"
-    "tests/Informedica.GenSolver.Tests/Informedica.GenSolver.Tests.fsproj"
-    "tests/Informedica.GenForm.Tests/Informedica.GenForm.Tests.fsproj"
-    "tests/Informedica.GenOrder.Tests/Informedica.GenOrder.Tests.fsproj"
+    "tests/Informedica.GenUNITS.Tests/Informedica.GenUNITS.Tests.fsproj"
+    "tests/Informedica.GenCORE.Tests/Informedica.GenCORE.Tests.fsproj"
+    "tests/Informedica.GenSOLVER.Tests/Informedica.GenSOLVER.Tests.fsproj"
+    "tests/Informedica.GenFORM.Tests/Informedica.GenFORM.Tests.fsproj"
+    "tests/Informedica.GenORDER.Tests/Informedica.GenORDER.Tests.fsproj"
 #    "tests/Informedica.ZIndex.Tests/Informedica.ZIndex.Tests.fsproj"
-    "tests/Server/Server.Tests.fsproj"
+    "tests/Informedica.GenPRES.Server.Tests/Informedica.GenPRES.Server.Tests.fsproj"
 )
 
 # Run each test project

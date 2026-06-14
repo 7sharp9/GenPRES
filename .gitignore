@@ -309,9 +309,13 @@
 # Informedica.GenSOLVER.Tests
 !/tests/Informedica.GenSOLVER.Tests/
 !/tests/Informedica.GenSOLVER.Tests/Scripts/
+!/tests/Informedica.GenSOLVER.Tests/fixtures/
+!/tests/Informedica.GenSOLVER.Tests/fixtures/*.txt
 # Informedica.GenFORM.Tests
 !/tests/Informedica.GenFORM.Tests/
 !/tests/Informedica.GenFORM.Tests/Scripts/
+!/tests/Informedica.GenFORM.Tests/fixtures/
+!/tests/Informedica.GenFORM.Tests/fixtures/*.json
 # Informedica.GenORDER.Tests
 !/tests/Informedica.GenORDER.Tests/
 !/tests/Informedica.GenORDER.Tests/Scripts/

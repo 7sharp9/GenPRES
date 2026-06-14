@@ -962,8 +962,6 @@ module Tests =
 
                 open FsCheck
 
-                open Informedica.Utils.Lib.Web
-
                 module ValueRange = Variable.ValueRange
                 module Minimum = Minimum
                 module Maximum = Maximum
@@ -979,14 +977,14 @@ module Tests =
                 let calc = MinMaxCalculator.calc (fun b vu -> Some vu, b)
 
 
-                let urlId = "171G1GiUuuOjPvfLOFiuuQtq44LjFnmxyoRb1IIblc2A"
-
-
+                // MinMax operation golden results are committed fixtures under
+                // ./fixtures (one scenario per line, header already stripped).
+                // These were previously downloaded from a Google sheet at test
+                // time; the fixtures make the tests hermetic and offline.
+                // To refresh them, run Scripts/DownloadFixtures.fsx.
                 let scenarios sheet =
-                    GoogleSheets.getCsvDataFromSheetSync urlId sheet
-                    |> Result.defaultValue [||]
-                    |> Array.skip 1
-                    |> Array.map (fun row -> row[0])
+                    System.IO.Path.Combine(System.AppContext.BaseDirectory, "fixtures", $"%s{sheet}.txt")
+                    |> System.IO.File.ReadAllLines
                     |> Array.toList
 
 

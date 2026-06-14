@@ -19,6 +19,7 @@ module Resources =
             DoseRuleData: DoseRuleData[]
             SolutionRuleData: SolutionRuleData[]
             RenalRuleData: RenalRuleData[]
+            TotalsData: TotalsData[]
         }
 
 
@@ -38,6 +39,7 @@ module Resources =
         abstract member GetDoseRules: unit -> DoseRule[]
         abstract member GetSolutionRules: unit -> SolutionRule[]
         abstract member GetRenalRules: unit -> RenalRule[]
+        abstract member GetTotals: unit -> TotalsData[]
         abstract member GetResourceInfo: unit -> ResourceInfo
 
     and ResourceInfo =
@@ -77,6 +79,7 @@ module Resources =
             DoseRuleData = [||]
             SolutionRuleData = [||]
             RenalRuleData = [||]
+            TotalsData = [||]
         }
 
 
@@ -99,6 +102,7 @@ module Resources =
             GetDoseRuleData: unit -> Result<DoseRuleData[], Message list>
             GetSolutionRuleData: unit -> Result<SolutionRuleData[], Message list>
             GetRenalRuleData: unit -> Result<RenalRuleData[], Message list>
+            GetTotalsData: unit -> Result<TotalsData[], Message list>
             GetReconstitution: unit -> Result<Reconstitution[], Message list>
             GetParenteralMeds: UnitMapping[] -> Result<ProductComponent[], Message list>
             GetEnteralFeeding: UnitMapping[] -> Result<ProductComponent[], Message list>
@@ -164,12 +168,13 @@ module Resources =
                         Informedica.ZIndex.Lib.GenPresProduct.get [] |> Ok
                     with exn ->
                         Utils.Result.createError "GetGenPresProducts" exn
-            GetDoseRuleData = fun () -> DoseRule.getData dataUrlId
+            GetDoseRuleData = fun () -> DoseRuleLoader.getData dataUrlId
             GetSolutionRuleData = fun () -> SolutionRule.getData dataUrlId
             GetRenalRuleData = fun () -> RenalRule.getData dataUrlId
+            GetTotalsData = fun () -> Mapping.getTotals dataUrlId
             // Pure transforms: operate on the already-loaded raw data.
             GetProducts = Product.fromGenPresProducts
-            GetDoseRules = fun data rm fr prods -> DoseRule.fromData rm fr prods data
+            GetDoseRules = fun data rm fr prods -> DoseRuleLoader.fromData rm fr prods data
             GetSolutionRules = fun data rm parenteral prods -> SolutionRule.map rm parenteral prods data
             GetRenalRules = fun data -> RenalRule.map data
         }
@@ -192,6 +197,21 @@ module Resources =
                 let! doseRuleData = config.GetDoseRuleData()
                 let! solutionRuleData = config.GetSolutionRuleData()
                 let! renalRuleData = config.GetRenalRuleData()
+
+                // Totals is an optional intake-reference resource: a load failure
+                // must not empty the other resources, so swallow to [||] and surface
+                // the reason as a Warning rather than failing the whole load.
+                let totalsData, totalsMsgs =
+                    match config.GetTotalsData() with
+                    | Ok d -> d, []
+                    | Error msgs ->
+                        let text m =
+                            match m with
+                            | Info s
+                            | Warning s -> s
+                            | ErrorMsg(s, _) -> s
+
+                        [||], (msgs |> List.map (fun m -> Warning $"Totals resource not loaded: {text m}"))
 
                 // ── pure core: domain create functions on plain data ──
                 // narrow the raw ZIndex products to those referenced by dose rules
@@ -233,6 +253,7 @@ module Resources =
                                 DoseRuleData = doseRuleData
                                 SolutionRuleData = solutionRuleData
                                 RenalRuleData = renalRuleData
+                                TotalsData = totalsData
                             }
                         Reconstitution = reconstitution
                         ParenteralMeds = parenteralMeds
@@ -241,7 +262,7 @@ module Resources =
                         DoseRules = doseRules
                         SolutionRules = solutionRules
                         RenalRules = renalRules
-                        Messages = doseMsgs |> List.toArray
+                        Messages = doseMsgs @ totalsMsgs |> List.toArray
                         LastReloaded = DateTime.UtcNow
                         IsLoaded = true
                     }
@@ -271,6 +292,7 @@ module Resources =
             member _.GetDoseRules() = state.DoseRules
             member _.GetSolutionRules() = state.SolutionRules
             member _.GetRenalRules() = state.RenalRules
+            member _.GetTotals() = state.Data.TotalsData
             member _.GetResourceInfo() = resourceInfo state
 
 
@@ -344,6 +366,7 @@ module Resources =
             member this.GetDoseRules() = this.getFromCache _.DoseRules
             member this.GetSolutionRules() = this.getFromCache _.SolutionRules
             member this.GetRenalRules() = this.getFromCache _.RenalRules
+            member this.GetTotals() = this.getFromCache _.Data.TotalsData
             member this.GetResourceInfo() = this.getFromCache resourceInfo
 
 
@@ -389,6 +412,8 @@ module Api =
 
 
     let getRenalRules (provider: IResourceProvider) = provider.GetRenalRules()
+
+    let getTotals (provider: IResourceProvider) = provider.GetTotals()
 
 
     // Filtering functions using cached mappings

@@ -1421,6 +1421,15 @@ module ValueUnit =
         | FParsec.CharParsers.Failure(s, err, _) -> $"{s} with error: {err}" |> Result.Error
 
 
+    let toToken vu =
+        let b = vu |> toBase
+
+        sprintf
+            "%s %s"
+            (b |> getValue |> Array.sort |> Array.map string |> String.concat ",")
+            (b |> getUnit |> Group.unitToGroup |> Group.toStringLong)
+
+
     module Operators =
 
         // Arithmetic operators as inline functions (replacing the former

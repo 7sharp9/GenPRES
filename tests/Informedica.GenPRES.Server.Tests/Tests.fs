@@ -25,6 +25,7 @@ module Helpers =
             GetDoseRuleData = fun () -> Ok [||]
             GetSolutionRuleData = fun () -> Ok [||]
             GetRenalRuleData = fun () -> Ok [||]
+            GetTotalsData = fun () -> Ok [||]
             GetReconstitution = fun () -> Ok [||]
             GetParenteralMeds = fun _ -> Ok [||]
             GetEnteralFeeding = fun _ -> Ok [||]

@@ -5,7 +5,6 @@ module EquationMapping =
     open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
     open ConsoleWriter.NewLineNoTime
-    open Utils
     open WrappedString
 
     module Literals =
@@ -83,19 +82,97 @@ module EquationMapping =
         let onceTimed = 7
 
 
-    // Get the equations from a Google spreadsheet
-    let private getEquations_ indx =
-        let data = Web.getDataFromGenPres "Equations"
+    // Order equations are an invariant of GenORDER and are embedded here instead
+    // of being fetched from the "Equations" Google sheet. Each equation is paired
+    // with the dose types it applies to (Literals: discontinuous=3 .. onceTimed=7).
+    let allDoseTypes =
+        [
+            Literals.discontinuous
+            Literals.continuous
+            Literals.timed
+            Literals.once
+            Literals.onceTimed
+        ]
 
-        if data.Length <= 1 then
-            []
-        else
-            data
-            |> Array.skip 1
-            // only pick those equations that are marked with an 'x'
-            |> Array.filter (fun xs -> xs.Length > indx && xs[indx] = "x" && xs.Length > 1)
-            |> Array.map (Array.item 1)
-            |> Array.toList
+    // Recurring dose-type membership sets, named so equal sets read equal
+    // (and Fantomas keeps them on one line at every use site).
+    let discTimed = [ Literals.discontinuous; Literals.timed ]
+
+    let discContTimed =
+        [
+            Literals.discontinuous
+            Literals.continuous
+            Literals.timed
+        ]
+
+    let contTimedOnceTimed = [ Literals.continuous; Literals.timed; Literals.onceTimed ]
+
+    let contOnly = [ Literals.continuous ]
+
+
+    let equations: (string * int list) list =
+        [
+            "[itm]_cmp_qty = [itm]_cmp_cnc * [cmp]_cmp_qty", allDoseTypes
+            "[itm]_orb_qty = [itm]_orb_cnc * [orb]_orb_qty", allDoseTypes
+            "[itm]_orb_qty = [itm]_cmp_cnc * [cmp]_orb_qty", allDoseTypes
+            "[itm]_dos_qty = [itm]_cmp_cnc * [cmp]_dos_qty", allDoseTypes
+            "[itm]_dos_qty = [itm]_orb_cnc * [orb]_dos_qty", allDoseTypes
+            "[itm]_dos_qty = [itm]_dos_qty_adj * [ord]_adj_qty", allDoseTypes
+            "[itm]_dos_ptm = [itm]_cmp_cnc * [cmp]_dos_ptm", discTimed
+            "[itm]_dos_ptm = [itm]_orb_cnc * [orb]_dos_ptm", discTimed
+            "[itm]_dos_ptm = [itm]_dos_qty * [ord]_sch_frq", discTimed
+            "[itm]_dos_ptm = [itm]_dos_ptm_adj * [ord]_adj_qty", discTimed
+            "[itm]_dos_rte = [itm]_cmp_cnc * [cmp]_dos_rte", contTimedOnceTimed
+            "[itm]_dos_rte = [itm]_orb_cnc * [orb]_dos_rte", contTimedOnceTimed
+            "[itm]_dos_rte = [itm]_dos_rte_adj * [ord]_adj_qty", contTimedOnceTimed
+            "[itm]_dos_tot = [itm]_dos_ptm * [ord]_ord_tme", discTimed
+            "[itm]_dos_tot = [itm]_dos_rte * [ord]_ord_tme", contOnly
+            "[itm]_dos_qty_adj = [itm]_cmp_cnc * [cmp]_dos_qty_adj", allDoseTypes
+            "[itm]_dos_qty_adj = [itm]_orb_cnc * [orb]_dos_qty_adj", allDoseTypes
+            "[itm]_dos_ptm_adj = [itm]_cmp_cnc * [cmp]_dos_ptm_adj", discContTimed
+            "[itm]_dos_ptm_adj = [itm]_orb_cnc * [orb]_dos_ptm_adj", discContTimed
+            "[itm]_dos_ptm_adj = [itm]_dos_qty_adj * [ord]_sch_frq", discTimed
+            "[itm]_dos_rte_adj = [itm]_cmp_cnc * [cmp]_dos_rte_adj", contOnly
+            "[itm]_dos_rte_adj = [itm]_orb_cnc * [orb]_dos_rte_adj", contOnly
+            "[itm]_dos_tot_adj = [itm]_dos_ptm_adj * [ord]_ord_tme", discTimed
+            "[itm]_dos_tot_adj = [itm]_dos_rte_adj * [ord]_ord_tme", contOnly
+            "[cmp]_orb_qty = [cmp]_orb_cnc * [orb]_orb_qty", allDoseTypes
+            "[cmp]_orb_qty = [orb]_dos_cnt * [cmp]_dos_qty", allDoseTypes
+            "[cmp]_orb_qty = [cmp]_cmp_qty * [cmp]_orb_cnt", allDoseTypes
+            "[cmp]_ord_qty = [cmp]_cmp_qty * [cmp]_ord_cnt", allDoseTypes
+            "[cmp]_dos_tot = [cmp]_dos_ptm * [ord]_ord_tme", discContTimed
+            "[cmp]_dos_tot = [cmp]_dos_rte * [ord]_ord_tme", contOnly
+            "[cmp]_dos_qty = [cmp]_orb_cnc * [orb]_dos_qty", allDoseTypes
+            "[cmp]_dos_qty = [cmp]_dos_qty_adj * [ord]_adj_qty", allDoseTypes
+            "[cmp]_dos_ptm = [cmp]_orb_cnc * [orb]_dos_ptm", discTimed
+            "[cmp]_dos_ptm = [cmp]_dos_qty * [ord]_sch_frq", discTimed
+            "[cmp]_dos_ptm = [cmp]_dos_ptm_adj * [ord]_adj_qty", discTimed
+            "[cmp]_dos_rte = [cmp]_orb_cnc * [orb]_dos_rte", contOnly
+            "[cmp]_dos_rte = [cmp]_dos_rte_adj * [ord]_adj_qty", contOnly
+            "[cmp]_dos_qty_adj = [cmp]_orb_cnc * [orb]_dos_qty_adj", allDoseTypes
+            "[cmp]_dos_qty_adj = [cmp]_dos_rte_adj * [ord]_sch_tme", contOnly
+            "[cmp]_dos_ptm_adj = [cmp]_orb_cnc * [orb]_dos_ptm_adj", discTimed
+            "[cmp]_dos_ptm_adj = [cmp]_dos_qty_adj * [ord]_sch_frq", discTimed
+            "[cmp]_dos_rte_adj = [cmp]_orb_cnc * [orb]_dos_rte_adj", contOnly
+            "[orb]_orb_qty = [orb]_dos_cnt * [orb]_dos_qty", allDoseTypes
+            "[orb]_ord_qty = [orb]_ord_cnt * [orb]_orb_qty", allDoseTypes
+            "[orb]_dos_tot = [orb]_dos_ptm * [ord]_ord_tme", discContTimed
+            "[orb]_dos_tot = [orb]_dos_rte * [ord]_ord_tme", discContTimed
+            "[orb]_dos_qty = [orb]_dos_rte * [ord]_sch_tme", contTimedOnceTimed
+            "[orb]_dos_qty = [orb]_dos_qty_adj * [ord]_adj_qty", allDoseTypes
+            "[orb]_dos_ptm = [orb]_dos_qty * [ord]_sch_frq", discTimed
+            "[orb]_dos_ptm = [orb]_dos_ptm_adj * [ord]_adj_qty", discTimed
+            "[orb]_dos_rte = [orb]_dos_rte_adj * [ord]_adj_qty", contTimedOnceTimed
+            "[orb]_dos_qty_adj = [orb]_dos_rte_adj * [ord]_sch_tme", contOnly
+            "[orb]_dos_ptm_adj = [orb]_dos_qty_adj * [ord]_sch_frq", discTimed
+            "[orb]_orb_qty = sum([cmp]_orb_qty)", allDoseTypes
+        ]
+
+
+    let private getEquations_ indx =
+        equations
+        |> List.filter (fun (_, dts) -> dts |> List.contains indx)
+        |> List.map fst
 
 
     /// <summary>

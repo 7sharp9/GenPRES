@@ -12,6 +12,13 @@
     <Compile Include="Tests.fs" />
     <Compile Include="Main.fs" />
     <None Include="Scripts\Tests.fsx" />
+    <None Include="Scripts\DownloadFixtures.fsx" />
+    <!-- MinMax golden-result fixtures, copied next to the test dll so the
+         MinMaxCalculator scenario tests run hermetically (no Google Sheets). -->
+    <Content Include="fixtures\*.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>fixtures\%(Filename)%(Extension)</Link>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Informedica.GenSOLVER.Lib\Informedica.GenSOLVER.Lib.fsproj" />
