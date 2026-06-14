@@ -34,8 +34,13 @@ module FixtureJson =
             w.WriteValue($"%s{br.Numerator.ToString()}/%s{br.Denominator.ToString()}")
 
         override _.ReadJson(r: JsonReader, _: Type, _: obj, _: JsonSerializer) =
-            let parts = (string r.Value).Split('/')
-            let bi (s: string) = System.Numerics.BigInteger.Parse s
+            let s = string r.Value
+            let parts = s.Split('/')
+
+            if parts.Length <> 2 then
+                failwith $"BigRational fixture token expected 'num/den', got: '%s{s}'"
+
+            let bi (t: string) = System.Numerics.BigInteger.Parse t
             (BigRational.FromBigInt(bi parts[0]) / BigRational.FromBigInt(bi parts[1])) :> obj
 
     let private settings =

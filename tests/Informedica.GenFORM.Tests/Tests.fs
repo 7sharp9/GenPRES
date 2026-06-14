@@ -1182,6 +1182,14 @@ module DoseRuleRoundtripTests =
     let private g2 = generate g1
 
 
+    // NOTE: the literal counts below (206/52/299/202) are INTENTIONAL snapshot
+    // values frozen against the committed fixtures (doserules/products .json).
+    // They are a tripwire that flags unexpected drift in the source data, NOT
+    // part of the round-trip invariant — that is carried entirely by the
+    // `missing ... = 0` containment checks in PASS 1/PASS 2, which hold for any
+    // fixture. If you regenerate the fixtures via Scripts/DownloadFixtures.fsx
+    // (e.g. after a data-source update), update these counts to match; a count
+    // change alone does not indicate a round-trip regression.
     let tests =
         testList
             "DoseRule round-trip (offline fixtures)"
