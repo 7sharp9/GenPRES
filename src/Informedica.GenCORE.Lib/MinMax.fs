@@ -88,6 +88,9 @@ module Limit =
     let getValueUnit = map id id
 
 
+    let getValue = getValueUnit >> ValueUnit.getValue >> Array.tryHead
+
+
     let inline apply fIncl fExcl =
         map (fIncl >> Inclusive) (fExcl >> Exclusive)
 
@@ -361,6 +364,12 @@ module Limit =
             vu |> LimitIncr |> Errors.NoValidLimitIncr |> Error
         else
             vu |> LimitIncr |> Ok
+
+
+    let toToken =
+        function
+        | Inclusive vu -> $"incl|{vu |> ValueUnit.toToken}"
+        | Exclusive vu -> $"excl|{vu |> ValueUnit.toToken}"
 
 
 /// Functions to handle a `MinMax` type.
@@ -698,6 +707,21 @@ module MinMax =
                 | None -> None
                 | Some v -> v |> convert
         }
+
+
+    let toTuple (mm: MinMax) = mm.Min, mm.Max
+
+
+    let toValueTuple mm =
+        let min, max = mm |> toTuple
+        min |> Option.bind Limit.getValue, max |> Option.bind Limit.getValue
+
+
+    let getUnit mm =
+        [ mm.Min; mm.Max ]
+        |> List.choose id
+        |> List.tryHead
+        |> Option.map (Limit.getValueUnit >> ValueUnit.getUnit)
 
 
     /// Extension methods for the `Value` type

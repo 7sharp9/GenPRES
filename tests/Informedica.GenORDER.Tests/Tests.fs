@@ -12,7 +12,9 @@ open Informedica.GenOrder.Lib
 
 // --- New tests for fluent pipeline guard/order behavior ---
 
-Environment.SetEnvironmentVariable("GENPRES_URL_ID", "1JHOrasAZ_2fcVApYpt1qT2lZBsqrAxN-9SvBisXkbsM")
+// No GENPRES_URL_ID: these tests are hermetic and never download from Google
+// Sheets. All order/scenario data is built from the synthetic templates below
+// and in Scenarios.fs.
 
 // Original test data used by several tests below
 let testMedicationOrders =
@@ -169,6 +171,37 @@ module Pipeline =
                     match res with
                     | Ok _ -> true |> Expect.isTrue "calc minmax ok"
                     | Error(o, _) -> (box o) |> Expect.isNotNull "Order returned with error"
+                }
+
+                test "getTotals runs hermetically with injected totals" {
+                    // The "Totals" reference data is now injected (it used to be a
+                    // live Google-sheet fetch at module init). This must run with
+                    // GENPRES_URL_ID unset, proving the injection seam.
+                    let syntheticTotals: TotalsData[] =
+                        [|
+                            {
+                                Name = "volume"
+                                MinAge = None
+                                MaxAge = None
+                                MinWeight = None
+                                MaxWeight = None
+                                Unit = Some Units.Volume.milliLiter
+                                Adj = Some Units.Weight.kiloGram
+                                TimeUnit = Some Units.Time.day
+                                MinPerTime = None
+                                MaxPerTime = None
+                                MinPerTimeAdj = None
+                                MaxPerTimeAdj = None
+                            }
+                        |]
+
+                    let dto = testMedicationOrders |> List.head |> Medication.toOrderDto
+
+                    // no weight -> no per-weight aggregation -> Volume None, but the
+                    // call completes without any Google-sheet access.
+                    let result = Totals.getTotals syntheticTotals None None [| dto |]
+
+                    result.Volume |> Expect.isNone "no weight -> no volume total"
                 }
             ]
 
@@ -1144,6 +1177,113 @@ module MedicationParserTests =
                 test "parseLine returns Some for key:value line" {
                     Medication.Parser.parseLine "Name: Test" |> Expect.isSome "key:value → Some"
                 }
+            ]
+
+
+module EquationsTests =
+
+    // Golden reference: the full "Equations" sheet. Each entry is the equation
+    // string ("Short Name" column) and a 5-char marker for which dose types mark
+    // it with an "x", in column order discontinuous, continuous, timed, once,
+    // onceTimed ('x' = applies, '.' = blank). This is an independent transcription
+    // of the source sheet; the test fails if the hardcoded EquationMapping.equations
+    // list drifts from it (wrong equation text, wrong dose-type assignment, or order).
+    let private golden =
+        [
+            "[itm]_cmp_qty = [itm]_cmp_cnc * [cmp]_cmp_qty", "xxxxx"
+            "[itm]_orb_qty = [itm]_orb_cnc * [orb]_orb_qty", "xxxxx"
+            "[itm]_orb_qty = [itm]_cmp_cnc * [cmp]_orb_qty", "xxxxx"
+            "[itm]_dos_qty = [itm]_cmp_cnc * [cmp]_dos_qty", "xxxxx"
+            "[itm]_dos_qty = [itm]_orb_cnc * [orb]_dos_qty", "xxxxx"
+            "[itm]_dos_qty = [itm]_dos_rte * [ord]_sch_tme", "....."
+            "[itm]_dos_qty = [itm]_dos_qty_adj * [ord]_adj_qty", "xxxxx"
+            "[itm]_dos_ptm = [itm]_cmp_cnc * [cmp]_dos_ptm", "x.x.."
+            "[itm]_dos_ptm = [itm]_orb_cnc * [orb]_dos_ptm", "x.x.."
+            "[itm]_dos_ptm = [itm]_dos_qty * [ord]_sch_frq", "x.x.."
+            "[itm]_dos_ptm = [itm]_dos_ptm_adj * [ord]_adj_qty", "x.x.."
+            "[itm]_dos_rte = [itm]_cmp_cnc * [cmp]_dos_rte", ".xx.x"
+            "[itm]_dos_rte = [itm]_orb_cnc * [orb]_dos_rte", ".xx.x"
+            "[itm]_dos_rte = [itm]_dos_rte_adj * [ord]_adj_qty", ".xx.x"
+            "[itm]_dos_tot = [itm]_dos_ptm * [ord]_ord_tme", "x.x.."
+            "[itm]_dos_tot = [itm]_dos_rte * [ord]_ord_tme", ".x..."
+            "[itm]_dos_qty_adj = [itm]_cmp_cnc * [cmp]_dos_qty_adj", "xxxxx"
+            "[itm]_dos_qty_adj = [itm]_orb_cnc * [orb]_dos_qty_adj", "xxxxx"
+            "[itm]_dos_qty_adj = [itm]_dos_rte_adj * [ord]_sch_tme", "....."
+            "[itm]_dos_ptm_adj = [itm]_cmp_cnc * [cmp]_dos_ptm_adj", "xxx.."
+            "[itm]_dos_ptm_adj = [itm]_orb_cnc * [orb]_dos_ptm_adj", "xxx.."
+            "[itm]_dos_ptm_adj = [itm]_dos_qty_adj * [ord]_sch_frq", "x.x.."
+            "[itm]_dos_rte_adj = [itm]_cmp_cnc * [cmp]_dos_rte_adj", ".x..."
+            "[itm]_dos_rte_adj = [itm]_orb_cnc * [orb]_dos_rte_adj", ".x..."
+            "[itm]_dos_tot_adj = [itm]_dos_ptm_adj * [ord]_ord_tme", "x.x.."
+            "[itm]_dos_tot_adj = [itm]_dos_rte_adj * [ord]_ord_tme", ".x..."
+            "[cmp]_orb_qty = [cmp]_orb_cnc * [orb]_orb_qty", "xxxxx"
+            "[cmp]_orb_qty = [orb]_dos_cnt * [cmp]_dos_qty", "xxxxx"
+            "[cmp]_orb_qty = [cmp]_cmp_qty * [cmp]_orb_cnt", "xxxxx"
+            "[cmp]_ord_qty = [cmp]_cmp_qty * [cmp]_ord_cnt", "xxxxx"
+            "[cmp]_dos_tot = [cmp]_dos_ptm * [ord]_ord_tme", "xxx.."
+            "[cmp]_dos_tot = [cmp]_dos_rte * [ord]_ord_tme", ".x..."
+            "[cmp]_dos_qty = [cmp]_orb_cnc * [orb]_dos_qty", "xxxxx"
+            "[cmp]_dos_qty = [cmp]_dos_rte * [ord]_sch_tme", "....."
+            "[cmp]_dos_qty = [cmp]_dos_qty_adj * [ord]_adj_qty", "xxxxx"
+            "[cmp]_dos_ptm = [cmp]_orb_cnc * [orb]_dos_ptm", "x.x.."
+            "[cmp]_dos_ptm = [cmp]_dos_qty * [ord]_sch_frq", "x.x.."
+            "[cmp]_dos_ptm = [cmp]_dos_ptm_adj * [ord]_adj_qty", "x.x.."
+            "[cmp]_dos_rte = [cmp]_orb_cnc * [orb]_dos_rte", ".x..."
+            "[cmp]_dos_rte = [cmp]_dos_rte_adj * [ord]_adj_qty", ".x..."
+            "[cmp]_dos_qty_adj = [cmp]_orb_cnc * [orb]_dos_qty_adj", "xxxxx"
+            "[cmp]_dos_qty_adj = [cmp]_dos_rte_adj * [ord]_sch_tme", ".x..."
+            "[cmp]_dos_ptm_adj = [cmp]_orb_cnc * [orb]_dos_ptm_adj", "x.x.."
+            "[cmp]_dos_ptm_adj = [cmp]_dos_qty_adj * [ord]_sch_frq", "x.x.."
+            "[cmp]_dos_rte_adj = [cmp]_orb_cnc * [orb]_dos_rte_adj", ".x..."
+            "[orb]_orb_qty = [orb]_dos_cnt * [orb]_dos_qty", "xxxxx"
+            "[orb]_ord_qty = [orb]_ord_cnt * [orb]_orb_qty", "xxxxx"
+            "[orb]_dos_tot = [orb]_dos_ptm * [ord]_ord_tme", "xxx.."
+            "[orb]_dos_tot = [orb]_dos_rte * [ord]_ord_tme", "xxx.."
+            "[orb]_dos_qty = [orb]_dos_rte * [ord]_sch_tme", ".xx.x"
+            "[orb]_dos_qty = [orb]_dos_qty_adj * [ord]_adj_qty", "xxxxx"
+            "[orb]_dos_ptm = [orb]_dos_qty * [ord]_sch_frq", "x.x.."
+            "[orb]_dos_ptm = [orb]_dos_ptm_adj * [ord]_adj_qty", "x.x.."
+            "[orb]_dos_rte = [orb]_dos_rte_adj * [ord]_adj_qty", ".xx.x"
+            "[orb]_dos_qty_adj = [orb]_dos_rte_adj * [ord]_sch_tme", ".x..."
+            "[orb]_dos_ptm_adj = [orb]_dos_qty_adj * [ord]_sch_frq", "x.x.."
+            "[orb]_orb_qty = sum([cmp]_orb_qty)", "xxxxx"
+            "[orb]_dos_qty = sum([cmp]_dos_qty)", "....."
+            "[orb]_dos_ptm = sum([cmp]_dos_ptm)", "....."
+            "[orb]_dos_rte = sum([cmp]_dos_rte)", "....."
+            "[orb]_dos_tot = sum([cmp]_dos_tot)", "....."
+            "[orb]_dos_qty_adj = sum([cmp]_dos_qty_adj)", "....."
+            "[orb]_dos_ptm_adj = sum([cmp]_dos_ptm_adj)", "....."
+            "[orb]_dos_rte_adj = sum([cmp]_dos_rte_adj)", "....."
+            "[orb]_dos_tot_adj = sum([cmp]_dos_tot_adj)", "....."
+        ]
+
+    // (dose-type index used by getEquations, position in the marker string, name)
+    let private doseTypes =
+        [
+            EquationMapping.Literals.discontinuous, 0, "discontinuous"
+            EquationMapping.Literals.continuous, 1, "continuous"
+            EquationMapping.Literals.timed, 2, "timed"
+            EquationMapping.Literals.once, 3, "once"
+            EquationMapping.Literals.onceTimed, 4, "onceTimed"
+        ]
+
+    let private expectedFor pos =
+        golden |> List.filter (fun (_, m) -> m[pos] = 'x') |> List.map fst
+
+    [<Tests>]
+    let tests =
+        testList
+            "EquationMapping embedded equations vs sheet"
+            [
+                test "golden table has all 65 sheet rows" {
+                    golden |> List.length |> Expect.equal "65 rows transcribed" 65
+                }
+
+                for indx, pos, name in doseTypes do
+                    test $"getEquations {name} matches the Equations sheet" {
+                        EquationMapping.getEquations indx
+                        |> Expect.equal $"embedded {name} equations equal the sheet" (expectedFor pos)
+                    }
             ]
 
 

@@ -3,14 +3,11 @@ namespace Informedica.GenOrder.Lib
 
 module Totals =
 
-    open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
     open Informedica.GenSolver.Lib
     open Informedica.GenOrder.Lib
     open Informedica.GenSolver.Lib.Variable.Operators
-    open Informedica.GenForm.Lib.Utils
-
 
     let isVolume (var: Variable) =
         var
@@ -103,46 +100,8 @@ module Totals =
             )
 
 
-    let totals =
-        let urlId =
-            Env.loadDotEnv () |> ignore
-
-            Env.getItem Utils.Constants.GENPRES_URL_ID
-            |> Option.defaultWith (fun () -> failwith $"No valid {Utils.Constants.GENPRES_URL_ID}")
-
-        Web.GoogleSheets.getCsvDataFromSheetSync urlId "Totals"
-        |> Result.defaultValue [||]
-
-        |> fun data ->
-            if data.Length <= 1 then
-                [||]
-            else
-                let getColumn = data |> Array.head |> Csv.getStringColumn
-
-                data
-                |> Array.tail
-                |> Array.map (fun r ->
-                    let get = getColumn r
-                    let toBrOpt = BigRational.toBrs >> Array.tryHead
-
-                    {|
-                        Name = get "Name"
-                        MinAge = get "MinAge" |> toBrOpt
-                        MaxAge = get "MaxAge" |> toBrOpt
-                        MinWeight = get "MinWeight" |> toBrOpt
-                        MaxWeight = get "MaxWeight" |> toBrOpt
-                        Unit = get "Unit" |> UnitsParse.fromString
-                        Adj = get "Adj" |> UnitsParse.fromString
-                        TimeUnit = get "TimeUnit" |> UnitsParse.fromString
-                        MinPerTime = get "MinPerTime" |> toBrOpt
-                        MaxPerTime = get "MaxPerTime" |> toBrOpt
-                        MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt
-                        MaxPerTimeAdj = get "MaxPerTimeAdj" |> toBrOpt
-                    |}
-                )
-
-
     let getTotals
+        (totals: Informedica.GenForm.Lib.Types.Data.TotalsData[])
         (age: Informedica.GenUnits.Lib.ValueUnit option)
         (wght: Informedica.GenUnits.Lib.ValueUnit option)
         (dtos: Order.Dto.Dto[])

@@ -22,6 +22,7 @@
     <Compile Include="Source.fs" />
     <Compile Include="DoseRule.fs" />
     <Compile Include="DoseRuleData.fs" />
+    <Compile Include="DoseRuleLoader.fs" />
     <Compile Include="Check.fs" />
     <Compile Include="SolutionLimit.fs" />
     <Compile Include="SolutionRule.fs" />

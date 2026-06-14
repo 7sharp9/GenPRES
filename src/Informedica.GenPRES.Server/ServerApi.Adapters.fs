@@ -66,7 +66,14 @@ module Adapters =
         }
 
 
-    let private makeOrderPlanPort agent (orderCtxPort: OrderContextPort) : OrderPlanPort =
+    let private makeOrderPlanPort
+        agent
+        (provider: Resources.IResourceProvider)
+        (orderCtxPort: OrderContextPort)
+        : OrderPlanPort
+        =
+        let totals = provider.GetTotals()
+
         {
             updateOrderPlan =
                 fun tp cmdOpt ->
@@ -74,10 +81,10 @@ module Adapters =
                         do! setComponentName "OrderPlan" agent
 
                         let! updated = OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
-                        return updated |> OrderPlanService.calculateTotals |> Ok
+                        return updated |> OrderPlanService.calculateTotals totals |> Ok
                     }
 
-            filterOrderPlan = fun tp -> async { return tp |> OrderPlanService.calculateTotals |> Ok }
+            filterOrderPlan = fun tp -> async { return tp |> OrderPlanService.calculateTotals totals |> Ok }
         }
 
 
@@ -87,27 +94,29 @@ module Adapters =
         (provider: Resources.IResourceProvider)
         : NutritionPlanPort
         =
+        let totals = provider.GetTotals()
+
         {
             initNutritionPlan =
-                fun patient -> async { return NutritionPlanService.initNutritionPlan logger provider patient }
+                fun patient -> async { return NutritionPlanService.initNutritionPlan logger totals patient }
 
             addNutritionContext =
-                fun (plan, category) -> NutritionPlanService.addNutritionContext orderCtxPort (plan, category)
+                fun (plan, category) -> NutritionPlanService.addNutritionContext totals orderCtxPort (plan, category)
 
             removeNutritionContext =
-                fun (plan, id) -> async { return NutritionPlanService.removeNutritionContext (plan, id) }
+                fun (plan, id) -> async { return NutritionPlanService.removeNutritionContext totals (plan, id) }
 
             updateNutritionOrderContext =
                 fun (plan, label, ctx) ->
-                    NutritionPlanService.updateNutritionOrderContext orderCtxPort (plan, label, ctx)
+                    NutritionPlanService.updateNutritionOrderContext totals orderCtxPort (plan, label, ctx)
 
             selectNutritionOrderScenario =
                 fun (plan, label, ctx) ->
-                    NutritionPlanService.selectNutritionOrderScenario orderCtxPort (plan, label, ctx)
+                    NutritionPlanService.selectNutritionOrderScenario totals orderCtxPort (plan, label, ctx)
 
             navigateNutritionOrderContext =
                 fun (plan, label, ctxCmd, ctx) ->
-                    NutritionPlanService.navigateNutritionOrderContext orderCtxPort (plan, label, ctxCmd, ctx)
+                    NutritionPlanService.navigateNutritionOrderContext totals orderCtxPort (plan, label, ctxCmd, ctx)
         }
 
 
@@ -118,7 +127,7 @@ module Adapters =
         {
             formulary = makeFormularyPort provider
             orderContext = orderCtxPort
-            orderPlan = makeOrderPlanPort agent orderCtxPort
+            orderPlan = makeOrderPlanPort agent provider orderCtxPort
             nutritionPlan = makeNutritionPlanPort orderCtxPort logger provider
             interaction =
                 {

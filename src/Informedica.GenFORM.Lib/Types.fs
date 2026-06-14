@@ -12,22 +12,6 @@ module Types =
     type MinMax = Informedica.GenCore.Lib.Ranges.MinMax
 
 
-    type UnitMapping =
-        {
-            Long: string
-            Short: string
-            MV: string
-            Group: string
-        }
-
-
-    type RouteMapping =
-        {
-            Long: string
-            Short: string
-        }
-
-
     /// Associate a Route and a Form
     /// setting default values for the other fields
     type FormRoute =
@@ -374,181 +358,6 @@ module Types =
             (fun (p: Patient) -> p.Location), (fun l (p: Patient) -> { p with Location = l })
 
 
-    /// Raw dose rule data
-    type DoseRuleData =
-        {
-            Id: string
-            GrpId: string
-            SortNo: int
-            Source: string
-            SourceText: string
-            Generic: GenericData
-            Indication: string
-            Route: string
-            PatientText: string
-            Patient: PatientCategoryData
-            ScheduleText: string
-            ScheduleData: ScheduleData
-            Products: ProductComponent[]
-        }
-
-    and GenericData =
-        {
-            Name: string
-            Form: string
-            Brand: string
-            GPKs: string array
-            HPKs: string array
-        }
-
-    and PatientCategoryData =
-        {
-            Location: string
-            Dep: string
-            IsAdult: bool
-            Gender: Gender
-            MinAge: BigRational option
-            MaxAge: BigRational option
-            MinWeight: BigRational option
-            MaxWeight: BigRational option
-            MinBSA: BigRational option
-            MaxBSA: BigRational option
-            MinGestAge: BigRational option
-            MaxGestAge: BigRational option
-            MinPMAge: BigRational option
-            MaxPMAge: BigRational option
-        }
-
-    and ScheduleData =
-        {
-            DoseType: string
-            DoseText: string
-            Freqs: BigRational array
-            AdjustUnit: string
-            FreqUnit: string
-            RateUnit: string
-            MinTime: BigRational option
-            MaxTime: BigRational option
-            TimeUnit: string
-            MinInt: BigRational option
-            MaxInt: BigRational option
-            IntUnit: string
-            MinDur: BigRational option
-            MaxDur: BigRational option
-            DurUnit: string
-            DoseLimitData: DoseLimitData
-        }
-
-    and DoseLimitData =
-        {
-            CmpBased: bool
-            Component: string
-            Substance: string
-            DoseUnit: string
-            MinQty: BigRational option
-            MaxQty: BigRational option
-            MinQtyAdj: BigRational option
-            MaxQtyAdj: BigRational option
-            MinPerTime: BigRational option
-            MaxPerTime: BigRational option
-            MinPerTimeAdj: BigRational option
-            MaxPerTimeAdj: BigRational option
-            MinRate: BigRational option
-            MaxRate: BigRational option
-            MinRateAdj: BigRational option
-            MaxRateAdj: BigRational option
-        }
-
-    /// Raw solution rule data
-    type SolutionRuleData =
-        {
-            // solution rule section
-            Generic: string
-            Form: string
-            Route: string
-            Indication: string
-            Location: string option
-            Department: string option
-            CVL: string
-            PVL: string
-            MinAge: BigRational option
-            MaxAge: BigRational option
-            MinWeight: BigRational option
-            MaxWeight: BigRational option
-            MinGestAge: BigRational option
-            MaxGestAge: BigRational option
-            MinDose: BigRational option
-            MaxDose: BigRational option
-            DoseType: string
-            DoseText: string
-            Solutions: string list
-            Div: BigRational option
-            Volumes: BigRational array
-            MinVol: BigRational option
-            MaxVol: BigRational option
-            MinVolAdj: BigRational option
-            MaxVolAdj: BigRational option
-            MinPerc: BigRational option
-            MaxPerc: BigRational option
-            // solution limit section
-            Component: string
-            Substance: string
-            Unit: string
-            Quantities: BigRational array
-            MinQty: BigRational option
-            MaxQty: BigRational option
-            MinQtyAdj: BigRational option
-            MaxQtyAdj: BigRational option
-            MinDrip: BigRational option
-            MaxDrip: BigRational option
-            MinConc: BigRational option
-            MaxConc: BigRational option
-        }
-
-
-    /// Raw renal rule data
-    type RenalRuleData =
-        {
-            Generic: string
-            Route: string
-            Indication: string
-            Source: string
-            MinAge: BigRational option
-            MaxAge: BigRational option
-            ContDial: string
-            IntDial: string
-            PerDial: string
-            MinGFR: BigRational option
-            MaxGFR: BigRational option
-            DoseType: string
-            DoseText: string
-            Frequencies: BigRational array
-            MinInterval: BigRational option
-            MaxInterval: BigRational option
-            IntervalUnit: string
-            Substance: string
-            DoseRed: string
-            DoseUnit: string
-            AdjustUnit: string
-            FreqUnit: string
-            RateUnit: string
-            MinQty: BigRational option
-            MaxQty: BigRational option
-            NormQtyAdj: BigRational array
-            MinQtyAdj: BigRational option
-            MaxQtyAdj: BigRational option
-            MinPerTime: BigRational option
-            MaxPerTime: BigRational option
-            NormPerTimeAdj: BigRational array
-            MinPerTimeAdj: BigRational option
-            MaxPerTimeAdj: BigRational option
-            MinRate: BigRational option
-            MaxRate: BigRational option
-            MinRateAdj: BigRational option
-            MaxRateAdj: BigRational option
-        }
-
-
     type ProductId =
         | Gpk of string
         | Hpk of string
@@ -850,5 +659,251 @@ module Types =
 
         interface IMessage
 
+
+    /// Data-transfer / raw-parse (IO) types. Loaded from sheets and mapped
+    /// into the pure domain types above. Defined last so the domain layer
+    /// cannot reference these DTOs (one-way dependency: Data -> Domain only).
+    [<AutoOpen>]
+    module Data =
+
+        type UnitMapping =
+            {
+                Long: string
+                Short: string
+                MV: string
+                Group: string
+            }
+
+
+        type RouteMapping =
+            {
+                Long: string
+                Short: string
+            }
+
+
+        /// Reference intake-totals row: per patient age/weight category, the
+        /// unit/time-unit and per-time min/max limits used to compute and annotate
+        /// aggregated intake (volume, energy, etc.). Loaded from the "Totals" sheet.
+        type TotalsData =
+            {
+                Name: string
+                MinAge: BigRational option
+                MaxAge: BigRational option
+                MinWeight: BigRational option
+                MaxWeight: BigRational option
+                Unit: Unit option
+                Adj: Unit option
+                TimeUnit: Unit option
+                MinPerTime: BigRational option
+                MaxPerTime: BigRational option
+                MinPerTimeAdj: BigRational option
+                MaxPerTimeAdj: BigRational option
+            }
+
+
+        type HashId = string
+
+
+        /// Raw dose rule data
+        type DoseRuleData =
+            {
+                RowId: HashId
+                RuleId: HashId
+                GrpId: HashId
+                SortNo: int
+                Source: string
+                SourceText: string
+                Generic: GenericData
+                Indication: string
+                Route: string
+                PatientText: string
+                Patient: PatientCategoryData
+                ScheduleText: string
+                ScheduleData: ScheduleData
+                Products: ProductComponent[]
+            }
+
+        and GenericData =
+            {
+                Name: string
+                Form: string
+                Brand: string
+                GPKs: string array
+                HPKs: string array
+            }
+
+        and PatientCategoryData =
+            {
+                Location: string
+                Dep: string
+                IsAdult: bool
+                Gender: Gender
+                MinAge: BigRational option
+                MaxAge: BigRational option
+                MinWeight: BigRational option
+                MaxWeight: BigRational option
+                MinBSA: BigRational option
+                MaxBSA: BigRational option
+                MinGestAge: BigRational option
+                MaxGestAge: BigRational option
+                MinPMAge: BigRational option
+                MaxPMAge: BigRational option
+            }
+
+        and ScheduleData =
+            {
+                DoseType: string
+                DoseText: string
+                Freqs: BigRational array
+                AdjustUnit: string
+                FreqUnit: string
+                RateUnit: string
+                MinTime: BigRational option
+                MaxTime: BigRational option
+                TimeUnit: string
+                MinInt: BigRational option
+                MaxInt: BigRational option
+                IntUnit: string
+                MinDur: BigRational option
+                MaxDur: BigRational option
+                DurUnit: string
+                DoseLimitData: DoseLimitData
+            }
+
+        and DoseLimitData =
+            {
+                CmpBased: bool
+                Component: string
+                Substance: string
+                DoseUnit: string
+                MinQty: BigRational option
+                MaxQty: BigRational option
+                MinQtyAdj: BigRational option
+                MaxQtyAdj: BigRational option
+                MinPerTime: BigRational option
+                MaxPerTime: BigRational option
+                MinPerTimeAdj: BigRational option
+                MaxPerTimeAdj: BigRational option
+                MinRate: BigRational option
+                MaxRate: BigRational option
+                MinRateAdj: BigRational option
+                MaxRateAdj: BigRational option
+            }
+
+        /// Grouping key for raw dose rule data: rows sharing this key belong to one
+        /// dose rule group and differ only by dose type/text and component/substance.
+        type DataGroupKey =
+            {
+
+                Source: string
+                Indication: string
+                Generic: GenericData
+                Patient: PatientCategoryData
+                Route: string
+            }
+
+
+        /// A group of raw DoseRuleData rows sharing a DataGroupKey, together with the
+        /// resolved product forms/components and any warnings raised while grouping.
+        type GroupedRuleData =
+            {
+                DataGroupKey: DataGroupKey
+                DoseRuleData: DoseRuleData[]
+                Forms: string[]
+                Products: ProductComponent[]
+                // warnings raised while grouping (e.g. RowId dedup conflicts);
+                // carried out of the parallel group pass and merged in fromData
+                Warnings: string list
+            }
+
+        /// Raw solution rule data
+        type SolutionRuleData =
+            {
+                // solution rule section
+                Generic: string
+                Form: string
+                Route: string
+                Indication: string
+                Location: string option
+                Department: string option
+                CVL: string
+                PVL: string
+                MinAge: BigRational option
+                MaxAge: BigRational option
+                MinWeight: BigRational option
+                MaxWeight: BigRational option
+                MinGestAge: BigRational option
+                MaxGestAge: BigRational option
+                MinDose: BigRational option
+                MaxDose: BigRational option
+                DoseType: string
+                DoseText: string
+                Solutions: string list
+                Div: BigRational option
+                Volumes: BigRational array
+                MinVol: BigRational option
+                MaxVol: BigRational option
+                MinVolAdj: BigRational option
+                MaxVolAdj: BigRational option
+                MinPerc: BigRational option
+                MaxPerc: BigRational option
+                // solution limit section
+                Component: string
+                Substance: string
+                Unit: string
+                Quantities: BigRational array
+                MinQty: BigRational option
+                MaxQty: BigRational option
+                MinQtyAdj: BigRational option
+                MaxQtyAdj: BigRational option
+                MinDrip: BigRational option
+                MaxDrip: BigRational option
+                MinConc: BigRational option
+                MaxConc: BigRational option
+            }
+
+
+        /// Raw renal rule data
+        type RenalRuleData =
+            {
+                Generic: string
+                Route: string
+                Indication: string
+                Source: string
+                MinAge: BigRational option
+                MaxAge: BigRational option
+                ContDial: string
+                IntDial: string
+                PerDial: string
+                MinGFR: BigRational option
+                MaxGFR: BigRational option
+                DoseType: string
+                DoseText: string
+                Frequencies: BigRational array
+                MinInterval: BigRational option
+                MaxInterval: BigRational option
+                IntervalUnit: string
+                Substance: string
+                DoseRed: string
+                DoseUnit: string
+                AdjustUnit: string
+                FreqUnit: string
+                RateUnit: string
+                MinQty: BigRational option
+                MaxQty: BigRational option
+                NormQtyAdj: BigRational array
+                MinQtyAdj: BigRational option
+                MaxQtyAdj: BigRational option
+                MinPerTime: BigRational option
+                MaxPerTime: BigRational option
+                NormPerTimeAdj: BigRational array
+                MinPerTimeAdj: BigRational option
+                MaxPerTimeAdj: BigRational option
+                MinRate: BigRational option
+                MaxRate: BigRational option
+                MinRateAdj: BigRational option
+                MaxRateAdj: BigRational option
+            }
 
 open Types

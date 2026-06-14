@@ -844,6 +844,126 @@ module Tests =
             ]
 
 
+    // toToken builds a canonical identity for a ValueUnit: base-normalised,
+    // sorted values paired with the unit's GROUP. Equal quantities (even in
+    // different units of the same group, or with reordered values) collapse to
+    // one token; genuinely distinct quantities stay distinct.
+    let toTokenTests =
+
+        let mg v = singleWithUnit Units.Mass.milliGram v
+        let g v = singleWithUnit Units.Mass.gram v
+
+        let mL v =
+            singleWithUnit Units.Volume.milliLiter v
+
+        let mgWith vs = vs |> withUnit Units.Mass.milliGram
+
+        let mgPerML v =
+            singleWithUnit (Units.Mass.milliGram |> per Units.Volume.milliLiter) v
+
+        let gen name v =
+            singleWithUnit (Units.General.general name) v
+
+        testList
+            "toToken"
+            [
+                test "is deterministic: the same ValueUnit yields the same token" {
+                    let vu = mg 250N
+
+                    vu |> toToken |> Expect.equal "two calls on the same vu match" (vu |> toToken)
+                }
+
+                test "two structurally equal ValueUnits yield the same token" {
+                    let exp = mg 250N |> toToken
+
+                    mg 250N
+                    |> toToken
+                    |> Expect.equal $"should equal token of an equal vu {exp}" exp
+                }
+
+                test "different values in the same unit yield different tokens" {
+                    let other = mg 500N |> toToken
+
+                    mg 250N
+                    |> toToken
+                    |> Expect.notEqual $"250 mg token must differ from 500 mg token {other}" other
+                }
+
+                test "different groups with the same value yield different tokens" {
+                    let asMass = mg 5N |> toToken
+
+                    mL 5N
+                    |> toToken
+                    |> Expect.notEqual $"5 mL token must differ from 5 mg token {asMass}" asMass
+                }
+
+                test "equal ValueUnits in different units yield the SAME token" {
+                    mg 1000N =? g 1N
+                    |> Expect.isTrue "precondition: 1000 mg and 1 g are equal quantities"
+
+                    let asGram = g 1N |> toToken
+
+                    mg 1000N
+                    |> toToken
+                    |> Expect.equal $"1000 mg must share the token of 1 g {asGram}" asGram
+                }
+
+                test "multi-value arrays are encoded into the token" {
+                    let single = mgWith [| 1N |] |> toToken
+
+                    mgWith [| 1N; 2N; 3N |]
+                    |> toToken
+                    |> Expect.notEqual $"[1;2;3] mg must differ from [1] mg {single}" single
+                }
+
+                test "value order does not affect the token (values are canonicalised by sort)" {
+                    let ascending = mgWith [| 1N; 2N; 3N |] |> toToken
+
+                    mgWith [| 3N; 2N; 1N |]
+                    |> toToken
+                    |> Expect.equal $"a reordered array must yield the same token {ascending}" ascending
+                }
+
+                test "distinct General units yield distinct tokens (group string keeps the specifier)" {
+                    let capsule = gen "capsule" 1N |> toToken
+
+                    gen "tablet" 1N
+                    |> toToken
+                    |> Expect.notEqual $"1 tablet must differ from 1 capsule {capsule}" capsule
+                }
+
+                test "same General unit yields the same token" {
+                    let exp = gen "tablet" 1N |> toToken
+
+                    gen "tablet" 1N
+                    |> toToken
+                    |> Expect.equal $"1 tablet must match 1 tablet {exp}" exp
+                }
+
+                test "a set of distinct quantities produces a set of distinct tokens" {
+                    let vus =
+                        [
+                            mg 1N
+                            mg 2N
+                            mg 250N
+                            mg 500N
+                            g 1N
+                            mL 1N
+                            mL 5N
+                            mgPerML 10N
+                            mgWith [| 1N; 2N |]
+                            mgWith [| 1N; 3N |]
+                        ]
+
+                    vus
+                    |> List.map toToken
+                    |> List.distinct
+                    |> List.length
+                    |> Expect.equal "every distinct quantity must map to a distinct token" (vus |> List.length)
+                }
+            ]
+
+
     [<Tests>]
     let tests =
 
@@ -872,6 +992,7 @@ module Tests =
                 groupTests
                 useCaseTests
                 regressionTests
+                toTokenTests
 
                 test "Unquote tests" {
                     try

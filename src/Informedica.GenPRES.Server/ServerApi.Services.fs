@@ -268,7 +268,7 @@ module OrderService =
     open Shared.Types
 
 
-    let getTotals age wghtInGram (ords: Order[]) =
+    let getTotals (totals: Informedica.GenForm.Lib.Types.Data.TotalsData[]) age wghtInGram (ords: Order[]) =
         let wghtInKg =
             wghtInGram
             |> Option.map BigRational.fromInt
@@ -282,7 +282,7 @@ module OrderService =
 
         ords
         |> Array.map Mappers.Order.mapFromSharedToOrder
-        |> Totals.getTotals age wghtInKg
+        |> Totals.getTotals totals age wghtInKg
         |> Mappers.mapToTotals
 
 
@@ -309,13 +309,13 @@ module OrderContextService =
         }
 
 
-    let updateIntake (ctx: OrderContext) =
+    let updateIntake (totals: TotalsData[]) (ctx: OrderContext) =
         { ctx with
             Intake =
                 let w = ctx.Patient |> Models.Patient.getWeight |> Option.map int
                 let a = ctx.Patient |> Models.Patient.getAgeInDays |> Option.map int
 
-                ctx.Scenarios |> Array.map _.Order |> OrderService.getTotals a w
+                ctx.Scenarios |> Array.map _.Order |> OrderService.getTotals totals a w
         }
 
 
@@ -351,8 +351,14 @@ module OrderContextService =
         | GenOrderContext.SetMedianComponentQuantityProperty(ctx, _) -> ctx
 
 
-    let evaluate logger provider (cmd: Api.OrderContextCommand) (ctx: OrderContext) : Result<OrderContext, string[]> =
-        let map = mapToShared ctx >> updateIntake >> setDemoVersion
+    let evaluate
+        logger
+        (provider: Resources.IResourceProvider)
+        (cmd: Api.OrderContextCommand)
+        (ctx: OrderContext)
+        : Result<OrderContext, string[]>
+        =
+        let map = mapToShared ctx >> updateIntake (provider.GetTotals()) >> setDemoVersion
 
         let pat = ctx.Patient |> mapFromSharedPatient |> Patient.calcPMAge
 
@@ -518,7 +524,7 @@ module OrderPlanService =
             }
 
 
-    let calculateTotals (tp: OrderPlan) =
+    let calculateTotals (totals: Informedica.GenForm.Lib.Types.Data.TotalsData[]) (tp: OrderPlan) =
         { tp with
             Totals =
                 let w = tp.Patient |> Models.Patient.getWeight |> Option.map int
@@ -530,7 +536,7 @@ module OrderPlanService =
                     else
                         tp.Scenarios |> Array.filter (fun sc -> tp.Filtered |> Array.exists ((=) sc))
 
-                scs |> Array.map _.Order |> OrderService.getTotals a w
+                scs |> Array.map _.Order |> OrderService.getTotals totals a w
         }
 
 
@@ -680,7 +686,7 @@ module NutritionPlanService =
         | NutritionCategory.ElectrolyteGlucose -> electrolyteGlucoseDoseRuleSet
 
 
-    let calculateNutritionTotals (plan: NutritionPlan) =
+    let calculateNutritionTotals (totals: Informedica.GenForm.Lib.Types.Data.TotalsData[]) (plan: NutritionPlan) =
         { plan with
             Totals =
                 let w = plan.Patient |> Models.Patient.getWeight |> Option.map int
@@ -688,7 +694,7 @@ module NutritionPlanService =
 
                 plan.NutritionContexts
                 |> Array.collect (fun nc -> nc.OrderContext.Scenarios |> Array.map _.Order)
-                |> OrderService.getTotals a w
+                |> OrderService.getTotals totals a w
         }
 
 
@@ -721,8 +727,11 @@ module NutritionPlanService =
         }
 
 
-    let initNutritionPlan _logger _provider (patient: Patient) : Result<NutritionPlan, string[]> =
-        [||] |> Models.NutritionPlan.create patient |> calculateNutritionTotals |> Ok
+    let initNutritionPlan _logger totals (patient: Patient) : Result<NutritionPlan, string[]> =
+        [||]
+        |> Models.NutritionPlan.create patient
+        |> calculateNutritionTotals totals
+        |> Ok
 
 
     /// Filters a resolved OrderContext's filter arrays against the configured
@@ -749,7 +758,7 @@ module NutritionPlanService =
         }
 
 
-    let updateContext id resolved (plan: NutritionPlan) =
+    let updateContext totals id resolved (plan: NutritionPlan) =
         let updatedContexts =
             plan.NutritionContexts
             |> Array.map (fun nc ->
@@ -760,10 +769,12 @@ module NutritionPlanService =
                     nc
             )
 
-        { plan with NutritionContexts = updatedContexts } |> calculateNutritionTotals
+        { plan with NutritionContexts = updatedContexts }
+        |> calculateNutritionTotals totals
 
 
     let updateNutritionOrderContext
+        totals
         (orderCtxPort: OrderContextPort)
         (plan: NutritionPlan, id: string, ctx: OrderContext)
         : Async<Result<NutritionPlan, string[]>>
@@ -773,12 +784,13 @@ module NutritionPlanService =
 
             return
                 match result with
-                | Ok resolved -> plan |> updateContext id resolved |> Ok
+                | Ok resolved -> plan |> updateContext totals id resolved |> Ok
                 | Error errs -> Error errs
         }
 
 
     let navigateNutritionOrderContext
+        totals
         (orderCtxPort: OrderContextPort)
         (plan: NutritionPlan, id: string, ctxCmd: Api.OrderContextCommand, ctx: OrderContext)
         : Async<Result<NutritionPlan, string[]>>
@@ -788,12 +800,13 @@ module NutritionPlanService =
 
             return
                 match result with
-                | Ok resolved -> plan |> updateContext id resolved |> Ok
+                | Ok resolved -> plan |> updateContext totals id resolved |> Ok
                 | Error errs -> Error errs
         }
 
 
     let selectNutritionOrderScenario
+        totals
         (orderCtxPort: OrderContextPort)
         (plan: NutritionPlan, id: string, ctx: OrderContext)
         : Async<Result<NutritionPlan, string[]>>
@@ -803,12 +816,13 @@ module NutritionPlanService =
 
             return
                 match result with
-                | Ok resolved -> plan |> updateContext id resolved |> Ok
+                | Ok resolved -> plan |> updateContext totals id resolved |> Ok
                 | Error errs -> Error errs
         }
 
 
     let addNutritionContext
+        totals
         (orderCtxPort: OrderContextPort)
         (plan: NutritionPlan, category: NutritionCategory)
         : Async<Result<NutritionPlan, string[]>>
@@ -837,7 +851,7 @@ module NutritionPlanService =
                     let nc = Models.NutritionContext.create id drs.Label category true resolved
 
                     { plan with NutritionContexts = Array.append plan.NutritionContexts [| nc |] }
-                    |> calculateNutritionTotals
+                    |> calculateNutritionTotals totals
                     |> Ok
                 | None ->
                     Error
@@ -847,7 +861,7 @@ module NutritionPlanService =
         }
 
 
-    let removeNutritionContext (plan: NutritionPlan, id: string) : Result<NutritionPlan, string[]> =
+    let removeNutritionContext totals (plan: NutritionPlan, id: string) : Result<NutritionPlan, string[]> =
         let removedCtx = plan.NutritionContexts |> Array.tryFind (fun nc -> nc.Id = id)
 
         let cascadeRemoveSupplements =
@@ -864,5 +878,5 @@ module NutritionPlanService =
                         || nc.Category <> NutritionCategory.EnteralSupplement)
                 )
         }
-        |> calculateNutritionTotals
+        |> calculateNutritionTotals totals
         |> Ok

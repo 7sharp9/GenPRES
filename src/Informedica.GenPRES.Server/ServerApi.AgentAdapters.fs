@@ -158,11 +158,14 @@ module AgentAdapters =
 
     let private processOrderPlanCommand
         logAgent
+        (provider: Resources.IResourceProvider)
         (orderCtxPort: OrderContextPort)
         (cmd: OrderPlanCommand)
         : Async<OrderPlanResponse>
         =
         async {
+            let totals = provider.GetTotals()
+
             let setComponent name =
                 match logAgent with
                 | Some a -> a |> Logging.setComponentName (Some name) |> Async.RunSynchronously
@@ -172,19 +175,28 @@ module AgentAdapters =
             | OrderPlanCommand.Update(tp, cmdOpt) ->
                 setComponent "OrderPlan"
                 let! updated = OrderPlanService.updateOrderPlan orderCtxPort tp cmdOpt
-                return updated |> OrderPlanService.calculateTotals |> Ok |> OrderPlanResponse.OrderPlan
+
+                return
+                    updated
+                    |> OrderPlanService.calculateTotals totals
+                    |> Ok
+                    |> OrderPlanResponse.OrderPlan
 
             | OrderPlanCommand.Filter tp ->
-                return tp |> OrderPlanService.calculateTotals |> Ok |> OrderPlanResponse.OrderPlan
+                return
+                    tp
+                    |> OrderPlanService.calculateTotals totals
+                    |> Ok
+                    |> OrderPlanResponse.OrderPlan
         }
 
 
-    let private createOrderPlanAgent logAgent orderCtxPort =
+    let private createOrderPlanAgent logAgent provider orderCtxPort =
         Agent.createReplyAsync<OrderPlanCommand, OrderPlanResponse> (fun cmd ->
             async {
                 try
                     writeDebugMessage $"[OrderPlanAgent] <- {cmd |> orderPlanCommandToString}"
-                    let! response = processOrderPlanCommand logAgent orderCtxPort cmd
+                    let! response = processOrderPlanCommand logAgent provider orderCtxPort cmd
                     writeDebugMessage $"[OrderPlanAgent] -> {cmd |> orderPlanCommandToString} completed"
                     return response
                 with ex ->
@@ -235,31 +247,35 @@ module AgentAdapters =
         : Async<NutritionResponse>
         =
         async {
+            let totals = provider.GetTotals()
+
             match cmd with
             | NutritionCommand.Init patient ->
                 return
-                    NutritionPlanService.initNutritionPlan logger provider patient
+                    NutritionPlanService.initNutritionPlan logger totals patient
                     |> NutritionResponse.NutritionPlan
 
             | NutritionCommand.Add(plan, category) ->
-                let! result = NutritionPlanService.addNutritionContext orderCtxPort (plan, category)
+                let! result = NutritionPlanService.addNutritionContext totals orderCtxPort (plan, category)
                 return result |> NutritionResponse.NutritionPlan
 
             | NutritionCommand.Remove(plan, id) ->
                 return
-                    NutritionPlanService.removeNutritionContext (plan, id)
+                    NutritionPlanService.removeNutritionContext totals (plan, id)
                     |> NutritionResponse.NutritionPlan
 
             | NutritionCommand.UpdateOrderContext(plan, label, ctx) ->
-                let! result = NutritionPlanService.updateNutritionOrderContext orderCtxPort (plan, label, ctx)
+                let! result = NutritionPlanService.updateNutritionOrderContext totals orderCtxPort (plan, label, ctx)
                 return result |> NutritionResponse.NutritionPlan
 
             | NutritionCommand.SelectOrderScenario(plan, label, ctx) ->
-                let! result = NutritionPlanService.selectNutritionOrderScenario orderCtxPort (plan, label, ctx)
+                let! result = NutritionPlanService.selectNutritionOrderScenario totals orderCtxPort (plan, label, ctx)
                 return result |> NutritionResponse.NutritionPlan
 
             | NutritionCommand.Navigate(plan, label, ctxCmd, ctx) ->
-                let! result = NutritionPlanService.navigateNutritionOrderContext orderCtxPort (plan, label, ctxCmd, ctx)
+                let! result =
+                    NutritionPlanService.navigateNutritionOrderContext totals orderCtxPort (plan, label, ctxCmd, ctx)
+
                 return result |> NutritionResponse.NutritionPlan
         }
 
@@ -397,7 +413,7 @@ module AgentAdapters =
                         postAsync orderCtxAgent (OrderCtxCommand.Evaluate(ctxCmd, ctx)) extractOrderContext
             }
 
-        let orderPlanAgent = createOrderPlanAgent logAgent orderCtxPort
+        let orderPlanAgent = createOrderPlanAgent logAgent provider orderCtxPort
         let nutritionAgent = createNutritionAgent logger provider orderCtxPort
         let interactionAgent = createInteractionAgent ()
 

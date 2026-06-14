@@ -3,12 +3,16 @@ namespace Informedica.GenForm.Lib
 
 module DoseRuleData =
 
+    open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
+
+    open Utils
 
 
     let headers =
         [
-            "Id"
+            "RowId"
+            "RuleId"
             "GrpId"
             "SortNo"
             "Source"
@@ -87,3 +91,352 @@ module DoseRuleData =
         d.ScheduleData.DoseLimitData.MaxRate.IsSome,
         d.ScheduleData.DoseLimitData.MinRateAdj.IsSome,
         d.ScheduleData.DoseLimitData.MaxRateAdj.IsSome
+
+
+    /// Reduce a row's product narrowing to a single mechanism by precedence
+    /// HPKs > GPKs > Brand > Form: keep the highest-precedence field that is
+    /// present and clear every lower-precedence one. Rows with no narrowing are
+    /// left unchanged (they remain generic-wide rules).
+    let withSingleNarrowing (g: GenericData) =
+        let hasHpks = g.HPKs |> Array.isEmpty |> not
+        let hasGpks = g.GPKs |> Array.isEmpty |> not
+        let hasBrand = g.Brand |> String.notEmpty
+
+        if hasHpks then
+            { g with
+                GPKs = [||]
+                Brand = ""
+                Form = ""
+            }
+        elif hasGpks then
+            { g with
+                Brand = ""
+                Form = ""
+            }
+        elif hasBrand then
+            { g with Form = "" }
+        else
+            g
+
+
+    let parseDoseRuleData data =
+        try
+            data
+            |> fun data ->
+                let getColumn = data |> Array.head |> Csv.getStringColumn
+
+                data
+                |> Array.tail
+                |> Array.distinctBy (fun row -> row |> Array.tail)
+                |> Array.map (fun r ->
+                    let get = getColumn r
+
+                    let getOpt col =
+                        try
+                            get col
+                        with _ ->
+                            ""
+
+                    let getInt = getOpt >> Int32.tryParse
+                    let toBrOpt = BigRational.toBrs >> Array.tryHead
+
+                    let getBool =
+                        get
+                        >> fun s ->
+                            let v = s.Trim().ToLowerInvariant()
+                            v = "true" || v = "x" || v = "1" || v = "yes"
+
+                    {
+                        RowId = getOpt "RowId"
+                        RuleId = getOpt "RuleId"
+                        GrpId = getOpt "GrpId"
+                        SortNo = getInt "SortNo" |> Option.defaultValue 1
+                        Source = get "Source"
+                        Generic =
+                            {
+                                Name = get "Generic"
+                                Form = get "Form"
+                                Brand = get "Brand"
+                                GPKs =
+                                    get "GPKs"
+                                    |> String.splitAt ';'
+                                    |> Array.map String.trim
+                                    |> Array.filter String.notEmpty
+                                    |> Array.distinct
+                                HPKs =
+                                    get "HPKs"
+                                    |> String.splitAt ';'
+                                    |> Array.map String.trim
+                                    |> Array.filter String.notEmpty
+                                    |> Array.distinct
+                            }
+                        Route = get "Route"
+                        Indication = get "Indication"
+                        SourceText = getOpt "SourceText"
+                        PatientText = getOpt "PatientText"
+                        Patient =
+                            {
+                                Location = getOpt "Loc"
+                                Dep = get "Dep"
+                                IsAdult = getBool "IsAdult"
+                                Gender = get "Gender" |> Gender.fromString
+                                MinAge = get "MinAge" |> toBrOpt
+                                MaxAge = get "MaxAge" |> toBrOpt
+                                MinWeight = get "MinWeight" |> toBrOpt
+                                MaxWeight = get "MaxWeight" |> toBrOpt
+                                MinBSA = get "MinBSA" |> toBrOpt
+                                MaxBSA = get "MaxBSA" |> toBrOpt
+                                MinGestAge = get "MinGestAge" |> toBrOpt
+                                MaxGestAge = get "MaxGestAge" |> toBrOpt
+                                MinPMAge = get "MinPMAge" |> toBrOpt
+                                MaxPMAge = get "MaxPMAge" |> toBrOpt
+                            }
+                        ScheduleText = getOpt "ScheduleText"
+                        ScheduleData =
+                            {
+                                DoseType = get "DoseType"
+                                DoseText = get "DoseText"
+                                Freqs = get "Freqs" |> BigRational.toBrs
+                                AdjustUnit = get "AdjustUnit"
+                                FreqUnit = get "FreqUnit"
+                                RateUnit = get "RateUnit"
+                                MinTime = get "MinTime" |> toBrOpt
+                                MaxTime = get "MaxTime" |> toBrOpt
+                                TimeUnit = get "TimeUnit"
+                                MinInt = get "MinInt" |> toBrOpt
+                                MaxInt = get "MaxInt" |> toBrOpt
+                                IntUnit = get "IntUnit"
+                                MinDur = get "MinDur" |> toBrOpt
+                                MaxDur = get "MaxDur" |> toBrOpt
+                                DurUnit = get "DurUnit"
+                                DoseLimitData =
+                                    {
+                                        CmpBased = getBool "CmpBased"
+                                        Component = get "Component"
+                                        Substance = get "Substance"
+                                        DoseUnit = get "DoseUnit"
+                                        MinQty = get "MinQty" |> toBrOpt
+                                        MaxQty = get "MaxQty" |> toBrOpt
+                                        MinQtyAdj = get "MinQtyAdj" |> toBrOpt
+                                        MaxQtyAdj = get "MaxQtyAdj" |> toBrOpt
+                                        MinPerTime = get "MinPerTime" |> toBrOpt
+                                        MaxPerTime = get "MaxPerTime" |> toBrOpt
+                                        MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt
+                                        MaxPerTimeAdj = get "MaxPerTimeAdj" |> toBrOpt
+                                        MinRate = get "MinRate" |> toBrOpt
+                                        MaxRate = get "MaxRate" |> toBrOpt
+                                        MinRateAdj = get "MinRateAdj" |> toBrOpt
+                                        MaxRateAdj = get "MaxRateAdj" |> toBrOpt
+                                    }
+                            }
+                        Products = [||]
+                    }
+                )
+            // Keep one product-selection narrowing per row, by precedence
+            // HPKs > GPKs > Brand > Form, then dedupe.
+            |> Array.map (fun d -> { d with Generic = d.Generic |> withSingleNarrowing })
+            |> Array.distinct
+            |> Ok
+        with exn ->
+            Result.createError "getDataResult" exn
+
+
+    /// <summary>
+    /// Canonical group-identity fields: the single definition of "rows that
+    /// belong to the same dose-rule group" (they differ only in dose type/text
+    /// and component/substance). Shared by <c>DoseRuleLoader.fromData</c>, which
+    /// groups raw rows by this, and by <c>setDataHashIds</c>, which hashes it
+    /// into <c>GrpId</c> — so the runtime grouping and the surfaced GroupId
+    /// cannot drift when <c>GenericData</c>/<c>PatientCategoryData</c> gain a field.
+    /// </summary>
+    let groupKeyFields (dd: DoseRuleData) =
+        let optBrToStr = Option.map BigRational.toString >> Option.defaultValue ""
+        let pat = dd.Patient
+
+        [
+            dd.Source
+            dd.Generic.Name
+            dd.Generic.Form
+            dd.Generic.Brand
+            dd.Generic.GPKs |> String.concat ";"
+            dd.Generic.HPKs |> String.concat ";"
+            dd.Indication
+            dd.Route
+            pat.Location
+            pat.Dep
+            pat.IsAdult |> sprintf "%b"
+            pat.Gender |> Gender.toString
+            pat.MinAge |> optBrToStr
+            pat.MaxAge |> optBrToStr
+            pat.MinWeight |> optBrToStr
+            pat.MaxWeight |> optBrToStr
+            pat.MinBSA |> optBrToStr
+            pat.MaxBSA |> optBrToStr
+            pat.MinGestAge |> optBrToStr
+            pat.MaxGestAge |> optBrToStr
+            pat.MinPMAge |> optBrToStr
+            pat.MaxPMAge |> optBrToStr
+        ]
+
+
+    let setDataHashIds (dd: DoseRuleData) =
+        let sch = dd.ScheduleData
+        let dos = dd.ScheduleData.DoseLimitData
+        // identifies a group of rules that belong together and
+        // only differ in dose type/dose text
+        let groupFields = groupKeyFields dd
+        // a rule within a rule group is only identified
+        // by the dose type/dose text
+        let ruleFields = groupFields @ [ sch.DoseType; sch.DoseText ]
+        // rows should only have unique component/substance combinations
+        // multiple rows with the same substance in the same component are
+        // not allowed
+        let rowFields = ruleFields @ [ dos.Component; dos.Substance ]
+
+        { dd with
+            GrpId = groupFields |> String.sha1Short // group of related rules where only the dose type differs
+            RuleId = ruleFields |> String.sha1Short // identity of a rule (selection + dose type + dose text); rows sharing it form one rule
+            RowId = rowFields |> String.sha1Short // complete row id: rule + component + substance (a substance is unique within a component)
+        }
+
+
+    let dataGroupKey (d: DoseRuleData) =
+        {
+            Source = d.Source
+            Indication = d.Indication
+            Generic = d.Generic
+            Patient = d.Patient
+            Route = d.Route
+        }
+
+
+    /// Determine whether a raw DoseRuleData row is valid.
+    /// Can only determine validity up to schedule data as
+    /// Component and Substance related data has to be aggregated
+    /// into a single dose rule
+    let validateData dd =
+        let doseType, _ = DoseType.parse dd.ScheduleData.DoseType dd.ScheduleData.DoseText
+
+        let warning = $"%s{dd.Generic.Name} | %s{dd.Route} |"
+
+        match doseType with
+        | NoDoseType -> [ "Has no dose type" ]
+        | Once _ -> []
+        | OnceTimed _ ->
+            [
+                if dd.ScheduleData.TimeUnit |> String.isNullOrWhiteSpace then
+                    "TimeUnit is missing"
+            ]
+        | Discontinuous _ ->
+            [
+                if dd.ScheduleData.Freqs.Length = 0 then
+                    "Frequencies is empty"
+                if dd.ScheduleData.FreqUnit |> String.isNullOrWhiteSpace then
+                    "FreqUnit is missing"
+            ]
+        | Timed _ ->
+            [
+                if dd.ScheduleData.Freqs.Length = 0 then
+                    "Frequencies is empty"
+                if dd.ScheduleData.FreqUnit |> String.isNullOrWhiteSpace then
+                    "FreqUnit is missing"
+                if dd.ScheduleData.TimeUnit |> String.isNullOrWhiteSpace then
+                    "TimeUnit is missing"
+            ]
+        | Continuous _ ->
+
+            [
+                if dd.ScheduleData.RateUnit |> String.isNullOrWhiteSpace then
+                    "RateUnit is missing"
+            ]
+        |> List.map (sprintf "%s %s" warning)
+
+
+    /// <summary>
+    /// Deduplicate DoseRuleData rows by RowId. Intended to run on the rows of a
+    /// single rule (i.e. after <c>Array.groupBy _.RuleId</c>). Equal RowId means
+    /// the same (component, substance) within the rule. Keeps the first
+    /// occurrence; when the collapsed rows differ in their dose-limit values,
+    /// a warning is returned because the "no duplicate substance within a
+    /// component" invariant is violated and one value set is silently dropped.
+    /// </summary>
+    let dedupRowsByRowId (rows: DoseRuleData[]) : DoseRuleData[] * string list =
+        let warns = ResizeArray<string>()
+
+        let deduped =
+            rows
+            |> Array.groupBy _.RowId
+            |> Array.map (fun (_, grp) ->
+                // Component/Substance are equal across the group by construction
+                // (both are part of RowId), so a non-singleton distinct here
+                // means the dose-limit VALUES differ — the invariant is violated.
+                let distinctLimits = grp |> Array.map _.ScheduleData.DoseLimitData |> Array.distinct
+
+                if distinctLimits.Length > 1 then
+                    let r = grp[0]
+                    let d = r.ScheduleData.DoseLimitData
+
+                    warns.Add
+                        $"duplicate dose rule row for rule %s{r.RuleId} component '%s{d.Component}' substance '%s{d.Substance}': %i{distinctLimits.Length} differing dose-limit value sets — keeping first, dropping %i{distinctLimits.Length - 1}"
+
+                grp[0]
+            )
+
+        deduped, warns |> List.ofSeq
+
+
+    /// Pretty print dose rule data for  logging
+    let doseRuleDataToString dd =
+        let showOpt = Option.map string >> Option.defaultValue "-"
+
+        let showStr s =
+            if s |> String.isNullOrWhiteSpace then "-" else s
+
+        let showArray toStr xs =
+            if xs |> Array.isEmpty then
+                "-"
+            else
+                xs |> Array.map toStr |> String.concat ","
+
+        // Bind the deeply nested schedule and dose-limit fields to short locals
+        // so the interpolated strings below stay readable (and Fantomas does not
+        // wrap the long member-access chains into unreadable indentation).
+        let sd = dd.ScheduleData
+        let dl = sd.DoseLimitData
+
+        let gen = dd.Generic.Name |> showStr
+        let comp = dl.Component |> showStr
+        let subst = dl.Substance |> showStr
+        let gpks = dd.Generic.GPKs |> showArray id
+
+        let route = dd.Route |> showStr
+        let form = dd.Generic.Form |> showStr
+        let brand = dd.Generic.Brand |> showStr
+        let dept = dd.Patient.Dep |> showStr
+        let ind = dd.Indication |> showStr
+
+        let doseType = sd.DoseType |> showStr
+        let doseText = sd.DoseText |> showStr
+        let doseUnit = dl.DoseUnit |> showStr
+        let adjUnit = sd.AdjustUnit |> showStr
+
+        let freq = sd.Freqs |> showArray string
+        let freqUnit = sd.FreqUnit |> showStr
+        let maxTime = sd.MaxTime |> showOpt
+        let timeUnit = sd.TimeUnit |> showStr
+        let maxRate = dl.MaxRate |> showOpt
+        let maxRateAdj = dl.MaxRateAdj |> showOpt
+        let rateUnit = sd.RateUnit |> showStr
+
+        let src = dd.Source |> showStr
+
+        [
+            $"Id   : Gen=%s{gen} | Comp=%s{comp} | Subst=%s{subst} | GPKs=%s{gpks}"
+            $"Ctx  : Route=%s{route} | Form=%s{form} | Brand=%s{brand} | Dept=%s{dept} | Ind=%s{ind}"
+            $"Dose : Type=%s{doseType} | Text=%s{doseText} | DoseUnit=%s{doseUnit} | AdjUnit=%s{adjUnit}"
+            $"Rate : Freq=%s{freq} %s{freqUnit} | MaxTime=%s{maxTime} %s{timeUnit} | MaxRate=%s{maxRate} | MaxRateAdj=%s{maxRateAdj} %s{rateUnit}"
+            $"Meta : Src=%s{src}"
+        ]
+        |> List.map String.trim
+        |> List.filter String.notEmpty
+        |> String.concat "\n"

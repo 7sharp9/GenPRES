@@ -30,6 +30,7 @@ type Group =
 
 module Group =
 
+
     module Constants =
 
 
@@ -196,12 +197,12 @@ module Group =
 
 
     /// Returns group g as a string
-    let toString g =
+    let toStringWithGeneralString b g =
         let rec str g s =
             match g with
             | Group.NoGroup -> ""
             | Group.ZeroGroup -> "Zero"
-            | Group.GeneralGroup _ -> "General"
+            | Group.GeneralGroup s -> if not b then "General" else $"General({s})"
             | Group.CountGroup -> "Count"
             | Group.MassGroup -> "Mass"
             | Group.DistanceGroup -> "Distance"
@@ -220,6 +221,15 @@ module Group =
                 gls + (op |> opToStr) + grs
 
         str g ""
+
+
+    /// Returns group g as a string with
+    /// the specific General string specifier
+    let toStringLong = toStringWithGeneralString true
+
+
+    /// Returns group g as a string
+    let toString = toStringWithGeneralString false
 
 
     let toStringDutch g =

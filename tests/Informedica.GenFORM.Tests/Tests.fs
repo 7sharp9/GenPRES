@@ -334,6 +334,7 @@ module DoseRuleProductTests =
 
     open Expecto
     open Expecto.Flip
+    open MathNet.Numerics
     open Informedica.GenForm.Lib
 
 
@@ -505,7 +506,8 @@ module DoseRuleProductTests =
 
     let private baseData: DoseRuleData =
         {
-            Id = ""
+            RowId = ""
+            RuleId = ""
             GrpId = ""
             SortNo = 1
             Source = "FTK"
@@ -541,7 +543,7 @@ module DoseRuleProductTests =
     /// Build the DoseRules for the given raw rows (empty FormRoutes is safe:
     /// addFormLimits only sets FormLimit, product attachment is unaffected).
     let buildRules (data: DoseRuleData[]) =
-        DoseRule.fromData routeMapping [||] prods data |> fst
+        DoseRuleLoader.fromData routeMapping [||] prods data |> fst
 
 
     /// Sorted, distinct GPKs attached to a set of DoseRules.
@@ -559,7 +561,7 @@ module DoseRuleProductTests =
 
     /// Apply the production single-narrowing normaliser (as parseDoseRuleData does).
     let normalize (d: DoseRuleData) =
-        { d with Generic = d.Generic |> DoseRule.withSingleNarrowing }
+        { d with Generic = d.Generic |> DoseRuleData.withSingleNarrowing }
 
 
     let formRow = mkData "citalopram" "ORAAL" "tablet" "" [||] [||]
@@ -571,6 +573,25 @@ module DoseRuleProductTests =
     // adrenaline injection product — proves Form is dropped when GPKs win.
     let gpksFormRow =
         mkData "adrenaline" "INTRAMUSCULAIR" "tablet" "" [| "170925"; "170933" |] [||]
+
+
+    /// Build a (component, substance) row with an optional MaxQty dose value,
+    /// with RowId/RuleId/GrpId hashed (as the build pipeline does before dedup).
+    let mkRow cmp subst (maxQty: int option) =
+        { baseData with
+            Route = "ORAAL"
+            Generic = { emptyGen with Name = cmp }
+            ScheduleData =
+                { emptySched with
+                    DoseLimitData =
+                        { emptyDL with
+                            Component = cmp
+                            Substance = subst
+                            MaxQty = maxQty |> Option.map BigRational.FromInt
+                        }
+                }
+        }
+        |> DoseRuleData.setDataHashIds
 
 
     let tests =
@@ -670,7 +691,7 @@ module DoseRuleProductTests =
                 test "combination substances collapse into one component (not split by DataId/SortNo)" {
                     let mk subst sortNo dataId =
                         { baseData with
-                            Id = dataId
+                            RuleId = dataId
                             SortNo = sortNo
                             Route = "ORAAL"
                             Generic = { emptyGen with Name = "amoxicilline/clavulaanzuur" }
@@ -708,13 +729,13 @@ module DoseRuleProductTests =
                     let r3 = mkData "citalopram" "INTRAMUSCULAIR" "tablet" "" [||] [||]
 
                     [| r1; r1; r3 |]
-                    |> Array.groupBy DoseRule.dataGroupKey
+                    |> Array.groupBy DoseRuleData.dataGroupKey
                     |> Array.length
                     |> Expect.equal "same key merges, different route splits" 2
                 }
 
                 test "candidateProducts keeps only products matching a group component" {
-                    DoseRule.candidateProducts prods [| mkData "citalopram" "ORAAL" "" "" [||] [||] |]
+                    DoseRuleLoader.candidateProducts prods [| mkData "citalopram" "ORAAL" "" "" [||] [||] |]
                     |> Array.map _.Generic
                     |> Array.distinct
                     |> Array.sort
@@ -750,6 +771,435 @@ module DoseRuleProductTests =
                     |> Array.map _.GPK
                     |> Array.filter ne
                     |> Expect.isEmpty "placeholder carries no real GPK"
+                }
+
+                // --- RowId dedup (DoseRule.dedupRowsByRowId) ---
+
+                test "identical duplicate (same comp+subst+values) collapses to one row, no warning" {
+                    let rows =
+                        [|
+                            mkRow "amoxicilline" "amoxicilline" (Some 500)
+                            mkRow "amoxicilline" "amoxicilline" (Some 500)
+                        |]
+
+                    let deduped, warns = rows |> DoseRuleData.dedupRowsByRowId
+
+                    deduped |> Array.length |> Expect.equal "collapses to one row" 1
+                    warns |> Expect.isEmpty "no warning for identical duplicate"
+                }
+
+                test "duplicate with differing dose values collapses to one row and warns" {
+                    let rows =
+                        [|
+                            mkRow "amoxicilline" "amoxicilline" (Some 500)
+                            mkRow "amoxicilline" "amoxicilline" (Some 750)
+                        |]
+
+                    let deduped, warns = rows |> DoseRuleData.dedupRowsByRowId
+
+                    deduped |> Array.length |> Expect.equal "collapses to one row" 1
+
+                    deduped[0].ScheduleData.DoseLimitData.MaxQty
+                    |> Expect.equal "keeps the first occurrence (MaxQty 500)" (Some(BigRational.FromInt 500))
+
+                    warns |> List.length |> Expect.equal "exactly one conflict warning" 1
+                }
+
+                test "keep-first is by input order: reversing the rows keeps the other value" {
+                    // Pins the (intentional) order-dependence of dedupRowsByRowId:
+                    // the survivor is the first row by position, NOT e.g. the
+                    // smallest/strictest value. Reversing the input flips which
+                    // dose-limit value is retained, and still emits one warning.
+                    let rows =
+                        [|
+                            mkRow "amoxicilline" "amoxicilline" (Some 750)
+                            mkRow "amoxicilline" "amoxicilline" (Some 500)
+                        |]
+
+                    let deduped, warns = rows |> DoseRuleData.dedupRowsByRowId
+
+                    deduped |> Array.length |> Expect.equal "collapses to one row" 1
+
+                    deduped[0].ScheduleData.DoseLimitData.MaxQty
+                    |> Expect.equal
+                        "keeps the first occurrence (MaxQty 750), not the smaller value"
+                        (Some(BigRational.FromInt 750))
+
+                    warns |> List.length |> Expect.equal "exactly one conflict warning" 1
+                }
+
+                test "distinct substances in the same component are kept as separate rows" {
+                    let rows =
+                        [|
+                            mkRow "co-amoxiclav" "amoxicilline" (Some 500)
+                            mkRow "co-amoxiclav" "clavulaanzuur" (Some 125)
+                        |]
+
+                    let deduped, warns = rows |> DoseRuleData.dedupRowsByRowId
+
+                    deduped |> Array.length |> Expect.equal "both substances kept" 2
+                    warns |> Expect.isEmpty "no warning for distinct substances"
+                }
+
+                test "RowId is equal for same (component, substance) and differs across substances" {
+                    let a = mkRow "co-amoxiclav" "amoxicilline" (Some 500)
+                    let b = mkRow "co-amoxiclav" "amoxicilline" (Some 750)
+                    let c = mkRow "co-amoxiclav" "clavulaanzuur" (Some 125)
+
+                    a.RowId |> Expect.equal "same (comp,subst) => equal RowId" b.RowId
+
+                    (a.RowId = c.RowId) |> Expect.isFalse "different substance => differing RowId"
+                }
+            ]
+
+
+module DoseRuleToDataTests =
+
+
+    open Expecto
+    open Expecto.Flip
+    open Informedica.Utils.Lib.BCL
+    open Informedica.GenForm.Lib
+
+
+    module DP = DoseRuleProductTests
+
+
+    /// A component-only row with no dose limit reverses to nothing (the forward
+    /// path builds a ComponentLimit with Limit = None). The narrowing fixtures
+    /// therefore carry a substance so a SubstanceLimit — and hence a reversed
+    /// row — is produced.
+    let private withSubst subst (d: DoseRuleData) : DoseRuleData =
+        { d with
+            ScheduleData =
+                { d.ScheduleData with DoseLimitData = { d.ScheduleData.DoseLimitData with Substance = subst } }
+        }
+
+
+    /// Forward (fromData) then reverse (DoseRule.toData) the given raw rows.
+    /// This is the structural half of the round-trip: it exercises that toData
+    /// recovers the categorical identity and the form/brand/gpks narrowing.
+    /// (The full quantitative round-trip runs against live data in
+    /// Scratch/Informedica.GenForm.Lib.fsx.)
+    let private roundTrip (data: DoseRuleData[]) =
+        data |> DP.buildRules |> Array.collect DoseRule.toData
+
+
+    let tests =
+        testList
+            "DoseRule.toData round-trip"
+            [
+                test "form narrowing is recovered from the generic label" {
+                    let rev = roundTrip [| DP.formRow |> withSubst "citalopram" |]
+
+                    rev
+                    |> Array.exists (fun r ->
+                        r.Generic.Name = "citalopram"
+                        && r.Generic.Form = "tablet"
+                        && r.Generic.Brand = ""
+                        && r.Generic.GPKs |> Array.isEmpty
+                    )
+                    |> Expect.isTrue "a reversed row recovers Name + Form, with no brand/gpks"
+                }
+
+                test "brand narrowing is recovered from the generic label" {
+                    let rev = roundTrip [| DP.brandRow |> withSubst "bupropion" |]
+
+                    rev
+                    |> Array.exists (fun r ->
+                        r.Generic.Name = "bupropion"
+                        && r.Generic.Brand |> String.equalsCapInsens "Zyban"
+                        && r.Generic.Form = ""
+                    )
+                    |> Expect.isTrue "a reversed row recovers Name + Brand, with no form"
+                }
+
+                test "gpks narrowing is recovered from the products" {
+                    let rev = roundTrip [| DP.gpksRow |> withSubst "adrenaline" |]
+
+                    rev
+                    |> Array.exists (fun r ->
+                        r.Generic.Name = "adrenaline"
+                        && (r.Generic.GPKs |> Array.sort) = [| "170925"; "170933" |]
+                        && r.Generic.Form = ""
+                        && r.Generic.Brand = ""
+                    )
+                    |> Expect.isTrue "a reversed row recovers the GPK narrowing, with no form/brand"
+                }
+
+                test "categorical fields are preserved on every reversed row" {
+                    let rev = roundTrip [| DP.formRow |> withSubst "citalopram" |]
+
+                    rev |> Array.isEmpty |> Expect.isFalse "produces at least one row"
+
+                    rev
+                    |> Array.forall (fun r ->
+                        r.Route = "ORAAL"
+                        && r.Indication = "test"
+                        && r.Source = "FTK"
+                        && r.ScheduleData.DoseType = "once"
+                        && r.ScheduleData.DoseLimitData.Component = "citalopram"
+                    )
+                    |> Expect.isTrue "route/indication/source/dosetype/component are kept"
+                }
+
+                test "a substance limit reverses to a substance row (CmpBased = false)" {
+                    let rev = roundTrip [| DP.mkRow "citalopram" "citalopram" None |]
+
+                    rev
+                    |> Array.exists (fun r ->
+                        let dl = r.ScheduleData.DoseLimitData
+                        dl.Substance = "citalopram" && (dl.CmpBased |> not)
+                    )
+                    |> Expect.isTrue "reversed row carries the substance with CmpBased = false"
+                }
+            ]
+
+
+/// Full DoseRule round-trip on OFFLINE fixtures (no network/cache/env).
+/// Fixtures (doserules/routemappings/products .json) are generated once by
+/// Scripts/DownloadFixtures.fsx from the DEMO data and committed; the .fsproj
+/// copies them next to the test dll. forward = DoseRuleLoader.fromData (fr = [||],
+/// since FormLimit is not part of the reverse); reverse = DoseRule.toData; the
+/// comparison machinery mirrors Scratch/Informedica.GenForm.Lib.fsx (Analyse).
+module DoseRuleRoundtripTests =
+
+
+    open System
+    open System.IO
+    open MathNet.Numerics
+    open Newtonsoft.Json
+    open Expecto
+    open Expecto.Flip
+    open Informedica.Utils.Lib
+    open Informedica.Utils.Lib.BCL
+    open Informedica.GenUnits.Lib
+    open Informedica.GenCore.Lib.Ranges
+    open Informedica.GenForm.Lib
+
+
+    // BigRational fixture JSON lives in the shared FixtureJson module
+    // (FixtureJson.fs), used by both this test and Scripts/DownloadFixtures.fsx.
+
+
+    let private load<'T> name =
+        Path.Combine(AppContext.BaseDirectory, "fixtures", name)
+        |> File.ReadAllText
+        |> FixtureJson.deSerialize<'T>
+
+    let private data = load<DoseRuleData[]> "doserules.json"
+    let private rm = load<RouteMapping[]> "routemappings.json"
+    let private prods = load<ProductComponent[]> "products.json"
+
+    // fr = [||]: fromData uses FormRoute only for FormLimit, which toData does not
+    // emit and the round-trip does not compare (as DoseRuleProductTests do).
+    let private forward (d: DoseRuleData[]) =
+        DoseRuleLoader.fromData rm [||] prods d |> fst
+
+
+    // ---- comparison machinery (mirrors the scratch Analyse module) ----
+    let private unitStr (u: Unit) = u |> Units.toStringEngShortWithoutGroup
+
+    let private brStr (br: BigRational option) =
+        br |> Option.map _.ToString() |> Option.defaultValue ""
+
+    let private genKey (g: GenericData) =
+        [
+            g.Name
+            g.Form
+            g.Brand
+            g.GPKs |> Array.sort |> String.concat ","
+            g.HPKs |> Array.sort |> String.concat ","
+        ]
+        |> String.concat "~"
+
+    let private patKey (p: PatientCategoryData) =
+        let minAge, maxAge = if p.IsAdult then "", "" else brStr p.MinAge, brStr p.MaxAge
+
+        [
+            p.Location
+            p.Dep
+            string p.IsAdult
+            $"%A{p.Gender}"
+            minAge
+            maxAge
+            brStr p.MinWeight
+            brStr p.MaxWeight
+            brStr p.MinBSA
+            brStr p.MaxBSA
+            brStr p.MinGestAge
+            brStr p.MaxGestAge
+            brStr p.MinPMAge
+            brStr p.MaxPMAge
+        ]
+        |> String.concat "~"
+
+    let private limTok (lim: Limit option) = lim |> Option.map Limit.toToken
+
+    let private doseLeaves (d: DoseRuleData) : Map<string, string> =
+        DoseRule.getDoseLimits [| d |]
+        |> Array.collect (fun dl ->
+            [|
+                "qty.min", limTok dl.Quantity.Min
+                "qty.max", limTok dl.Quantity.Max
+                "qtyAdj.min", limTok dl.QuantityAdjust.Min
+                "qtyAdj.max", limTok dl.QuantityAdjust.Max
+                "perTime.min", limTok dl.PerTime.Min
+                "perTime.max", limTok dl.PerTime.Max
+                "perTimeAdj.min", limTok dl.PerTimeAdjust.Min
+                "perTimeAdj.max", limTok dl.PerTimeAdjust.Max
+                "rate.min", limTok dl.Rate.Min
+                "rate.max", limTok dl.Rate.Max
+                "rateAdj.min", limTok dl.RateAdjust.Min
+                "rateAdj.max", limTok dl.RateAdjust.Max
+            |]
+        )
+        |> Array.choose (fun (k, v) -> v |> Option.map (fun t -> k, t))
+        |> Map.ofArray
+
+    let private timeTok (b: BigRational option) (us: string) =
+        match b, (us |> Utils.Units.timeUnit) with
+        | Some v, Some u -> ValueUnit.singleWithUnit u v |> ValueUnit.toToken |> Some
+        | Some v, None -> $"%s{string v} %s{us |> String.trim}" |> Some
+        | None, _ -> None
+
+    let private schedLeaves (d: DoseRuleData) : Map<string, string> =
+        let s = d.ScheduleData
+
+        [
+            "admin.min", timeTok s.MinTime s.TimeUnit
+            "admin.max", timeTok s.MaxTime s.TimeUnit
+            "int.min", timeTok s.MinInt s.IntUnit
+            "int.max", timeTok s.MaxInt s.IntUnit
+            "dur.min", timeTok s.MinDur s.DurUnit
+            "dur.max", timeTok s.MaxDur s.DurUnit
+        ]
+        |> List.choose (fun (k, v) -> v |> Option.map (fun t -> k, t))
+        |> Map.ofList
+
+    let private freqSet (d: DoseRuleData) : Set<string> =
+        let s = d.ScheduleData
+
+        match s.FreqUnit |> Utils.Units.freqUnit with
+        | Some u ->
+            s.Freqs
+            |> Array.map (fun f -> [| f |] |> ValueUnit.withUnit u |> ValueUnit.toToken)
+            |> Set.ofArray
+        | None ->
+            s.Freqs
+            |> Array.map (fun f -> $"%s{string f}/%s{s.FreqUnit |> String.trim}")
+            |> Set.ofArray
+
+    let private idKey (d: DoseRuleData) =
+        [
+            d.Source
+            d.SourceText
+            d.Indication
+            d.Route
+            d.PatientText
+            d.ScheduleText
+            genKey d.Generic
+            patKey d.Patient
+            d.ScheduleData.DoseType |> String.toLower
+            d.ScheduleData.DoseText
+            d.ScheduleData.DoseLimitData.Component
+            d.ScheduleData.DoseLimitData.Substance
+            string d.ScheduleData.DoseLimitData.CmpBased
+        ]
+        |> String.concat "||"
+
+    let private rowKey (d: DoseRuleData) =
+        let m2s (m: Map<string, string>) =
+            m |> Map.toList |> List.map (fun (k, v) -> k + "=" + v) |> String.concat ";"
+
+        [
+            idKey d
+            doseLeaves d |> m2s
+            schedLeaves d |> m2s
+            freqSet d |> Set.toList |> String.concat ","
+        ]
+        |> String.concat "##"
+
+    let private subMap (om: Map<string, string>) (gm: Map<string, string>) =
+        om
+        |> Map.forall (fun k v ->
+            match gm.TryFind k with
+            | Some gv -> gv = v
+            | None -> false
+        )
+
+    let private containedIn (gen: DoseRuleData) (orig: DoseRuleData) =
+        subMap (doseLeaves orig) (doseLeaves gen)
+        && subMap (schedLeaves orig) (schedLeaves gen)
+        && Set.isSubset (freqSet orig) (freqSet gen)
+
+    let private allLimitsEmpty (d: DoseRuleData) =
+        let l = d.ScheduleData.DoseLimitData
+
+        [
+            l.MinQty
+            l.MaxQty
+            l.MinQtyAdj
+            l.MaxQtyAdj
+            l.MinPerTime
+            l.MaxPerTime
+            l.MinPerTimeAdj
+            l.MaxPerTimeAdj
+            l.MinRate
+            l.MaxRate
+            l.MinRateAdj
+            l.MaxRateAdj
+        ]
+        |> List.forall Option.isNone
+
+    let private surviving (rows: DoseRuleData[]) =
+        rows
+        |> Array.filter (fun d -> DoseRuleData.validateData d |> List.isEmpty)
+        |> Array.filter (fun d ->
+            not (
+                d.ScheduleData.DoseLimitData.Substance |> String.isNullOrWhiteSpace
+                && allLimitsEmpty d
+            )
+        )
+
+    /// reverse-of-forward, deduped
+    let private generate (rows: DoseRuleData[]) =
+        rows |> forward |> Array.collect DoseRule.toData |> Array.distinctBy rowKey
+
+    /// input rows not contained in any same-identity generated row
+    let private missing (input: DoseRuleData[]) (gen: DoseRuleData[]) =
+        let byId = gen |> Array.groupBy idKey |> dict
+
+        surviving input
+        |> Array.filter (fun o ->
+            match byId.TryGetValue(idKey o) with
+            | true, gs -> gs |> Array.exists (fun g -> containedIn g o) |> not
+            | _ -> true
+        )
+
+    // computed once
+    let private g1 = generate data
+    let private g2 = generate g1
+
+
+    let tests =
+        testList
+            "DoseRule round-trip (offline fixtures)"
+            [
+                test "fixtures load and forward builds rules" {
+                    data.Length |> Expect.equal "subset dose-rule rows" 206
+                    prods.Length |> Expect.equal "subset products" 52
+                    (data |> forward |> Array.length) |> Expect.equal "PASS 1 forward rules" 299
+                }
+
+                test "PASS 1 round-trips the source-derived fixture (frozen counts)" {
+                    g1.Length |> Expect.equal "PASS 1 generated (distinct)" 202
+                    (missing data g1).Length |> Expect.equal "PASS 1 missing" 0
+                }
+
+                test "PASS 2 is a 100% containment fixpoint" {
+                    (missing g1 g2).Length
+                    |> Expect.equal "PASS 2 missing (every input contained)" 0
                 }
             ]
 
@@ -2066,5 +2516,7 @@ module Tests =
                 GenericLabelTests.tests
                 ProductFilterTests.tests
                 DoseRuleProductTests.tests
+                DoseRuleToDataTests.tests
+                DoseRuleRoundtripTests.tests
                 CheckTests.tests
             ]

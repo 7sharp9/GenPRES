@@ -25,6 +25,7 @@ let dataUrlId = Environment.GetEnvironmentVariable("GENPRES_URL_ID")
 #load "../Source.fs"
 #load "../DoseRule.fs"
 #load "../DoseRuleData.fs"
+#load "../DoseRuleLoader.fs"
 #load "../Check.fs"
 #load "../SolutionLimit.fs"
 #load "../SolutionRule.fs"

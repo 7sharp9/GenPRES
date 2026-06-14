@@ -4,9 +4,7 @@ namespace Informedica.GenForm.Lib
 module DoseType =
 
 
-    open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
-    open ConsoleWriter.NewLineNoTime
 
 
     /// Get a sort order for a dose type.
@@ -89,6 +87,18 @@ module DoseType =
         | Timed s
         | Discontinuous s
         | Continuous s -> s
+        | NoDoseType -> ""
+
+
+    // category-only string; inverse of `parse`
+    // and the category arm of `toString`. Keeps the mapping in one place.
+    let toCategory =
+        function
+        | Once _ -> "once"
+        | OnceTimed _ -> "oncetimed"
+        | Timed _ -> "timed"
+        | Discontinuous _ -> "discontinuous"
+        | Continuous _ -> "continuous"
         | NoDoseType -> ""
 
 

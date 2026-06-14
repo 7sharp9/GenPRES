@@ -5,7 +5,6 @@ module DoseRule =
 
     open System
     open MathNet.Numerics
-    open FsToolkit.ErrorHandling.ResultCE
 
     open FSharp.Data
     open FSharp.Data.JsonExtensions
@@ -24,7 +23,7 @@ module DoseRule =
 
         let printFreqs (r: DoseRule) =
             r.Frequencies
-            |> Option.map (fun vu -> vu |> Utils.ValueUnit.toString 0)
+            |> Option.map (Utils.ValueUnit.toString 0)
             |> Option.defaultValue ""
 
 
@@ -310,72 +309,6 @@ module DoseRule =
     module GenericProduct = Informedica.ZIndex.Lib.GenericProduct
 
 
-    type DataGroupKey =
-        {
-
-            Source: string
-            Indication: string
-            Generic: GenericData
-            Patient: PatientCategoryData
-            Route: string
-        }
-
-
-    let dataGroupKey (d: DoseRuleData) =
-        {
-            Source = d.Source
-            Indication = d.Indication
-            Generic = d.Generic
-            Patient = d.Patient
-            Route = d.Route
-        }
-
-
-    type GroupedRuleData =
-        {
-            DataGroupKey: DataGroupKey
-            DoseRuleData: DoseRuleData[]
-            Forms: string[]
-            Products: ProductComponent[]
-        }
-
-
-    let setDataHashIds (dd: DoseRuleData) =
-        let optBrToStr = Option.map BigRational.toString >> Option.defaultValue ""
-
-        let fields =
-            [
-                dd.Source
-                dd.Generic.Name
-                dd.Generic.Form
-                dd.Generic.Brand
-                dd.Generic.GPKs |> String.concat ";"
-                dd.Generic.HPKs |> String.concat ";"
-                dd.Route
-                dd.Patient.Location
-                dd.Patient.Dep
-                dd.Patient.IsAdult |> sprintf "%b"
-                dd.Patient.Gender |> Gender.toString
-                dd.Patient.MinAge |> optBrToStr
-                dd.Patient.MaxAge |> optBrToStr
-                dd.Patient.MinWeight |> optBrToStr
-                dd.Patient.MaxWeight |> optBrToStr
-                dd.Patient.MinBSA |> optBrToStr
-                dd.Patient.MaxBSA |> optBrToStr
-                dd.Patient.MinGestAge |> optBrToStr
-                dd.Patient.MaxGestAge |> optBrToStr
-                dd.Patient.MinPMAge |> optBrToStr
-                dd.Patient.MaxPMAge |> optBrToStr
-                dd.ScheduleData.DoseType
-                dd.ScheduleData.DoseText
-            ]
-
-        { dd with
-            Id = fields |> String.sha1Short // full unique data dose rule id
-            GrpId = fields[.. fields.Length - 3] |> String.sha1Short // grouped by similar dose rule data but different dose types
-        }
-
-
     /// <summary>
     /// Reconstitute the products in a DoseRule that require reconstitution.
     /// </summary>
@@ -411,265 +344,6 @@ module DoseRule =
 
 
     let fromTupleInclIncl = MinMax.fromTuple Inclusive Inclusive
-
-
-    /// Reduce a row's product narrowing to a single mechanism by precedence
-    /// HPKs > GPKs > Brand > Form: keep the highest-precedence field that is
-    /// present and clear every lower-precedence one. Rows with no narrowing are
-    /// left unchanged (they remain generic-wide rules).
-    let withSingleNarrowing (g: GenericData) =
-        let hasHpks = g.HPKs |> Array.isEmpty |> not
-        let hasGpks = g.GPKs |> Array.isEmpty |> not
-        let hasBrand = g.Brand |> String.notEmpty
-
-        if hasHpks then
-            { g with
-                GPKs = [||]
-                Brand = ""
-                Form = ""
-            }
-        elif hasGpks then
-            { g with
-                Brand = ""
-                Form = ""
-            }
-        elif hasBrand then
-            { g with Form = "" }
-        else
-            g
-
-
-    let parseDoseRuleData data =
-        try
-            data
-            |> fun data ->
-                let getColumn = data |> Array.head |> Csv.getStringColumn
-
-                data
-                |> Array.tail
-                |> Array.distinctBy (fun row -> row |> Array.tail)
-                |> Array.map (fun r ->
-                    let get = getColumn r
-
-                    let getOpt col =
-                        try
-                            get col
-                        with _ ->
-                            ""
-
-                    let getInt = getOpt >> Int32.tryParse
-                    let toBrOpt = BigRational.toBrs >> Array.tryHead
-
-                    let getBool =
-                        get
-                        >> fun s ->
-                            let v = s.Trim().ToLowerInvariant()
-                            v = "true" || v = "x" || v = "1" || v = "yes"
-
-                    {
-                        Id = getOpt "Id"
-                        GrpId = getOpt "GrpId"
-                        SortNo = getInt "SortNo" |> Option.defaultValue 1
-                        Source = get "Source"
-                        Generic =
-                            {
-                                Name = get "Generic"
-                                Form = get "Form"
-                                Brand = get "Brand"
-                                GPKs =
-                                    get "GPKs"
-                                    |> String.splitAt ';'
-                                    |> Array.map String.trim
-                                    |> Array.filter String.notEmpty
-                                    |> Array.distinct
-                                HPKs =
-                                    get "HPKs"
-                                    |> String.splitAt ';'
-                                    |> Array.map String.trim
-                                    |> Array.filter String.notEmpty
-                                    |> Array.distinct
-                            }
-                        Route = get "Route"
-                        Indication = get "Indication"
-                        SourceText = getOpt "SourceText"
-                        PatientText = getOpt "PatientText"
-                        Patient =
-                            {
-                                Location = getOpt "Loc"
-                                Dep = get "Dep"
-                                IsAdult = getBool "IsAdult"
-                                Gender = get "Gender" |> Gender.fromString
-                                MinAge = get "MinAge" |> toBrOpt
-                                MaxAge = get "MaxAge" |> toBrOpt
-                                MinWeight = get "MinWeight" |> toBrOpt
-                                MaxWeight = get "MaxWeight" |> toBrOpt
-                                MinBSA = get "MinBSA" |> toBrOpt
-                                MaxBSA = get "MaxBSA" |> toBrOpt
-                                MinGestAge = get "MinGestAge" |> toBrOpt
-                                MaxGestAge = get "MaxGestAge" |> toBrOpt
-                                MinPMAge = get "MinPMAge" |> toBrOpt
-                                MaxPMAge = get "MaxPMAge" |> toBrOpt
-                            }
-                        ScheduleText = getOpt "ScheduleText"
-                        ScheduleData =
-                            {
-                                DoseType = get "DoseType"
-                                DoseText = get "DoseText"
-                                Freqs = get "Freqs" |> BigRational.toBrs
-                                AdjustUnit = get "AdjustUnit"
-                                FreqUnit = get "FreqUnit"
-                                RateUnit = get "RateUnit"
-                                MinTime = get "MinTime" |> toBrOpt
-                                MaxTime = get "MaxTime" |> toBrOpt
-                                TimeUnit = get "TimeUnit"
-                                MinInt = get "MinInt" |> toBrOpt
-                                MaxInt = get "MaxInt" |> toBrOpt
-                                IntUnit = get "IntUnit"
-                                MinDur = get "MinDur" |> toBrOpt
-                                MaxDur = get "MaxDur" |> toBrOpt
-                                DurUnit = get "DurUnit"
-                                DoseLimitData =
-                                    {
-                                        CmpBased = getBool "CmpBased"
-                                        Component = get "Component"
-                                        Substance = get "Substance"
-                                        DoseUnit = get "DoseUnit"
-                                        MinQty = get "MinQty" |> toBrOpt
-                                        MaxQty = get "MaxQty" |> toBrOpt
-                                        MinQtyAdj = get "MinQtyAdj" |> toBrOpt
-                                        MaxQtyAdj = get "MaxQtyAdj" |> toBrOpt
-                                        MinPerTime = get "MinPerTime" |> toBrOpt
-                                        MaxPerTime = get "MaxPerTime" |> toBrOpt
-                                        MinPerTimeAdj = get "MinPerTimeAdj" |> toBrOpt
-                                        MaxPerTimeAdj = get "MaxPerTimeAdj" |> toBrOpt
-                                        MinRate = get "MinRate" |> toBrOpt
-                                        MaxRate = get "MaxRate" |> toBrOpt
-                                        MinRateAdj = get "MinRateAdj" |> toBrOpt
-                                        MaxRateAdj = get "MaxRateAdj" |> toBrOpt
-                                    }
-                            }
-                        Products = [||]
-                    }
-                )
-            // Keep one product-selection narrowing per row, by precedence
-            // HPKs > GPKs > Brand > Form, then dedupe.
-            |> Array.map (fun d -> { d with Generic = d.Generic |> withSingleNarrowing })
-            |> Array.distinct
-            |> Ok
-        with exn ->
-            Result.createError "getDataResult" exn
-
-
-    let getData dataUrlId =
-        Web.getDataFromSheet dataUrlId "DoseRules" |> parseDoseRuleData
-
-
-    /// Pretty print dose rule data for  logging
-    let doseRuleDataToString dd =
-        let showOpt = Option.map string >> Option.defaultValue "-"
-
-        let showStr s =
-            if s |> String.isNullOrWhiteSpace then "-" else s
-
-        let showArray toStr xs =
-            if xs |> Array.isEmpty then
-                "-"
-            else
-                xs |> Array.map toStr |> String.concat ","
-
-        // Bind the deeply nested schedule and dose-limit fields to short locals
-        // so the interpolated strings below stay readable (and Fantomas does not
-        // wrap the long member-access chains into unreadable indentation).
-        let sd = dd.ScheduleData
-        let dl = sd.DoseLimitData
-
-        let gen = dd.Generic.Name |> showStr
-        let comp = dl.Component |> showStr
-        let subst = dl.Substance |> showStr
-        let gpks = dd.Generic.GPKs |> showArray id
-
-        let route = dd.Route |> showStr
-        let form = dd.Generic.Form |> showStr
-        let brand = dd.Generic.Brand |> showStr
-        let dept = dd.Patient.Dep |> showStr
-        let ind = dd.Indication |> showStr
-
-        let doseType = sd.DoseType |> showStr
-        let doseText = sd.DoseText |> showStr
-        let doseUnit = dl.DoseUnit |> showStr
-        let adjUnit = sd.AdjustUnit |> showStr
-
-        let freq = sd.Freqs |> showArray string
-        let freqUnit = sd.FreqUnit |> showStr
-        let maxTime = sd.MaxTime |> showOpt
-        let timeUnit = sd.TimeUnit |> showStr
-        let maxRate = dl.MaxRate |> showOpt
-        let maxRateAdj = dl.MaxRateAdj |> showOpt
-        let rateUnit = sd.RateUnit |> showStr
-
-        let src = dd.Source |> showStr
-
-        [
-            $"Id   : Gen=%s{gen} | Comp=%s{comp} | Subst=%s{subst} | GPKs=%s{gpks}"
-            $"Ctx  : Route=%s{route} | Form=%s{form} | Brand=%s{brand} | Dept=%s{dept} | Ind=%s{ind}"
-            $"Dose : Type=%s{doseType} | Text=%s{doseText} | DoseUnit=%s{doseUnit} | AdjUnit=%s{adjUnit}"
-            $"Rate : Freq=%s{freq} %s{freqUnit} | MaxTime=%s{maxTime} %s{timeUnit} | MaxRate=%s{maxRate} | MaxRateAdj=%s{maxRateAdj} %s{rateUnit}"
-            $"Meta : Src=%s{src}"
-        ]
-        |> List.map String.trim
-        |> List.filter String.notEmpty
-        |> String.concat "\n"
-
-
-    /// Determine whether a raw DoseRuleData row is valid.
-    /// Can only determine validity up to schedule data as
-    /// Component and Substance related data has to be aggregated
-    /// into a single dose rule
-    let validateData dd =
-        let doseType, _ = DoseType.parse dd.ScheduleData.DoseType dd.ScheduleData.DoseText
-
-        let warning = $"%s{dd.Generic.Name} | %s{dd.Route} |"
-
-        match doseType with
-        | NoDoseType -> [ "Has no dose type" ]
-        | Once _ -> []
-        | OnceTimed _ ->
-            [
-                if dd.ScheduleData.TimeUnit |> String.isNullOrWhiteSpace then
-                    "TimeUnit is missing"
-            ]
-        | Discontinuous _ ->
-            [
-                if dd.ScheduleData.Freqs.Length = 0 then
-                    "Frequencies is empty"
-                if dd.ScheduleData.FreqUnit |> String.isNullOrWhiteSpace then
-                    "FreqUnit is missing"
-            ]
-        | Timed _ ->
-            [
-                if dd.ScheduleData.Freqs.Length = 0 then
-                    "Frequencies is empty"
-                if dd.ScheduleData.FreqUnit |> String.isNullOrWhiteSpace then
-                    "FreqUnit is missing"
-                if dd.ScheduleData.TimeUnit |> String.isNullOrWhiteSpace then
-                    "TimeUnit is missing"
-            ]
-        | Continuous _ ->
-
-            [
-                if dd.ScheduleData.RateUnit |> String.isNullOrWhiteSpace then
-                    "RateUnit is missing"
-            ]
-        |> List.map (sprintf "%s %s" warning)
-
-
-    /// Cheap pre-filter: keep only products whose Generic matches a component
-    /// used somewhere in the group, before the per-component product narrowing.
-    let candidateProducts (prods: ProductComponent[]) (rs: DoseRuleData[]) =
-        let cmps = rs |> Array.map _.ScheduleData.DoseLimitData.Component |> Array.distinct
-
-        prods
-        |> Array.filter (fun p -> cmps |> Array.exists (String.equalsCapInsens p.Generic))
 
 
     let addFormLimits routeMapping formRoutes (dr: DoseRule) =
@@ -926,7 +600,7 @@ module DoseRule =
                 unitGroup |> Group.toString,
                 {
                     Id = ""
-                    DataId = r.Id
+                    DataId = r.RuleId
                     GroupId = r.GrpId
                     SortNo = r.SortNo
                     Source = r.Source |> identifySource
@@ -1003,127 +677,261 @@ module DoseRule =
         |> Array.map (fun (unitGroup, dr) -> { dr with Id = dr |> setDoseRuleHashId unitGroup })
 
 
-    let group routeMapping (prods: ProductComponent[]) chunk =
-        chunk
-        |> Array.collect (fun (key, data) ->
-            let candidates = data |> candidateProducts prods
+    // -----------------------------------------------------------------------
+    // Reverse mapping  DoseRule -> DoseRuleData[]
+    //
+    // Inverse of `mapToDoseRule`: pure and resource-free. It drops the form /
+    // form-unit-group expansion and the resource-derived FormLimit (both are
+    // re-derived by the forward path), but recovers form/brand/gpks/hpks
+    // narrowing from the Generic label and products. Reversing every rule
+    // yields duplicates; a caller-chosen `Array.distinct` collapses them back
+    // to (roughly) the original DoseRuleData, modulo generated Id/GrpId/SortNo.
+    // -----------------------------------------------------------------------
 
-            data
-            // make sure that the chunked dose rule data
-            // have ids set
-            |> Array.map setDataHashIds
-            // make sure the sort order is preserved
-            |> Array.mapi (fun i dd -> { dd with SortNo = i })
-            // perform an additional grouping to differentiate
-            // between dose type, note dose type is part of the
-            // dose rule hashed id
-            |> Array.groupBy _.Id
-            |> Array.map (fun (_, data) ->
-                let cmps =
-                    data |> Array.map _.ScheduleData.DoseLimitData.Component |> Array.distinct
 
-                let prods =
-                    cmps
-                    |> Array.collect (fun cmp ->
-                        candidates
-                        |> Product.filter
-                            routeMapping
-                            key.Route
-                            cmp
-                            key.Generic.Form
-                            key.Generic.Brand
-                            key.Generic.GPKs
-                            key.Generic.HPKs
+    /// Bare, group-less unit string; idempotent through UnitsParse.fromString.
+    let unitStr (u: Unit) = u |> Units.toStringEngShortWithoutGroup
 
-                    )
 
-                let frms = prods |> Array.map _.Form |> Array.distinct
+    /// "kg" / "m2" / "" from an adjust Unit option (inverse of Utils.Units.adjustUnit).
+    let adjStr (u: Unit option) =
+        match u with
+        | Some uu when uu |> Units.eqsUnit Units.Weight.kiloGram -> "kg"
+        | Some uu when uu |> Units.eqsUnit Units.BSA.m2 -> "m2"
+        | _ -> ""
 
-                {
-                    DataGroupKey = key
-                    DoseRuleData = data
-                    Forms = frms
-                    Products = prods
-                }
+
+    /// Time-token of a frequency ValueUnit (the denominator of times/<time>).
+    let freqUnitStr (vuOpt: ValueUnit option) =
+        match vuOpt with
+        | Some vu ->
+            match vu |> ValueUnit.getUnit with
+            | CombiUnit(_, OpPer, t) -> t |> unitStr
+            | _ -> ""
+        | None -> ""
+
+
+    /// Denominator time-token of a per-rate / per-time unit (du/<x>).
+    let perUnitStr (mm: MinMax) =
+        match mm |> MinMax.getUnit with
+        | Some(CombiUnit(_, OpPer, d)) -> d |> unitStr
+        | _ -> ""
+
+
+    /// Time-token of a plain time MinMax (administration/interval/duration).
+    let timeUnitStr (mm: MinMax) =
+        match mm |> MinMax.getUnit with
+        | Some u -> u |> unitStr
+        | None -> ""
+
+
+    let emptyDoseLimitData: DoseLimitData =
+        {
+            CmpBased = false
+            Component = ""
+            Substance = ""
+            DoseUnit = ""
+            MinQty = None
+            MaxQty = None
+            MinQtyAdj = None
+            MaxQtyAdj = None
+            MinPerTime = None
+            MaxPerTime = None
+            MinPerTimeAdj = None
+            MaxPerTimeAdj = None
+            MinRate = None
+            MaxRate = None
+            MinRateAdj = None
+            MaxRateAdj = None
+        }
+
+
+    /// Inverse of getDoseLimits for one DoseLimit, parented by component name.
+    /// cmpBased = true marks a component-only limit (no substance limits), per the
+    /// source convention CmpBased &lt;=&gt; blank Substance.
+    let reverseDoseLimit (cmpBased: bool) (cmpName: string) (dl: DoseLimit) : DoseLimitData =
+        let substance =
+            match dl.DoseLimitTarget with
+            | SubstanceLimitTarget s -> s
+            | _ -> ""
+
+        let mmTuple = MinMax.toValueTuple
+
+        let q = mmTuple dl.Quantity
+        let qa = mmTuple dl.QuantityAdjust
+        let pt = mmTuple dl.PerTime
+        let pta = mmTuple dl.PerTimeAdjust
+        let rt = mmTuple dl.Rate
+        let rta = mmTuple dl.RateAdjust
+
+        { emptyDoseLimitData with
+            CmpBased = cmpBased
+            Component = cmpName
+            Substance = substance
+            DoseUnit = dl.DoseUnit |> unitStr
+            MinQty = fst q
+            MaxQty = snd q
+            MinQtyAdj = fst qa
+            MaxQtyAdj = snd qa
+            MinPerTime = fst pt
+            MaxPerTime = snd pt
+            MinPerTimeAdj = fst pta
+            MaxPerTimeAdj = snd pta
+            MinRate = fst rt
+            MaxRate = snd rt
+            MinRateAdj = fst rta
+            MaxRateAdj = snd rta
+        }
+
+
+    /// Inverse of the Generic part of mapToDoseRule. Narrowing is read from
+    /// (Label, Products); the expansion form (Generic.Form) is ignored.
+    let reverseGeneric (g: Generic) : GenericData =
+        let name = g.Label |> GenericLabel.genericName
+
+        let form =
+            match g.Label with
+            | GenericForm(_, f) -> f
+            | _ -> ""
+
+        let brand =
+            match g.Label with
+            | GenericBrand(_, b) -> b
+            | _ -> ""
+
+        let gpks =
+            g.Products
+            |> List.choose (
+                function
+                | Gpk s -> Some s
+                | _ -> None
             )
-        )
+            |> List.toArray
+
+        let hpks =
+            g.Products
+            |> List.choose (
+                function
+                | Hpk s -> Some s
+                | _ -> None
+            )
+            |> List.toArray
+
+        {
+            Name = name
+            Form = form
+            Brand = brand
+            GPKs = gpks
+            HPKs = hpks
+        }
 
 
-    let fromData routeMapping formRoutes prods (data: DoseRuleData[]) =
-        // get the validated dose rule data from data
-        // and the warnings
-        let data, warnings =
-            let valid, invalid =
-                data
-                // validate the dose rule data
-                |> Array.map (fun d -> d, validateData d)
-                |> Array.partition (snd >> List.isEmpty)
+    /// Inverse of the PatientCategory part of mapToDoseRule.
+    let reversePatient (pc: PatientCategory) : PatientCategoryData =
+        let isAdult = (pc.Age = IsAdult)
 
-            valid |> Array.map fst, invalid |> Array.map (snd >> List.toArray) |> Array.collect id
+        let mmTuple = MinMax.toValueTuple
 
-        let addFormLimits = addFormLimits routeMapping formRoutes
+        let minAge, maxAge =
+            match pc.Age with
+            | IsAdult -> None, None
+            | AbsoluteAge mm -> mmTuple mm
 
-        let grouped =
-            data
-            // group by dose rule data group
-            |> Array.groupBy dataGroupKey
-            // setup chunks of grouped dose rule data
-            |> Array.chunkBySize Parallel.totalWorders
-            // map to grouped dose rule data to map to a dose rule
-            |> Array.map (fun chunk -> async { return chunk |> group routeMapping prods })
-            |> Async.Parallel
-            |> Async.RunSynchronously
-            |> Array.collect id
+        let minW, maxW = mmTuple pc.Weight
+        let minB, maxB = mmTuple pc.BSA
+        let minG, maxG = mmTuple pc.GestAge
+        let minP, maxP = mmTuple pc.PMAge
 
-        // Warm-up phase to enable safe parallelization below. mapToDoseRule /
-        // addFormLimits are the first code to exercise the unit / dose-limit
-        // modules; running a sample single-threaded forces their one-time
-        // (static) initialization on one thread, avoiding a cold concurrent
-        // type-initialization deadlock when the parallel tasks below trigger
-        // those inits at once. We warm a whole chunk (not a single group) so the
-        // initialized code paths do not depend on which group happens to be first.
-        let warm, tail =
-            if grouped |> Array.length <= Parallel.totalWorders then
-                grouped, [||]
-            else
-                grouped[.. Parallel.totalWorders - 1], grouped[Parallel.totalWorders ..]
+        {
+            Location = pc.Location |> Option.defaultValue ""
+            Dep = pc.Department |> Option.defaultValue ""
+            IsAdult = isAdult
+            Gender = pc.Gender
+            MinAge = minAge
+            MaxAge = maxAge
+            MinWeight = minW
+            MaxWeight = maxW
+            MinBSA = minB
+            MaxBSA = maxB
+            MinGestAge = minG
+            MaxGestAge = maxG
+            MinPMAge = minP
+            MaxPMAge = maxP
+        }
 
-        let head = warm |> Array.collect (mapToDoseRule >> Array.map addFormLimits)
 
-        tail
-        |> Array.chunkBySize Parallel.totalWorders
-        // map each grouped dose rule data to mapToDoseRule
-        // that will expand for all available product forms
-        // and form unit groups
-        |> Array.map (fun grps ->
-            async {
-                let rules = grps |> Array.collect mapToDoseRule |> Array.map addFormLimits
-                return rules
+    /// Inverse of the ScheduleData part of mapToDoseRule.
+    let reverseSchedule (dr: DoseRule) (dl: DoseLimit) (dld: DoseLimitData) : ScheduleData =
+        let doseType = dr.DoseType |> DoseType.toCategory
+        let doseText = dr.DoseType |> DoseType.getText
+
+        let mmTuple = MinMax.toValueTuple
+
+        let freqs =
+            dr.Frequencies |> Option.map ValueUnit.getValue |> Option.defaultValue [||]
+
+        {
+            DoseType = doseType
+            DoseText = doseText
+            Freqs = freqs
+            AdjustUnit = dr.AdjustUnit |> adjStr
+            FreqUnit = freqUnitStr dr.Frequencies
+            RateUnit =
+                match perUnitStr dl.Rate with
+                | "" -> perUnitStr dl.RateAdjust
+                | s -> s
+            MinTime = fst (mmTuple dr.AdministrationTime)
+            MaxTime = snd (mmTuple dr.AdministrationTime)
+            TimeUnit = timeUnitStr dr.AdministrationTime
+            MinInt = fst (mmTuple dr.IntervalTime)
+            MaxInt = snd (mmTuple dr.IntervalTime)
+            IntUnit = timeUnitStr dr.IntervalTime
+            MinDur = fst (mmTuple dr.Duration)
+            MaxDur = snd (mmTuple dr.Duration)
+            DurUnit = timeUnitStr dr.Duration
+            DoseLimitData = dld
+        }
+
+
+    /// Explode a DoseRule into its source data rows (inverse of mapToDoseRule).
+    /// FormLimit is NOT emitted (it is derived from the external formRoutes table).
+    /// A component limit with no substance limits emits one CmpBased row; a
+    /// component with substance limits emits one row per substance.
+    let toData (dr: DoseRule) : DoseRuleData[] =
+        let gen = reverseGeneric dr.Generic
+        let pat = reversePatient dr.PatientCategory
+
+        let mkRow (cmpBased: bool) (cmpName: string) (dl: DoseLimit) : DoseRuleData =
+            let dld = reverseDoseLimit cmpBased cmpName dl
+
+            {
+                RowId = ""
+                RuleId = ""
+                GrpId = ""
+                SortNo = 0
+                Source = dr.Source |> Source.toString
+                SourceText = dr.SourceText
+                Generic = gen
+                Indication = dr.Indication
+                Route = dr.Route
+                PatientText = dr.PatientText
+                Patient = pat
+                ScheduleText = dr.ScheduleText
+                ScheduleData = reverseSchedule dr dl dld
+                Products = [||]
             }
+
+        dr.ComponentLimits
+        |> Array.collect (fun cl ->
+            // no substance limits -> use the component limit (CmpBased = true)
+            // has substance limits -> use only the substance limits (CmpBased = false)
+            if cl.SubstanceLimits |> Array.isEmpty then
+                match cl.Limit with
+                | Some l -> [| mkRow true cl.Name l |]
+                | None -> [||]
+            else
+                cl.SubstanceLimits |> Array.map (mkRow false cl.Name)
         )
-        |> Async.Parallel
-        |> Async.RunSynchronously
-        |> Array.collect id
-        |> Array.append head,
-        warnings |> Array.map Warning |> Array.toList
-
-
-    /// Impure adapter: loads DoseRuleData via the `getData` thunk and delegates
-    /// to the pure <c>fromData</c>, carrying the product warnings.
-    /// Kept for existing callers/tests.
-    let get getData routeMapping formRoutes prods =
-        getData () |> fromData routeMapping formRoutes prods
-
-
-    /// Build a GetDoseRules-shaped function from a custom data source.
-    /// `getData` reads DoseRuleData rows from `path` (e.g. a Pass-4 TSV).
-    /// The result matches the ResourceConfig.GetDoseRules field shape exactly:
-    /// DoseRuleData[] -> RouteMapping[] -> FormRoute[] -> ProductComponent[] ->
-    /// (DoseRule[] * Message list). The leading DoseRuleData[] (the
-    /// resources-loaded rows) is ignored here because this adapter reads its
-    /// rows from `path` instead.
-    let getFromGetData getData path =
-        fun (_: DoseRuleData[]) -> get (fun () -> getData path)
 
 
     /// <summary>
@@ -1184,12 +992,11 @@ module DoseRule =
 
 
     /// Extract all the departments from the DoseRules.
-    let departments =
-        getMember (fun dr -> dr.PatientCategory.Department |> Option.defaultValue "")
+    let departments = getMember (_.PatientCategory.Department >> Option.defaultValue "")
 
 
     /// Extract all genders from the DoseRules.
-    let genders = getMember (fun dr -> dr.PatientCategory.Gender |> Gender.toString)
+    let genders = getMember (_.PatientCategory.Gender >> Gender.toString)
 
 
     /// Extract all patient categories from the DoseRules as strings.
