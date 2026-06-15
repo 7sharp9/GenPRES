@@ -107,7 +107,7 @@ module ValueUnit =
     /// Check whether a unit `u`
     /// is a time unit.
     let isTimeUnit u =
-        (u |> ValueUnit.Group.unitToGroup) = Group.TimeGroup
+        (u |> Group.unitToGroup) = Group.TimeGroup
 
 
     /// Helper functions to quicly create

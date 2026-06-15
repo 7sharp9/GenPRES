@@ -4,7 +4,6 @@ namespace Informedica.GenForm.Lib
 module Check =
 
     open Informedica.Utils.Lib
-    open ConsoleWriter.NewLineNoTime
     open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
@@ -32,6 +31,7 @@ module Check =
         | OverAbsolute // > absolute max (IR tekst 3)
         | UnderNorm // < norm min (IR tekst 2)
         | UnitMismatch // kg vs m2 — cannot compare
+        | IncomparableUnits // unit groups differ (e.g. Count/kg/day vs IU/kg/week, droplet vs mg) — cannot compare
         | NotComparable // missing dose type / both ranges empty
         | FrequencyMismatch // entered frequency not in the rule (IR 4.5.2)
         | NoMonitoring // no G-Standaard rule exists for the selection (info only)
@@ -105,12 +105,22 @@ module Check =
     let interchangeable a b = canonTimeUnit a = canonTimeUnit b
 
 
-    /// IR 4.5.2 frequency message granularity (tekst 24 / 25 / 8).
+    /// IR 4.5.2 frequency message granularity. The G-Standaard IR text number
+    /// (24 / 25 / 8) is intentionally NOT surfaced — only the human description.
     let freqMsg (aantalDiff: bool) (eenheidDiff: bool) =
         match aantalDiff, eenheidDiff with
-        | true, false -> "tekst 24 (aantal verschilt)"
-        | false, true -> "tekst 25 (tijdseenheid verschilt)"
-        | _ -> "tekst 8 (aantal en/of tijdseenheid verschilt)"
+        | true, false -> "aantal verschilt"
+        | false, true -> "tijdseenheid verschilt"
+        | _ -> "aantal en/of tijdseenheid verschilt"
+
+
+    /// IR 4.5.2: the rule's frequency set <paramref name="genform"/> is acceptable
+    /// when it is a SUBSET of the G-Standaard reference set <paramref name="gstand"/>
+    /// (i.e. every prescribed frequency is allowed), or the time units are
+    /// interchangeable and the counts are equal. Extracted so the subset direction
+    /// (genform ⊆ gstand) is unit-testable — see CheckTests.
+    let freqWithinReference unitsInterchangeable aantalDiff (genform: ValueUnit) (gstand: ValueUnit) =
+        (ValueUnit.isSubset genform gstand) || (unitsInterchangeable && not aantalDiff)
 
 
     /// IR 1.3.2 (5,6): toedieningssnelheid/-duur are out of the dose-check scope.
@@ -223,6 +233,19 @@ module Check =
         |> GStand.createDoseRules GStand.config a w None None gen frm
 
 
+    type private gen = string
+    type private frm = string
+    type private rte = string
+
+    /// Provider of raw G-Standaard (ZForm) dose rules for a generic/form/route and
+    /// patient.
+    type GStandProvider = Patient -> gen -> frm -> rte -> Informedica.ZForm.Lib.Types.DoseRule seq
+
+
+    /// The live (side-effecting) `GStandProvider` backed by `GStand.createDoseRules`.
+    let gStandProvider routeMapping : GStandProvider = createDoseRulesWithMapping routeMapping
+
+
     let setAdjustAndOrTimeUnit adjUn tu (mm: MinMax) =
         let setUnits u =
             match adjUn, tu with
@@ -247,6 +270,23 @@ module Check =
 
                     u |> setUnits |> ValueUnit.withValue v |> Limit.inclusive |> Some
         }
+
+
+    /// Full unit (incl. combi units) of a `MinMax`, taken from its min or max limit.
+    let rangeUnit (mm: MinMax) =
+        match mm.Min |> Option.map Limit.getValueUnit, mm.Max |> Option.map Limit.getValueUnit with
+        | Some vu, _
+        | _, Some vu -> vu |> ValueUnit.getUnit |> Some
+        | _ -> None
+
+
+    /// IR safety: two ranges are comparable only when their unit groups match
+    /// (e.g. mg/kg/day vs mg/kg/day). Empty / unit-less ranges are treated as
+    /// comparable so the existing empty-range short-circuits still apply.
+    let rangesComparable (refRange: MinMax) (testRange: MinMax) =
+        match rangeUnit refRange, rangeUnit testRange with
+        | Some ru, Some tu -> ru |> ValueUnit.Group.eqsGroup tu
+        | _ -> true
 
 
     let checkInRangeOf sn (refRange: MinMax) (testRange: MinMax) : bool option * string =
@@ -394,14 +434,13 @@ module Check =
         age && weight
 
 
-    let matchWithZIndex routeMapping (pat: Patient) (dr: DoseRule) =
+    let matchWithZIndex (getDosageRules: GStandProvider) (pat: Patient) (dr: DoseRule) =
         {|
             doseRule = dr
             zindex =
                 {|
                     dosages =
-                        createDoseRulesWithMapping
-                            routeMapping
+                        getDosageRules
                             pat
                             // G-Standaard keys on the base substance name only;
                             // the brand/form label would never match.
@@ -570,8 +609,8 @@ module Check =
         |}
 
 
-    let checkDoseRuleWith (cfg: CheckConfig) routeMapping (pat: Patient) (dr: DoseRule) =
-        let m = dr |> matchWithZIndex routeMapping pat |> createMapping
+    let checkDoseRuleWith (cfg: CheckConfig) (getDosageRules: GStandProvider) (pat: Patient) (dr: DoseRule) =
+        let m = dr |> matchWithZIndex getDosageRules pat |> createMapping
 
         let eqsAny (candidates: DoseType list) (dt: DoseType) =
             candidates |> List.exists (DoseType.eqsType dt)
@@ -641,11 +680,12 @@ module Check =
                 let inRangeOf msg refRange testRange =
                     try
                         checkInRangeOf $"{gstand.doseLimitTarget}\t{r}\t{p}\t{msg}: " refRange testRange
-                    with e ->
-                        writeErrorMessage $"{e}"
-
-                        Some true,
-                        $"{gstand.doseLimitTarget}\t{r}\t{p}\t{msg}: kan niet worden gechecked vanwege foutmelding"
+                    with _ ->
+                        // Defensive backstop: the rangesComparable guard in `grade`
+                        // already prevents incomparable-unit cmp throws, so reaching
+                        // here is exceptional. Drop the row (never report a crash as a
+                        // PASS); kept pure — no console IO in the check pipeline.
+                        None, ""
 
                 // HIGH-1: one-sided, risk-aware margin on the norm dose. Risk
                 // substances (GPRISC = "*") get no margin.
@@ -657,19 +697,30 @@ module Check =
                 // an absolute breach is serious, and absolute is only decisive once
                 // norm is exceeded.
                 let grade msg (normRef: MinMax) (absRef: MinMax) (test: MinMax) : Severity option * string =
-                    let nb, nmsg = inRangeOf msg normRef test
-                    let ab, amsg = inRangeOf msg absRef test
+                    // IR safety guard: never feed incomparable unit groups to cmp
+                    // (e.g. Count/kg/day vs IU/kg/week, droplet vs mg) — that throws.
+                    // Emit a typed warning instead of crashing or (previously) a fake pass.
+                    let incomparable ref =
+                        ref |> MinMax.isEmpty |> not && not (rangesComparable ref test)
 
-                    // The absolute ceiling breach is checked first so that even
-                    // inconsistent G-Standaard data (normRef.Max > absRef.Max) can
-                    // never silently downgrade an over-absolute dose to Within.
-                    // For valid data (norm ⊆ abs) this is equivalent to norm-first.
-                    match nb, ab with
-                    | None, None -> None, ""
-                    | _, Some false -> Some OverAbsolute, amsg
-                    | Some true, _ -> Some Within, nmsg
-                    | None, Some true -> Some Within, amsg
-                    | Some false, _ -> Some AdvisoryOverNorm, nmsg
+                    if (test |> MinMax.isEmpty |> not) && (incomparable normRef || incomparable absRef) then
+                        Some IncomparableUnits,
+                        $"{gstand.doseLimitTarget}\t{r}\t{p}\t{msg}: eenheden niet vergelijkbaar (kan niet worden gecontroleerd)"
+                    else
+
+                        let nb, nmsg = inRangeOf msg normRef test
+                        let ab, amsg = inRangeOf msg absRef test
+
+                        // The absolute ceiling breach is checked first so that even
+                        // inconsistent G-Standaard data (normRef.Max > absRef.Max) can
+                        // never silently downgrade an over-absolute dose to Within.
+                        // For valid data (norm ⊆ abs) this is equivalent to norm-first.
+                        match nb, ab with
+                        | None, None -> None, ""
+                        | _, Some false -> Some OverAbsolute, amsg
+                        | Some true, _ -> Some Within, nmsg
+                        | None, Some true -> Some Within, amsg
+                        | Some false, _ -> Some AdvisoryOverNorm, nmsg
 
                 // Adjust-unit-gated grade: only compares ranges whose adjust unit
                 // matches the test's, and substitutes the unit into the message.
@@ -718,17 +769,19 @@ module Check =
                             let unitsInterchangeable = interchangeable (tokenOf vuG) (tokenOf vuS)
                             let aantalDiff = (vuG |> ValueUnit.getValue) <> (vuS |> ValueUnit.getValue)
 
-                            let b = (vuG |> ValueUnit.isSubset vuS) || (unitsInterchangeable && not aantalDiff)
+                            // genform ⊆ gstand: the rule's frequencies must all be
+                            // allowed by the G-Standaard reference (NOT the reverse).
+                            let b = freqWithinReference unitsInterchangeable aantalDiff vuG vuS
 
                             if b then
                                 Some Within,
                                 $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tfrequenties {s1} is subset van {s2}"
                             else
-                                // LOW-4 (IR 4.5.2): granular tekst 24 / 25 / 8.
+                                // LOW-4 (IR 4.5.2): granular description (no IR text code).
                                 let eenheidDiff = tokenOf vuG <> tokenOf vuS && not unitsInterchangeable
 
                                 Some FrequencyMismatch,
-                                $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tfrequenties {s1} %s{freqMsg aantalDiff eenheidDiff} t.o.v. {s2}"
+                                $"{m.doseRule.Generic |> Generic.toString}\t{r}\t{p}\tfrequenties {s1} t.o.v. {s2}: %s{freqMsg aantalDiff eenheidDiff}"
 
                     // Each gradeable quantity yields ONE graded row (norm+abs
                     // combined). The margined row applies the HIGH-1 risk-aware band.
@@ -892,17 +945,21 @@ module Check =
             |}
 
 
-    let checkDoseRule routeMapping (pat: Patient) (dr: DoseRule) =
-        checkDoseRuleWith checkConfigDef routeMapping pat dr
+    /// Pure dose-check over a single rule given an injected data provider.
+    /// In production the provider comes from the Resources layer
+    /// (`Api.getGStandProvider`), not built ad hoc from a route mapping.
+    let checkDoseRuleWithProvider (getDosageRules: GStandProvider) (pat: Patient) (dr: DoseRule) =
+        checkDoseRuleWith checkConfigDef getDosageRules pat dr
 
 
-    let checkAll routeMapping (pat: Patient) (drs: DoseRule[]) =
+    /// Dose-check over many rules. `log` and the data provider are injected so the
+    /// orchestration is pure given its dependencies; callers wire the live ones
+    /// (e.g. the server passes `Api.getGStandProvider provider`).
+    let checkAllWith (log: int -> DoseRule -> unit) (getDosageRules: GStandProvider) (pat: Patient) (drs: DoseRule[]) =
         drs
         |> Array.mapi (fun i dr ->
-            writeInfoMessage
-                $"{i}. checking {dr.Generic |> Generic.toString}\t{dr.Generic.Form |> PharmaceuticalForm.toString}\t{dr.Route}"
-
-            checkDoseRule routeMapping pat dr
+            log i dr
+            checkDoseRuleWithProvider getDosageRules pat dr
         )
         |> Array.filter (fun c -> c.didNotPass |> Array.isEmpty |> not)
         |> Array.collect _.didNotPass

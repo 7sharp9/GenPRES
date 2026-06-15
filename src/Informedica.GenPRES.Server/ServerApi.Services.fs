@@ -62,7 +62,7 @@ module FormularyService =
         /// case. This is what gives the UI its advisory-vs-absolute grading:
         ///   - OverAbsolute                         → red (Alert)
         ///   - AdvisoryOverNorm/UnderNorm/Frequency → orange (Warning)
-        ///   - UnitMismatch/NotComparable/NoMonitor → blue (Caution)
+        ///   - UnitMismatch/Incomparable/NotComparable/NoMonitor → blue (Caution)
         ///   - Within                               → green (Valid)
         let severityWrap (sev: Check.Severity) : TextItem[] -> TextBlock =
             match sev with
@@ -72,6 +72,7 @@ module FormularyService =
             | Check.UnderNorm
             | Check.FrequencyMismatch -> Warning
             | Check.UnitMismatch
+            | Check.IncomparableUnits
             | Check.NotComparable
             | Check.NoMonitoring -> Caution
 
@@ -111,14 +112,16 @@ module FormularyService =
 
 
     let checkDoseRules provider pat (dsrs: DoseRule[]) =
-        let routeMapping = Api.getRouteMapping provider
+        // GStand dose rules now come from the Resources provider as a
+        // function-valued resource, not built ad hoc from the route mapping.
+        let gstand = Api.getGStandProvider provider
 
         let empt, rs =
             dsrs
             |> Array.distinctBy (fun dr ->
                 dr.Generic |> Generic.toString, dr.Generic.Form |> PharmaceuticalForm.toString, dr.Route, dr.DoseType
             )
-            |> Array.map (Check.checkDoseRule routeMapping pat)
+            |> Array.map (Check.checkDoseRuleWithProvider gstand pat)
             |> Array.partition (fun c -> c.didPass |> Array.isEmpty && c.didNotPass |> Array.isEmpty)
 
         rs

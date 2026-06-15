@@ -519,7 +519,9 @@ module DoseRuleProductTests =
             Patient = emptyPat
             ScheduleText = ""
             ScheduleData = emptySched
-            Products = [||]
+            Validated = None
+            FreqCheck = None
+            DoseCheck = None
         }
 
 
@@ -870,10 +872,7 @@ module DoseRuleToDataTests =
     /// therefore carry a substance so a SubstanceLimit — and hence a reversed
     /// row — is produced.
     let private withSubst subst (d: DoseRuleData) : DoseRuleData =
-        { d with
-            ScheduleData =
-                { d.ScheduleData with DoseLimitData = { d.ScheduleData.DoseLimitData with Substance = subst } }
-        }
+        { d with DoseRuleData.ScheduleData.DoseLimitData.Substance = subst }
 
 
     /// Forward (fromData) then reverse (DoseRule.toData) the given raw rows.
@@ -968,10 +967,8 @@ module DoseRuleRoundtripTests =
     open System
     open System.IO
     open MathNet.Numerics
-    open Newtonsoft.Json
     open Expecto
     open Expecto.Flip
-    open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
     open Informedica.GenCore.Lib.Ranges
@@ -2390,6 +2387,19 @@ module Tests =
         let private mkRiskDosage highRisk : Informedica.ZForm.Lib.Types.Dosage =
             { mkDosage 1N 1N with HighRisk = highRisk }
 
+        // DI seam: one real DoseRule from the OFFLINE fixtures, so the injected-
+        // provider test can exercise checkDoseRuleWithProvider without GStand IO.
+        let private fixture<'T> name =
+            System.IO.Path.Combine(System.AppContext.BaseDirectory, "fixtures", name)
+            |> System.IO.File.ReadAllText
+            |> FixtureJson.deSerialize<'T>
+
+        let private sampleDoseRule =
+            let data = fixture<DoseRuleData[]> "doserules.json"
+            let rm = fixture<RouteMapping[]> "routemappings.json"
+            let prods = fixture<ProductComponent[]> "products.json"
+            DoseRuleLoader.fromData rm [||] prods data |> fst |> Array.head
+
         let tests =
             testList
                 "Check IR-doseringscontrole fixes"
@@ -2465,14 +2475,32 @@ module Tests =
                         |> Expect.isFalse "12 weken != 3 maanden"
                     }
 
-                    test "LOW-4 freqMsg granularity" {
-                        Check.freqMsg true false |> Expect.equal "24" "tekst 24 (aantal verschilt)"
+                    test "LOW-4 freqMsg granularity (human description, no IR text code)" {
+                        Check.freqMsg true false |> Expect.equal "aantal" "aantal verschilt"
 
-                        Check.freqMsg false true
-                        |> Expect.equal "25" "tekst 25 (tijdseenheid verschilt)"
+                        Check.freqMsg false true |> Expect.equal "eenheid" "tijdseenheid verschilt"
 
                         Check.freqMsg true true
-                        |> Expect.equal "8" "tekst 8 (aantal en/of tijdseenheid verschilt)"
+                        |> Expect.equal "beide" "aantal en/of tijdseenheid verschilt"
+                    }
+
+                    // Regression: the rule's frequency set must be a SUBSET of the
+                    // G-Standaard reference (genform ⊆ gstand). The arguments to
+                    // ValueUnit.isSubset were once reversed, falsely flagging a rule
+                    // that prescribes a subset of the allowed frequencies.
+                    test "freqWithinReference checks rule ⊆ reference (not reversed)" {
+                        let perDay (vs: BigRational[]) =
+                            vs |> ValueUnit.withUnit (Units.Count.times |> ValueUnit.per Units.Time.day)
+
+                        let rule = perDay [| 1N |]
+                        let reference = perDay [| 1N; 2N; 3N |]
+
+                        // unitsInterchangeable=false, aantalDiff=true => decision is the subset test only
+                        Check.freqWithinReference false true rule reference
+                        |> Expect.isTrue "1 x/dag is within the allowed {1,2,3} x/dag"
+
+                        Check.freqWithinReference false true reference rule
+                        |> Expect.isFalse "{1,2,3} x/dag is NOT within {1} x/dag"
                     }
 
                     test "HIGH-2 rateScopeLabel labels or drops" {
@@ -2508,6 +2536,160 @@ module Tests =
                         |> Option.map _.HighRisk
                         |> Expect.equal "merged stays high risk" (Some true)
                     }
+
+                    test "UNIT-GUARD rangesComparable true for same unit group (mg/kg/day)" {
+                        let perKgDay u =
+                            u |> ValueUnit.per Units.Weight.kiloGram |> ValueUnit.per Units.Time.day
+
+                        Check.rangesComparable
+                            (mmOf 1N 5N (Units.Mass.milliGram |> perKgDay))
+                            (mmOf 2N 3N (Units.Mass.milliGram |> perKgDay))
+                        |> Expect.isTrue "same group comparable"
+                    }
+
+                    test "UNIT-GUARD rangesComparable false for Count/kg/day vs IU/kg/week" {
+                        let perKg u =
+                            u |> ValueUnit.per Units.Weight.kiloGram
+
+                        let countKgDay = Units.Count.times |> perKg |> ValueUnit.per Units.Time.day
+                        let iuKgWeek = Units.InterNational.iu |> perKg |> ValueUnit.per Units.Time.week
+
+                        Check.rangesComparable (mmOf 50N 50N countKgDay) (mmOf 150N 150N iuKgWeek)
+                        |> Expect.isFalse "different groups not comparable"
+                    }
+
+                    test "UNIT-GUARD rangesComparable false for droplet vs mg" {
+                        Check.rangesComparable (mmOf 1N 1N Units.Volume.droplet) (mmOf 1N 1N Units.Mass.milliGram)
+                        |> Expect.isFalse "droplet vs mass not comparable"
+                    }
+
+                    test "UNIT-GUARD rangesComparable true when a range is empty" {
+                        Check.rangesComparable MinMax.empty (mmOf 1N 5N Units.Mass.milliGram)
+                        |> Expect.isTrue "empty ref treated as comparable (empty short-circuit applies)"
+                    }
+
+                    test "UNIT-GUARD rangeUnit None on empty, Some on populated" {
+                        Check.rangeUnit MinMax.empty |> Expect.isNone "empty"
+                        Check.rangeUnit (mmOf 1N 5N Units.Mass.milliGram) |> Expect.isSome "populated"
+                    }
+
+                    test "DI checkDoseRuleWithProvider uses the injected provider (no GStand IO)" {
+                        // A fake GStandProvider returning no dosages proves the dose
+                        // check runs purely off its injected dependency: the seam is
+                        // exercised (call count > 0) and no real data access occurs.
+                        let mutable calls = 0
+
+                        let fakeProvider: Check.GStandProvider =
+                            fun _ _ _ _ ->
+                                calls <- calls + 1
+                                Seq.empty
+
+                        let result =
+                            Check.checkDoseRuleWithProvider fakeProvider Patient.patient sampleDoseRule
+
+                        calls > 0 |> Expect.isTrue "injected provider was invoked"
+
+                        result.didNotPass
+                        |> Array.isEmpty
+                        |> Expect.isTrue "empty provider data yields no dose-check signals"
+                    }
+                ]
+
+
+    /// The boxed resource registry engine (approach a) + GStand as a
+    /// function-valued resource. Engine validated in Scripts/ResourcesRegistryImpl.fsx
+    /// (incl. live load parity); these are the in-CI unit checks.
+    module ResourceRegistryTests =
+
+        open Informedica.GenForm.Lib.Resources
+
+        let private kInt name = ResourceKey.create<int> name
+
+        let tests =
+            testList
+                "Resource registry (boxed engine)"
+                [
+                    test "typed round-trip: Resolve returns the registered value at 'T" {
+                        let k = ResourceKey.create<string[]> "rt"
+                        let reg = Map [ k.Name, ofResult (fun () -> Ok [| "a"; "b" |]) ]
+                        let v: string[] = LoadEngine(reg).Resolve k
+                        v |> Expect.equal "round-trips" [| "a"; "b" |]
+                    }
+
+                    test "memoisation: a shared dependency loads once" {
+                        let mutable n = 0
+                        let leaf = kInt "leaf"
+                        let a = kInt "a"
+                        let b = kInt "b"
+
+                        let reg =
+                            Map
+                                [
+                                    leaf.Name,
+                                    ofResult (fun () ->
+                                        n <- n + 1
+                                        Ok 1
+                                    )
+                                    a.Name, derive (fun r -> r.Get leaf + 1)
+                                    b.Name, derive (fun r -> r.Get leaf + 2)
+                                ]
+
+                        let eng = LoadEngine reg
+                        eng.Resolve a |> ignore
+                        eng.Resolve b |> ignore
+                        n |> Expect.equal "leaf loaded once" 1
+                    }
+
+                    test "cycle is detected" {
+                        let a = kInt "ca"
+                        let b = kInt "cb"
+
+                        let reg =
+                            Map
+                                [
+                                    a.Name, derive (fun r -> r.Get b)
+                                    b.Name, derive (fun r -> r.Get a)
+                                ]
+
+                        let threw =
+                            try
+                                LoadEngine(reg).Resolve a |> ignore
+                                false
+                            with ResourceLoadError _ ->
+                                true
+
+                        threw |> Expect.isTrue "cyclic dependency raises"
+                    }
+
+                    test "fatal leaf error aborts the load" {
+                        let k = kInt "bad"
+                        let reg = Map [ k.Name, (fun _ -> Error [ ErrorMsg("boom", None) ]) ]
+
+                        let threw =
+                            try
+                                LoadEngine(reg).Resolve k |> ignore
+                                false
+                            with ResourceLoadError es ->
+                                es = [ ErrorMsg("boom", None) ]
+
+                        threw |> Expect.isTrue "fatal error raises ResourceLoadError"
+                    }
+
+                    test "GStand is a function-valued resource (no ZIndex IO)" {
+                        let mutable called = false
+
+                        let fake: Check.GStandProvider =
+                            fun _ _ _ _ ->
+                                called <- true
+                                []
+
+                        let reg = Map [ Keys.gStandProvider.Name, derive (fun _ -> fake) ]
+                        let gstand: Check.GStandProvider = LoadEngine(reg).Resolve Keys.gStandProvider
+                        let out = gstand Patient.patient "paracetamol" "tablet" "iv"
+
+                        out |> Seq.isEmpty |> Expect.isTrue "fake provider returns empty"
+                        called |> Expect.isTrue "function-valued resource was invoked"
+                    }
                 ]
 
 
@@ -2527,4 +2709,5 @@ module Tests =
                 DoseRuleToDataTests.tests
                 DoseRuleRoundtripTests.tests
                 CheckTests.tests
+                ResourceRegistryTests.tests
             ]

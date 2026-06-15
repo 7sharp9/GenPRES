@@ -4,7 +4,7 @@ namespace Informedica.Utils.Lib
 /// Utility functions to apply memoization
 module Memoization =
 
-    open System.Collections.Generic
+    open System.Collections.Concurrent
 
     /// <summary>
     /// Memoize a function `f` according
@@ -12,47 +12,57 @@ module Memoization =
     /// </summary>
     /// <param name="f">The function to memoize</param>
     /// <remarks>
-    ///  - the memoization is based on a map
+    ///  - the memoization is based on a thread-safe <c>ConcurrentDictionary</c>
     ///  - the cache is not cleared
+    ///  - safe under concurrent access: the <c>Lazy</c> wrapper guarantees that
+    ///    <c>f x</c> is evaluated AT MOST ONCE per distinct <c>x</c>, even when many
+    ///    threads request the same uncached key simultaneously. (A bare
+    ///    <c>GetOrAdd(x, f)</c> can run the factory on several threads before one
+    ///    wins; wrapping the value in <c>Lazy</c> means only the stored instance is
+    ///    ever forced, so a cold-cache stampede cannot re-run an expensive loader.)
+    ///  - the key constraint is <c>equality</c> (was <c>comparison</c> for the old
+    ///    Map-based version); every comparable key is also an equality key, so all
+    ///    existing call sites remain valid.
+    ///  - <c>null</c> keys are supported (the old F# <c>Map</c> tolerated them but a
+    ///    <c>ConcurrentDictionary</c> throws on a null key), cached in a dedicated
+    ///    cell so the null-key result is also computed at most once.
     /// </remarks>
-    let inline memoize f =
-        let cache = ref Map.empty
+    let memoize (f: 'a -> 'b) : 'a -> 'b =
+        let cache = ConcurrentDictionary<'a, Lazy<'b>>()
+        // ConcurrentDictionary rejects a null key; keep the null-key result aside.
+        // `lazy` (not forced unless a null key actually arrives) keeps value-type
+        // 'a — which can never be null — from ever evaluating f on default('a).
+        let nullCell = lazy (f Unchecked.defaultof<'a>)
 
         fun x ->
-            match cache.Value.TryFind(x) with
-            | Some r -> r
-            | None ->
-                let r = f x
-                cache.Value <- cache.Value.Add(x, r)
-                r
-
-    let inline memoizeOne f =
-        let dic = Dictionary<_, _>()
-
-        let memoized par =
-            if dic.ContainsKey(par) then
-                dic[par]
+            if obj.ReferenceEquals(box x, null) then
+                nullCell.Value
             else
-                let result = f par
-                dic.Add(par, result)
-                result
+                cache.GetOrAdd(x, (fun k -> lazy (f k))).Value
 
-        memoized
+    /// <summary>
+    /// Thread-safe single-argument memoization. Behaves exactly like <c>memoize</c>
+    /// (ConcurrentDictionary + Lazy: <c>f</c> runs at most once per key, null keys
+    /// supported); kept as a separate name for source compatibility.
+    /// </summary>
+    let memoizeOne (f: 'a -> 'b) : 'a -> 'b = memoize f
 
-    let inline memoize2Int f =
-        let dic = Dictionary<int * int, _>()
+    /// <summary>
+    /// Thread-safe memoization of a two-argument function, keyed on the pair of
+    /// argument hash codes.
+    /// </summary>
+    /// <remarks>
+    ///  - thread-safe (ConcurrentDictionary + Lazy: <c>f</c> runs at most once per key)
+    ///  - the key is a value tuple of hash codes, so it can never be null
+    ///  - hash collisions share a slot (the first pair to hash to a given key wins) —
+    ///    unchanged from the original implementation
+    /// </remarks>
+    let memoize2Int (f: 'a -> 'b -> 'c) : 'a -> 'b -> 'c =
+        let cache = ConcurrentDictionary<int * int, Lazy<'c>>()
 
-        let memoized p1 p2 =
-            let hash = p1.GetHashCode(), p2.GetHashCode()
-
-            if dic.ContainsKey(hash) then
-                dic[hash]
-            else
-                let result = f p1 p2
-                dic.Add(hash, result)
-                result
-
-        memoized
+        fun p1 p2 ->
+            let key = p1.GetHashCode(), p2.GetHashCode()
+            cache.GetOrAdd(key, (fun _ -> lazy (f p1 p2))).Value
 
 
     module Tests =

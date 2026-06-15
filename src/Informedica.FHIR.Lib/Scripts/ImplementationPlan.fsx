@@ -1272,7 +1272,7 @@ let fromFhirMedicationRequest
         if gpkCode |> String.isNullOrWhiteSpace then
             if medCc.Text <> null then medCc.Text else ""
         else
-            match gpkCode |> System.Int32.TryParse with
+            match gpkCode |> Int32.TryParse with
             | true, gpkInt ->
                 try
                     match GenericProduct.get [ gpkInt ] |> Array.tryHead with

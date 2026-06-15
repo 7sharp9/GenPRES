@@ -9,7 +9,7 @@ module Totals =
     open Types
 
 
-    let private rows = Shared.Models.Totals.intakeRows
+    let private rows = Models.Totals.intakeRows
 
 
     let private splitIntoColumns maxCols (arr: 'a[]) =
@@ -104,7 +104,7 @@ module Totals =
             row
             |> Array.map (fun cells ->
                 let name = cells |> Array.head
-                let items = Shared.Models.Totals.substanceToField intake name
+                let items = Models.Totals.substanceToField intake name
                 print name items
             )
 
@@ -112,7 +112,7 @@ module Totals =
             rows
             |> Array.filter (fun cells ->
                 let name = cells |> Array.head
-                let items = Shared.Models.Totals.substanceToField props.intake name
+                let items = Models.Totals.substanceToField props.intake name
                 items |> Array.length >= 2
             )
 

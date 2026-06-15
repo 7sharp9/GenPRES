@@ -5,8 +5,6 @@ module Resources =
 
     open System
     open Informedica.Utils.Lib.ConsoleWriter.NewLineTime
-    open FsToolkit.ErrorHandling.ResultCE
-
 
     type Data =
         {
@@ -23,9 +21,33 @@ module Resources =
         }
 
 
+    /// Phantom-typed handle: names a resource and carries its value type `'T`.
+    type ResourceKey<'T> = { Name: string }
+
+    module ResourceKey =
+        let create<'T> name : ResourceKey<'T> = { Name = name }
+
+
+    /// Available to a loader while loading: resolve other resources (its deps).
+    [<Interface>]
+    type IResourceResolver =
+        abstract member Get: ResourceKey<'T> -> 'T
+
+
+    /// A loader: given the resolver (for deps), yield the boxed value + non-fatal
+    /// warnings, or fail with fatal errors. Boxing is the price of a heterogeneous
+    /// registry; it is hidden behind typed keys so call sites stay type-safe.
+    type ResourceLoader = IResourceResolver -> Result<obj * Message list, Message list>
+
+    /// The registry. Adding a resource = add ONE entry; the engine never changes.
+    type ResourceRegistry = Map<string, ResourceLoader>
+
+
     /// Resource provider abstraction. Returns the fully built, in-memory
     /// resource collections. Product collections are v2 `ProductComponent`s.
     type IResourceProvider =
+        /// Generic seam: resolve any registered resource by its typed key.
+        abstract member Get: ResourceKey<'T> -> 'T
         abstract member GetData: unit -> Data
         abstract member GetUnitMappings: unit -> UnitMapping[]
         abstract member GetRouteMappings: unit -> RouteMapping[]
@@ -40,6 +62,7 @@ module Resources =
         abstract member GetSolutionRules: unit -> SolutionRule[]
         abstract member GetRenalRules: unit -> RenalRule[]
         abstract member GetTotals: unit -> TotalsData[]
+        abstract member GetGStandProvider: unit -> Check.GStandProvider
         abstract member GetResourceInfo: unit -> ResourceInfo
 
     and ResourceInfo =
@@ -91,194 +114,267 @@ module Resources =
         }
 
 
-    type ResourceConfig =
-        {
-            GetUnitMappings: unit -> Result<UnitMapping[], Message list>
-            GetRouteMappings: unit -> Result<RouteMapping[], Message list>
-            GetValidForms: unit -> Result<string[], Message list>
-            GetFormRoutes: UnitMapping[] -> Result<FormRoute[], Message list>
-            GetFormularyProducts: unit -> Result<FormularyProduct[], Message list>
-            GetGenPresProducts: unit -> Result<Informedica.ZIndex.Lib.Types.GenPresProduct[], Message list>
-            GetDoseRuleData: unit -> Result<DoseRuleData[], Message list>
-            GetSolutionRuleData: unit -> Result<SolutionRuleData[], Message list>
-            GetRenalRuleData: unit -> Result<RenalRuleData[], Message list>
-            GetTotalsData: unit -> Result<TotalsData[], Message list>
-            GetReconstitution: unit -> Result<Reconstitution[], Message list>
-            GetParenteralMeds: UnitMapping[] -> Result<ProductComponent[], Message list>
-            GetEnteralFeeding: UnitMapping[] -> Result<ProductComponent[], Message list>
-            // Pure: builds the products from already-loaded raw data (the ZIndex
-            // GenPresProducts are the last parameter — read at the impure edge).
-            GetProducts:
-                UnitMapping[]
-                    -> RouteMapping[]
-                    -> string[]
-                    -> FormRoute[]
-                    -> Reconstitution[]
-                    -> ProductComponent[]
-                    -> ProductComponent[]
-                    -> FormularyProduct[]
-                    -> Informedica.ZIndex.Lib.Types.GenPresProduct[]
-                    -> ProductComponent[]
-            // Pure: builds the rules from already-loaded raw *Data.
-            // Returns the built DoseRules together with the product-matching
-            // warnings, which the shell surfaces in ResourceState.Messages.
-            GetDoseRules:
-                DoseRuleData[] -> RouteMapping[] -> FormRoute[] -> ProductComponent[] -> DoseRule[] * Message list
-            GetSolutionRules:
-                SolutionRuleData[]
-                    -> RouteMapping[]
-                    -> ProductComponent[]
-                    -> ProductComponent[]
-                    -> Result<SolutionRule[], Message list>
-            GetRenalRules: RenalRuleData[] -> Result<RenalRule[], Message list>
-        }
+    exception ResourceLoadError of Message list
 
 
-    /// Default resource configuration using the standard v2 get functions.
+    /// Lazy, memoised, dependency-ordered resolution with cycle detection and
+    /// warning accumulation. The one place an unsafe downcast occurs, guarded by
+    /// the typed key.
+    type LoadEngine(registry: ResourceRegistry) =
+        let cache = System.Collections.Generic.Dictionary<string, obj>()
+        let inProgress = System.Collections.Generic.HashSet<string>()
+        let warnings = ResizeArray<Message>()
+
+        member private this.ResolveObj(name: string) : obj =
+            match cache.TryGetValue name with
+            | true, v -> v
+            | _ ->
+                if not (inProgress.Add name) then
+                    raise (ResourceLoadError [ ErrorMsg($"cyclic resource dependency: {name}", None) ])
+
+                match registry.TryFind name with
+                | None -> raise (ResourceLoadError [ ErrorMsg($"resource not registered: {name}", None) ])
+                | Some loader ->
+                    match loader (this :> IResourceResolver) with
+                    | Ok(v, ws) ->
+                        warnings.AddRange ws
+                        cache[name] <- v
+                        inProgress.Remove name |> ignore
+                        v
+                    | Error es -> raise (ResourceLoadError es)
+
+        /// Resolve a single resource at its static type (memoised).
+        member this.Resolve(key: ResourceKey<'T>) : 'T = this.ResolveObj key.Name :?> 'T
+
+        /// Resolve every registered resource (used to build the full snapshot).
+        member this.ForceAll() =
+            registry |> Map.iter (fun name _ -> this.ResolveObj name |> ignore)
+
+        member _.Warnings = warnings |> List.ofSeq
+        member _.Resolved = cache |> Seq.map (fun kv -> kv.Key, kv.Value) |> Map.ofSeq
+
+        interface IResourceResolver with
+            member this.Get key = this.Resolve key
+
+
+    /// IO leaf resource: a thunk returning Result (no dependencies).
+    let ofResult (f: unit -> Result<'T, Message list>) : ResourceLoader =
+        fun _ -> f () |> Result.map (fun v -> box v, [])
+
+    /// Derived resource that uses dependencies, no warnings.
+    let derive (f: IResourceResolver -> 'T) : ResourceLoader = fun r -> Ok(box (f r), [])
+
+    /// Derived resource that uses dependencies and also emits warnings.
+    let deriveWith (f: IResourceResolver -> 'T * Message list) : ResourceLoader =
+        fun r ->
+            let v, ws = f r
+            Ok(box v, ws)
+
+
+    /// Typed keys — one per resource. Adding a resource adds a key here.
+    module Keys =
+        let unitMappings = ResourceKey.create<UnitMapping[]> "unitMappings"
+        let routeMappings = ResourceKey.create<RouteMapping[]> "routeMappings"
+        let validForms = ResourceKey.create<string[]> "validForms"
+        let formRoutes = ResourceKey.create<FormRoute[]> "formRoutes"
+        let formularyProducts = ResourceKey.create<FormularyProduct[]> "formularyProducts"
+
+        let genPresProducts =
+            ResourceKey.create<Informedica.ZIndex.Lib.Types.GenPresProduct[]> "genPresProducts"
+
+        let reconstitution = ResourceKey.create<Reconstitution[]> "reconstitution"
+        let parenteralMeds = ResourceKey.create<ProductComponent[]> "parenteralMeds"
+        let enteralFeeding = ResourceKey.create<ProductComponent[]> "enteralFeeding"
+        let doseRuleData = ResourceKey.create<DoseRuleData[]> "doseRuleData"
+        let solutionRuleData = ResourceKey.create<SolutionRuleData[]> "solutionRuleData"
+        let renalRuleData = ResourceKey.create<RenalRuleData[]> "renalRuleData"
+        let totalsData = ResourceKey.create<TotalsData[]> "totalsData"
+        let products = ResourceKey.create<ProductComponent[]> "products"
+        let doseRules = ResourceKey.create<DoseRule[]> "doseRules"
+        let solutionRules = ResourceKey.create<SolutionRule[]> "solutionRules"
+        let renalRules = ResourceKey.create<RenalRule[]> "renalRules"
+        // G-Standaard dose-rule capability, served as a function-valued resource.
+        let gStandProvider = ResourceKey.create<Check.GStandProvider> "gStandProvider"
+
+
+    /// Default resource registry using the standard v2 get functions.
     ///
-    /// Every sheet/network load is deferred into the thunks below so that it
-    /// happens inside loadAllResourcesWithConfig's guarded result CE, not
-    /// eagerly at config-construction time.
-    ///
-    /// `lazy` memoises the formulary products so the shared value is fetched
-    /// only once across GetFormularyProducts / GetParenteralMeds /
-    /// GetEnteralFeeding, while still loading lazily on first access.
-    let defaultResourceConfig dataUrlId =
-        let formProds = lazy (Product.getFormularyProducts dataUrlId)
+    /// Every entry is a loader; dependencies are declared by calling `r.Get` and
+    /// resolved lazily and once by the engine (replacing the old hand-ordered CE).
+    /// FormularyProducts is one resource that ParenteralMeds / EnteralFeeding /
+    /// Products depend on, so it is fetched exactly once (no explicit `lazy`).
+    let defaultRegistry dataUrlId : ResourceRegistry =
+        Map
+            [
+                Keys.unitMappings.Name, ofResult (fun () -> Mapping.getUnitMapping dataUrlId)
+                Keys.routeMappings.Name, ofResult (fun () -> Mapping.getRouteMapping dataUrlId)
+                Keys.validForms.Name, ofResult (fun () -> Mapping.getValidForms dataUrlId)
 
-        {
-            GetUnitMappings = fun () -> Mapping.getUnitMapping dataUrlId
-            GetRouteMappings = fun () -> Mapping.getRouteMapping dataUrlId
-            GetValidForms = fun () -> Mapping.getValidForms dataUrlId
-            GetFormRoutes = Mapping.getFormRoutes dataUrlId
-            GetFormularyProducts = fun () -> formProds.Value
-            GetReconstitution = fun () -> Product.Reconstitution.get dataUrlId
-            GetParenteralMeds =
-                fun mapping ->
-                    formProds.Value
-                    |> Result.map (fun prods -> prods |> Product.Parenteral.get mapping)
-            GetEnteralFeeding =
-                fun mapping ->
-                    formProds.Value
-                    |> Result.map (fun prods -> prods |> Product.Enteral.get mapping)
-            // IO edge: read raw source data once.
-            GetGenPresProducts =
-                fun () ->
+                Keys.formRoutes.Name,
+                (fun r ->
+                    Mapping.getFormRoutes dataUrlId (r.Get Keys.unitMappings)
+                    |> Result.map (fun v -> box v, [])
+                )
+
+                Keys.formularyProducts.Name, ofResult (fun () -> Product.getFormularyProducts dataUrlId)
+                Keys.reconstitution.Name, ofResult (fun () -> Product.Reconstitution.get dataUrlId)
+
+                Keys.parenteralMeds.Name,
+                derive (fun r -> r.Get Keys.formularyProducts |> Product.Parenteral.get (r.Get Keys.unitMappings))
+
+                Keys.enteralFeeding.Name,
+                derive (fun r -> r.Get Keys.formularyProducts |> Product.Enteral.get (r.Get Keys.unitMappings))
+
+                // IO edge: read raw source data once.
+                Keys.genPresProducts.Name,
+                ofResult (fun () ->
                     try
                         Informedica.ZIndex.Lib.GenPresProduct.get [] |> Ok
                     with exn ->
                         Utils.Result.createError "GetGenPresProducts" exn
-            GetDoseRuleData = fun () -> DoseRuleLoader.getData dataUrlId
-            GetSolutionRuleData = fun () -> SolutionRule.getData dataUrlId
-            GetRenalRuleData = fun () -> RenalRule.getData dataUrlId
-            GetTotalsData = fun () -> Mapping.getTotals dataUrlId
-            // Pure transforms: operate on the already-loaded raw data.
-            GetProducts = Product.fromGenPresProducts
-            GetDoseRules = fun data rm fr prods -> DoseRuleLoader.fromData rm fr prods data
-            GetSolutionRules = fun data rm parenteral prods -> SolutionRule.map rm parenteral prods data
-            GetRenalRules = fun data -> RenalRule.map data
-        }
+                )
 
+                Keys.doseRuleData.Name, ofResult (fun () -> DoseRuleLoader.getData dataUrlId)
+                Keys.solutionRuleData.Name, ofResult (fun () -> SolutionRule.getData dataUrlId)
+                Keys.renalRuleData.Name, ofResult (fun () -> RenalRule.getData dataUrlId)
 
-    /// Load all resources at once using the provided configuration.
-    let loadAllResourcesWithConfig (config: ResourceConfig) =
-        try
-            result {
-                // ── IO edge: load all raw data up front ──
-                let! unitMappings = config.GetUnitMappings()
-                let! routeMappings = config.GetRouteMappings()
-                let! validForms = config.GetValidForms()
-                let! formRoutes = config.GetFormRoutes unitMappings
-                let! formularyProducts = config.GetFormularyProducts()
-                let! reconstitution = config.GetReconstitution()
-                let! parenteralMeds = config.GetParenteralMeds unitMappings
-                let! enteralFeeding = config.GetEnteralFeeding unitMappings
-                let! genPresProducts = config.GetGenPresProducts()
-                let! doseRuleData = config.GetDoseRuleData()
-                let! solutionRuleData = config.GetSolutionRuleData()
-                let! renalRuleData = config.GetRenalRuleData()
-
-                // Totals is an optional intake-reference resource: a load failure
-                // must not empty the other resources, so swallow to [||] and surface
-                // the reason as a Warning rather than failing the whole load.
-                let totalsData, totalsMsgs =
-                    match config.GetTotalsData() with
-                    | Ok d -> d, []
+                // Totals is an optional intake-reference resource: a load failure must
+                // not empty the others, so swallow to [||] and surface a Warning.
+                Keys.totalsData.Name,
+                (fun _ ->
+                    match Mapping.getTotals dataUrlId with
+                    | Ok d -> Ok(box d, [])
                     | Error msgs ->
-                        let text m =
-                            match m with
+                        let text =
+                            function
                             | Info s
                             | Warning s -> s
                             | ErrorMsg(s, _) -> s
 
-                        [||], (msgs |> List.map (fun m -> Warning $"Totals resource not loaded: {text m}"))
+                        Ok(
+                            box ([||]: TotalsData[]),
+                            msgs |> List.map (fun m -> Warning $"Totals resource not loaded: {text m}")
+                        )
+                )
 
-                // ── pure core: domain create functions on plain data ──
-                // narrow the raw ZIndex products to those referenced by dose rules
-                // (ID overrides name) BEFORE building, so discarded products are
-                // never constructed.
-                let filteredGpps =
-                    genPresProducts
-                    |> Product.filterGenPresProductsByData routeMappings formularyProducts doseRuleData
+                // Narrow the raw ZIndex products to those referenced by dose rules
+                // BEFORE building, so discarded products are never constructed.
+                Keys.products.Name,
+                derive (fun r ->
+                    let filtered =
+                        r.Get Keys.genPresProducts
+                        |> Product.filterGenPresProductsByData
+                            (r.Get Keys.routeMappings)
+                            (r.Get Keys.formularyProducts)
+                            (r.Get Keys.doseRuleData)
 
-                let products =
-                    config.GetProducts
-                        unitMappings
-                        routeMappings
-                        validForms
-                        formRoutes
-                        reconstitution
-                        parenteralMeds
-                        enteralFeeding
-                        formularyProducts
-                        filteredGpps
+                    Product.fromGenPresProducts
+                        (r.Get Keys.unitMappings)
+                        (r.Get Keys.routeMappings)
+                        (r.Get Keys.validForms)
+                        (r.Get Keys.formRoutes)
+                        (r.Get Keys.reconstitution)
+                        (r.Get Keys.parenteralMeds)
+                        (r.Get Keys.enteralFeeding)
+                        (r.Get Keys.formularyProducts)
+                        filtered
+                )
 
-                let doseRules, doseMsgs =
-                    config.GetDoseRules doseRuleData routeMappings formRoutes products
+                // Built rules carry product-matching warnings -> ResourceState.Messages.
+                Keys.doseRules.Name,
+                deriveWith (fun r ->
+                    DoseRuleLoader.fromData
+                        (r.Get Keys.routeMappings)
+                        (r.Get Keys.formRoutes)
+                        (r.Get Keys.products)
+                        (r.Get Keys.doseRuleData)
+                )
 
-                let! solutionRules = config.GetSolutionRules solutionRuleData routeMappings parenteralMeds products
-                let! renalRules = config.GetRenalRules renalRuleData
+                Keys.solutionRules.Name,
+                (fun r ->
+                    SolutionRule.map
+                        (r.Get Keys.routeMappings)
+                        (r.Get Keys.parenteralMeds)
+                        (r.Get Keys.products)
+                        (r.Get Keys.solutionRuleData)
+                    |> Result.map (fun v -> box v, [])
+                )
 
-                // ── assemble nested ResourceState ──
-                return
-                    {
-                        Data =
-                            {
-                                UnitMappings = unitMappings
-                                RouteMappings = routeMappings
-                                ValidForms = validForms
-                                FormRoutes = formRoutes
-                                FormularyProducts = formularyProducts
-                                GenPresProducts = genPresProducts
-                                DoseRuleData = doseRuleData
-                                SolutionRuleData = solutionRuleData
-                                RenalRuleData = renalRuleData
-                                TotalsData = totalsData
-                            }
-                        Reconstitution = reconstitution
-                        ParenteralMeds = parenteralMeds
-                        EnteralFeeding = enteralFeeding
-                        Products = products
-                        DoseRules = doseRules
-                        SolutionRules = solutionRules
-                        RenalRules = renalRules
-                        Messages = doseMsgs @ totalsMsgs |> List.toArray
-                        LastReloaded = DateTime.UtcNow
-                        IsLoaded = true
-                    }
-            }
-        with exn ->
-            [ ("Failed to load resources", Some exn) |> ErrorMsg ] |> Error
+                Keys.renalRules.Name,
+                (fun r -> RenalRule.map (r.Get Keys.renalRuleData) |> Result.map (fun v -> box v, []))
+
+                // G-Standaard dose rules served as a function-valued resource: the
+                // closure depends only on routeMappings; ZIndex caches stay memoised
+                // in ZIndex.Lib and patient filtering (RuleFinder) is untouched.
+                Keys.gStandProvider.Name, derive (fun r -> Check.gStandProvider (r.Get Keys.routeMappings))
+            ]
 
 
-    /// Load all resources at once using the default configuration.
+    /// The resolved resource set: the typed `ResourceState` snapshot (the stable
+    /// facade for existing consumers) plus the boxed map of every resolved
+    /// resource (serves the generic `Get` seam and function-valued resources).
+    type LoadedResources =
+        {
+            State: ResourceState
+            Resolved: Map<string, obj>
+        }
+
+
+    /// Load all resources at once using the provided registry.
+    let loadAllResourcesWithRegistry (registry: ResourceRegistry) : Result<LoadedResources, Message list> =
+        try
+            let eng = LoadEngine registry
+            // Resolve everything (incl. gStandProvider); fail-fast on a fatal Error.
+            eng.ForceAll()
+
+            let state =
+                {
+                    Data =
+                        {
+                            UnitMappings = eng.Resolve Keys.unitMappings
+                            RouteMappings = eng.Resolve Keys.routeMappings
+                            ValidForms = eng.Resolve Keys.validForms
+                            FormRoutes = eng.Resolve Keys.formRoutes
+                            FormularyProducts = eng.Resolve Keys.formularyProducts
+                            GenPresProducts = eng.Resolve Keys.genPresProducts
+                            DoseRuleData = eng.Resolve Keys.doseRuleData
+                            SolutionRuleData = eng.Resolve Keys.solutionRuleData
+                            RenalRuleData = eng.Resolve Keys.renalRuleData
+                            TotalsData = eng.Resolve Keys.totalsData
+                        }
+                    Reconstitution = eng.Resolve Keys.reconstitution
+                    ParenteralMeds = eng.Resolve Keys.parenteralMeds
+                    EnteralFeeding = eng.Resolve Keys.enteralFeeding
+                    Products = eng.Resolve Keys.products
+                    DoseRules = eng.Resolve Keys.doseRules
+                    SolutionRules = eng.Resolve Keys.solutionRules
+                    RenalRules = eng.Resolve Keys.renalRules
+                    Messages = eng.Warnings |> List.toArray
+                    LastReloaded = DateTime.UtcNow
+                    IsLoaded = true
+                }
+
+            Ok
+                {
+                    State = state
+                    Resolved = eng.Resolved
+                }
+        with
+        | ResourceLoadError es -> Error es
+        | exn -> [ ("Failed to load resources", Some exn) |> ErrorMsg ] |> Error
+
+
+    /// Load all resources at once using the default registry.
     let loadAllResources dataUrlId =
-        loadAllResourcesWithConfig (defaultResourceConfig dataUrlId)
+        loadAllResourcesWithRegistry (defaultRegistry dataUrlId)
 
 
-    /// A plain provider over an already-built ResourceState.
-    type ResourceProvider(state: ResourceState) =
+    /// A plain provider over an already-loaded resource set.
+    type ResourceProvider(loaded: LoadedResources) =
+        let state = loaded.State
+
         interface IResourceProvider with
+            member _.Get(key: ResourceKey<'T>) : 'T = loaded.Resolved[key.Name] :?> 'T
             member _.GetData() = state.Data
             member _.GetUnitMappings() = state.Data.UnitMappings
             member _.GetRouteMappings() = state.Data.RouteMappings
@@ -293,12 +389,17 @@ module Resources =
             member _.GetSolutionRules() = state.SolutionRules
             member _.GetRenalRules() = state.RenalRules
             member _.GetTotals() = state.Data.TotalsData
+
+            member _.GetGStandProvider() =
+                loaded.Resolved[Keys.gStandProvider.Name] :?> Check.GStandProvider
+
             member _.GetResourceInfo() = resourceInfo state
 
 
     /// Create a cached resource provider with an optional TTL (in minutes).
-    type CachedResourceProvider(loadAllResources: unit -> Result<ResourceState, Message list>, ttlMinutes: int option) =
-        let mutable cachedState: (ResourceState * DateTime) option = None
+    type CachedResourceProvider(loadAllResources: unit -> Result<LoadedResources, Message list>, ttlMinutes: int option)
+        =
+        let mutable cached: (LoadedResources * DateTime) option = None
         let lockObj = obj ()
 
         let isExpired (timestamp: DateTime) =
@@ -308,36 +409,40 @@ module Resources =
 
         let loadFresh () =
             match loadAllResources () with
-            | Ok state ->
-                cachedState <- Some(state, DateTime.UtcNow)
-                state
+            | Ok loaded ->
+                cached <- Some(loaded, DateTime.UtcNow)
+                loaded
             | Error msgs ->
                 writeErrorMessage $"Failed to load resources: {msgs}"
                 // Return empty state on error and cache it to prevent retry on every request
-                let emptyState =
+                let emptyLoaded =
                     {
-                        Data = emptyData
-                        Reconstitution = [||]
-                        ParenteralMeds = [||]
-                        EnteralFeeding = [||]
-                        Products = [||]
-                        DoseRules = [||]
-                        SolutionRules = [||]
-                        RenalRules = [||]
-                        Messages = [| yield! msgs |> List.toArray |]
-                        LastReloaded = DateTime.MinValue
-                        IsLoaded = false
+                        State =
+                            {
+                                Data = emptyData
+                                Reconstitution = [||]
+                                ParenteralMeds = [||]
+                                EnteralFeeding = [||]
+                                Products = [||]
+                                DoseRules = [||]
+                                SolutionRules = [||]
+                                RenalRules = [||]
+                                Messages = [| yield! msgs |> List.toArray |]
+                                LastReloaded = DateTime.MinValue
+                                IsLoaded = false
+                            }
+                        Resolved = Map.empty
                     }
 
-                cachedState <- Some(emptyState, DateTime.UtcNow)
-                emptyState
+                cached <- Some(emptyLoaded, DateTime.UtcNow)
+                emptyLoaded
 
-        member private _.getFromCache(selector: ResourceState -> 'T) =
+        member private _.getFromCache(selector: LoadedResources -> 'T) =
             lock
                 lockObj
                 (fun () ->
-                    match cachedState with
-                    | Some(state, timestamp) when not (isExpired timestamp) -> selector state
+                    match cached with
+                    | Some(loaded, timestamp) when not (isExpired timestamp) -> selector loaded
                     | _ -> selector (loadFresh ())
                 )
 
@@ -345,29 +450,53 @@ module Resources =
             lock
                 lockObj
                 (fun () ->
-                    cachedState <- None // Invalidate cache
+                    cached <- None // Invalidate cache
                     loadFresh () |> ignore // Load fresh data
                 )
 
         interface IResourceProvider with
-            member this.GetData() = this.getFromCache _.Data
-            member this.GetUnitMappings() = this.getFromCache _.Data.UnitMappings
-            member this.GetRouteMappings() = this.getFromCache _.Data.RouteMappings
-            member this.GetValidForms() = this.getFromCache _.Data.ValidForms
-            member this.GetFormRoutes() = this.getFromCache _.Data.FormRoutes
+            member this.Get(key: ResourceKey<'T>) : 'T =
+                this.getFromCache (fun l -> l.Resolved[key.Name] :?> 'T)
+
+            member this.GetData() = this.getFromCache _.State.Data
+
+            member this.GetUnitMappings() =
+                this.getFromCache _.State.Data.UnitMappings
+
+            member this.GetRouteMappings() =
+                this.getFromCache _.State.Data.RouteMappings
+
+            member this.GetValidForms() =
+                this.getFromCache _.State.Data.ValidForms
+
+            member this.GetFormRoutes() =
+                this.getFromCache _.State.Data.FormRoutes
 
             member this.GetFormularyProducts() =
-                this.getFromCache _.Data.FormularyProducts
+                this.getFromCache _.State.Data.FormularyProducts
 
-            member this.GetReconstitution() = this.getFromCache _.Reconstitution
-            member this.GetEnteralFeeding() = this.getFromCache _.EnteralFeeding
-            member this.GetParenteralMeds() = this.getFromCache _.ParenteralMeds
-            member this.GetProducts() = this.getFromCache _.Products
-            member this.GetDoseRules() = this.getFromCache _.DoseRules
-            member this.GetSolutionRules() = this.getFromCache _.SolutionRules
-            member this.GetRenalRules() = this.getFromCache _.RenalRules
-            member this.GetTotals() = this.getFromCache _.Data.TotalsData
-            member this.GetResourceInfo() = this.getFromCache resourceInfo
+            member this.GetReconstitution() =
+                this.getFromCache _.State.Reconstitution
+
+            member this.GetEnteralFeeding() =
+                this.getFromCache _.State.EnteralFeeding
+
+            member this.GetParenteralMeds() =
+                this.getFromCache _.State.ParenteralMeds
+
+            member this.GetProducts() = this.getFromCache _.State.Products
+            member this.GetDoseRules() = this.getFromCache _.State.DoseRules
+            member this.GetSolutionRules() = this.getFromCache _.State.SolutionRules
+            member this.GetRenalRules() = this.getFromCache _.State.RenalRules
+
+            member this.GetTotals() =
+                this.getFromCache _.State.Data.TotalsData
+
+            member this.GetGStandProvider() =
+                this.getFromCache (fun l -> l.Resolved[Keys.gStandProvider.Name] :?> Check.GStandProvider)
+
+            member this.GetResourceInfo() =
+                this.getFromCache (fun l -> resourceInfo l.State)
 
 
 module Api =
@@ -402,7 +531,14 @@ module Api =
         | _ -> failwith "Provider is not a CachedResourceProvider instance"
 
 
+    /// Generic accessor: resolve any registered resource by its typed key.
+    let get (key: ResourceKey<'T>) (provider: IResourceProvider) : 'T = provider.Get key
+
+
     let getRouteMapping (provider: IResourceProvider) = provider.GetRouteMappings()
+
+
+    let getGStandProvider (provider: IResourceProvider) = provider.GetGStandProvider()
 
 
     let getDoseRules (provider: IResourceProvider) = provider.GetDoseRules()

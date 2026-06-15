@@ -1639,9 +1639,9 @@ type Router =
     static member inline navigate(segment1: string, value1: int, value2: int, segment2: string, mode: HistoryMode) =
         Router.nav [ segment1; string value1; string value2; segment2 ] mode RouteMode.Hash
 
-    static member inline navigateBack() = Browser.Dom.history.back ()
-    static member inline navigateBack(n: int) = Browser.Dom.history.go (-n)
-    static member inline navigateForward(n: int) = Browser.Dom.history.go n
+    static member inline navigateBack() = history.back ()
+    static member inline navigateBack(n: int) = history.go (-n)
+    static member inline navigateForward(n: int) = history.go n
 
     static member inline navigatePath([<ParamArray>] xs: string array) =
         Router.nav (List.ofArray xs) HistoryMode.PushState RouteMode.Path
@@ -3025,14 +3025,11 @@ type Router =
 
 [<Erase>]
 type Cmd =
-    static member inline navigateBack() : Cmd<_> =
-        Cmd.ofEffect (fun _ -> Browser.Dom.history.back ())
+    static member inline navigateBack() : Cmd<_> = Cmd.ofEffect (fun _ -> history.back ())
 
-    static member inline navigateBack(n: int) : Cmd<_> =
-        Cmd.ofEffect (fun _ -> Browser.Dom.history.go (-n))
+    static member inline navigateBack(n: int) : Cmd<_> = Cmd.ofEffect (fun _ -> history.go (-n))
 
-    static member inline navigateForward(n: int) : Cmd<_> =
-        Cmd.ofEffect (fun _ -> Browser.Dom.history.go n)
+    static member inline navigateForward(n: int) : Cmd<_> = Cmd.ofEffect (fun _ -> history.go n)
 
     static member inline navigate([<ParamArray>] xs: string array) : Cmd<_> =
         Cmd.ofEffect (fun _ -> Router.navigate xs)
