@@ -734,7 +734,6 @@ module Types =
                 Validated: string option
                 FreqCheck: string option
                 DoseCheck: string option
-            //Products: ProductComponent[]
             }
 
         and GenericData =

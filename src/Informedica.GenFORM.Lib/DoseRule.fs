@@ -513,7 +513,6 @@ module DoseRule =
         |> Array.map (fun r ->
             let cmp = r.ScheduleData.DoseLimitData.Component
             r, prods |> Array.filter (_.Generic >> (String.equalsCapInsens cmp))
-        //{ r with Products = prods |> Array.filter (_.Generic >> (String.equalsCapInsens cmp)) }
         )
         |> Array.groupBy (fst >> _.ScheduleData.DoseLimitData.Component)
         |> Array.map (fun (cmp, rs) ->

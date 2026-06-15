@@ -392,7 +392,7 @@ module Export =
     /// so an empty base patient (`Patient.patient`) returns the full G-Standaard dose
     /// set and the check is scoped purely by the rule itself.
     let withChecks (provider: Resources.IResourceProvider) (drs: DoseRule[]) : DoseRule[] =
-        let gStand = Check.gStandProvider (provider.GetRouteMappings())
+        let gStand = provider.GetGStandProvider()
 
         // annotate: `Check` is a field on both DoseRule and DoseRuleData, so the
         // record-update target must be pinned to DoseRule.
