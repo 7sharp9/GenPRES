@@ -23,7 +23,7 @@ module Tests =
     // process. The `dotnet test` adapter bypasses Main.fs, so forcing the fixture
     // here is what makes the synthetic-data tests pass under `dotnet test`.
     // (Main.fs forces the same cached value for the `dotnet run` path.)
-    do FixtureSetup.fixtureCreatedFiles |> ignore
+    do fixtureCreatedFiles |> ignore
 
 
     module FilePathTests =

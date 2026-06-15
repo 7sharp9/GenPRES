@@ -330,7 +330,7 @@ module Models =
 
 
         let tryParse (s: string) =
-            match System.Int32.TryParse(s) with
+            match Int32.TryParse(s) with
             | false, _ -> None
             | true, v -> v |> Some
 

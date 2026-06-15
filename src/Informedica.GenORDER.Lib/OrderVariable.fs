@@ -22,8 +22,7 @@ module ValueUnit =
     /// </summary>
     /// <param name="u">The Unit</param>
     let isAdjust (u: Unit) =
-        u |> ValueUnit.Group.eqsGroup Units.Weight.kiloGram
-        || u |> ValueUnit.Group.eqsGroup Units.BSA.m2
+        u |> Group.eqsGroup Units.Weight.kiloGram || u |> Group.eqsGroup Units.BSA.m2
 
 
     /// <summary>
@@ -47,7 +46,7 @@ module ValueUnit =
         let v, u = vu |> get
 
         match u |> getUnits with
-        | [ u1; u2; u3 ] when u3 |> isAdjust -> u1 |> ValueUnit.per u3 |> ValueUnit.per u2 |> withValue v
+        | [ u1; u2; u3 ] when u3 |> isAdjust -> u1 |> per u3 |> per u2 |> withValue v
         | _ -> vu
 
 

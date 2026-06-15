@@ -1392,7 +1392,7 @@ module Tests =
                         let payload =
                             """{"$type":"System.Collections.Generic.List`1[[System.String, System.Private.CoreLib]], System.Private.CoreLib","$values":["a","b"]}"""
 
-                        let result: obj = Informedica.Utils.Lib.Json.deSerialize<obj> payload
+                        let result: obj = Json.deSerialize<obj> payload
 
                         let typeName = result.GetType().FullName
 
@@ -1404,10 +1404,7 @@ module Tests =
                     test "round-trip of a plain record preserves data" {
                         let original: Marker = { Value = "round-trip" }
 
-                        let restored: Marker =
-                            original
-                            |> Informedica.Utils.Lib.Json.serialize
-                            |> Informedica.Utils.Lib.Json.deSerialize<Marker>
+                        let restored: Marker = original |> Json.serialize |> Json.deSerialize<Marker>
 
                         Expect.equal restored original "round-trip should be lossless"
                     }
@@ -1415,10 +1412,156 @@ module Tests =
                     test "serialized output does not include `$type` metadata" {
                         let original: Marker = { Value = "no-type-tag" }
 
-                        let json = Informedica.Utils.Lib.Json.serialize original
+                        let json = Json.serialize original
 
                         Expect.isFalse
                             (json.Contains("$type"))
                             "serialized output must not contain `$type` (would re-enable gadget chains for any consumer)"
+                    }
+                ]
+
+
+    module Memoization =
+
+        [<Tests>]
+        let tests =
+            testList
+                "Memoization"
+                [
+
+                    test "memoize caches per key and distinguishes keys" {
+                        let f' = Memoization.memoize (fun x -> x + 1)
+
+                        Expect.equal (f' 1) 2 "memoized value for key 1"
+                        Expect.equal (f' 1) 2 "same key returns same value"
+                        Expect.isFalse (f' 1 = f' 2) "different keys yield different values"
+                    }
+
+                    test "memoize evaluates f only once per key" {
+                        let calls = ref 0
+
+                        let f' =
+                            Memoization.memoize (fun x ->
+                                System.Threading.Interlocked.Increment calls |> ignore
+                                x * 2
+                            )
+
+                        for _ in 1..100 do
+                            Expect.equal (f' 21) 42 "cached value"
+
+                        Expect.equal calls.Value 1 "f evaluated exactly once for the single key"
+                    }
+
+                    // The point of the thread-safe rewrite: many threads requesting the
+                    // SAME uncached key must NOT each run the (expensive) loader. The old
+                    // lock-free `ref Map` let several first-misses run f concurrently; the
+                    // ConcurrentDictionary + Lazy version forces f at most once.
+                    test "memoize is thread-safe: no cold-cache stampede on one key" {
+                        let calls = ref 0
+
+                        let f' =
+                            Memoization.memoize (fun (x: int) ->
+                                System.Threading.Interlocked.Increment calls |> ignore
+                                System.Threading.Thread.Sleep 20 // widen the race window
+                                x * 10
+                            )
+
+                        let results =
+                            Array.init 64 (fun _ -> async { return f' 7 })
+                            |> Async.Parallel
+                            |> Async.RunSynchronously
+
+                        Expect.isTrue (results |> Array.forall ((=) 70)) "all workers observe the same value"
+                        Expect.equal calls.Value 1 "f evaluated exactly once despite concurrent first-misses"
+                    }
+
+                    test "memoize keeps distinct entries under concurrent distinct keys" {
+                        let calls = ref 0
+
+                        let f' =
+                            Memoization.memoize (fun (x: int) ->
+                                System.Threading.Interlocked.Increment calls |> ignore
+                                x * x
+                            )
+
+                        let results =
+                            Array.init 50 (fun i -> async { return i, f' i })
+                            |> Async.Parallel
+                            |> Async.RunSynchronously
+
+                        Expect.isTrue
+                            (results |> Array.forall (fun (i, r) -> r = i * i))
+                            "each key maps to its own value (no lost updates)"
+
+                        Expect.equal calls.Value 50 "f evaluated once per distinct key"
+                    }
+
+                    // Regression: the old Map-based memoize tolerated null keys; a bare
+                    // ConcurrentDictionary throws on them. The null-key cell must keep
+                    // working AND cache (so f runs once for null).
+                    test "memoize tolerates and caches a null key" {
+                        let calls = ref 0
+
+                        let f' =
+                            Memoization.memoize (fun (s: string) ->
+                                System.Threading.Interlocked.Increment calls |> ignore
+
+                                match s with
+                                | null -> "<null>"
+                                | s -> s.ToUpper()
+                            )
+
+                        Expect.equal (f' null) "<null>" "null key handled, not thrown"
+                        Expect.equal (f' null) "<null>" "null key cached"
+                        Expect.equal (f' "a") "A" "non-null key still works"
+                        Expect.equal calls.Value 2 "f run once for null and once for \"a\""
+                    }
+
+                    test "memoizeOne caches and evaluates f once per key" {
+                        let calls = ref 0
+
+                        let f' =
+                            Memoization.memoizeOne (fun (x: int) ->
+                                System.Threading.Interlocked.Increment calls |> ignore
+                                x * 3
+                            )
+
+                        Expect.equal (f' 5) 15 "computed"
+                        Expect.equal (f' 5) 15 "cached"
+                        Expect.equal calls.Value 1 "f evaluated once"
+                    }
+
+                    test "memoize2Int caches per argument pair and evaluates f once per pair" {
+                        let calls = ref 0
+
+                        let f' =
+                            Memoization.memoize2Int (fun a b ->
+                                System.Threading.Interlocked.Increment calls |> ignore
+                                a + b
+                            )
+
+                        Expect.equal (f' 2 3) 5 "computed for (2,3)"
+                        Expect.equal (f' 2 3) 5 "cached for (2,3)"
+                        Expect.equal (f' 4 1) 5 "computed for (4,1)"
+                        Expect.equal calls.Value 2 "f evaluated once per distinct pair"
+                    }
+
+                    test "memoize2Int is thread-safe on one pair" {
+                        let calls = ref 0
+
+                        let f' =
+                            Memoization.memoize2Int (fun (a: int) (b: int) ->
+                                System.Threading.Interlocked.Increment calls |> ignore
+                                System.Threading.Thread.Sleep 20
+                                a * b
+                            )
+
+                        let results =
+                            Array.init 64 (fun _ -> async { return f' 6 7 })
+                            |> Async.Parallel
+                            |> Async.RunSynchronously
+
+                        Expect.isTrue (results |> Array.forall ((=) 42)) "all workers observe the same value"
+                        Expect.equal calls.Value 1 "f evaluated exactly once despite concurrent first-misses"
                     }
                 ]

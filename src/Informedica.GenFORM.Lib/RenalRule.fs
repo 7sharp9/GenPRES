@@ -193,7 +193,7 @@ module RenalRule =
                   else
                       r.Frequencies |> ValueUnit.withUnit u |> Some
             , (r.MinInterval, r.MaxInterval)
-              |> fromTupleInclIncl (r.IntervalUnit |> Utils.Units.timeUnit)
+              |> fromTupleInclIncl (r.IntervalUnit |> Units.timeUnit)
             , r.RenalFunction
         )
         |> Array.map (fun ((gen, rte, ind, src, minAge, maxAge, dt, fr, it, rf), rules) ->
@@ -208,7 +208,7 @@ module RenalRule =
                         if r.DoseRed = DoseReduction.REL then
                             None
                         else
-                            r.AdjustUnit |> Utils.Units.adjustUnit
+                            r.AdjustUnit |> Units.adjustUnit
                     // the dose unit
                     let du =
                         if r.DoseRed = DoseReduction.REL then
@@ -224,7 +224,7 @@ module RenalRule =
                             | Some adj, Some du -> du |> ValueUnit.per adj |> Some
                             | _ -> None
                     // the time unit
-                    let tu = r.FreqUnit |> Utils.Units.timeUnit
+                    let tu = r.FreqUnit |> Units.timeUnit
                     // the dose unit per time unit
                     let duTime =
                         if r.DoseRed = DoseReduction.REL then
@@ -297,7 +297,7 @@ module RenalRule =
             fun (rr: RenalRule) ->
                 filter.Patient.Age
                 |> Option.map (fun a ->
-                    (rr.Age |> MinMax.isEmpty || Some a |> Utils.MinMax.inRange rr.Age)
+                    (rr.Age |> MinMax.isEmpty || Some a |> MinMax.inRange rr.Age)
                     &&
                     // renal rules only applies to patients at least 28 days of age
                     Units.Time.day |> ValueUnit.singleWithValue 28N <=? a

@@ -8,13 +8,11 @@ module Unquote =
     open MathNet.Numerics
     //open Informedica.GenUnits.Lib
     open Informedica.GenUnits.Lib
-    open Informedica.GenUnits.Lib.Core
-    open Informedica.GenUnits.Lib.Types
     open Informedica.GenUnits.Lib.ValueUnit
     open Informedica.GenUnits.Lib.ValueUnit.Operators
     //open Informedica.GenUnits.Lib.ValueUnit
     //open Informedica.GenUnits.Lib.ValueUnit.Operators
-    module Units = Informedica.GenUnits.Lib.Units
+    module Units = Units
 
     // Test Array.removeBigRationalMultiples
     let testRemoveBigRationalMultiples removeF =
@@ -188,12 +186,10 @@ module Tests =
     //open Informedica.GenUnits.Lib
 
     open Informedica.GenUnits.Lib
-    open Informedica.GenUnits.Lib.Core
-    open Informedica.GenUnits.Lib.Types
     open Informedica.GenUnits.Lib.ValueUnit
     open Informedica.GenUnits.Lib.ValueUnit.Operators
 
-    module Units = Informedica.GenUnits.Lib.Units
+    module Units = Units
 
     let toString = toStringEngShort
 
@@ -758,8 +754,7 @@ module Tests =
             [
                 test "100 mg/mL droplet fluid with 40 droplets per mL then 1 droplet = 2.5 mg" {
                     let fluid =
-                        100N
-                        |> createSingle (Units.Mass.milliGram |> ValueUnit.per Units.Volume.milliLiter)
+                        100N |> createSingle (Units.Mass.milliGram |> per Units.Volume.milliLiter)
 
                     let dr = 1N |> createSingle (Units.Volume.dropletWithDropsPerMl 40N)
                     let exp = 25N / 10N |> createSingle Units.Mass.milliGram

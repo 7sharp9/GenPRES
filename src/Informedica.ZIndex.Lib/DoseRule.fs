@@ -495,10 +495,11 @@ module DoseRule =
         let useDemo = FilePath.useDemo ()
 
         fun () ->
-            if FilePath.ruleCache useDemo |> File.exists then
-                FilePath.ruleCache useDemo |> Json.getCache<DoseRule[]>
+            let p = FilePath.ruleCache useDemo
+
+            if p |> File.exists then
+                p |> Json.getCache<DoseRule[]>
             else
-                let p = FilePath.ruleCache useDemo
                 writeInfoMessage $"No {p}, creating DoseRule"
                 let rules = GenPresProduct.getGPKS gpks |> parse
                 writeInfoMessage $"Created {rules |> Array.length} Rules"

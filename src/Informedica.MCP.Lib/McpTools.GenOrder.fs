@@ -105,7 +105,7 @@ module GenOrderTools =
 
         let pat =
             match input.AgeMonths with
-            | Some a -> pat |> Patient.setAge [ Patient.Optics.Months(a |> Math.Round |> int) ]
+            | Some a -> pat |> Patient.setAge [ Months(a |> Math.Round |> int) ]
             | None -> pat
 
         let pat =

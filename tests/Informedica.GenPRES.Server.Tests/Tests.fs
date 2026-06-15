@@ -14,26 +14,31 @@ module Helpers =
     let errMsg s : Message = ErrorMsg(s, None)
 
 
-    let okConfig: ResourceConfig =
-        {
-            GetUnitMappings = fun () -> Ok [||]
-            GetRouteMappings = fun () -> Ok [||]
-            GetValidForms = fun () -> Ok [||]
-            GetFormRoutes = fun _ -> Ok [||]
-            GetFormularyProducts = fun () -> Ok [||]
-            GetGenPresProducts = fun () -> Ok [||]
-            GetDoseRuleData = fun () -> Ok [||]
-            GetSolutionRuleData = fun () -> Ok [||]
-            GetRenalRuleData = fun () -> Ok [||]
-            GetTotalsData = fun () -> Ok [||]
-            GetReconstitution = fun () -> Ok [||]
-            GetParenteralMeds = fun _ -> Ok [||]
-            GetEnteralFeeding = fun _ -> Ok [||]
-            GetProducts = fun _ _ _ _ _ _ _ _ _ -> [||]
-            GetDoseRules = fun _ _ _ _ -> ([||], [])
-            GetSolutionRules = fun _ _ _ _ -> Ok [||]
-            GetRenalRules = fun _ -> Ok [||]
-        }
+    /// Stub registry: every resource resolves to a typed empty value. The typed
+    /// empties matter — the boxed value's runtime type must match the key's `'T`
+    /// for the engine's downcast to succeed.
+    let okRegistry: ResourceRegistry =
+        Map
+            [
+                Keys.unitMappings.Name, ofResult (fun () -> Ok([||]: UnitMapping[]))
+                Keys.routeMappings.Name, ofResult (fun () -> Ok([||]: RouteMapping[]))
+                Keys.validForms.Name, ofResult (fun () -> Ok([||]: string[]))
+                Keys.formRoutes.Name, ofResult (fun () -> Ok([||]: FormRoute[]))
+                Keys.formularyProducts.Name, ofResult (fun () -> Ok([||]: FormularyProduct[]))
+                Keys.genPresProducts.Name, ofResult (fun () -> Ok([||]: Informedica.ZIndex.Lib.Types.GenPresProduct[]))
+                Keys.reconstitution.Name, ofResult (fun () -> Ok([||]: Reconstitution[]))
+                Keys.parenteralMeds.Name, ofResult (fun () -> Ok([||]: ProductComponent[]))
+                Keys.enteralFeeding.Name, ofResult (fun () -> Ok([||]: ProductComponent[]))
+                Keys.doseRuleData.Name, ofResult (fun () -> Ok([||]: DoseRuleData[]))
+                Keys.solutionRuleData.Name, ofResult (fun () -> Ok([||]: SolutionRuleData[]))
+                Keys.renalRuleData.Name, ofResult (fun () -> Ok([||]: RenalRuleData[]))
+                Keys.totalsData.Name, ofResult (fun () -> Ok([||]: TotalsData[]))
+                Keys.products.Name, ofResult (fun () -> Ok([||]: ProductComponent[]))
+                Keys.doseRules.Name, ofResult (fun () -> Ok([||]: DoseRule[]))
+                Keys.solutionRules.Name, ofResult (fun () -> Ok([||]: SolutionRule[]))
+                Keys.renalRules.Name, ofResult (fun () -> Ok([||]: RenalRule[]))
+                Keys.gStandProvider.Name, derive (fun r -> Check.gStandProvider (r.Get Keys.routeMappings))
+            ]
 
 
     let emptyFormulary: Shared.Types.Formulary =
@@ -79,44 +84,38 @@ module ResourceErrorTests =
 
     let errorPropagationTests =
         testList
-            "loadAllResourcesWithConfig error propagation"
+            "loadAllResourcesWithRegistry error propagation"
             [
 
-                test "first getter (GetUnitMappings) returns Error propagates" {
-                    let config =
-                        { okConfig with GetUnitMappings = fun () -> Error [ errMsg "unit mapping failed" ] }
-
-                    config
-                    |> loadAllResourcesWithConfig
+                test "leaf loader (unitMappings) returns Error propagates" {
+                    okRegistry
+                    |> Map.add Keys.unitMappings.Name (fun _ -> Error [ errMsg "unit mapping failed" ])
+                    |> loadAllResourcesWithRegistry
                     |> Result.isError
                     |> Expect.isTrue "should be Error"
                 }
 
-                test "middle getter (GetFormRoutes) returns Error propagates" {
-                    let config =
-                        { okConfig with GetFormRoutes = fun _ -> Error [ errMsg "form routes failed" ] }
-
-                    config
-                    |> loadAllResourcesWithConfig
+                test "dependent loader (formRoutes) returns Error propagates" {
+                    okRegistry
+                    |> Map.add Keys.formRoutes.Name (fun _ -> Error [ errMsg "form routes failed" ])
+                    |> loadAllResourcesWithRegistry
                     |> Result.isError
                     |> Expect.isTrue "should be Error"
                 }
 
-                test "last getter (GetRenalRules) returns Error propagates" {
-                    let config =
-                        { okConfig with GetRenalRules = fun _ -> Error [ errMsg "renal rules failed" ] }
-
-                    config
-                    |> loadAllResourcesWithConfig
+                test "derived loader (renalRules) returns Error propagates" {
+                    okRegistry
+                    |> Map.add Keys.renalRules.Name (fun _ -> Error [ errMsg "renal rules failed" ])
+                    |> loadAllResourcesWithRegistry
                     |> Result.isError
                     |> Expect.isTrue "should be Error"
                 }
 
-                test "getter throws exception is caught and returned as Error" {
-                    let config =
-                        { okConfig with GetUnitMappings = fun () -> failwith "unexpected crash" }
-
-                    let result = config |> loadAllResourcesWithConfig
+                test "loader throws exception is caught and returned as Error" {
+                    let result =
+                        okRegistry
+                        |> Map.add Keys.unitMappings.Name (fun _ -> failwith "unexpected crash")
+                        |> loadAllResourcesWithRegistry
 
                     result |> Result.isError |> Expect.isTrue "should be Error"
 
@@ -136,19 +135,19 @@ module ResourceErrorTests =
 
     let successPathTests =
         testList
-            "loadAllResourcesWithConfig success path"
+            "loadAllResourcesWithRegistry success path"
             [
 
-                test "all getters succeed returns Ok with IsLoaded = true" {
-                    let result = okConfig |> loadAllResourcesWithConfig
+                test "all loaders succeed returns Ok with IsLoaded = true" {
+                    let result = okRegistry |> loadAllResourcesWithRegistry
 
                     result |> Result.isOk |> Expect.isTrue "should be Ok"
 
                     match result with
-                    | Ok state ->
-                        state.IsLoaded |> Expect.isTrue "IsLoaded should be true"
+                    | Ok loaded ->
+                        loaded.State.IsLoaded |> Expect.isTrue "IsLoaded should be true"
 
-                        state.Messages |> Expect.equal "Messages should be empty" [||]
+                        loaded.State.Messages |> Expect.equal "Messages should be empty" [||]
                     | Error _ -> failwith "expected Ok"
                 }
             ]
@@ -247,7 +246,7 @@ module ResourceErrorTests =
                                 if callCount = 1 then
                                     Error [ errMsg "first attempt failed" ]
                                 else
-                                    okConfig |> loadAllResourcesWithConfig
+                                    okRegistry |> loadAllResourcesWithRegistry
                             ),
                             None
                         )
@@ -355,7 +354,6 @@ module ResourceErrorTests =
 
 module StubAdapterTests =
 
-    open Expecto
     open Shared
     open Shared.Types
     open ServerApi
@@ -500,8 +498,8 @@ module StubAdapterTests =
                     let! result = Command.processCmd env (Api.FormularyCmd Helpers.emptyFormulary)
 
                     match result with
-                    | Ok(Api.FormularyResp f) -> Expect.equal f.Markdown "stubbed" "should return stubbed formulary"
-                    | other -> Tests.failtest $"expected Ok FormularyResp, got {other}"
+                    | Ok(Api.FormularyResp f) -> f.Markdown |> Expect.equal "should return stubbed formulary" "stubbed"
+                    | other -> failtest $"expected Ok FormularyResp, got {other}"
                 }
 
                 testAsync "ParenteraliaCmd dispatches to formulary.getParenteralia" {
@@ -516,7 +514,7 @@ module StubAdapterTests =
 
                     match result with
                     | Ok(Api.ParenteraliaResp _) -> ()
-                    | other -> Tests.failtest $"expected Ok ParenteraliaResp, got {other}"
+                    | other -> failtest $"expected Ok ParenteraliaResp, got {other}"
                 }
 
                 testAsync "OrderContextCmd dispatches to orderContext.evaluate" {
@@ -531,7 +529,7 @@ module StubAdapterTests =
 
                     match result with
                     | Ok(Api.OrderContextResp(Api.OrderContextResult _)) -> ()
-                    | other -> Tests.failtest $"expected Ok OrderContextResp, got {other}"
+                    | other -> failtest $"expected Ok OrderContextResp, got {other}"
                 }
 
                 testAsync "NutritionPlanCmd InitNutritionPlan dispatches to nutritionPlan port" {
@@ -547,7 +545,7 @@ module StubAdapterTests =
 
                     match result with
                     | Ok(Api.NutritionPlanResp(Api.NutritionPlanInitialised _)) -> ()
-                    | other -> Tests.failtest $"expected Ok NutritionPlanInitialised, got {other}"
+                    | other -> failtest $"expected Ok NutritionPlanInitialised, got {other}"
                 }
 
                 testAsync "OrderPlanCmd FilterOrderPlan dispatches to orderPlan port" {
@@ -562,7 +560,7 @@ module StubAdapterTests =
 
                     match result with
                     | Ok(Api.OrderPlanResp(Api.OrderPlanFiltered _)) -> ()
-                    | other -> Tests.failtest $"expected Ok OrderPlanFiltered, got {other}"
+                    | other -> failtest $"expected Ok OrderPlanFiltered, got {other}"
                 }
             ]
 
@@ -583,8 +581,8 @@ module StubAdapterTests =
                     let! result = Command.processCmd env (Api.FormularyCmd Helpers.emptyFormulary)
 
                     match result with
-                    | Error msgs -> Expect.equal msgs [| "test error" |] "should propagate error messages"
-                    | Ok _ -> Tests.failtest "expected Error, got Ok"
+                    | Error msgs -> msgs |> Expect.equal "should propagate error messages" [| "test error" |]
+                    | Ok _ -> failtest "expected Error, got Ok"
                 }
 
                 testAsync "OrderContextCmd propagates port error" {
@@ -598,8 +596,8 @@ module StubAdapterTests =
                     let! result = Command.processCmd env (Api.OrderContextCmd(Api.UpdateOrderContext, emptyCtx))
 
                     match result with
-                    | Error msgs -> Expect.equal msgs [| "ctx error" |] "should propagate order context error"
-                    | Ok _ -> Tests.failtest "expected Error, got Ok"
+                    | Error msgs -> msgs |> Expect.equal "should propagate order context error" [| "ctx error" |]
+                    | Ok _ -> failtest "expected Error, got Ok"
                 }
             ]
 
@@ -615,8 +613,8 @@ module StubAdapterTests =
                     let! result = Command.processCmd env (Api.FormularyCmd Helpers.emptyFormulary)
 
                     match result with
-                    | Error msgs -> Expect.equal msgs [| "not ready" |] "should return requireLoaded error"
-                    | Ok _ -> Tests.failtest "expected Error from requireLoaded, got Ok"
+                    | Error msgs -> msgs |> Expect.equal "should return requireLoaded error" [| "not ready" |]
+                    | Ok _ -> failtest "expected Error from requireLoaded, got Ok"
                 }
 
                 testAsync "requireLoaded passes when loaded" {
@@ -631,7 +629,7 @@ module StubAdapterTests =
 
                     match result with
                     | Ok _ -> ()
-                    | Error msgs -> Tests.failtest $"expected Ok, got Error {msgs}"
+                    | Error msgs -> failtest $"expected Ok, got Error {msgs}"
                 }
             ]
 
@@ -652,7 +650,7 @@ module DoseCheckTests =
     open Shared.Types
     open ServerApi.FormularyService
 
-    module Check = Informedica.GenForm.Lib.Check
+    module Check = Check
 
 
     /// Minimal TextItem parser used by the build function under test.
@@ -665,7 +663,7 @@ module DoseCheckTests =
 
 
     let tab (target: string) (route: string) (pat: string) (msg: string) =
-        sprintf "%s\t%s\t%s\t%s" target route pat msg
+        $"%s{target}\t%s{route}\t%s{pat}\t%s{msg}"
 
 
     let ctorName =

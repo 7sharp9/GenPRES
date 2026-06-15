@@ -76,8 +76,10 @@ module GenPresProduct =
         let useDemo = FilePath.useDemo ()
 
         fun () ->
-            if (FilePath.productCache useDemo) |> File.exists then
-                FilePath.productCache useDemo
+            let p = FilePath.productCache useDemo
+
+            if p |> File.exists then
+                p
                 |> Json.getCache
                 |> (fun gpps ->
                     if gpks |> List.isEmpty then
@@ -90,7 +92,6 @@ module GenPresProduct =
                         )
                 )
             else
-                let p = FilePath.productCache useDemo
                 writeInfoMessage $"No {p}, creating GenPresProduct"
                 let gpps = parse gpks
                 writeInfoMessage $"Created {gpps |> Array.length} GenPres Products"

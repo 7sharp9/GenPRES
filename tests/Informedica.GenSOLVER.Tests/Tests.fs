@@ -983,7 +983,7 @@ module Tests =
                 // time; the fixtures make the tests hermetic and offline.
                 // To refresh them, run Scripts/DownloadFixtures.fsx.
                 let scenarios sheet =
-                    System.IO.Path.Combine(System.AppContext.BaseDirectory, "fixtures", $"%s{sheet}.txt")
+                    System.IO.Path.Combine(AppContext.BaseDirectory, "fixtures", $"%s{sheet}.txt")
                     |> System.IO.File.ReadAllLines
                     |> Array.toList
 

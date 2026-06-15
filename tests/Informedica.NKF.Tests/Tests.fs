@@ -17,16 +17,16 @@ module Tests =
                 "Utils.Regex"
                 [
                     test "matchFloat extracts numeric portion from alphanumeric string" {
-                        "12.5mg" |> Utils.Regex.matchFloat |> Expect.equal "should return '12.5'" "12.5"
+                        "12.5mg" |> Regex.matchFloat |> Expect.equal "should return '12.5'" "12.5"
                     }
 
                     test "matchAlpha extracts alphabetic portion from alpha string" {
-                        "mg" |> Utils.Regex.matchAlpha |> Expect.equal "should return 'mg'" "mg"
+                        "mg" |> Regex.matchAlpha |> Expect.equal "should return 'mg'" "mg"
                     }
 
                     test "matchFloatAlpha splits value and unit from combined string" {
                         "3.0mcg"
-                        |> Utils.Regex.matchFloatAlpha
+                        |> Regex.matchFloatAlpha
                         |> Expect.equal "should return ('3.0', 'mcg')" ("3.0", "mcg")
                     }
                 ]

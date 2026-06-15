@@ -276,7 +276,7 @@ module ViewHelpers =
 
         let patientWeight (patient: Patient option) =
             patient
-            |> Option.bind Shared.Models.Patient.getWeightInKg
+            |> Option.bind Models.Patient.getWeightInKg
             |> Option.map (fun w ->
                 let s = decimal w |> Decimal.toStringNumberNLWithoutTrailingZerosFixPrecision 1
                 s + " kg"

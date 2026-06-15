@@ -1,6 +1,5 @@
 module Tests
 
-open System
 open MathNet.Numerics
 open Expecto
 open Expecto.Flip

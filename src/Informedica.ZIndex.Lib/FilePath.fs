@@ -52,6 +52,7 @@ module FilePath =
     // The base data directory, resolved by the unified AppPath resolver.
     let data = AppPath.dataDir () + "/"
 
+
     let GStandPath = data + "zindex/"
 
 
@@ -62,7 +63,7 @@ module FilePath =
         else
             data + "cache/substance.demo"
         |> fun s ->
-            let s = s |> System.IO.Path.GetFullPath
+            let s = s |> Path.GetFullPath
             writeInfoMessage $"substance cache path: {s}"
             s
 
@@ -74,7 +75,7 @@ module FilePath =
         else
             data + "cache/product.demo"
         |> fun s ->
-            let s = s |> System.IO.Path.GetFullPath
+            let s = s |> Path.GetFullPath
             writeInfoMessage $"product cache path: {s}"
             s
 
@@ -86,7 +87,7 @@ module FilePath =
         else
             data + "cache/rule.demo"
         |> fun s ->
-            let s = s |> System.IO.Path.GetFullPath
+            let s = s |> Path.GetFullPath
             writeInfoMessage $"rule cache path: {s}"
             s
 
@@ -98,7 +99,7 @@ module FilePath =
         else
             data + "cache/group.demo"
         |> fun s ->
-            let s = s |> System.IO.Path.GetFullPath
+            let s = s |> Path.GetFullPath
             writeInfoMessage $"group cache path: {s}"
             s
 

@@ -508,14 +508,18 @@ module DoseRule =
         |> String.sha1Short
 
 
-    let mapToComponentLimits prods dd =
+    let mapToComponentLimits (prods: ProductComponent[]) dd =
         dd
         |> Array.map (fun r ->
             let cmp = r.ScheduleData.DoseLimitData.Component
-            { r with Products = prods |> Array.filter (_.Generic >> (String.equalsCapInsens cmp)) }
+            r, prods |> Array.filter (_.Generic >> (String.equalsCapInsens cmp))
+        //{ r with Products = prods |> Array.filter (_.Generic >> (String.equalsCapInsens cmp)) }
         )
-        |> Array.groupBy _.ScheduleData.DoseLimitData.Component
+        |> Array.groupBy (fst >> _.ScheduleData.DoseLimitData.Component)
         |> Array.map (fun (cmp, rs) ->
+            let prods = rs |> Array.collect snd
+            let rs = rs |> Array.map fst
+
             let lim =
                 rs
                 // if no substance the dose limit is a component limit
@@ -538,8 +542,7 @@ module DoseRule =
                 Products =
                     let dosis = "dosis" |> Units.General.general
 
-                    rs
-                    |> Array.collect _.Products
+                    prods
                     |> Array.filter (fun p ->
                         match lim with
                         | None -> true
@@ -671,6 +674,12 @@ module DoseRule =
                     FormLimit = None
                     ComponentLimits = grp.DoseRuleData |> mapToComponentLimits prods
                     RenalRuleSource = None
+                    Validated = r.Validated
+                    Check =
+                        {
+                            FreqCheck = r.FreqCheck
+                            DoseCheck = r.DoseCheck
+                        }
                 }
             )
         )
@@ -918,7 +927,9 @@ module DoseRule =
                 Patient = pat
                 ScheduleText = dr.ScheduleText
                 ScheduleData = reverseSchedule dr dl dld
-                Products = [||]
+                Validated = dr.Validated
+                FreqCheck = dr.Check.FreqCheck
+                DoseCheck = dr.Check.DoseCheck
             }
 
         dr.ComponentLimits

@@ -563,7 +563,7 @@ module Tests =
                         )
                         try
                             let _ = agent |> Agent.postAndReply "should-timeout"
-                            Tests.failtest "should have thrown timeout"
+                            failtest "should have thrown timeout"
                         with
                         | ex ->
                             ex.Message |> Expect.stringContains "should mention timeout duration" "200 ms"

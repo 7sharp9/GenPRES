@@ -473,6 +473,16 @@ module Types =
             // Reference to a renal-adjustment rule that applies on top of this DoseRule.
             // TODO: replace with a structured RenalRule type once the renal rule layer is finalised.
             RenalRuleSource: string option
+            // Validation stamp
+            Validated: string option
+            // G-Standaard check
+            Check: RuleCheck
+        }
+
+    and RuleCheck =
+        {
+            FreqCheck: string option
+            DoseCheck: string option
         }
 
 
@@ -721,7 +731,10 @@ module Types =
                 Patient: PatientCategoryData
                 ScheduleText: string
                 ScheduleData: ScheduleData
-                Products: ProductComponent[]
+                Validated: string option
+                FreqCheck: string option
+                DoseCheck: string option
+            //Products: ProductComponent[]
             }
 
         and GenericData =
@@ -905,5 +918,3 @@ module Types =
                 MinRateAdj: BigRational option
                 MaxRateAdj: BigRational option
             }
-
-open Types

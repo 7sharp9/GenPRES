@@ -69,7 +69,7 @@ module HelperFunctions =
                     ord |> cmd |> OrderProcessor.processPipeline logger |> loop rest
 
         med
-        |> Informedica.GenOrder.Lib.Medication.toOrderDto
+        |> Medication.toOrderDto
         |> Order.Dto.fromDto
         |> function
             | Error msg -> failwith $"{msg}"

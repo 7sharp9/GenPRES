@@ -24,7 +24,7 @@ let path = $"{__SOURCE_DIRECTORY__}/gstand.html"
 
 GStand.createDoseRules config None None None None "paracetamol" "zetpil" "rectaal"
 |> Seq.sortBy (fun dr -> dr.Generic |> String.toLower)
-|> Seq.map (Informedica.ZForm.Lib.DoseRule.toString false)
+|> Seq.map (DoseRule.toString false)
 |> String.concat "\n\n"
 |> Markdown.toHtml
 |> File.writeTextToFile path

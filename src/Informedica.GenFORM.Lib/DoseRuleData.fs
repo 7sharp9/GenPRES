@@ -70,6 +70,9 @@ module DoseRuleData =
             "MaxRate"
             "MinRateAdj"
             "MaxRateAdj"
+            "Validated"
+            "FreqCheck"
+            "DoseCheck"
         ]
         |> String.concat "\t"
         |> List.singleton
@@ -131,13 +134,17 @@ module DoseRuleData =
                 |> Array.map (fun r ->
                     let get = getColumn r
 
-                    let getOpt col =
+                    let getIfNull col =
                         try
                             get col
                         with _ ->
                             ""
 
-                    let getInt = getOpt >> Int32.tryParse
+                    let getOpt col =
+                        let s = getIfNull col
+                        if s |> String.isNullOrWhiteSpace then None else s |> Some
+
+                    let getInt = getIfNull >> Int32.tryParse
                     let toBrOpt = BigRational.toBrs >> Array.tryHead
 
                     let getBool =
@@ -147,9 +154,9 @@ module DoseRuleData =
                             v = "true" || v = "x" || v = "1" || v = "yes"
 
                     {
-                        RowId = getOpt "RowId"
-                        RuleId = getOpt "RuleId"
-                        GrpId = getOpt "GrpId"
+                        RowId = getIfNull "RowId"
+                        RuleId = getIfNull "RuleId"
+                        GrpId = getIfNull "GrpId"
                         SortNo = getInt "SortNo" |> Option.defaultValue 1
                         Source = get "Source"
                         Generic =
@@ -172,11 +179,11 @@ module DoseRuleData =
                             }
                         Route = get "Route"
                         Indication = get "Indication"
-                        SourceText = getOpt "SourceText"
-                        PatientText = getOpt "PatientText"
+                        SourceText = getIfNull "SourceText"
+                        PatientText = getIfNull "PatientText"
                         Patient =
                             {
-                                Location = getOpt "Loc"
+                                Location = getIfNull "Loc"
                                 Dep = get "Dep"
                                 IsAdult = getBool "IsAdult"
                                 Gender = get "Gender" |> Gender.fromString
@@ -191,7 +198,7 @@ module DoseRuleData =
                                 MinPMAge = get "MinPMAge" |> toBrOpt
                                 MaxPMAge = get "MaxPMAge" |> toBrOpt
                             }
-                        ScheduleText = getOpt "ScheduleText"
+                        ScheduleText = getIfNull "ScheduleText"
                         ScheduleData =
                             {
                                 DoseType = get "DoseType"
@@ -229,7 +236,9 @@ module DoseRuleData =
                                         MaxRateAdj = get "MaxRateAdj" |> toBrOpt
                                     }
                             }
-                        Products = [||]
+                        Validated = getOpt "Validated"
+                        FreqCheck = getOpt "FreqCheck"
+                        DoseCheck = getOpt "DoseCheck"
                     }
                 )
             // Keep one product-selection narrowing per row, by precedence
@@ -239,6 +248,108 @@ module DoseRuleData =
             |> Ok
         with exn ->
             Result.createError "getDataResult" exn
+
+
+    /// <summary>
+    /// Serialize <c>DoseRuleData</c> rows to TSV lines. Pure inverse of
+    /// <c>parseDoseRuleData</c>: emits one tab-separated line per row in the exact
+    /// column order of <c>headers</c>, prepended with the header line. BigRationals
+    /// are written as doubles to match the original source number format.
+    /// </summary>
+    let dataToCsv (data: DoseRuleData[]) =
+        let brsToString = Array.map (BigRational.toDouble >> string) >> String.concat ";"
+
+        let brOptToString =
+            Option.map (BigRational.toDouble >> string) >> Option.defaultValue ""
+
+        // A cell must never contain the TSV delimiters. Free-text fields (and the
+        // generated Check message, which is itself tab-formatted) can carry tabs and
+        // newlines; collapse them to spaces so every row stays one line of cells.
+        let clean (s: string) =
+            if isNull s then
+                ""
+            else
+                s
+                |> String.replace "\t" " "
+                |> String.replace "\r" " "
+                |> String.replace "\n" " "
+
+        data
+        |> Array.toList
+        |> List.map (fun d ->
+            let g = d.Generic
+            let p = d.Patient
+            let s = d.ScheduleData
+            let dl = s.DoseLimitData
+
+            [
+                d.RowId
+                d.RuleId
+                d.GrpId
+                string d.SortNo
+                d.Source
+                g.Name
+                g.Form
+                g.Brand
+                d.Route
+                g.GPKs |> String.concat ";"
+                g.HPKs |> String.concat ";"
+                d.Indication
+                d.SourceText
+                d.PatientText
+                d.ScheduleText
+                p.Dep
+                (if p.IsAdult then "x" else "")
+                p.Gender |> Gender.toString
+                p.MinAge |> brOptToString
+                p.MaxAge |> brOptToString
+                p.MinWeight |> brOptToString
+                p.MaxWeight |> brOptToString
+                p.MinBSA |> brOptToString
+                p.MaxBSA |> brOptToString
+                p.MinGestAge |> brOptToString
+                p.MaxGestAge |> brOptToString
+                p.MinPMAge |> brOptToString
+                p.MaxPMAge |> brOptToString
+                s.DoseType
+                s.DoseText
+                (if dl.CmpBased then "x" else "")
+                dl.Component
+                dl.Substance
+                s.Freqs |> brsToString
+                dl.DoseUnit
+                s.AdjustUnit
+                s.FreqUnit
+                s.RateUnit
+                s.MinTime |> brOptToString
+                s.MaxTime |> brOptToString
+                s.TimeUnit
+                s.MinInt |> brOptToString
+                s.MaxInt |> brOptToString
+                s.IntUnit
+                s.MinDur |> brOptToString
+                s.MaxDur |> brOptToString
+                s.DurUnit
+                dl.MinQty |> brOptToString
+                dl.MaxQty |> brOptToString
+                dl.MinQtyAdj |> brOptToString
+                dl.MaxQtyAdj |> brOptToString
+                dl.MinPerTime |> brOptToString
+                dl.MaxPerTime |> brOptToString
+                dl.MinPerTimeAdj |> brOptToString
+                dl.MaxPerTimeAdj |> brOptToString
+                dl.MinRate |> brOptToString
+                dl.MaxRate |> brOptToString
+                dl.MinRateAdj |> brOptToString
+                dl.MaxRateAdj |> brOptToString
+                d.Validated |> Option.defaultValue ""
+                d.FreqCheck |> Option.defaultValue ""
+                d.DoseCheck |> Option.defaultValue ""
+            ]
+            |> List.map clean
+            |> String.concat "\t"
+        )
+        |> List.append headers
 
 
     /// <summary>

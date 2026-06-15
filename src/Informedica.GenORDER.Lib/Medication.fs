@@ -8,14 +8,13 @@ module Medication =
     open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
     open ConsoleWriter.NewLineNoTime
-    open Informedica.GenUnits.Lib
     open Informedica.GenForm.Lib
     // Re-open the GenOrder types so the local domain types (notably
     // ProductComponent) take precedence over the GenForm types brought in by
     // `open Informedica.GenForm.Lib`. GenForm renamed its product `Product`
     // type to `ProductComponent`, which would otherwise shadow ours.
     open Informedica.GenOrder.Lib.Types
-    // ...then re-open GenUnits so its `Unit`/`Time` cases win again over the
+    // ...then open GenUnits so its `Unit`/`Time` cases win again over the
     // GenOrder `Time` order-variable type (GenUnits defines no ProductComponent).
     open Informedica.GenUnits.Lib
     open Informedica.GenCore.Lib.Ranges

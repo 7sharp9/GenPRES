@@ -1,9 +1,5 @@
 namespace Informedica.GenUnits.Lib
 
-open MathNet.Numerics
-open Informedica.GenUnits.Lib.Types
-
-open Informedica.Utils.Lib
 open Informedica.Utils.Lib.BCL
 
 

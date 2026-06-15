@@ -129,11 +129,11 @@ module PatientTests =
                 }
 
                 test "a patient with a min age wrong unit" {
-                    Tests.skiptest "TODO: not yet implemented — currently throws during toString"
+                    skiptest "TODO: not yet implemented — currently throws during toString"
                 }
 
                 test "a patient with a min age wrong group" {
-                    Tests.skiptest "TODO: not yet implemented — currently throws during toString"
+                    skiptest "TODO: not yet implemented — currently throws during toString"
                 }
             ]
 

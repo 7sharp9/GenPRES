@@ -52,10 +52,11 @@ module Substance =
         let useDemo = FilePath.useDemo ()
 
         fun () ->
-            if FilePath.substanceCache useDemo |> File.exists then
-                FilePath.substanceCache useDemo |> Json.getCache
+            let p = FilePath.substanceCache useDemo
+
+            if p |> File.exists then
+                p |> Json.getCache
             else
-                let p = FilePath.substanceCache useDemo
                 writeInfoMessage $"No {p}, creating Substance"
 
                 let substs = parse ()
