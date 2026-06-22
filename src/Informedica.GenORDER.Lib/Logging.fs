@@ -29,13 +29,6 @@ module Logging =
     let noOp = Logging.noOp
 
 
-    /// True when the logger would consume an informative message, so hot paths
-    /// can skip building expensive debug strings (console tables, constraint
-    /// dumps). Generalises beyond the no-op logger to any logger filtered above
-    /// the informative level.
-    let isActive (logger: Logger) = logger.Enabled Level.Informative
-
-
     /// Log an order event built lazily at the given level: the thunk (and any
     /// expensive work inside it, e.g. a console table) runs only if the logger
     /// would actually consume a message at that level.

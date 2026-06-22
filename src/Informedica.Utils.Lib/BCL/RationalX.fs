@@ -27,6 +27,11 @@ module private RationalXHelpers =
 
     let inline absL (a: int64) = if a < 0L then -a else a
 
+    /// Fold an int64 into an int32 hash, mixing the upper 32 bits in (a plain
+    /// <c>int</c> cast would discard them, collapsing values that differ only
+    /// above bit 32 into the same bucket).
+    let inline hash64 (x: int64) = int (x ^^^ (x >>> 32))
+
     /// Greatest common divisor of two int64 values (always non-negative).
     let rec gcd64 (a: int64) (b: int64) : int64 =
         if b = 0L then absL a else gcd64 b (a % b)
@@ -134,7 +139,26 @@ type RationalX =
             RationalX(BigCell x)
 
     static member OfFraction(n: int64, d: int64) =
-        let n, d = normPair n d in RationalX(n, d)
+        // normPair sign-normalizes a negative denominator via (-p, -q); that
+        // negation overflows when n or d is Int64.MinValue (no positive int64
+        // counterpart exists), so route those through the big tier, which
+        // re-narrows if the reduced result happens to fit.
+        if n = Int64.MinValue || d = Int64.MinValue then
+            RationalX.OfLarge(sToLarge n d)
+        else
+            let n, d = normPair n d in RationalX(n, d)
+
+    /// Build a small-tier value from a raw numerator/denominator whose
+    /// denominator may be negative, normalizing the sign. Spills to the big
+    /// tier when sign-flipping would overflow int64 (n or m = Int64.MinValue).
+    static member internal OfSmallSigned(n: int64, m: int64) : RationalX =
+        if m < 0L then
+            if n = Int64.MinValue || m = Int64.MinValue then
+                RationalX.OfLarge(sToLarge n m)
+            else
+                RationalX(-n, -m)
+        else
+            RationalX(n, m)
 
     static member Zero = RationalX(0L, 1L)
     static member One = RationalX(1L, 1L)
@@ -176,7 +200,12 @@ type RationalX =
 
     static member Abs(r: RationalX) : RationalX =
         if r.IsSmall then
-            RationalX(absL r.P, r.Q) // Q is already > 0
+            // absL Int64.MinValue stays Int64.MinValue (still negative); the
+            // positive magnitude does not fit int64, so spill to the big tier.
+            if r.P = Int64.MinValue then
+                RationalX.OfLarge(-(sToLarge r.P r.Q)) // P < 0, so this is |value|
+            else
+                RationalX(absL r.P, r.Q) // Q is already > 0
         else
             let v = r.Big.Value
             if v.Numerator.Sign < 0 then RationalX.OfLarge(-v) else r
@@ -208,7 +237,7 @@ type RationalX =
             let c2, b2 = c / g2, b / g2
 
             match mulFits a2 c2, mulFits b2 d2 with
-            | ValueSome n, ValueSome m -> if m < 0L then RationalX(-n, -m) else RationalX(n, m)
+            | ValueSome n, ValueSome m -> RationalX.OfSmallSigned(n, m)
             | _ -> RationalX.OfLarge(sToLarge a2 b2 * sToLarge c2 d2)
         elif x.IsSmall then
             RationalX.OfLarge(sToLarge x.P x.Q * y.Big.Value)
@@ -230,7 +259,7 @@ type RationalX =
             let d2, b2 = d / g2, b / g2
 
             match mulFits a2 d2, mulFits b2 c2 with
-            | ValueSome n, ValueSome m -> if m < 0L then RationalX(-n, -m) else RationalX(n, m)
+            | ValueSome n, ValueSome m -> RationalX.OfSmallSigned(n, m)
             | _ -> RationalX.OfLarge(sToLarge a2 b2 / sToLarge c2 d2)
         elif x.IsSmall then
             RationalX.OfLarge(sToLarge x.P x.Q / y.Big.Value)
@@ -279,9 +308,17 @@ type RationalX =
 
     static member (~-)(x: RationalX) : RationalX =
         if x.IsSmall then
-            RationalX(-x.P, x.Q) // Q stays > 0
+            // -Int64.MinValue overflows back to Int64.MinValue; its positive
+            // counterpart does not fit int64, so spill to the big tier.
+            if x.P = Int64.MinValue then
+                RationalX.OfLarge(-(sToLarge x.P x.Q))
+            else
+                RationalX(-x.P, x.Q) // Q stays > 0
         else
-            RationalX(BigCell(-x.Big.Value))
+            // negating a spilled value can land back inside int64 (e.g. +2^63 ->
+            // -2^63); funnel through OfLarge so it re-narrows and the canonical
+            // small representation (hence hashing) stays consistent.
+            RationalX.OfLarge(-x.Big.Value)
 
     // --- comparison / equality / hash ---------------------------------------
 
@@ -316,7 +353,9 @@ type RationalX =
     override this.GetHashCode() =
         if this.IsSmall then
             let struct (p, q) = RationalX.SmallPair this
-            if q = 1L then int p else (int p <<< 3) + int q
+            // fold the full int64 in; a plain (int p) cast would drop the upper
+            // 32 bits and collide values that differ only above bit 32
+            if q = 1L then hash64 p else (hash64 p <<< 3) + hash64 q
         else
             // spilled values never fit int64, so they cannot collide-by-value with a small one
             let v = this.Big.Value
