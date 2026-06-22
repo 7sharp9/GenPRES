@@ -44,11 +44,9 @@ module LimitIncr =
 
 module Limit =
 
-    open MathNet.Numerics
-
-    open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
 
+    open Informedica.Utils.Lib
 
     let toString isMin lim =
         let s = if isMin then "Min" else "Max"
@@ -381,12 +379,10 @@ module Limit =
 module MinMax =
 
     open System
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     open Aether
 
     open Informedica.Utils.Lib
-    open Informedica.Utils.Lib.BCL
-
 
     module Calculator =
 

@@ -4,7 +4,6 @@ namespace Informedica.GenForm.Lib
 module Check =
 
     open Informedica.Utils.Lib
-    open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
     open Informedica.GenCore.Lib.Ranges

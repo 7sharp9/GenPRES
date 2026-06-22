@@ -53,7 +53,6 @@ module Gender =
 module PatientCategory =
 
 
-    open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
 
@@ -414,7 +413,6 @@ module PatientCategory =
 
 module Patient =
 
-    open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
 

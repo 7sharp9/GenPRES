@@ -4,7 +4,7 @@ namespace Informedica.GenUnits.Lib
 module Array =
 
     open Informedica.Utils.Lib.BCL
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     /// <summary>
     /// Remove all BigRationals that are multiples of the smallest BigRationals in the array.

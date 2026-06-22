@@ -12,9 +12,8 @@ module Order =
 
 
     open System
-    open MathNet.Numerics
-    open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
+    open Informedica.Utils.Lib
     open ConsoleWriter.NewLineNoTime
     open Informedica.GenUnits.Lib
     open WrappedString
@@ -3352,16 +3351,22 @@ module Order =
 
 
     let logOrder logger minMax msg ord =
-        let s = ord |> toConsoleTableString
-        let m = if minMax then "Min/Max" else "All Values"
+        // Build the (expensive) console table lazily: toConsoleTableString drives
+        // List.sortBy / ConsoleTables / Wcwidth / heavy allocation, so it runs
+        // only when the logger would actually consume an informative message.
+        Logging.logInfoLazy
+            logger
+            (fun () ->
+                let s = ord |> toConsoleTableString
+                let m = if minMax then "Min/Max" else "All Values"
 
-        $"""
+                $"""
 == {msg} {m} ==
 {s}
 == End of Table ==
 """
-        |> Events.OrderScenario
-        |> Logging.logInfo logger
+                |> Events.OrderScenario
+            )
 
 
     /// <summary>

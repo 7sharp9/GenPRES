@@ -284,8 +284,6 @@ module Tests =
 
     module Double =
 
-        open MathNet.Numerics
-
         [<Tests>]
         let tests =
 
@@ -424,8 +422,6 @@ module Tests =
 
 
     module BigRational =
-
-        open MathNet.Numerics
 
         // Test calcCartesian function
         let testCalcCartesian () =

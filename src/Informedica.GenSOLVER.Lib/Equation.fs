@@ -434,15 +434,15 @@ module Equation =
         match calcVars log op1 op2 vars with
         | None -> acc, vars
         | Some var ->
+            // No re-sort here: the top of the next loop iteration re-sorts by
+            // Variable.count (sum) before calcVars runs, so any ordering applied
+            // here is immediately overwritten and never reaches calcVars. The
+            // loop's final vars list is consumed by index (List.find (fst = 0)),
+            // so its order is irrelevant. Dropping this sort removed ~half the
+            // per-iteration List.sortBy cost with no behavioural change.
             let vars =
                 vars
                 |> List.map (fun (i, xs) -> i, xs |> List.replace (Variable.eqName var) var)
-                |> fun vars ->
-                    if onlyMinIncrMax then
-                        vars
-                    else
-                        vars
-                        |> List.sortBy (fun (_, xs) -> xs |> List.tail |> List.map Variable.count |> List.reduce (*))
 
             let acc = acc |> List.replaceOrAdd (Variable.eqName var) var
 

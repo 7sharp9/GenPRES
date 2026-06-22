@@ -2,7 +2,7 @@
 /// testing purposes
 module Scenarios
 
-open MathNet.Numerics
+open Informedica.Utils.Lib.BCL
 open Informedica.Utils.Lib.BCL
 open Informedica.GenCore.Lib.Ranges
 open Informedica.GenForm.Lib

@@ -20,7 +20,6 @@ module Set =
 
     module Tests =
 
-        open MathNet.Numerics
         open Swensen.Unquote
 
 

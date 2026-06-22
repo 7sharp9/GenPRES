@@ -13,7 +13,7 @@ module Generators =
 
     open Expecto
     open FsCheck
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     let bigRGen (n, d) =
         let d = if d = 0 then 1 else d
@@ -203,11 +203,10 @@ module TestSolver =
 module Tests =
 
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     open Expecto
     open Expecto.Flip
 
-    open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
     open Informedica.GenSolver.Lib
 

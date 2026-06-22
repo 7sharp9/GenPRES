@@ -318,7 +318,10 @@ module OrderProcessor =
 
         let logUnmatched (kind: string) =
             $"===> no match for {kind} cleared " |> writeWarningMessage
-            ord |> toConsoleTableString |> Events.OrderScenario |> Logging.logWarning logger
+
+            // FLAG: expensive message build (toConsoleTableString renders a full
+            // console table) — kept lazy so it is skipped when logging is off.
+            Logging.logWarningLazy logger (fun () -> ord |> toConsoleTableString |> Events.OrderScenario)
 
         match (ord |> inf).Schedule with
         | Continuous _ ->
@@ -503,7 +506,10 @@ module OrderProcessor =
         let setCalculatedConstraintsStep =
             setCalculatedConstraints
             >> fun ord ->
-                ord |> toConsoleTableString |> Events.OrderScenario |> Logging.logInfo logger
+                // FLAG: expensive message build (toConsoleTableString) — kept lazy
+                // so it is skipped when the logger is off.
+                Logging.logInfoLazy logger (fun () -> ord |> toConsoleTableString |> Events.OrderScenario)
+
                 ord
             >> Ok
 
@@ -531,7 +537,10 @@ module OrderProcessor =
             ord
             |> applyConstraints
             |> fun ord ->
-                ord |> toConsoleTableString |> Events.OrderScenario |> Logging.logInfo logger
+                // FLAG: expensive message build (toConsoleTableString) — kept lazy
+                // so it is skipped when the logger is off.
+                Logging.logInfoLazy logger (fun () -> ord |> toConsoleTableString |> Events.OrderScenario)
+
                 ord
             |> Ok
 

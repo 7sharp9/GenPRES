@@ -4,7 +4,6 @@ namespace Informedica.Utils.Lib
 module Json =
 
     open System
-    open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
     open Newtonsoft.Json
     open Newtonsoft.Json.Linq
@@ -19,6 +18,7 @@ module Json =
             let bigRational = value :?> BigRational
             let numerator = bigRational.Numerator
             let denominator = bigRational.Denominator
+
             writer.WriteStartObject()
             writer.WritePropertyName("Numerator")
             writer.WriteValue(numerator.ToString())

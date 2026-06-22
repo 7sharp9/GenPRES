@@ -4,11 +4,9 @@ namespace Informedica.GenForm.Lib
 module Product =
 
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     open Informedica.Utils.Lib
     open ConsoleWriter.NewLineNoTime
-    open Informedica.Utils.Lib.BCL
-
     open Informedica.GenUnits.Lib
 
     open Utils
