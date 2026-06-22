@@ -93,7 +93,13 @@ module Tests =
 
                     test "logWith should create and send event to logger" {
                         let mutable capturedEvent = None
-                        let logger = { Log = fun e -> capturedEvent <- Some e }
+
+                        let logger =
+                            {
+                                Log = (fun e -> capturedEvent <- Some e)
+                                Enabled = fun _ -> true
+                            }
+
                         let msg = createTestMessage "test message"
 
                         Logging.logWith Level.Error logger msg
@@ -107,7 +113,13 @@ module Tests =
 
                     test "convenience functions should use correct levels" {
                         let mutable levels = []
-                        let logger = { Log = fun e -> levels <- e.Level :: levels }
+
+                        let logger =
+                            {
+                                Log = (fun e -> levels <- e.Level :: levels)
+                                Enabled = fun _ -> true
+                            }
+
                         let msg = createTestMessage "test"
 
                         Logging.logInfo logger msg
@@ -170,8 +182,18 @@ module Tests =
                     test "combine should send to all loggers" {
                         let mutable events1 = []
                         let mutable events2 = []
-                        let logger1 = { Log = fun e -> events1 <- e :: events1 }
-                        let logger2 = { Log = fun e -> events2 <- e :: events2 }
+
+                        let logger1 =
+                            {
+                                Log = (fun e -> events1 <- e :: events1)
+                                Enabled = fun _ -> true
+                            }
+
+                        let logger2 =
+                            {
+                                Log = (fun e -> events2 <- e :: events2)
+                                Enabled = fun _ -> true
+                            }
 
                         let combined = Logging.combine [ logger1; logger2 ]
                         let msg = createTestMessage "combined test"
@@ -184,7 +206,13 @@ module Tests =
 
                     test "filterByLevel should only pass appropriate messages" {
                         let mutable events = []
-                        let baseLogger = { Log = fun e -> events <- e :: events }
+
+                        let baseLogger =
+                            {
+                                Log = (fun e -> events <- e :: events)
+                                Enabled = fun _ -> true
+                            }
+
                         let filteredLogger = Logging.filterByLevel Level.Warning baseLogger
 
                         let msg = createTestMessage "test"
@@ -201,7 +229,13 @@ module Tests =
 
                     test "filterByType should only pass specific message types" {
                         let mutable events = []
-                        let baseLogger = { Log = fun e -> events <- e :: events }
+
+                        let baseLogger =
+                            {
+                                Log = (fun e -> events <- e :: events)
+                                Enabled = fun _ -> true
+                            }
+
                         let filteredLogger = Logging.filterByType<TestMessage> baseLogger
 
                         let testMsg = createTestMessage "test"

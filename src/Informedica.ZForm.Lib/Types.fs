@@ -4,7 +4,7 @@ namespace Informedica.ZForm.Lib
 [<AutoOpen>]
 module Types =
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     open Informedica.GenUnits.Lib
 

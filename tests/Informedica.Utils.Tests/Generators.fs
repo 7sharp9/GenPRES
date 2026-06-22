@@ -13,7 +13,7 @@ module Generators =
 
     open Expecto
     open FsCheck
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
 
     let bigRGen (n, d) =

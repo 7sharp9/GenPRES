@@ -2,11 +2,12 @@ namespace Informedica.Utils.Lib.BCL
 
 
 /// Helper functions for `BigRational`
-[<RequireQualifiedAccess>]
+/// Note: needs the ModuleSuffix to prevent build error with
+/// BigRational type definition
+[<RequireQualifiedAccess; CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module BigRational =
 
     open System
-    open MathNet.Numerics
 
     //----------------------------------------------------------------------------
     // Error management
@@ -170,29 +171,6 @@ module BigRational =
         let den = a.Denominator * b.Denominator
         let num = BigInteger.gcd (a.Numerator * b.Denominator) (b.Numerator * a.Denominator)
         (num |> BigRational.FromBigInt) / (den |> BigRational.FromBigInt)
-
-
-    (*
-    /// Convert `n` to a multiple of `d`.
-    /// Passes an `CannotDivideByZero` message
-    /// to `fail` when `d` is zero.
-    let toMultipleOfCont succ fail d n  =
-        if d = 0N then CannotDivideByZero |> fail
-        else
-            let m = (n / d) |> BigRational.ToBigInt |> BigRational.FromBigInt
-            if m * d < n then (m + 1N) * d else m * d
-            |> succ
-
-
-    /// Convert `n` to a multiple of `d`.
-    /// Raises an `CannotDivideByZero` message
-    /// exception when `d` is zero.
-    let toMultipleOf = toMultipleOfCont id raiseExc
-
-    /// Convert `n` to a multiple of `d`.
-    /// Returns `None` when `d` is zero.
-    let toMultipleOfOpt = toMultipleOfCont Some (fun _ -> None)
-    *)
 
 
     /// Checks whether `v` is a multiple of `incr`
@@ -393,6 +371,26 @@ module BigRational =
                         res[baseIdx + j] <- op v1 vs2[j]
 
                 res
+
+
+    /// Order-preserving distinct over a `BigRational` array using the default
+    /// .NET equality comparer. Because `BigRational` (RationalX) is a struct that
+    /// implements `IEquatable<_>`, this takes the unboxed equality path, avoiding
+    /// the per-element boxing that F#'s structural `Array.distinct` incurs for a
+    /// `[<CustomEquality>]` struct. Behaviour matches `Array.distinct` (keeps the
+    /// first occurrence of each value).
+    let distinct (xs: BigRational[]) : BigRational[] =
+        if xs.Length < 2 then
+            xs
+        else
+            let seen = System.Collections.Generic.HashSet<BigRational> xs.Length
+            let res = ResizeArray<BigRational> xs.Length
+
+            for x in xs do
+                if seen.Add x then
+                    res.Add x
+
+            res.ToArray()
 
 
     /// Calculates the nearest multiple of the given `multiple` based on whether it's required

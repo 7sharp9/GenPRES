@@ -27,7 +27,14 @@ type Event =
     }
 
 
-type Logger = { Log: Event -> unit }
+type Logger =
+    {
+        Log: Event -> unit
+        /// Whether this logger would consume a message at the given level. Lets
+        /// the lazy log API skip building expensive messages that a logger
+        /// (the no-op logger, or one filtered above a level) would discard.
+        Enabled: Level -> bool
+    }
 
 
 /// General logging module
@@ -48,15 +55,21 @@ module Logging =
         msg |> createMessage level |> logger.Log
 
 
-    /// Log an informative message
+    /// Log an informative message.
+    /// Eager: builds the message at the call site. This is fine because the
+    /// logging agent performs the (potentially expensive) formatting and writing
+    /// asynchronously. Use logInfoLazy only when building the message itself is
+    /// expensive (e.g. rendering a console table).
     let logInfo logger msg = logWith Level.Informative logger msg
 
 
-    /// Log a warning message
+    /// Log a warning message. Eager — see logInfo. Prefer logWarningLazy only
+    /// when building the message itself is expensive.
     let logWarning logger msg = logWith Level.Warning logger msg
 
 
-    /// Log a debug message
+    /// Log a debug message. Eager — see logInfo. Prefer logDebugLazy only
+    /// when building the message itself is expensive.
     let logDebug logger msg = logWith Level.Debug logger msg
 
 
@@ -65,11 +78,37 @@ module Logging =
 
 
     /// A logger that does nothing
-    let noOp: Logger = { Log = ignore }
+    let noOp: Logger =
+        {
+            Log = ignore
+            Enabled = fun _ -> false
+        }
 
 
     /// Create a logger that uses the given function to process messages
-    let create (f: Event -> unit) : Logger = { Log = f }
+    let create (f: Event -> unit) : Logger =
+        {
+            Log = f
+            Enabled = fun _ -> true
+        }
+
+
+    /// Whether the logger would consume a message at the given level.
+    let isEnabled level (logger: Logger) = logger.Enabled level
+
+
+    /// Log a message built lazily: the thunk (and any expensive work inside it,
+    /// e.g. a console table) runs ONLY if the logger would actually consume a
+    /// message at this level. Generalises the noOp fast-path to any logger
+    /// filtered above the given level.
+    let logLazy level (logger: Logger) (mk: unit -> IMessage) =
+        if logger.Enabled level then
+            mk () |> createMessage level |> logger.Log
+
+
+    let logInfoLazy logger mk = logLazy Level.Informative logger mk
+    let logWarningLazy logger mk = logLazy Level.Warning logger mk
+    let logDebugLazy logger mk = logLazy Level.Debug logger mk
 
 
     /// Create a logger that prints to the console using a message formatter
@@ -97,7 +136,9 @@ module Logging =
 
     /// Combine multiple loggers into one
     let combine (loggers: Logger list) : Logger =
-        create (fun msg -> loggers |> List.iter (fun logger -> logger.Log msg))
+        { create (fun msg -> loggers |> List.iter (fun logger -> logger.Log msg)) with
+            Enabled = fun level -> loggers |> List.exists (fun logger -> logger.Enabled level)
+        }
 
 
     let levelValue =
@@ -110,19 +151,23 @@ module Logging =
 
     /// Filter messages by level
     let filterByLevel (minLevel: Level) (logger: Logger) : Logger =
-        create (fun msg ->
-            if levelValue msg.Level >= levelValue minLevel then
-                logger.Log msg
-        )
+        { create (fun msg ->
+              if levelValue msg.Level >= levelValue minLevel then
+                  logger.Log msg
+          ) with
+            Enabled = fun level -> levelValue level >= levelValue minLevel && logger.Enabled level
+        }
 
 
     /// Filter messages by type
     let filterByType<'T when 'T :> IMessage> (logger: Logger) : Logger =
-        create (fun msg ->
-            match msg.Message with
-            | :? 'T -> logger.Log msg
-            | _ -> ()
-        )
+        { create (fun msg ->
+              match msg.Message with
+              | :? 'T -> logger.Log msg
+              | _ -> ()
+          ) with
+            Enabled = logger.Enabled
+        }
 
 
 /// Message formatter module
@@ -618,6 +663,7 @@ module AgentLogging =
                                 with
                                 | :? ObjectDisposedException -> ()
                                 | ex -> eprintfn $"Failed to post log event {ev} with:\n{ex.Message}"
+                    Enabled = fun _ -> true
                 }
 
             ReportAsync =

@@ -4,9 +4,8 @@ namespace Informedica.GenSolver.Lib
 module Variable =
 
     open System
-    open MathNet.Numerics
-
     open Informedica.Utils.Lib.BCL
+
     open Informedica.Utils.Lib.ConsoleWriter.NewLineNoTime
     open Informedica.GenUnits.Lib
 

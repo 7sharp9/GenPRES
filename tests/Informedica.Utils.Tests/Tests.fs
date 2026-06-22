@@ -284,8 +284,6 @@ module Tests =
 
     module Double =
 
-        open MathNet.Numerics
-
         [<Tests>]
         let tests =
 
@@ -424,8 +422,6 @@ module Tests =
 
 
     module BigRational =
-
-        open MathNet.Numerics
 
         // Test calcCartesian function
         let testCalcCartesian () =
@@ -661,6 +657,91 @@ module Tests =
 
                     test "when operator is subtraction" { Expect.equal ((-) |> BigRational.opIsSubtr) true "" }
                     testCalcCartesian ()
+                ]
+
+
+        [<Tests>]
+        let edgeCaseTests =
+            // 9223372036854775808 = 2^63: the positive counterpart of Int64.MinValue,
+            // which does NOT fit int64 and therefore must spill to the big tier.
+            let twoPow63 = -(bigint Int64.MinValue)
+
+            let minV () =
+                BigRational.FromInt64Fraction(Int64.MinValue, 1L)
+
+            testList
+                "RationalX edge cases"
+                [
+
+                    test "negating Int64.MinValue spills with the correct positive value" {
+                        let neg = -(minV ())
+
+                        Expect.isTrue neg.IsSpilled "negation of Int64.MinValue must spill"
+                        Expect.equal neg.Numerator twoPow63 "numerator is +2^63"
+                        Expect.equal neg.Denominator 1I "denominator is 1"
+                    }
+
+                    test "Abs of Int64.MinValue spills with the correct positive value" {
+                        let a = BigRational.Abs(minV ())
+
+                        Expect.isTrue a.IsSpilled "abs of Int64.MinValue must spill"
+                        Expect.equal a.Numerator twoPow63 "numerator is +2^63"
+                    }
+
+                    test "double negation of Int64.MinValue round-trips to the canonical small value" {
+                        let v = minV ()
+                        let back = -(-v)
+
+                        Expect.equal back v "value round-trips"
+                        Expect.isFalse back.IsSpilled "re-narrows to the small tier"
+                        Expect.equal (back.GetHashCode()) (v.GetHashCode()) "hash matches the canonical representation"
+                    }
+
+                    test "fraction with Int64.MinValue denominator normalizes sign without overflow" {
+                        // 1 / Int64.MinValue : the positive magnitude of the
+                        // denominator does not fit int64, so the value must spill
+                        let v = BigRational.FromInt64Fraction(1L, Int64.MinValue)
+
+                        Expect.isTrue v.IsSpilled "must spill"
+                        Expect.equal v.Numerator -1I "numerator is -1"
+                        Expect.equal v.Denominator twoPow63 "denominator is +2^63"
+                    }
+
+                    test "negative-denominator fraction of small values normalizes to a positive denominator" {
+                        let v = BigRational.FromInt64Fraction(3L, -4L)
+
+                        Expect.equal v.Numerator -3I "numerator is -3"
+                        Expect.equal v.Denominator 4I "denominator is +4"
+                    }
+
+                    test "GetHashCode mixes the upper 32 bits (no truncation collision)" {
+                        // 1/1 and (2^32 + 1)/1 differ only above bit 32; a plain
+                        // int32 cast would collapse them into the same hash bucket
+                        let a = BigRational.FromInt 1
+                        let b = BigRational.FromBigInt 4294967297I // 2^32 + 1
+
+                        Expect.isFalse (a = b) "values differ"
+                        Expect.isFalse (a.GetHashCode() = b.GetHashCode()) "hashes must differ"
+                    }
+
+                    test "equal values produce equal hash codes across construction paths" {
+                        let a = BigRational.FromInt 5
+                        let b = BigRational.FromInt64Fraction(10L, 2L)
+
+                        Expect.isTrue (a = b) "values are equal"
+                        Expect.equal (a.GetHashCode()) (b.GetHashCode()) "hash codes are equal"
+                    }
+
+                    test "distinct deduplicates equal large-numerator values" {
+                        let a = BigRational.FromBigInt 4294967297I
+                        let b = BigRational.FromInt64Fraction(4294967297L, 1L)
+                        let c = BigRational.FromInt 1
+
+                        [| a; b; c; a |]
+                        |> BigRational.distinct
+                        |> Array.length
+                        |> fun n -> Expect.equal n 2 "two distinct values remain"
+                    }
                 ]
 
 

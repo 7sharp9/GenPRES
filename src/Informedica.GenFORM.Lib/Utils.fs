@@ -4,10 +4,9 @@ namespace Informedica.GenForm.Lib
 module Utils =
 
     open System
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     open Informedica.Utils.Lib
-    open Informedica.Utils.Lib.BCL
 
     module Parallel =
 

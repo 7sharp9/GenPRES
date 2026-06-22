@@ -1,6 +1,6 @@
 namespace Informedica.GenUnits.Lib
 
-open MathNet.Numerics
+open Informedica.Utils.Lib.BCL
 
 open Informedica.Utils.Lib
 open Informedica.Utils.Lib.BCL
@@ -760,7 +760,7 @@ module ValueUnit =
         let v =
             let vs1 = vu1 |> toBaseValue
             let vs2 = vu2 |> toBaseValue
-            BigRational.calcCartesian op vs1 vs2 |> Array.distinct
+            BigRational.calcCartesian op vs1 vs2 |> BigRational.distinct
 
         (*
             Array.allPairs vs1 vs2
@@ -842,9 +842,9 @@ module ValueUnit =
         then
             failwith $"cannot compare {vu1} with {vu2}"
 
-        let vs1 = vu1 |> toBaseValue |> Array.distinct |> Array.sort
+        let vs1 = vu1 |> toBaseValue |> BigRational.distinct |> Array.sort
 
-        let vs2 = vu2 |> toBaseValue |> Array.distinct |> Array.sort
+        let vs2 = vu2 |> toBaseValue |> BigRational.distinct |> Array.sort
 
         vs1 = vs2
 

@@ -3,11 +3,9 @@ namespace Informedica.ZForm.Lib
 
 module GStand =
 
-    open MathNet.Numerics
-
-    open Informedica.Utils.Lib.ConsoleWriter.NewLineNoTime
     open Informedica.Utils.Lib.BCL
 
+    open Informedica.Utils.Lib.ConsoleWriter.NewLineNoTime
     open Aether
     open DoseRule
 

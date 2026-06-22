@@ -6,7 +6,7 @@ module Types =
 
 
     open System
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     open Informedica.GenUnits.Lib
     open Informedica.GenSolver.Lib.Types

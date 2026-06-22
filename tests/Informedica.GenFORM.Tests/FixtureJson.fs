@@ -2,7 +2,7 @@ namespace Informedica.GenForm.Tests
 
 
 open System
-open MathNet.Numerics
+open Informedica.Utils.Lib.BCL
 open Newtonsoft.Json
 
 

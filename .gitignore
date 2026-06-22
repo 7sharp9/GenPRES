@@ -351,6 +351,19 @@
 !/benchmark/BenchmarkDotNet.Artifacts/
 !/benchmark/BenchmarkDotNet.Artifacts/results/
 !/benchmark/BenchmarkDotNet.Artifacts/results/*.md
+# Add benchmark sub-projects (.fs/.fsproj allowed globally; results md opt-in)
+!/benchmark/RationalXBench/
+!/benchmark/RationalXBench/BenchmarkDotNet.Artifacts/
+!/benchmark/RationalXBench/BenchmarkDotNet.Artifacts/results/
+!/benchmark/RationalXBench/BenchmarkDotNet.Artifacts/results/*.md
+!/benchmark/ScenarioBench/
+!/benchmark/ScenarioBench/BenchmarkDotNet.Artifacts/
+!/benchmark/ScenarioBench/BenchmarkDotNet.Artifacts/results/
+!/benchmark/ScenarioBench/BenchmarkDotNet.Artifacts/results/*.md
+!/benchmark/ValueUnitBench/
+!/benchmark/ValueUnitBench/BenchmarkDotNet.Artifacts/
+!/benchmark/ValueUnitBench/BenchmarkDotNet.Artifacts/results/
+!/benchmark/ValueUnitBench/BenchmarkDotNet.Artifacts/results/*.md
 
 #Add debug test runner
 !/debugTests.sh

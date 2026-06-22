@@ -213,6 +213,7 @@ module SolverLogging =
                     |> fun s ->
                         if not (String.IsNullOrEmpty s) then
                             f s
+            Enabled = fun _ -> true
         }
 
     /// Ignore logger for backward compatibility

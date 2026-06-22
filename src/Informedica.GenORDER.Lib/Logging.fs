@@ -27,3 +27,21 @@ module Logging =
 
     /// Ignore logger for backward compatibility
     let noOp = Logging.noOp
+
+
+    /// Log an order event built lazily at the given level: the thunk (and any
+    /// expensive work inside it, e.g. a console table) runs only if the logger
+    /// would actually consume a message at that level.
+    let logMessageLazy level (logger: Logger) (mk: unit -> Events.Event) =
+        Logging.logLazy level logger (fun () -> mk () |> OrderEventMessage :> IMessage)
+
+
+    /// Log an order event built lazily: the thunk (and any expensive work inside
+    /// it) runs only if the logger would consume an informative message.
+    let logInfoLazy (logger: Logger) (mk: unit -> Events.Event) =
+        logMessageLazy Level.Informative logger mk
+
+
+    /// Log an order event built lazily: the thunk runs only if the logger would
+    /// consume a warning message.
+    let logWarningLazy (logger: Logger) (mk: unit -> Events.Event) = logMessageLazy Level.Warning logger mk

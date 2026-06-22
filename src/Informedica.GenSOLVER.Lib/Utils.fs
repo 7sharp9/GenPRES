@@ -5,7 +5,7 @@ namespace Informedica.GenSolver.Lib
 module Utils =
 
     open System
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
 
     module Parallel =
@@ -37,8 +37,6 @@ module Utils =
 
 
     module ValueUnit =
-
-        open Informedica.Utils.Lib.BCL
 
         open Informedica.GenUnits.Lib
         open ValueUnit
@@ -140,7 +138,7 @@ module Utils =
             let (|Mul|Div|Add|Sub|) op =
                 // Bridge the ValueUnit op to a BigRational op using dimensionless units (Count.times)
                 let toBrOp (o: ValueUnit -> ValueUnit -> ValueUnit) =
-                    fun (a: MathNet.Numerics.BigRational) (b: MathNet.Numerics.BigRational) ->
+                    fun (a: BigRational) (b: BigRational) ->
                         let va = [| a |] |> create Units.Count.times
                         let vb = [| b |] |> create Units.Count.times
                         let vr = o va vb
