@@ -3,9 +3,8 @@ namespace Informedica.GenForm.Lib
 
 module RenalRule =
 
-    open MathNet.Numerics
-    open Informedica.Utils.Lib
     open Informedica.Utils.Lib.BCL
+    open Informedica.Utils.Lib
     open ConsoleWriter.NewLineNoTime
 
     open Informedica.GenUnits.Lib

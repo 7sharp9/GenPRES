@@ -6,7 +6,7 @@ namespace Informedica.GenOrder.Lib
 /// `Informedica.GenUnits.Lib`
 module ValueUnit =
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
     open ValueUnit
 
@@ -174,10 +174,9 @@ module Variable =
 module OrderVariable =
 
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     open Informedica.Utils.Lib
-    open Informedica.Utils.Lib.BCL
     open ConsoleWriter.NewLineNoTime
     open Informedica.GenCore.Lib.Ranges
     open Informedica.GenSolver.Lib

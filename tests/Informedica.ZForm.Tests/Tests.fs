@@ -3,9 +3,8 @@ namespace Informedica.ZForm.Tests
 
 open Expecto
 open Expecto.Flip
-open MathNet.Numerics
-
 open Informedica.Utils.Lib.BCL
+
 open Informedica.GenCore.Lib.Ranges
 open Informedica.ZForm.Lib
 

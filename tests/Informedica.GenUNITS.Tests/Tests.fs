@@ -5,7 +5,7 @@ module Unquote =
 
 
     open Swensen.Unquote
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     //open Informedica.GenUnits.Lib
     open Informedica.GenUnits.Lib
     open Informedica.GenUnits.Lib.ValueUnit
@@ -181,7 +181,6 @@ module Tests =
     open Expecto
     open Expecto.Flip
 
-    open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
     //open Informedica.GenUnits.Lib
 

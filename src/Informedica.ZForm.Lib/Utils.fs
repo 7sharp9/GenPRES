@@ -3,7 +3,7 @@ namespace Informedica.ZForm.Lib
 
 module MinMax =
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     open Informedica.GenUnits.Lib
     open Informedica.GenCore.Lib.Ranges

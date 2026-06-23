@@ -244,6 +244,7 @@ messages: {msgs.Value.Count}
                     |> fun s ->
                         if not (String.IsNullOrEmpty s) then
                             f s
+            Enabled = fun _ -> true
         }
 
 

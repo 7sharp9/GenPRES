@@ -5,7 +5,6 @@ module Medication =
 
     open System
     open Informedica.Utils.Lib
-    open MathNet.Numerics
     open Informedica.Utils.Lib.BCL
     open ConsoleWriter.NewLineNoTime
     open Informedica.GenForm.Lib
@@ -1302,12 +1301,18 @@ module Medication =
 
         meds
         |> Array.iter (fun med ->
-            med
-            |> toString
-            |> List.map (sprintf "%s")
-            |> String.concat "\n"
-            |> Events.MedicationCreated
-            |> Informedica.GenOrder.Lib.Logging.logInfo logger
+            // FLAG: expensive message build (Medication.toString formats every
+            // substance/component incl. ValueUnits) — kept lazy so it is skipped
+            // when the logger is off.
+            Informedica.GenOrder.Lib.Logging.logInfoLazy
+                logger
+                (fun () ->
+                    med
+                    |> toString
+                    |> List.map (sprintf "%s")
+                    |> String.concat "\n"
+                    |> Events.MedicationCreated
+                )
         )
 
         meds

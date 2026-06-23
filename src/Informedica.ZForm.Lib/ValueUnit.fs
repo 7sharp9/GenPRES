@@ -5,8 +5,6 @@
 /// `Informedica.GenUnits.Lib.ValueUnit` library
 module ValueUnit =
 
-    open MathNet.Numerics
-
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
 

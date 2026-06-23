@@ -3,10 +3,9 @@ namespace Informedica.GenCore.Lib.ValueUnits
 
 module ValueUnit =
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     open FsToolkit.ErrorHandling
 
-    open Informedica.Utils.Lib.BCL
     open Informedica.GenCore.Lib
     open Informedica.GenUnits.Lib
     open Informedica.GenUnits.Lib.ValueUnit

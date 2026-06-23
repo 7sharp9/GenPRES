@@ -7,7 +7,7 @@ module Generators =
 
     open Expecto
     open FsCheck
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     let bigRGen (n, d) =
         let d = if d = 0 then 1 else d
@@ -130,7 +130,7 @@ module GenericLabelTests =
 module ProductFilterTests =
 
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
     open Expecto
     open Expecto.Flip
@@ -334,7 +334,7 @@ module DoseRuleProductTests =
 
     open Expecto
     open Expecto.Flip
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     open Informedica.GenForm.Lib
 
 
@@ -966,7 +966,7 @@ module DoseRuleRoundtripTests =
 
     open System
     open System.IO
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     open Expecto
     open Expecto.Flip
     open Informedica.Utils.Lib.BCL
@@ -1212,7 +1212,7 @@ module DoseRuleRoundtripTests =
 module Tests =
 
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
     open Expecto
     open Expecto.Flip
 

@@ -4,13 +4,12 @@ namespace Informedica.GenForm.Lib
 module DoseRule =
 
     open System
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     open FSharp.Data
     open FSharp.Data.JsonExtensions
 
     open Informedica.Utils.Lib
-    open Informedica.Utils.Lib.BCL
     open Informedica.GenCore.Lib.Ranges
 
     open Utils

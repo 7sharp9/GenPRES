@@ -1,6 +1,6 @@
 namespace Informedica.GenUnits.Lib
 
-open MathNet.Numerics
+open Informedica.Utils.Lib.BCL
 open Informedica.GenUnits.Lib.Types
 
 open Informedica.Utils.Lib.BCL

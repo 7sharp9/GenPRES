@@ -3,13 +3,12 @@
 
 module DoseRule =
 
-    open MathNet.Numerics
+    open Informedica.Utils.Lib.BCL
 
     open Aether
     open Aether.Operators
 
     open Informedica.Utils.Lib
-    open Informedica.Utils.Lib.BCL
     open Informedica.GenCore.Lib.Ranges
     open Informedica.GenUnits.Lib
 
