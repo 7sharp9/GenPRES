@@ -1179,6 +1179,70 @@ module MedicationParserTests =
             ]
 
 
+module OrderVariableTests =
+
+    // Hermetic tests for ValueUnit.collect — no resources are loaded. All
+    // ValueUnits are built inline. The headline case uses the real DIGOXINE
+    // TABLET strengths from the Z-index: three GPKs of the same substance
+    // expressed in mixed mass units (milligram and microgram), which share a
+    // unit group but not a unit. collect must merge them into a single
+    // ValueUnit, converting the microgram value into the head unit (mg).
+    let tests =
+        testList
+            "ValueUnit.collect"
+            [
+                // DIGOXINE TABLET: GPK 16721 = 0,25 mg, GPK 16772 = 62,5 microg,
+                // GPK 38857 = 0,125 mg. 62,5 microg = 1/16 mg, so the collected
+                // result is [| 1/4; 1/16; 1/8 |] mg in input order.
+                test "collect merges mixed mass units (digoxin mg + microgram)" {
+                    let vus =
+                        [|
+                            ValueUnit.create Units.Mass.milliGram [| 1N / 4N |] // 0,25 mg
+                            ValueUnit.create Units.Mass.microGram [| 125N / 2N |] // 62,5 microg
+                            ValueUnit.create Units.Mass.milliGram [| 1N / 8N |] // 0,125 mg
+                        |]
+
+                    let exp =
+                        ValueUnit.create Units.Mass.milliGram [| 1N / 4N; 1N / 16N; 1N / 8N |] |> Some
+
+                    vus
+                    |> ValueUnit.collect
+                    |> Expect.equal "should merge into a single mg ValueUnit" exp
+                }
+
+                // Same unit throughout: identity round-trip of the values.
+                test "collect keeps values when all units are equal" {
+                    let vus =
+                        [|
+                            ValueUnit.create Units.Mass.milliGram [| 1N / 4N |]
+                            ValueUnit.create Units.Mass.milliGram [| 1N / 8N |]
+                        |]
+
+                    let exp = ValueUnit.create Units.Mass.milliGram [| 1N / 4N; 1N / 8N |] |> Some
+
+                    vus
+                    |> ValueUnit.collect
+                    |> Expect.equal "should concatenate without conversion" exp
+                }
+
+                test "collect returns None for an empty array" {
+                    [||] |> ValueUnit.collect |> Expect.isNone "empty input should give None"
+                }
+
+                // Different unit groups (mass vs volume) cannot be collected.
+                test "collect fails for incompatible unit groups" {
+                    let vus =
+                        [|
+                            ValueUnit.create Units.Mass.milliGram [| 1N / 4N |]
+                            ValueUnit.create Units.Volume.milliLiter [| 1N |]
+                        |]
+
+                    (fun () -> vus |> ValueUnit.collect |> ignore)
+                    |> Expect.throws "mixing mass and volume should throw"
+                }
+            ]
+
+
 module EquationsTests =
 
     // Golden reference: the full "Equations" sheet. Each entry is the equation
@@ -1296,4 +1360,5 @@ let tests =
             DosePrintoutTests.tests
             PatientConstructorTests.tests
             MedicationParserTests.tests
+            OrderVariableTests.tests
         ]
