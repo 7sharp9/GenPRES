@@ -684,6 +684,43 @@ module DoseRule =
         |> Array.map (fun (unitGroup, dr) -> { dr with Id = dr |> setDoseRuleHashId unitGroup })
 
 
+    /// <summary>
+    /// Drop empty (meaningless) limits and dose rules from the forward output.
+    /// </summary>
+    /// <remarks>
+    /// The forward map keeps a row as long as it passes <c>validateData</c> (dose
+    /// type / schedule completeness), which does NOT check for the presence of any
+    /// dose limit. As a result a row with no dose values yields a dose rule whose
+    /// limits are all empty — no dosing meaning. This pass removes them:
+    /// <para>- substance limits carrying no values (mirrors the component branch in
+    /// <c>mapToComponentLimits</c>, which already filters with <c>hasNoLimits</c>);</para>
+    /// <para>- component limits left with no component limit AND no substance limits;</para>
+    /// <para>- dose rules left with no component limits.</para>
+    /// </remarks>
+    let removeEmptyLimits (drs: DoseRule[]) =
+        drs
+        |> Array.map (fun dr ->
+            { dr with
+                ComponentLimits =
+                    dr.ComponentLimits
+                    |> Array.choose (fun cl ->
+                        let substLims = cl.SubstanceLimits |> Array.filter (DoseLimit.hasNoLimits >> not)
+                        let cmpLim = cl.Limit |> Option.filter (DoseLimit.hasNoLimits >> not)
+
+                        if substLims |> Array.isEmpty && cmpLim |> Option.isNone then
+                            None
+                        else
+                            Some
+                                { cl with
+                                    Limit = cmpLim
+                                    SubstanceLimits = substLims
+                                }
+                    )
+            }
+        )
+        |> Array.filter (_.ComponentLimits >> Array.isEmpty >> not)
+
+
     // -----------------------------------------------------------------------
     // Reverse mapping  DoseRule -> DoseRuleData[]
     //

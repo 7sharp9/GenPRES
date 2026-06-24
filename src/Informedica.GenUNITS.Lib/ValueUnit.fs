@@ -3,7 +3,6 @@ namespace Informedica.GenUnits.Lib
 open Informedica.Utils.Lib.BCL
 
 open Informedica.Utils.Lib
-open Informedica.Utils.Lib.BCL
 
 
 /// A ValueUnit pairs an array of values with a Unit. Declared at namespace

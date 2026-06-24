@@ -143,7 +143,10 @@ module DoseRuleLoader =
         |> Async.Parallel
         |> Async.RunSynchronously
         |> Array.collect id
-        |> Array.append head,
+        |> Array.append head
+        // drop dose rules left with no meaningful limits (a row that passes
+        // validateData but carries no dose values yields an empty dose rule)
+        |> DoseRule.removeEmptyLimits,
         Array.append warnings dedupWarnings |> Array.map Warning |> Array.toList
 
 
