@@ -61,7 +61,9 @@ module ValueUnit =
         | None -> None
         | Some vu ->
             let u = vu |> getUnit
-
+            // TODO: investigate whether this is too strict and should
+            // be relaxed to equal unit group, but then needs to converted
+            // to same unit base case
             if vus |> Array.forall (getUnit >> Units.eqsUnit u) |> not then
                 let details =
                     vus

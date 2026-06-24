@@ -527,6 +527,9 @@ module DoseRuleProductTests =
 
     /// Build a DoseRuleData row with the given generic, route and narrowing.
     /// Component is set to the generic so products match by component name.
+    /// A component dose value is set so the built rule carries a real limit and
+    /// is not dropped by DoseRule.removeEmptyLimits (these fixtures exercise
+    /// product attachment, not limits).
     let mkData gen rte form brand gpks hpks : DoseRuleData =
         { baseData with
             Route = rte
@@ -538,7 +541,15 @@ module DoseRuleProductTests =
                     GPKs = gpks
                     HPKs = hpks
                 }
-            ScheduleData = { emptySched with DoseLimitData = { emptyDL with Component = gen } }
+            ScheduleData =
+                { emptySched with
+                    DoseLimitData =
+                        { emptyDL with
+                            Component = gen
+                            DoseUnit = "mg"
+                            MaxQty = Some(BigRational.FromInt 100)
+                        }
+                }
         }
 
 
@@ -589,6 +600,7 @@ module DoseRuleProductTests =
                         { emptyDL with
                             Component = cmp
                             Substance = subst
+                            DoseUnit = "mg"
                             MaxQty = maxQty |> Option.map BigRational.FromInt
                         }
                 }
@@ -670,6 +682,8 @@ module DoseRuleProductTests =
                                         { emptyDL with
                                             Component = "amoxicilline/clavulaanzuur"
                                             Substance = "amoxicilline"
+                                            DoseUnit = "mg"
+                                            MaxQty = Some(BigRational.FromInt 500)
                                         }
                                 }
                         }
@@ -703,6 +717,8 @@ module DoseRuleProductTests =
                                         { emptyDL with
                                             Component = "amoxicilline/clavulaanzuur"
                                             Substance = subst
+                                            DoseUnit = "mg"
+                                            MaxQty = Some(BigRational.FromInt 250)
                                         }
                                 }
                         }
@@ -852,6 +868,31 @@ module DoseRuleProductTests =
 
                     (a.RowId = c.RowId) |> Expect.isFalse "different substance => differing RowId"
                 }
+
+                // --- empty-dose-rule removal (DoseRule.removeEmptyLimits) ---
+                // A row that PASSES validateData (Once needs no schedule plumbing)
+                // but carries NO dose values yields a dose rule whose only limit is
+                // empty — no dosing meaning. fromData must drop it.
+
+                test "fromData drops a dose rule whose only limit is empty" {
+                    buildRules [| mkRow "citalopram" "citalopram" None |]
+                    |> Expect.isEmpty "an all-empty-limit row produces no dose rule"
+                }
+
+                test "fromData keeps a dose rule that carries a real limit" {
+                    let rules = buildRules [| mkRow "citalopram" "citalopram" (Some 100) |]
+
+                    rules
+                    |> Array.isEmpty
+                    |> Expect.isFalse "the row with a dose value yields a rule"
+
+                    rules
+                    |> Array.forall (fun dr ->
+                        dr.ComponentLimits
+                        |> Array.exists (fun cl -> cl.SubstanceLimits |> Array.exists (DoseLimit.hasNoLimits >> not))
+                    )
+                    |> Expect.isTrue "every surviving rule carries a non-empty substance limit"
+                }
             ]
 
 
@@ -943,7 +984,7 @@ module DoseRuleToDataTests =
                 }
 
                 test "a substance limit reverses to a substance row (CmpBased = false)" {
-                    let rev = roundTrip [| DP.mkRow "citalopram" "citalopram" None |]
+                    let rev = roundTrip [| DP.mkRow "citalopram" "citalopram" (Some 20) |]
 
                     rev
                     |> Array.exists (fun r ->

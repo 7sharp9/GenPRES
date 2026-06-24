@@ -9,69 +9,92 @@ open Informedica.GenCore.Lib.Ranges
 
 
 /// <summary>
-/// Round-trip CHECK for the reverse map <c>DoseRule -&gt; DoseRuleData[]</c>.
+/// Round-trips data through the reverse map `DoseRule.toData` to check it.
 /// </summary>
 /// <remarks>
-/// The reverse map itself (<c>DoseRule.toData</c>) lives in <c>DoseRule.fs</c>; this
-/// module only exercises it and reports rows that fail FORWARD (one-directional)
-/// containment.
-///
-/// <c>runPass</c> reverses every forward-rebuilt rule, <c>distinct</c>s the result,
-/// then verifies FORWARD only that every surviving input row is CONTAINED in some
-/// generated row with the same categorical identity. The generated row may carry
-/// MORE quantitative information (one-directional). Categorical identity is matched
-/// by exact string; quantitative values are compared as canonical tokens
-/// (<c>ValueUnit.toToken</c> / <c>Limit.toToken</c>) so base-unit normalization
-/// (1000 mg == 1 g) holds and incl|/excl| keep &gt;5 and &gt;=5 distinct.
-///
-/// PASS 1 runs on the source data; PASS 2 feeds PASS 1's generated output back in
-/// (a fixpoint check). PASS 2 reaches ~100% containment because the generated set
-/// is already forward-canonicalized. It is NOT an exact set-equality fixpoint: rows
-/// sharing the same categorical identity but differing only in dose VALUES are
-/// folded by the forward merge (<c>setDataHashIds</c> keys on identity, EXCLUDING
-/// dose values), so PASS 2's re-forward collapses them into one wider row. They stay
-/// CONTAINED. This is a forward-side merge-granularity property, not a reverse
-/// defect — <c>toData</c> reconstructs GPK/HPK narrowing exactly.
+/// <para>
+/// The reverse map lives in `DoseRule.fs`; this module just runs it and reports
+/// which rows make the trip.
+/// </para>
+/// <para>
+/// The forward map gives every rule identity (source, generic, route, ..., dose type
+/// + dose text) a single dose rule, so it merges all source rows that share an
+/// identity into one. Reversing that rule cannot recover the separate inputs, so
+/// instead of checking input = output, `runPass` checks CONTAINMENT: every input
+/// row matches some output row with the same identity (the output may hold more
+/// detail). Quantities are compared in canonical units, so 1000 mg and 1 g count as
+/// equal.
+/// </para>
+/// <para>
+/// PASS 1 runs on the source data; a row going missing means the source put distinct
+/// content under one identity — it does not fit the model. PASS 2 re-runs on PASS 1's
+/// output, which already has one rule per identity, so everything is contained: a
+/// fixpoint.
+/// </para>
 /// </remarks>
 module Analyze =
 
+    /// <summary>
     /// Result of a single round-trip pass: the generated (reverse-of-forward,
-    /// deduped) dataset plus the FORWARD containment statistics.
+    /// merged) dataset plus the FORWARD containment statistics.
+    /// </summary>
     type PassResult =
         {
             Label: string
-            InputCount: int
-            SurvivingCount: int
-            ForwardCount: int
-            GeneratedCount: int
+            // number of input dose rule data rows
+            InputDataCount: int
+            // input rows that pass validation AND carry a substance or a dose limit
+            SurvivingDataCount: int
+            // non-empty dose rules generated from the validated rows (empty-limit rules dropped)
+            ForwardDoseRuleCount: int
+            // distinct dose rule data rows reverse-generated from the forward dose rules
+            GeneratedDataCount: int
             // input rows not contained in any same-identity generated row
             Missing: DoseRuleData[]
             // missing because no generated row shares the categorical identity
             NoIdMatch: DoseRuleData[]
             // missing because identity matched but quantitative values were not contained
             QuantMiss: DoseRuleData[]
-            // reverse-of-forward, deduped (feeds the next pass)
+            // reverse-of-forward, merged (feeds the next pass)
             Generated: DoseRuleData[]
             // generated rows indexed by categorical identity (for reasonLines)
             GenById: Map<string, DoseRuleData[]>
-            Pct: float
         }
 
-    /// Direct fixpoint delta between two generated sets: is
-    /// <c>toData(forward(gen1)) == gen1</c> exactly? <c>Collapsed</c> are the rows
-    /// PASS 1 produced but PASS 2 subsumed (same-identity dose-value folds).
+        /// <summary>
+        /// Forward round-trip percentage: share of surviving input rows contained
+        /// in a same-identity generated row. Derived from SurvivingDataCount and Missing.
+        /// </summary>
+        member this.Pct =
+            100.0 * float (this.SurvivingDataCount - this.Missing.Length)
+            / float (max 1 this.SurvivingDataCount)
+
+
+    /// <summary>
+    /// Compares PASS 1 output (gen1) with PASS 2 output (gen2 = reverse-of-forward
+    /// of gen1). An exact fixpoint means gen2 equals gen1 (compared by rowKey). It
+    /// is NOT exact: the second forward merges rows sharing a categorical identity
+    /// but differing in dose values (the merge keys on identity, ignoring dose
+    /// values), so those gen1 rows vanish in gen2. A forward-side fold, not a
+    /// reverse-map defect.
+    /// </summary>
     type FixpointDelta =
         {
+            // number of rows in PASS 1 output (gen1)
             Gen1Count: int
+            // number of rows in PASS 2 output (gen2 = reverse-of-forward of gen1)
             Gen2Count: int
+            // gen1 rowKeys absent from gen2 (rows folded away by the second forward)
             InP1NotP2: int
+            // gen2 rowKeys absent from gen1 (rows that appear only after re-forwarding)
             InP2NotP1: int
+            // the actual gen1 rows that vanish in gen2 (same-identity dose-value folds)
             Collapsed: DoseRuleData[]
         }
 
 
-    let brStr (br: BigRational option) =
-        br |> Option.map _.ToString() |> Option.defaultValue ""
+    let brStr = Option.map _.ToString() >> Option.defaultValue ""
+
 
     let genKey (g: GenericData) =
         [
@@ -82,6 +105,7 @@ module Analyze =
             g.HPKs |> Array.sort |> String.concat ","
         ]
         |> String.concat "~"
+
 
     let patKey (p: PatientCategoryData) =
         // Location recovered. When IsAdult, ages are masked (forward sets IsAdult).
@@ -106,14 +130,15 @@ module Analyze =
         |> String.concat "~"
 
 
+    /// <summary>
     /// Populated dose-limit leaves of a row, built by the library's OWN parser
     /// (getDoseLimits builds the mg/kg/day composites and drops values whose unit is
     /// absent, exactly as the forward path does). One row -> one DoseLimit.
+    /// </summary>
     let doseLeaves (d: DoseRuleData) : Map<string, string> =
-        let limTok (lim: Limit option) =
-            // Limit.toToken keeps the inclusive/exclusive distinction (incl|/excl|)
-            // on top of the canonical ValueUnit.toToken, so >5 and >=5 don't collide.
-            lim |> Option.map Limit.toToken
+        // Limit.toToken keeps the inclusive/exclusive distinction (incl|/excl|)
+        // on top of the canonical ValueUnit.toToken, so >5 and >=5 don't collide.
+        let limTok = Option.map Limit.toToken
 
         DoseRule.getDoseLimits [| d |]
         |> Array.collect (fun dl ->
@@ -135,10 +160,13 @@ module Analyze =
         |> Array.choose (fun (k, v) -> v |> Option.map (fun t -> k, t))
         |> Map.ofArray
 
+
+    /// <summary>
     /// Populated schedule time leaves (administration / interval / duration) as base tokens.
+    /// </summary>
     let schedLeaves (d: DoseRuleData) : Map<string, string> =
         let timeTok (b: BigRational option) (us: string) =
-            match b, (us |> Utils.Units.timeUnit) with
+            match b, us |> Utils.Units.timeUnit with
             | Some v, Some u -> ValueUnit.singleWithUnit u v |> ValueUnit.toToken |> Some
             | Some v, None -> $"%s{string v} %s{us |> String.trim}" |> Some
             | None, _ -> None
@@ -156,11 +184,14 @@ module Analyze =
         |> List.choose (fun (k, v) -> v |> Option.map (fun t -> k, t))
         |> Map.ofList
 
+
+    /// <summary>
     /// Frequency set, one canonical token per value. Mirrors the forward path,
-    /// which builds DoseRule.Frequencies with `Utils.Units.freqUnit` (times/<time>)
+    /// which builds DoseRule.Frequencies with `Utils.Units.freqUnit` (times/time)
     /// and `ValueUnit.withUnit`, then normalizes via `ValueUnit.toToken` so equivalent
     /// time-units collapse. Per-value tokens keep the subset semantics used by
     /// `containedIn`.
+    /// </summary>
     let freqSet (d: DoseRuleData) : Set<string> =
         let s = d.ScheduleData
 
@@ -174,8 +205,11 @@ module Analyze =
             |> Array.map (fun f -> $"%s{string f}/%s{s.FreqUnit |> String.trim}")
             |> Set.ofArray
 
+
+    /// <summary>
     /// Categorical identity of a row (exact). Excludes generated Id/GrpId/SortNo and
     /// the quantitative values (compared separately, semantically).
+    /// </summary>
     let idKey (d: DoseRuleData) =
         [
             d.Source
@@ -190,14 +224,15 @@ module Analyze =
             d.ScheduleData.DoseText
             d.ScheduleData.DoseLimitData.Component
             d.ScheduleData.DoseLimitData.Substance
-            string d.ScheduleData.DoseLimitData.CmpBased
         ]
         |> String.concat "||"
 
+
+    /// <summary>
     /// Full row key for dedup (identity + all quantitative leaves, base-normalized).
+    /// </summary>
     let rowKey (d: DoseRuleData) =
-        let m2s (m: Map<string, string>) =
-            m |> Map.toList |> List.map (fun (k, v) -> k + "=" + v) |> String.concat ";"
+        let m2s = Map.toList >> List.map (fun (k, v) -> k + "=" + v) >> String.concat ";"
 
         [
             idKey d
@@ -208,11 +243,16 @@ module Analyze =
         |> String.concat "##"
 
 
+    /// <summary>
     /// original row is CONTAINED in a generated row: every quantitative value present
     /// in the original equals the generated's; the generated may carry MORE values.
     /// (identity is matched separately, before calling this.)
+    /// </summary>
+    /// <param name="gen">The generated row that may contain the original.</param>
+    /// <param name="orig">The original input row being checked for containment.</param>
+    /// <returns>True when every quantitative leaf of `orig` is present and equal in `gen`.</returns>
     let containedIn (gen: DoseRuleData) (orig: DoseRuleData) =
-        /// every entry in the smaller map equals the corresponding entry in the larger one
+        // every entry in the smaller map equals the corresponding entry in the larger one
         let subMap (om: Map<string, string>) (gm: Map<string, string>) =
             om
             |> Map.forall (fun k v ->
@@ -245,8 +285,10 @@ module Analyze =
         ]
         |> List.forall Option.isNone
 
+    /// <summary>
     /// surviving rows of any dataset = valid rows (forward keeps them), minus
     /// empty-limit no-substance rows (forward keeps them but they reverse to nothing).
+    /// </summary>
     let surviving (data: DoseRuleData[]) =
         data
         |> Array.filter (fun d -> DoseRuleData.validateData d |> List.isEmpty)
@@ -275,9 +317,14 @@ module Analyze =
             s
             (trunc 80 d.ScheduleText)
 
+    /// <summary>
     /// The reason line(s) why a single input row is missing, against a pass's
-    /// <c>GenById</c>: picks the generated sibling that matches the most leaves and
+    /// `GenById`: picks the generated sibling that matches the most leaves and
     /// shows what it lacks.
+    /// </summary>
+    /// <param name="genById">Generated rows indexed by categorical identity.</param>
+    /// <param name="orig">The missing input row to explain.</param>
+    /// <returns>Human-readable lines describing which leaves the best sibling lacks.</returns>
     let reasonLines (genById: Map<string, DoseRuleData[]>) (orig: DoseRuleData) : string list =
         match genById.TryFind(idKey orig) with
         | None -> [ "no identity match" ]
@@ -311,10 +358,15 @@ module Analyze =
             ]
 
 
+    /// <summary>
     /// One round-trip + FORWARD containment check over <paramref name="input"/>.
-    /// Pure: returns the <c>PassResult</c> (stats + generated set); does not print.
-    /// <paramref name="forward"/> rebuilds DoseRuleData[] -> DoseRule[] (passed in so
-    /// this module stays free of any live provider).
+    /// Pure: returns the `PassResult` (stats + generated set); does not print.
+    /// </summary>
+    /// <param name="forward">Rebuilds DoseRuleData[] -> DoseRule[] (passed in so this
+    /// module stays free of any live provider).</param>
+    /// <param name="label">Human-readable name identifying the pass (for reporting).</param>
+    /// <param name="input">The dose rule data rows to round-trip and check.</param>
+    /// <returns>The `PassResult` with statistics and the generated dataset.</returns>
     let runPass (forward: DoseRuleData[] -> DoseRule[]) (label: string) (input: DoseRuleData[]) : PassResult =
         let survivingInput = surviving input
         let fwd = input |> forward
@@ -333,26 +385,26 @@ module Analyze =
         let noIdMatch, quantMiss =
             missing |> Array.partition (fun o -> genById.ContainsKey(idKey o) |> not)
 
-        let pct =
-            100.0 * float (survivingInput.Length - missing.Length)
-            / float (max 1 survivingInput.Length)
-
         {
             Label = label
-            InputCount = input.Length
-            SurvivingCount = survivingInput.Length
-            ForwardCount = fwd.Length
-            GeneratedCount = generated.Length
+            InputDataCount = input.Length
+            SurvivingDataCount = survivingInput.Length
+            ForwardDoseRuleCount = fwd.Length
+            GeneratedDataCount = generated.Length
             Missing = missing
             NoIdMatch = noIdMatch
             QuantMiss = quantMiss
             Generated = generated
             GenById = genById
-            Pct = pct
         }
 
+    /// <summary>
     /// Direct fixpoint delta: rows in <paramref name="gen1"/> not in
-    /// <paramref name="gen2"/> (and vice versa), keyed by <c>rowKey</c>.
+    /// <paramref name="gen2"/> (and vice versa), keyed by `rowKey`.
+    /// </summary>
+    /// <param name="gen1">PASS 1 generated dataset.</param>
+    /// <param name="gen2">PASS 2 generated dataset (reverse-of-forward of gen1).</param>
+    /// <returns>The `FixpointDelta` with the per-direction counts and collapsed rows.</returns>
     let fixpointDelta (gen1: DoseRuleData[]) (gen2: DoseRuleData[]) : FixpointDelta =
         let g1Keys = gen1 |> Array.map rowKey |> Set.ofArray
         let g2Keys = gen2 |> Array.map rowKey |> Set.ofArray
@@ -373,24 +425,35 @@ module Analyze =
 /// </summary>
 module Export =
 
+    /// <summary>
     /// PURE rebuild: DoseRuleData[] -> DoseRule[] via the loader (warnings dropped).
     /// Kept free of the (expensive) G-Standaard check so the round-trip passes stay
     /// fast — the check is irrelevant to containment and is run once, on export.
-    let forward (provider: Resources.IResourceProvider) (data: DoseRuleData[]) : DoseRule[] =
+    /// </summary>
+    /// <param name="provider">Resource provider supplying route mappings, form routes and products.</param>
+    /// <param name="data">The dose rule data rows to rebuild into dose rules.</param>
+    /// <returns>The forward-built dose rules (loader warnings discarded).</returns>
+    let forward (provider: Resources.IResourceProvider) data =
         DoseRuleLoader.fromData (provider.GetRouteMappings()) (provider.GetFormRoutes()) (provider.GetProducts()) data
         |> fst
 
+    /// <summary>
     /// Attach the no-patient G-Standaard check to each rule, in parallel.
     /// `Check` is a RuleCheck { FreqCheck; DoseCheck }: the graded signals (severity
-    /// <> Within) split by kind — FrequencyMismatch -> FreqCheck, the dose-limit
+    /// other than Within) split by kind — FrequencyMismatch -> FreqCheck, the dose-limit
     /// severities (over norm/absolute, under norm, unit mismatch, no monitoring) ->
     /// DoseCheck. None when there is nothing to report (limits agree with G-Standaard).
-    ///
+    /// </summary>
+    /// <remarks>
     /// G-Standaard dose-rule check WITHOUT a specific patient: the patient only scopes
     /// the G-Standaard query; the actual narrowing is done by the rule's OWN category,
     /// so an empty base patient (`Patient.patient`) returns the full G-Standaard dose
     /// set and the check is scoped purely by the rule itself.
-    let withChecks (provider: Resources.IResourceProvider) (drs: DoseRule[]) : DoseRule[] =
+    /// </remarks>
+    /// <param name="provider">Resource provider supplying the G-Standaard provider.</param>
+    /// <param name="drs">The dose rules to annotate with check signals.</param>
+    /// <returns>The dose rules with their `Check` field populated.</returns>
+    let withChecks (provider: Resources.IResourceProvider) drs =
         let gStand = provider.GetGStandProvider()
 
         // annotate: `Check` is a field on both DoseRule and DoseRuleData, so the
@@ -425,11 +488,17 @@ module Export =
         // most once even under this parallel map.
         drs |> Array.Parallel.map check
 
+
+    /// <summary>
     /// Build the final export dataset from a (fixpoint) generated set: forward-rebuild,
     /// attach the G-Standaard check, reverse to data, dedup, then restamp RowId/RuleId/
     /// GrpId and number SortNo within each group exactly as the loader does. Single
     /// check pass — PASS 2 is a fixpoint, so re-forwarding the input is cheap.
-    let exportData (provider: Resources.IResourceProvider) (generated: DoseRuleData[]) : DoseRuleData[] =
+    /// </summary>
+    /// <param name="provider">Resource provider for the forward rebuild and G-Standaard check.</param>
+    /// <param name="generated">The (fixpoint) generated dataset to canonicalize and check.</param>
+    /// <returns>The checked, deduped, restamped dose rule data ready for export.</returns>
+    let exportData (provider: Resources.IResourceProvider) generated =
         generated
         |> forward provider
         |> withChecks provider
@@ -439,9 +508,15 @@ module Export =
         |> Array.groupBy _.GrpId
         |> Array.collect (snd >> Array.mapi (fun i dd -> { dd with SortNo = i }))
 
+
+    /// <summary>
     /// Write the export dataset as TSV to <paramref name="fileName"/> and return the
     /// resolved path (parent directory found upward from the current directory).
-    let writeExport (fileName: string) (data: DoseRuleData[]) : string =
+    /// </summary>
+    /// <param name="fileName">The TSV file name to write.</param>
+    /// <param name="data">The dose rule data rows to serialize as TSV.</param>
+    /// <returns>The resolved path the file was written to.</returns>
+    let writeExport fileName data =
         data
         |> DoseRuleData.dataToCsv
         |> String.concat "\n"

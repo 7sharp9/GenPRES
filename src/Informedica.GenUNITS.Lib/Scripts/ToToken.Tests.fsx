@@ -13,10 +13,8 @@ open MathNet.Numerics
 open Expecto
 open Expecto.Flip
 
+open Informedica.Utils.Lib.BCL
 open Informedica.GenUnits.Lib
-open Informedica.GenUnits.Lib.ValueUnit
-
-module Units = Informedica.GenUnits.Lib.Units
 
 
 let run = runTestsWithCLIArgs [] [||]
@@ -118,3 +116,9 @@ let tests =
 
 
 tests |> run
+
+let stuk = Units.General.general "stuk"
+let mgPerStuk = 115N |> ValueUnit.singleWithUnit (Units.Mass.milliGram |> ValueUnit.per stuk)
+let mcgPerStuk = 400N |> ValueUnit.singleWithUnit (Units.Mass.microGram |> ValueUnit.per stuk)
+
+ValueUnit.collect
