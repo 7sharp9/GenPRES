@@ -357,6 +357,14 @@ module OrderVariable =
             | _ -> ""
 
 
+        /// Format the defined Max of a `Constraints` as a Dutch short decimal
+        /// value-unit string at the given precision, returning None when no Max
+        /// constraint is set.
+        let toMaxString prec (cs: Constraints) =
+            cs.Max
+            |> Option.map (Maximum.toValueUnit >> ValueUnit.toStringDecimalDutchShortWithPrec prec)
+
+
         /// <summary>
         /// Map the functions, fMin, fMax, fIncr and fVals over the `Constraints` record
         /// </summary>
