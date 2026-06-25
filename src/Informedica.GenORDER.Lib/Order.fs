@@ -661,9 +661,23 @@ module Order =
                     |> doseConstraints
 
 
-                let doseQuantityAdjustConstraints =
-                    fun dos -> dos.QuantityAdjust |> QuantityAdjust.toOrdVar
-                    |> doseConstraints
+                let doseQuantityAdjustConstraints prec dos =
+                    let s =
+                        (dos |> inf).QuantityAdjust
+                        |> QuantityAdjust.toOrdVar
+                        |> _.DefinedConstraints
+                        |> OrderVariable.Constraints.toMinMaxString prec
+
+                    match
+                        (dos.Quantity |> Quantity.toOrdVar).DefinedConstraints
+                        |> OrderVariable.Constraints.toMaxString prec
+                    with
+                    | None -> s
+                    | Some max ->
+                        if s |> String.isNullOrWhiteSpace then
+                            $"max. {max}"
+                        else
+                            $"{s}, max. {max}"
 
 
                 let dosePerTimeConstraints =
@@ -671,9 +685,23 @@ module Order =
                     |> doseConstraints
 
 
-                let dosePerTimeAdjustConstraints =
-                    fun dos -> dos.PerTimeAdjust |> PerTimeAdjust.toOrdVar
-                    |> doseConstraints
+                let dosePerTimeAdjustConstraints prec dos =
+                    let s =
+                        (dos |> inf).PerTimeAdjust
+                        |> PerTimeAdjust.toOrdVar
+                        |> _.DefinedConstraints
+                        |> OrderVariable.Constraints.toMinMaxString prec
+
+                    match
+                        (dos.PerTime |> PerTime.toOrdVar).DefinedConstraints
+                        |> OrderVariable.Constraints.toMaxString prec
+                    with
+                    | None -> s
+                    | Some max ->
+                        if s |> String.isNullOrWhiteSpace then
+                            $"max. {max}"
+                        else
+                            $"{s}, max. {max}"
 
 
                 let doseRateConstraints =
@@ -681,9 +709,23 @@ module Order =
                     |> doseConstraints
 
 
-                let doseRateAdjustConstraints =
-                    fun dos -> dos.RateAdjust |> RateAdjust.toOrdVar
-                    |> doseConstraints
+                let doseRateAdjustConstraints prec dos =
+                    let s =
+                        (dos |> inf).RateAdjust
+                        |> RateAdjust.toOrdVar
+                        |> _.DefinedConstraints
+                        |> OrderVariable.Constraints.toMinMaxString prec
+
+                    match
+                        (dos.Rate |> Rate.toOrdVar).DefinedConstraints
+                        |> OrderVariable.Constraints.toMaxString prec
+                    with
+                    | None -> s
+                    | Some max ->
+                        if s |> String.isNullOrWhiteSpace then
+                            $"max. {max}"
+                        else
+                            $"{s}, max. {max}"
 
 
             /// Functions to create a Dose Dto and vice versa.
@@ -3923,13 +3965,19 @@ module Order =
                                     |> wrap
                                         Alert
                                         [
+                                            ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
                                             ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar
                                         ]
 
                                     // orderable dose rate adjust
                                     ord.Orderable
                                     |> Orderable.Print.doseRateAdjustTo printMd 3
-                                    |> wrap Alert [ ord.Orderable.Dose.RateAdjust |> RateAdjust.toOrdVar ]
+                                    |> wrap
+                                        Alert
+                                        [
+                                            ord.Orderable.Dose.Rate |> Rate.toOrdVar
+                                            ord.Orderable.Dose.RateAdjust |> RateAdjust.toOrdVar
+                                        ]
 
                                     if ord.Orderable.Dose.RateAdjust |> RateAdjust.isSolved then
                                         ord.Orderable.Dose
@@ -3956,7 +4004,12 @@ module Order =
                                 if useAdj then
                                     itm
                                     |> Orderable.Item.Print.itemDoseRateAdjustTo printMd 3
-                                    |> wrap Alert [ itm.Dose.RateAdjust |> RateAdjust.toOrdVar ]
+                                    |> wrap
+                                        Alert
+                                        [
+                                            itm.Dose.Rate |> Rate.toOrdVar
+                                            itm.Dose.RateAdjust |> RateAdjust.toOrdVar
+                                        ]
 
                                     if itm.Dose.RateAdjust |> RateAdjust.isSolved then
                                         itm.Dose |> Dose.Print.doseRateAdjustConstraints 3 |> withParens |> Valid
@@ -3997,6 +4050,7 @@ module Order =
                                         |> wrap
                                             Alert
                                             [
+                                                ord.Orderable.Dose.PerTime |> PerTime.toOrdVar
                                                 ord.Orderable.Dose.PerTimeAdjust |> PerTimeAdjust.toOrdVar
                                             ]
 
@@ -4064,11 +4118,21 @@ module Order =
                                         if isPerDose then
                                             itm
                                             |> Orderable.Item.Print.itemDoseQuantityAdjustTo printMd 3
-                                            |> wrap Alert [ itm.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar ]
+                                            |> wrap
+                                                Alert
+                                                [
+                                                    itm.Dose.Quantity |> Quantity.toOrdVar
+                                                    itm.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar
+                                                ]
                                         else
                                             itm
                                             |> Orderable.Item.Print.itemDosePerTimeAdjustTo printMd 3
-                                            |> wrap Alert [ itm.Dose.PerTimeAdjust |> PerTimeAdjust.toOrdVar ]
+                                            |> wrap
+                                                Alert
+                                                [
+                                                    itm.Dose.PerTime |> PerTime.toOrdVar
+                                                    itm.Dose.PerTimeAdjust |> PerTimeAdjust.toOrdVar
+                                                ]
 
                                     if tb |> textBlockIsEmpty |> not then
                                         "=" |> Valid
@@ -4142,6 +4206,7 @@ module Order =
                                     |> wrap
                                         Alert
                                         [
+                                            ord.Orderable.Dose.Quantity |> Quantity.toOrdVar
                                             ord.Orderable.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar
                                         ]
 
@@ -4176,7 +4241,12 @@ module Order =
 
                                     itm
                                     |> Orderable.Item.Print.itemDoseQuantityAdjustTo printMd 3
-                                    |> wrap Alert [ itm.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar ]
+                                    |> wrap
+                                        Alert
+                                        [
+                                            itm.Dose.Quantity |> Quantity.toOrdVar
+                                            itm.Dose.QuantityAdjust |> QuantityAdjust.toOrdVar
+                                        ]
 
                                     if itm.Dose.QuantityAdjust |> QuantityAdjust.isSolved then
                                         itm.Dose
