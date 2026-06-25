@@ -934,12 +934,29 @@ module Order =
         let isFieldLoading field =
             isOrderLoading && loadingField = Some field
 
+        // Decrease/increase steps — inner (useCalc = false) and outer/first-last
+        // (useCalc = true) — are reflected immediately via an optimistic value, so the
+        // field must NOT show a loading indicator that would suggest the value hasn't
+        // changed yet. (Navigable first/last use SetMin/SetMax messages, not these, so
+        // they still show loading.)
+        let isOptimisticStep msg =
+            match msg with
+            | DecreaseDoseRateProperty _
+            | IncreaseDoseRateProperty _
+            | DecreaseDoseQuantityProperty _
+            | IncreaseDoseQuantityProperty _
+            | DecreaseComponentQuantityProperty _
+            | IncreaseComponentQuantityProperty _ -> true
+            | _ -> false
+
         // Shadow dispatch to auto-track which field triggered loading
         let dispatch =
             let originalDispatch = dispatch
 
             fun msg ->
-                msgToField msg |> Option.iter (fun f -> setLoadingField (Some f))
+                if not (isOptimisticStep msg) then
+                    msgToField msg |> Option.iter (fun f -> setLoadingField (Some f))
+
                 originalDispatch msg
 
         // Use local state order when available, otherwise fall back to the
@@ -1384,6 +1401,7 @@ module Order =
                                      SetMedianComponentQuantityProperty
                                      IncreaseComponentQuantityProperty
                                      SetMaxComponentQuantityProperty
+                                     (cmp |> Option.bind (_.OrderableQuantity >> ViewHelpers.ovarStep string))
 
                          let warning = cmp |> Option.bind (_.OrderableQuantity.Level >> getWarning)
 
@@ -1533,6 +1551,7 @@ module Order =
                                      SetMedianFrequencyProperty
                                      (fun _ -> IncreaseFrequencyProperty)
                                      SetMaxFrequencyProperty
+                                     None
 
                          let warning = ord.Schedule.Frequency.Level |> getWarning
 
@@ -1573,6 +1592,7 @@ module Order =
                                  let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
                                  // specific case where increase is maximized by dose count
                                  {|
+                                     step = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarStep string
                                      first =
                                          if navigable then
                                              (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
@@ -1634,6 +1654,7 @@ module Order =
                                  SetMedianDoseRateProperty
                                  IncreaseDoseRateProperty
                                  SetMaxDoseRateProperty
+                                 (ord.Orderable.Dose.Rate |> ViewHelpers.ovarStep string)
 
                          let warning = ord.Orderable.Dose.Rate.Level |> getWarning
 
