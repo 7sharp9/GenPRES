@@ -66,8 +66,19 @@ module ViewHelpers =
             )
 
 
-    let createNav dispatch navigable solved setMin (decr: int * bool -> 'Msg) setMed (incr: int * bool -> 'Msg) setMax =
+    let createNav
+        dispatch
+        navigable
+        solved
+        setMin
+        (decr: int * bool -> 'Msg)
+        setMed
+        (incr: int * bool -> 'Msg)
+        setMax
+        step
+        =
         {|
+            step = step
             first =
                 if navigable then
                     (fun (_: int) -> setMin |> dispatch) |> Some
@@ -122,6 +133,59 @@ module ViewHelpers =
             | "" -> [||]
             | s -> [| "range", s |]
         )
+
+
+    /// Build a per-click step function for a solved order variable. Given the net inner
+    /// click delta (single-step buttons, using the DEFINED increment) and the net outer
+    /// click delta (first/last buttons, using the server's CALCULATED increment) it returns
+    /// the (key, label) of the moved value, clamped to the defined range. The increments
+    /// mirror the server (Informedica.GenORDER.Lib.OrderVariable.step): inner uses the
+    /// defined increment, outer follows the server's calculated increment. Used to show
+    /// optimistic feedback that follows the live click count (the badge) before the server
+    /// confirms. Returns None when no increment is available (cannot step locally).
+    let ovarStep (format: decimal -> string) (ovar: OrderVariable) : (int * int -> string * string) option =
+        let firstSnd (vu: Types.ValueUnit) =
+            vu.Value |> Array.tryHead |> Option.map snd
+
+        let definedIncr =
+            [ ovar.DefinedConstraints.Incr; ovar.Variable.Incr ]
+            |> List.tryPick (Option.bind firstSnd)
+
+        // The outer (first/last) buttons follow the server-provided effective increment
+        // (OuterIncr); when the server emits none, the outer step falls back to the
+        // defined increment (i.e. behaves like the inner buttons).
+        let outerIncr = ovar.OuterIncr |> Option.bind firstSnd
+
+        match ovar.Variable.Vals, definedIncr with
+        | Some vals, Some di when di > 0M ->
+            match firstSnd vals with
+            | Some cur ->
+                let unit = vals.Unit
+
+                // Clamp against the DEFINED constraint range (the real allowed bounds),
+                // NOT the solved Variable's own Min/Max — for a solved variable those
+                // collapse to the single value, which would pin every step back to it.
+                let clamp v =
+                    let v =
+                        ovar.DefinedConstraints.Max
+                        |> Option.bind firstSnd
+                        |> Option.map (min v)
+                        |> Option.defaultValue v
+
+                    ovar.DefinedConstraints.Min
+                    |> Option.bind firstSnd
+                    |> Option.map (max v)
+                    |> Option.defaultValue v
+
+                let ci = outerIncr |> Option.defaultValue di
+
+                (fun (innerDelta, outerDelta) ->
+                    let next = (cur + decimal innerDelta * di + decimal outerDelta * ci) |> clamp
+                    string next, $"{format next} {unit}"
+                )
+                |> Some
+            | None -> None
+        | _ -> None
 
 
     let ovarDisplay select (name: string) (format: decimal -> string) minWidth (ovar: OrderVariable) =

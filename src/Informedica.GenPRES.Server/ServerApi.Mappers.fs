@@ -66,7 +66,37 @@ module Mappers =
             dto
 
 
-        let mapToOrderVariable (dto: OrderVariable.Dto.Dto) : Types.OrderVariable =
+        /// The per-click increment used by the outer (first/last) navigation buttons: the
+        /// calculated increment (OrderVariable.step uses CalculatedConstraints.Incr for the
+        /// useCalc path). When `coarse` is given and the calculated increment equals it, the
+        /// count is multiplied by 10 — mirroring the server's role-specific special cases.
+        /// Generic order variables pass None so NO multiple is applied (the ×10 must only
+        /// happen for the rate / quantity that the server actually multiplies). Optional —
+        /// many order variables have no calculated increment.
+        let mapOuterIncr
+            (coarse: Informedica.GenUnits.Lib.ValueUnit option)
+            (dto: OrderVariable.Dto.Dto)
+            : Types.ValueUnit option
+            =
+            dto.Calculated.IncrOpt
+            |> Option.bind ValueUnit.Dto.fromDto
+            |> Option.map (fun calcVu ->
+                let mult =
+                    match coarse with
+                    | Some u when calcVu = u -> BigRational.fromInt 10
+                    | _ -> BigRational.fromInt 1
+
+                (mult |> ValueUnit.singleWithUnit Units.Count.times) * calcVu
+                |> ValueUnit.Dto.toDtoDutchShort
+                |> mapToValueUnit
+            )
+
+
+        let mapToOrderVariableWith
+            (coarse: Informedica.GenUnits.Lib.ValueUnit option)
+            (dto: OrderVariable.Dto.Dto)
+            : Types.OrderVariable
+            =
             let level =
                 match dto.Level with
                 | OrderVariable.Dto.IsNormal -> IsNormal
@@ -79,7 +109,29 @@ module Mappers =
                 (dto.Constraints |> mapToVariable)
                 (dto.Calculated |> mapToVariable)
                 (dto.Variable |> mapToVariable)
+                (dto |> mapOuterIncr coarse)
                 level
+
+
+        // Generic mapping: no outer ×10 multiple (used for every order variable that is
+        // not navigated as a rate or quantity).
+        let mapToOrderVariable = mapToOrderVariableWith None
+
+        let tenthOf u =
+            u |> ValueUnit.singleWithValue (BigRational.fromInt 1 / BigRational.fromInt 10)
+
+        // The server's special "×10" outer-step cases key on these increments: a quantity
+        // increment of 1/10 mL (OrderVariable.stepQuantity) and a rate increment of
+        // 1/10 mL/hour (Dose.stepRate).
+        let mlTenth = Units.Volume.milliLiter |> tenthOf
+
+        let mlPerHourTenth =
+            Units.Volume.milliLiter |> ValueUnit.per Units.Time.hour |> tenthOf
+
+        // The rate / quantity an order navigates DO get the server's ×10 outer step when
+        // their calculated increment is the 1/10 mL[/hour] coarse increment.
+        let mapToRateOrderVariable = mapToOrderVariableWith (Some mlPerHourTenth)
+        let mapToQuantityOrderVariable = mapToOrderVariableWith (Some mlTenth)
 
 
         let mapFromOrderVariable (ov: Types.OrderVariable) : OrderVariable.Dto.Dto =
@@ -101,9 +153,9 @@ module Mappers =
 
         let mapToDose (dto: Order.Orderable.Dose.Dto.Dto) : Dose =
             Models.Order.Dose.create
-                (dto.Quantity |> mapToOrderVariable)
+                (dto.Quantity |> mapToQuantityOrderVariable)
                 (dto.PerTime |> mapToOrderVariable)
-                (dto.Rate |> mapToOrderVariable)
+                (dto.Rate |> mapToRateOrderVariable)
                 (dto.Total |> mapToOrderVariable)
                 (dto.QuantityAdjust |> mapToOrderVariable)
                 (dto.PerTimeAdjust |> mapToOrderVariable)
@@ -155,7 +207,8 @@ module Mappers =
                 dto.Name
                 dto.Form
                 (dto.ComponentQuantity |> mapToOrderVariable)
-                (dto.OrderableQuantity |> mapToOrderVariable)
+                // the component's orderable quantity is navigated as a quantity (×10 outer)
+                (dto.OrderableQuantity |> mapToQuantityOrderVariable)
                 (dto.OrderableCount |> mapToOrderVariable)
                 (dto.OrderQuantity |> mapToOrderVariable)
                 (dto.OrderCount |> mapToOrderVariable)

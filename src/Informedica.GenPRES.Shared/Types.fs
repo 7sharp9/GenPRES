@@ -168,6 +168,10 @@ module Types =
             DefinedConstraints: Variable
             CalculatedConstraints: Variable
             Variable: Variable
+            // The effective "bigger" per-click increment used by the outer (first/last)
+            // navigation buttons, as computed by the server. Optional: only order
+            // variables whose outer step differs from the defined increment emit one.
+            OuterIncr: ValueUnit option
             Level: Level
         }
 

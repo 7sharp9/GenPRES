@@ -14,6 +14,7 @@ module ClickCountingButton =
             {|
                 disabled: bool
                 onClick: int -> unit
+                onStep: unit -> unit
                 icon: JSX.Element
             |})
         =
@@ -66,6 +67,9 @@ module ClickCountingButton =
         let increment () =
             countRef.current <- countRef.current + 1
             setCount countRef.current
+            // notify the consumer of each click so the displayed value can follow
+            // the live count (same instant as the badge updates)
+            props.onStep ()
 
         let handleClick =
             fun (_: Browser.Types.MouseEvent) ->

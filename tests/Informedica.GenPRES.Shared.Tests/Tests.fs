@@ -23,7 +23,7 @@ module Tests =
             let vu vals =
                 Order.ValueUnit.create (vals |> Array.map (fun v -> (string v, v))) "mg" "mass" true "nl" ""
 
-            let ovar = Order.OrderVariable.create "testOrderVar" emptyVar emptyVar emptyVar
+            let ovar = Order.OrderVariable.create "testOrderVar" emptyVar emptyVar emptyVar None
 
 
             let tests =
@@ -32,7 +32,8 @@ module Tests =
                     [
 
                         test "no incr and no vals returns NonNavigable" {
-                            let ovar = Order.OrderVariable.create "test" emptyVar emptyVar emptyVar IsNormal
+                            let ovar =
+                                Order.OrderVariable.create "test" emptyVar emptyVar emptyVar None IsNormal
 
                             match ovar with
                             | Order.OrderVariable.NonNavigable -> ()
@@ -43,7 +44,8 @@ module Tests =
                             let varWithMin =
                                 Order.Variable.create "test" false (vu [| 0m |] |> Some) false None None false None
 
-                            let ovar = Order.OrderVariable.create "test" emptyVar emptyVar varWithMin IsNormal
+                            let ovar =
+                                Order.OrderVariable.create "test" emptyVar emptyVar varWithMin None IsNormal
 
                             match ovar with
                             | Order.OrderVariable.NonNavigable -> ()
@@ -62,7 +64,8 @@ module Tests =
                                     false
                                     (vu [| 1m; 2m; 3m |] |> Some)
 
-                            let ovar = Order.OrderVariable.create "test" emptyVar emptyVar varWithVals IsNormal
+                            let ovar =
+                                Order.OrderVariable.create "test" emptyVar emptyVar varWithVals None IsNormal
 
                             match ovar with
                             | Order.OrderVariable.Selectable -> ()
@@ -73,7 +76,8 @@ module Tests =
                             let varWithVals =
                                 Order.Variable.create "test" false None false None None false (vu [| 5m; 10m |] |> Some)
 
-                            let ovar = Order.OrderVariable.create "test" emptyVar emptyVar varWithVals IsNormal
+                            let ovar =
+                                Order.OrderVariable.create "test" emptyVar emptyVar varWithVals None IsNormal
 
                             match ovar with
                             | Order.OrderVariable.Selectable -> ()
@@ -88,7 +92,7 @@ module Tests =
                                 Order.Variable.create "test" false None false (vu [| 0.5m |] |> Some) None false None
 
                             let ovar =
-                                Order.OrderVariable.create "test" defWithIncr emptyVar varWithOneVal IsNormal
+                                Order.OrderVariable.create "test" defWithIncr emptyVar varWithOneVal None IsNormal
 
                             match ovar with
                             | Order.OrderVariable.Stepable -> ()
@@ -100,7 +104,7 @@ module Tests =
                                 Order.Variable.create "test" false None false None None false (vu [| 1m |] |> Some)
 
                             let ovar =
-                                Order.OrderVariable.create "test" emptyVar emptyVar varWithOneVal IsNormal
+                                Order.OrderVariable.create "test" emptyVar emptyVar varWithOneVal None IsNormal
 
                             match ovar with
                             | Order.OrderVariable.NonNavigable -> ()
@@ -123,7 +127,7 @@ module Tests =
                                 Order.Variable.create "test" false None false (vu [| 1m |] |> Some) None false None
 
                             let ovar =
-                                Order.OrderVariable.create "test" defWithIncr emptyVar varWithMinMax IsNormal
+                                Order.OrderVariable.create "test" defWithIncr emptyVar varWithMinMax None IsNormal
 
                             match ovar with
                             | Order.OrderVariable.Navigable -> ()
@@ -138,7 +142,7 @@ module Tests =
                                 Order.Variable.create "test" false None false (vu [| 1m |] |> Some) None false None
 
                             let ovar =
-                                Order.OrderVariable.create "test" defWithIncr emptyVar varWithMinOnly IsNormal
+                                Order.OrderVariable.create "test" defWithIncr emptyVar varWithMinOnly None IsNormal
 
                             match ovar with
                             | Order.OrderVariable.NonNavigable -> ()
@@ -153,7 +157,7 @@ module Tests =
                                 Order.Variable.create "test" false None false (vu [| 1m |] |> Some) None false None
 
                             let ovar =
-                                Order.OrderVariable.create "test" defWithIncr emptyVar varWithMaxOnly IsNormal
+                                Order.OrderVariable.create "test" defWithIncr emptyVar varWithMaxOnly None IsNormal
 
                             match ovar with
                             | Order.OrderVariable.NonNavigable -> ()
@@ -176,7 +180,13 @@ module Tests =
                                 Order.Variable.create "test" false None false (vu [| 1m |] |> Some) None false None
 
                             let ovar =
-                                Order.OrderVariable.create "test" defWithIncr emptyVar varWithValsAndMinMax IsNormal
+                                Order.OrderVariable.create
+                                    "test"
+                                    defWithIncr
+                                    emptyVar
+                                    varWithValsAndMinMax
+                                    None
+                                    IsNormal
 
                             match ovar with
                             | Order.OrderVariable.Selectable -> ()

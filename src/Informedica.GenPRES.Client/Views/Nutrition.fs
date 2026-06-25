@@ -880,6 +880,7 @@ module Nutrition =
                                 (SetMedianComponentQuantityProperty cmpName)
                                 (fun (n, uc) -> IncreaseComponentQuantityProperty(cmpName, n, uc))
                                 (SetMaxComponentQuantityProperty cmpName)
+                                (cmp.OrderableQuantity |> ViewHelpers.ovarStep string)
 
                     let qtyWarning = cmp.OrderableQuantity.Level |> getWarning
 
@@ -972,6 +973,7 @@ module Nutrition =
                         let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
 
                         {|
+                            step = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarStep string
                             first =
                                 if navigable then
                                     (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
@@ -1117,6 +1119,7 @@ module Nutrition =
                         SetMedianDoseRateProperty
                         IncreaseDoseRateProperty
                         SetMaxDoseRateProperty
+                        (ord.Orderable.Dose.Rate |> ViewHelpers.ovarStep string)
 
                 let warning = ord.Orderable.Dose.Rate.Level |> getWarning
                 let label = ord.Orderable.Dose.Rate |> ViewHelpers.ovarLabel "infuussnelheid"

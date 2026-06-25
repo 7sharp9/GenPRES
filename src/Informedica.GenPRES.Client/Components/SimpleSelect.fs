@@ -7,6 +7,7 @@ module SimpleSelect =
     open System
     open Fable.Core
     open Fable.Core.JsInterop
+    open Feliz
 
 
     [<JSX.Component>]
@@ -19,6 +20,7 @@ module SimpleSelect =
                 updateSelected: string option -> unit
                 navigate:
                     {|
+                        step: (int * int -> string * string) option
                         first: (int -> unit) option
                         decrease: (int -> unit) option
                         median: (unit -> unit) option
@@ -35,6 +37,49 @@ module SimpleSelect =
         =
 
         let isMobile = Mui.Hooks.useMediaQuery "(max-width:1200px)"
+
+        // Net click deltas accumulated from the nav buttons. Drive an optimistic displayed
+        // value that follows the live click count (the badge) before the server confirms.
+        // Inner = single-step decrease/increase (defined increment); outer = first/last in
+        // step state (calculated increment). Reset when the underlying value changes.
+        let innerDelta, setInnerDelta = React.useState 0
+        let outerDelta, setOuterDelta = React.useState 0
+        let innerRef = React.useRef 0
+        let outerRef = React.useRef 0
+
+        // Use the raw value string as the dependency (a JS primitive compared by value)
+        // so the reset only fires when the underlying value actually changes — boxing an
+        // option would create a new reference every render and reset on every render.
+        let valueKey =
+            props.values |> Array.tryHead |> Option.map fst |> Option.defaultValue ""
+
+        React.useEffect (
+            (fun () ->
+                innerRef.current <- 0
+                outerRef.current <- 0
+                setInnerDelta 0
+                setOuterDelta 0
+            ),
+            [| box valueKey |]
+        )
+
+        let bumpInner sign =
+            fun () ->
+                innerRef.current <- innerRef.current + sign
+                setInnerDelta innerRef.current
+
+        let bumpOuter sign =
+            fun () ->
+                outerRef.current <- outerRef.current + sign
+                setOuterDelta outerRef.current
+
+        // Override the displayed value/selection with the optimistically stepped value.
+        let displayValues, displaySelected =
+            match props.navigate |> Option.bind (fun n -> n.step) with
+            | Some step when innerDelta <> 0 || outerDelta <> 0 ->
+                let k, v = step (innerDelta, outerDelta)
+                [| (k, v) |], Some k
+            | _ -> props.values, props.selected
 
         let selectSlotProps =
             if isMobile then
@@ -57,7 +102,7 @@ module SimpleSelect =
         let clear = fun _ -> None |> props.updateSelected
 
         let items =
-            props.values
+            displayValues
             |> Array.mapi (fun i (k, v) ->
                 JSX.jsx
                     $"""
@@ -70,7 +115,7 @@ module SimpleSelect =
                 """
             )
 
-        let isClear = props.selected |> Option.defaultValue "" |> String.IsNullOrWhiteSpace
+        let isClear = displaySelected |> Option.defaultValue "" |> String.IsNullOrWhiteSpace
 
         let clearButton =
             match props.isLoading, isClear with
@@ -118,6 +163,7 @@ module SimpleSelect =
                             {|
                                 disabled = firstDisabled
                                 onClick = firstClick
+                                onStep = bumpOuter -1
                                 icon = Mui.Icons.FirstPageIcon
                             |}
                         )
@@ -134,6 +180,7 @@ module SimpleSelect =
                             {|
                                 disabled = decreaseDisabled
                                 onClick = decreaseClick
+                                onStep = bumpInner -1
                                 icon = Mui.Icons.SkipPreviousIcon
                             |}
                         )
@@ -150,6 +197,7 @@ module SimpleSelect =
                             {|
                                 disabled = increaseDisabled
                                 onClick = increaseClick
+                                onStep = bumpInner 1
                                 icon = Mui.Icons.SkipNextIcon
                             |}
                         )
@@ -166,6 +214,7 @@ module SimpleSelect =
                             {|
                                 disabled = lastDisabled
                                 onClick = lastClick
+                                onStep = bumpOuter 1
                                 icon = Mui.Icons.LastPageIcon
                             |}
                         )
@@ -255,7 +304,7 @@ module SimpleSelect =
             labelId={props.label + "-label"}
             id={props.label}
             name={props.label}
-            value={props.selected |> Option.defaultValue ""}
+            value={displaySelected |> Option.defaultValue ""}
             onChange={handleChange}
             label={props.label}
             disabled={props.disabled}
