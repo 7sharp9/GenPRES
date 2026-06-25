@@ -81,9 +81,17 @@ module Mappers =
             dto.Calculated.IncrOpt
             |> Option.bind ValueUnit.Dto.fromDto
             |> Option.map (fun calcVu ->
+                // Compare by dimension + base value rather than structural (=) equality:
+                // calcVu is round-tripped through the DTO, so its unit representation may
+                // differ from the locally-constructed constant even when it is the same
+                // physical increment.
+                let sameIncr (target: Informedica.GenUnits.Lib.ValueUnit) =
+                    ValueUnit.eqsGroup calcVu target
+                    && ValueUnit.getBaseValue calcVu = ValueUnit.getBaseValue target
+
                 let mult =
                     match coarse with
-                    | Some u when calcVu = u -> BigRational.fromInt 10
+                    | Some u when sameIncr u -> BigRational.fromInt 10
                     | _ -> BigRational.fromInt 1
 
                 (mult |> ValueUnit.singleWithUnit Units.Count.times) * calcVu

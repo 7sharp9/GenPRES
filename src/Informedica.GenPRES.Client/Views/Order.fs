@@ -934,17 +934,19 @@ module Order =
         let isFieldLoading field =
             isOrderLoading && loadingField = Some field
 
-        // Single-step decrease/increase (useCalc = false) are reflected immediately
-        // via an optimistic value (App.applyOptimisticStep), so the field must NOT
-        // show a loading spinner that would hide that value while the server confirms.
+        // Decrease/increase steps — inner (useCalc = false) and outer/first-last
+        // (useCalc = true) — are reflected immediately via an optimistic value, so the
+        // field must NOT show a loading indicator that would suggest the value hasn't
+        // changed yet. (Navigable first/last use SetMin/SetMax messages, not these, so
+        // they still show loading.)
         let isOptimisticStep msg =
             match msg with
-            | DecreaseDoseRateProperty(_, false)
-            | IncreaseDoseRateProperty(_, false)
-            | DecreaseDoseQuantityProperty(_, false)
-            | IncreaseDoseQuantityProperty(_, false)
-            | DecreaseComponentQuantityProperty(_, false)
-            | IncreaseComponentQuantityProperty(_, false) -> true
+            | DecreaseDoseRateProperty _
+            | IncreaseDoseRateProperty _
+            | DecreaseDoseQuantityProperty _
+            | IncreaseDoseQuantityProperty _
+            | DecreaseComponentQuantityProperty _
+            | IncreaseComponentQuantityProperty _ -> true
             | _ -> false
 
         // Shadow dispatch to auto-track which field triggered loading

@@ -53,7 +53,10 @@ module SimpleSelect =
         let valueKey =
             props.values |> Array.tryHead |> Option.map fst |> Option.defaultValue ""
 
-        React.useEffect (
+        // useLayoutEffect (not useEffect) so the deltas are reset BEFORE the browser
+        // paints the frame on which the server's new value arrives — otherwise that frame
+        // would briefly show newServerValue + staleDelta × increment.
+        React.useLayoutEffect (
             (fun () ->
                 innerRef.current <- 0
                 outerRef.current <- 0
@@ -73,12 +76,15 @@ module SimpleSelect =
                 outerRef.current <- outerRef.current + sign
                 setOuterDelta outerRef.current
 
-        // Override the displayed value/selection with the optimistically stepped value.
+        // Override only the displayed LABEL with the optimistically stepped value, keeping
+        // the original (server-provided) key. The key is a BigRational string the server
+        // recognises, so an in-flight dropdown change still dispatches a valid key; only
+        // the shown text reflects the optimistic step.
         let displayValues, displaySelected =
-            match props.navigate |> Option.bind (fun n -> n.step) with
-            | Some step when innerDelta <> 0 || outerDelta <> 0 ->
-                let k, v = step (innerDelta, outerDelta)
-                [| (k, v) |], Some k
+            match props.navigate |> Option.bind (fun n -> n.step), props.values |> Array.tryHead with
+            | Some step, Some(origKey, _) when innerDelta <> 0 || outerDelta <> 0 ->
+                let _, label = step (innerDelta, outerDelta)
+                [| (origKey, label) |], Some origKey
             | _ -> props.values, props.selected
 
         let selectSlotProps =
