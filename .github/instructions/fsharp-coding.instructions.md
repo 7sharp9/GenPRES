@@ -176,7 +176,6 @@ type Patient = private {
 }
 
 /// Functions for working with Patient instances
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Patient =
     /// Creates a new patient with validation
     let create id name birthDate : Result<Patient, PatientError> =

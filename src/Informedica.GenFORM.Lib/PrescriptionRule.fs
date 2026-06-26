@@ -1,6 +1,5 @@
 namespace Informedica.GenForm.Lib
 
-
 module PrescriptionRule =
 
 

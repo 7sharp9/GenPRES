@@ -1068,8 +1068,9 @@ module DoseRule =
         let compUseAdj =
             dr.ComponentLimits |> Array.choose _.Limit |> Array.exists DoseLimit.useAdjust
 
-        let formUseAdj =
-            dr.FormLimit |> Option.map DoseLimit.useAdjust |> Option.defaultValue false
+        let formUseAdj = false
+        // TODO figure out whether or not to use this
+        //dr.FormLimit |> Option.map DoseLimit.useAdjust |> Option.defaultValue false
 
         substUseAdj || compUseAdj || formUseAdj
 
