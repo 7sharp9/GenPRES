@@ -128,11 +128,34 @@ module Patient =
 
         let isExpanded, setExpanded = React.useState (patient |> canCalculate |> not)
 
-        // Auto-close accordion after 5 seconds when expanded
+        // True while any MUI dropdown / menu / popover / dialog is actually open anywhere
+        // on the page. Collapsing the accordion while one is open reflows the page and
+        // strands the popup (in this view or a child view), so we postpone the close.
+        // A kept-mounted-but-closed overlay (e.g. the language menu uses keepMounted)
+        // stays in the DOM with the MuiModal-hidden class, so it must be excluded;
+        // open Poppers (DataGrid column/filter panels) are mounted only while open.
+        let anyOverlayOpen () =
+            Browser.Dom.document.querySelectorAll(".MuiModal-root:not(.MuiModal-hidden), .MuiPopper-root").length > 0
+
+        // Auto-close the accordion after 5 seconds of inactivity, but postpone the close
+        // while a dropdown is open so the collapse never leaves a dangling select list.
+        // Once everything is closed the user gets a fresh 5s idle window before collapse.
         React.useEffect (
             (fun () ->
                 if isExpanded then
-                    let timeoutId = JS.setTimeout (fun () -> setExpanded false) 5000
+                    let mutable timeoutId = Unchecked.defaultof<_>
+
+                    let rec arm () =
+                        JS.setTimeout
+                            (fun () ->
+                                if anyOverlayOpen () then
+                                    timeoutId <- arm ()
+                                else
+                                    setExpanded false
+                            )
+                            5000
+
+                    timeoutId <- arm ()
                     fun () -> JS.clearTimeout timeoutId
                 else
                     fun () -> ()
