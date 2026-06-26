@@ -72,13 +72,24 @@ module DoseLimit =
     /// then an adjust is used.
     /// </remarks>
     let useAdjust (dl: DoseLimit) =
-        [
-            dl.QuantityAdjust = MinMax.empty
-            dl.PerTimeAdjust = MinMax.empty
-            dl.RateAdjust = MinMax.empty
-        ]
-        |> List.forall id
-        |> not
+        let adj =
+            [
+                dl.QuantityAdjust = MinMax.empty
+                dl.PerTimeAdjust = MinMax.empty
+                dl.RateAdjust = MinMax.empty
+            ]
+            |> List.forall id
+            |> not
+
+        let abs =
+            [
+                dl.Quantity.Min.IsSome && dl.Quantity.Max.IsSome
+                dl.PerTime.Min.IsSome && dl.PerTime.Max.IsSome
+                dl.Rate.Min.IsSome && dl.Rate.Max.IsSome
+            ]
+            |> List.exists id
+
+        adj && not abs
 
 
     let hasNoLimits (dl: DoseLimit) =

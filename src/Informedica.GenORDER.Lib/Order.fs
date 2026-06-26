@@ -669,7 +669,9 @@ module Order =
                         |> OrderVariable.Constraints.toMinMaxString prec
 
                     match
-                        (dos.Quantity |> Quantity.toOrdVar).DefinedConstraints
+                        dos.Quantity
+                        |> Quantity.toOrdVar
+                        |> _.DefinedConstraints
                         |> OrderVariable.Constraints.toMaxString prec
                     with
                     | None -> s

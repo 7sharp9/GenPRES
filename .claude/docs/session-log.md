@@ -131,3 +131,12 @@ Remaining residual after the fix:
   9.4s total (was ~17s; the ~7s product win realized), products=3014 rules=7579 (unchanged);
   parallel output BYTE-IDENTICAL to sequential reference (full structural array equality, not
   just count). Full suite 5476 passed / 0 failed / 2 skipped.
+
+## 2026-06-12 — IR Doseringscontrole V-5-0-1 fit-gap analysis
+
+- Read full text of `~/Downloads/IR Doseringen V-5-0-1.pdf` (Z-Index, 16-09-2025, 38 pp.) via macOS Spotlight importer (no PDF tools installed).
+- Wrote `docs/code-reviews/genform-check-ir-doseringscontrole-v5-0-1-fit-gap.md`: requirement-by-requirement matrix (IR §§ 1.3–4.6.2) vs current Check.fs + ZIndex/ZForm pipeline; markdownlint clean.
+- Confirmed: all 9 findings of the 2026-06-08 review are migrated into source.
+- New gap register G-1..G-8; key open items: zorggroep merged instead of selected (RuleFinder.fs:119-120), PRK/HPK level discarded (ZIndex DoseRule.fs:456), gender gate absent, BSA categories never filter (Check.fs:223 passes bsa=None), ICPC aggregation, IR 3.4.2 frequency-signal suppression missing.
+- Analysis only — no code changed, per user decision.
+- Correction (user): the GenPRES dose check runs at DOSE-RULE level (formulary QA via ServerApi.Services.fs:189-192), NOT at prescription level — a different use case than the IR. Since the solver generates prescriptions that exactly satisfy dose rules, rule-level validation transitively guarantees G-Standaard compliance of prescriptions. Document § 1 rewritten with this framing; all impact statements reworded to rule-validation level.
