@@ -11,17 +11,17 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.Agents.Lib", "s
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.Logging.Lib", "src\Informedica.Logging.Lib\Informedica.Logging.Lib.fsproj", "{32A09B0A-FB0B-4202-81E3-F1B98816CAD3}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.NLP.Lib", "src\Informedica.NLP.Lib\Informedica.NLP.Lib.fsproj", "{4B43746E-379F-434B-B96B-EC8F83EFB145}"
-EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenUNITS.Lib", "src\Informedica.GenUNITS.Lib\Informedica.GenUNITS.Lib.fsproj", "{68208829-ED58-46E6-BB11-9CBF0DAE9362}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenSOLVER.Lib", "src\Informedica.GenSOLVER.Lib\Informedica.GenSOLVER.Lib.fsproj", "{B0FD246E-018D-4972-A2AF-CEB0A060F549}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenCORE.Lib", "src\Informedica.GenCORE.Lib\Informedica.GenCORE.Lib.fsproj", "{07FD2A4F-861A-4255-9BD5-75E0DBF88B48}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.ZIndex.Lib", "src\Informedica.ZIndex.Lib\Informedica.ZIndex.Lib.fsproj", "{EDA2C40D-6491-49EB-BB2E-0DD3893B0DFC}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenSOLVER.Lib", "src\Informedica.GenSOLVER.Lib\Informedica.GenSOLVER.Lib.fsproj", "{B0FD246E-018D-4972-A2AF-CEB0A060F549}"
+EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.ZForm.Lib", "src\Informedica.ZForm.Lib\Informedica.ZForm.Lib.fsproj", "{DC2C8EA6-B871-4876-8C03-07571712C732}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.NLP.Lib", "src\Informedica.NLP.Lib\Informedica.NLP.Lib.fsproj", "{4B43746E-379F-434B-B96B-EC8F83EFB145}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.NKF.Lib", "src\Informedica.NKF.Lib\Informedica.NKF.Lib.fsproj", "{CAD735DD-A6BB-4531-8C86-DC76224CB33E}"
 EndProject
@@ -29,9 +29,13 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.FTK.Lib", "src\
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenFORM.Lib", "src\Informedica.GenFORM.Lib\Informedica.GenFORM.Lib.fsproj", "{6EBBD268-E63C-4C50-93B1-EB2417948C53}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenORDER.Lib", "src\Informedica.GenORDER.Lib\Informedica.GenORDER.Lib.fsproj", "{CD307CB3-8F71-4C7B-B77E-62DAA3BEDE32}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenINTERACT.Lib", "src\Informedica.GenINTERACT.Lib\Informedica.GenINTERACT.Lib.fsproj", "{21CC25CA-AD19-47CC-A160-B855F3454DB0}"
+EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.MCP.Lib", "src\Informedica.MCP.Lib\Informedica.MCP.Lib.fsproj", "{594F9E83-3D20-48DA-B058-D40041C603B4}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenORDER.Lib", "src\Informedica.GenORDER.Lib\Informedica.GenORDER.Lib.fsproj", "{CD307CB3-8F71-4C7B-B77E-62DAA3BEDE32}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.MCP.Server", "src\Informedica.MCP.Server\Informedica.MCP.Server.fsproj", "{217ACB9E-43C7-4138-B650-2DD5A3191F54}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenPRES.Shared", "src\Informedica.GenPRES.Shared\Informedica.GenPRES.Shared.fsproj", "{0E4AAC80-9B72-451C-BD36-5549521912A0}"
 EndProject
@@ -51,13 +55,13 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenUNITS.Tests"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenCORE.Tests", "tests\Informedica.GenCORE.Tests\Informedica.GenCORE.Tests.fsproj", "{E8F6DBF3-0346-4F07-871D-10C0027A4FF2}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenSOLVER.Tests", "tests\Informedica.GenSOLVER.Tests\Informedica.GenSOLVER.Tests.fsproj", "{73EADB63-6923-4135-B3E8-57B5B639DE69}"
-EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.ZIndex.Tests", "tests\Informedica.ZIndex.Tests\Informedica.ZIndex.Tests.fsproj", "{51ED41AE-2B81-49E3-A623-D1F26DCAF17E}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.NLP.Tests", "tests\Informedica.NLP.Tests\Informedica.NLP.Tests.fsproj", "{7DF4BEA2-2E49-4661-9465-5C70F6E9193E}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenSOLVER.Tests", "tests\Informedica.GenSOLVER.Tests\Informedica.GenSOLVER.Tests.fsproj", "{73EADB63-6923-4135-B3E8-57B5B639DE69}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.ZForm.Tests", "tests\Informedica.ZForm.Tests\Informedica.ZForm.Tests.fsproj", "{66176812-9CEC-4F0A-97B5-C724405AAD9E}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.NLP.Tests", "tests\Informedica.NLP.Tests\Informedica.NLP.Tests.fsproj", "{7DF4BEA2-2E49-4661-9465-5C70F6E9193E}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.NKF.Tests", "tests\Informedica.NKF.Tests\Informedica.NKF.Tests.fsproj", "{8D0705FD-1034-49A9-85D1-E0F1F3EE0E73}"
 EndProject
@@ -72,10 +76,6 @@ EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenPRES.Shared.Tests", "tests\Informedica.GenPRES.Shared.Tests\Informedica.GenPRES.Shared.Tests.fsproj", "{32753459-3405-4163-83FC-B9CBA6269DA6}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenPRES.Server.Tests", "tests\Informedica.GenPRES.Server.Tests\Informedica.GenPRES.Server.Tests.fsproj", "{9E7B8210-2551-4B24-82CD-B9D78CC3B38C}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.GenINTERACT.Lib", "src\Informedica.GenINTERACT.Lib\Informedica.GenINTERACT.Lib.fsproj", "{21CC25CA-AD19-47CC-A160-B855F3454DB0}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Informedica.MCP.Server", "src\Informedica.MCP.Server\Informedica.MCP.Server.fsproj", "{217ACB9E-43C7-4138-B650-2DD5A3191F54}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
