@@ -39,6 +39,7 @@
     <None Include="Scratch\load.fsx" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Informedica.Logging.Lib\Informedica.Logging.Lib.fsproj" />
     <ProjectReference Include="..\Informedica.ZForm.Lib\Informedica.ZForm.Lib.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

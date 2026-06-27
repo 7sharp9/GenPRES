@@ -1,4 +1,9 @@
 ﻿namespace Informedica.HIXConnect.Lib
 
+// STUB — placeholder for future implementation (HIX Connect integration).
+// Currently empty and unused.
+// Removed from GenPRES.sln to speed up build/test; re-add the project (and a
+// ProjectReference from its consumers) when real implementation begins.
+
 module Say =
     let hello name = printfn "Hello %s" name
