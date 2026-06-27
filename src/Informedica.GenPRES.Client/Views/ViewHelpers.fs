@@ -68,6 +68,7 @@ module ViewHelpers =
 
     let createNav
         dispatch
+        revision
         navigable
         solved
         setMin
@@ -109,6 +110,7 @@ module ViewHelpers =
                 else
                     None
             useDebounce = not navigable && solved
+            revision = revision
         |}
         |> Some
 

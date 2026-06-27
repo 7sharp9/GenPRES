@@ -934,6 +934,23 @@ module Order =
         let isFieldLoading field =
             isOrderLoading && loadingField = Some field
 
+        // Monotonic counter bumped on every new server response (a fresh Resolved
+        // orderContext). Passed into stepped selects so they reset their optimistic
+        // step value even when the server clamps back to the SAME value (e.g. stepping
+        // past the maximum) — in that case the displayed value never changes, so the
+        // value-based reset alone would leave the stale optimistic value on screen.
+        let revisionRef = React.useRef 0
+        let prevCtxRef = React.useRef props.orderContext
+
+        if not (obj.ReferenceEquals(prevCtxRef.current, props.orderContext)) then
+            prevCtxRef.current <- props.orderContext
+
+            match props.orderContext with
+            | Resolved _ -> revisionRef.current <- revisionRef.current + 1
+            | _ -> ()
+
+        let revision = revisionRef.current
+
         // Decrease/increase steps — inner (useCalc = false) and outer/first-last
         // (useCalc = true) — are reflected immediately via an optimistic value, so the
         // field must NOT show a loading indicator that would suggest the value hasn't
@@ -1191,7 +1208,7 @@ module Order =
                 null
 
         let content =
-            let createNav = ViewHelpers.createNav dispatch
+            let createNav = ViewHelpers.createNav dispatch revision
 
             let contentSx =
                 {|
@@ -1623,6 +1640,7 @@ module Order =
                                          else
                                              None
                                      useDebounce = not navigable && solved
+                                     revision = revision
                                  |}
                                  |> Some
 

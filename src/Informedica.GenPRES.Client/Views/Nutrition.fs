@@ -631,6 +631,20 @@ module Nutrition =
         let ctx = props.nutritionContext.OrderContext
         let ncId = props.nutritionContext.Id
 
+        // Monotonic counter bumped whenever a new server response replaces the order
+        // context. Passed into stepped selects so they reset their optimistic step value
+        // even when the server clamps back to the SAME value (e.g. stepping past the
+        // maximum), where the displayed value never changes and the value-based reset
+        // alone would leave the stale optimistic value on screen.
+        let revisionRef = React.useRef 0
+        let prevCtxRef = React.useRef ctx
+
+        if not (obj.ReferenceEquals(prevCtxRef.current, ctx)) then
+            prevCtxRef.current <- ctx
+            revisionRef.current <- revisionRef.current + 1
+
+        let revision = revisionRef.current
+
         let label =
             match props.nutritionContext.Category with
             | NutritionCategory.EnteralFeeding ->
@@ -873,6 +887,7 @@ module Nutrition =
 
                             ViewHelpers.createNav
                                 dispatch
+                                revision
                                 navigable
                                 solved
                                 (SetMinComponentQuantityProperty cmpName)
@@ -1004,6 +1019,7 @@ module Nutrition =
                                 else
                                     None
                             useDebounce = not navigable && solved
+                            revision = revision
                         |}
                         |> Some
 
@@ -1112,6 +1128,7 @@ module Nutrition =
                 let nav =
                     ViewHelpers.createNav
                         dispatch
+                        revision
                         navigable
                         solved
                         SetMinDoseRateProperty

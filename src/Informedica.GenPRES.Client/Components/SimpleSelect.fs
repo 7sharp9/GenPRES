@@ -27,6 +27,7 @@ module SimpleSelect =
                         increase: (int -> unit) option
                         last: (int -> unit) option
                         useDebounce: bool
+                        revision: int
                     |} option
                 isLoading: bool
                 disabled: bool
@@ -53,6 +54,13 @@ module SimpleSelect =
         let valueKey =
             props.values |> Array.tryHead |> Option.map fst |> Option.defaultValue ""
 
+        // A monotonic counter the parent bumps on every server response. It also resets
+        // the optimistic deltas when the server returns the SAME value as before — e.g.
+        // stepping past the maximum is clamped back to the current value, so valueKey
+        // never changes and would otherwise leave the stale optimistic value displayed.
+        let revision =
+            props.navigate |> Option.map (fun n -> n.revision) |> Option.defaultValue 0
+
         // useLayoutEffect (not useEffect) so the deltas are reset BEFORE the browser
         // paints the frame on which the server's new value arrives — otherwise that frame
         // would briefly show newServerValue + staleDelta × increment.
@@ -63,7 +71,7 @@ module SimpleSelect =
                 setInnerDelta 0
                 setOuterDelta 0
             ),
-            [| box valueKey |]
+            [| box valueKey; box revision |]
         )
 
         let bumpInner sign =
