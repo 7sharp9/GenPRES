@@ -631,6 +631,20 @@ module Nutrition =
         let ctx = props.nutritionContext.OrderContext
         let ncId = props.nutritionContext.Id
 
+        // Monotonic counter bumped whenever a new server response replaces the order
+        // context. Passed into stepped selects so they reset their optimistic step value
+        // even when the server returns the SAME value as before (e.g. a no-op step when
+        // already at the maximum), where the displayed value never changes and the
+        // value-based reset alone would leave the stale optimistic value on screen.
+        let revisionRef = React.useRef 0
+        let prevCtxRef = React.useRef ctx
+
+        if not (obj.ReferenceEquals(prevCtxRef.current, ctx)) then
+            prevCtxRef.current <- ctx
+            revisionRef.current <- revisionRef.current + 1
+
+        let revision = revisionRef.current
+
         let label =
             match props.nutritionContext.Category with
             | NutritionCategory.EnteralFeeding ->
@@ -873,6 +887,7 @@ module Nutrition =
 
                             ViewHelpers.createNav
                                 dispatch
+                                revision
                                 navigable
                                 solved
                                 (SetMinComponentQuantityProperty cmpName)
@@ -951,61 +966,16 @@ module Nutrition =
 
                 let vals = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarValsWithRange string 3
 
-                let showNav =
-                    ord.Orderable.Components
-                    |> Array.forall (fun cmp ->
-                        cmp.OrderableQuantity.Variable.Vals
-                        |> Option.map (fun vu -> vu.Value |> Array.length = 1)
-                        |> Option.defaultValue false
-                    )
-
                 let doseQtyNav =
-                    if not showNav then
-                        None
-                    else
-                        let canIncr =
-                            ord.Orderable.Components |> Array.length = 1
-                            || ord.Orderable.DoseCount.Variable.Vals
-                               |> Option.map (fun vu -> vu.Value |> Array.map snd |> Array.forall (fun v -> v > 1m))
-                               |> Option.defaultValue false
-
-                        let solved = ord |> isSolved
-                        let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
-
-                        {|
-                            step = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarStep string
-                            first =
-                                if navigable then
-                                    (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
-                                elif solved then
-                                    (fun n -> (n, true) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
-                                else
-                                    None
-                            decrease =
-                                if solved then
-                                    (fun n -> (n, false) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
-                                else
-                                    None
-                            median =
-                                if navigable then
-                                    (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
-                                else
-                                    None
-                            increase =
-                                if solved && canIncr then
-                                    (fun n -> (n, false) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
-                                else
-                                    None
-                            last =
-                                if navigable then
-                                    (fun (_: int) -> SetMaxDoseQuantityProperty |> dispatch) |> Some
-                                elif solved && canIncr then
-                                    (fun n -> (n, true) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
-                                else
-                                    None
-                            useDebounce = not navigable && solved
-                        |}
-                        |> Some
+                    ViewHelpers.createDoseQtyNav
+                        dispatch
+                        revision
+                        ord
+                        SetMinDoseQuantityProperty
+                        DecreaseDoseQuantityProperty
+                        SetMedianDoseQuantityProperty
+                        IncreaseDoseQuantityProperty
+                        SetMaxDoseQuantityProperty
 
                 select
                     isLoading
@@ -1112,6 +1082,7 @@ module Nutrition =
                 let nav =
                     ViewHelpers.createNav
                         dispatch
+                        revision
                         navigable
                         solved
                         SetMinDoseRateProperty

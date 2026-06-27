@@ -73,7 +73,7 @@ module Mappers =
         /// Generic order variables pass None so NO multiple is applied (the ×10 must only
         /// happen for the rate / quantity that the server actually multiplies). Optional —
         /// many order variables have no calculated increment.
-        let mapOuterIncr
+        let mapLargeIncr
             (coarse: Informedica.GenUnits.Lib.ValueUnit option)
             (dto: OrderVariable.Dto.Dto)
             : Types.ValueUnit option
@@ -117,7 +117,7 @@ module Mappers =
                 (dto.Constraints |> mapToVariable)
                 (dto.Calculated |> mapToVariable)
                 (dto.Variable |> mapToVariable)
-                (dto |> mapOuterIncr coarse)
+                (dto |> mapLargeIncr coarse)
                 level
 
 

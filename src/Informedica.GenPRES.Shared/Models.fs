@@ -1668,7 +1668,7 @@ module Models =
                     DefinedConstraints = cst
                     CalculatedConstraints = cal
                     Variable = var
-                    OuterIncr = outerIncr
+                    LargeIncr = outerIncr
                     Level = level
                 }
 

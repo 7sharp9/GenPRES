@@ -27,6 +27,7 @@ module SimpleSelect =
                         increase: (int -> unit) option
                         last: (int -> unit) option
                         useDebounce: bool
+                        revision: int
                     |} option
                 isLoading: bool
                 disabled: bool
@@ -40,12 +41,13 @@ module SimpleSelect =
 
         // Net click deltas accumulated from the nav buttons. Drive an optimistic displayed
         // value that follows the live click count (the badge) before the server confirms.
-        // Inner = single-step decrease/increase (defined increment); outer = first/last in
-        // step state (calculated increment). Reset when the underlying value changes.
-        let innerDelta, setInnerDelta = React.useState 0
-        let outerDelta, setOuterDelta = React.useState 0
-        let innerRef = React.useRef 0
-        let outerRef = React.useRef 0
+        // Small = single-step decrease/increase (the defined increment); Large = jump
+        // decrease/increase (the server's larger calculated increment). Reset when the
+        // underlying value or the server revision changes.
+        let smallDelta, setSmallDelta = React.useState 0
+        let largeDelta, setLargeDelta = React.useState 0
+        let smallRef = React.useRef 0
+        let largeRef = React.useRef 0
 
         // Use the raw value string as the dependency (a JS primitive compared by value)
         // so the reset only fires when the underlying value actually changes — boxing an
@@ -53,37 +55,61 @@ module SimpleSelect =
         let valueKey =
             props.values |> Array.tryHead |> Option.map fst |> Option.defaultValue ""
 
+        // A monotonic counter the parent bumps on every server response. It also resets
+        // the optimistic deltas when the server returns the SAME value as before — e.g. a
+        // no-op step (already at the maximum) leaves the current value unchanged, so
+        // valueKey never changes and would otherwise leave a stale optimistic value shown.
+        let revision =
+            props.navigate |> Option.map (fun n -> n.revision) |> Option.defaultValue 0
+
         // useLayoutEffect (not useEffect) so the deltas are reset BEFORE the browser
         // paints the frame on which the server's new value arrives — otherwise that frame
         // would briefly show newServerValue + staleDelta × increment.
         React.useLayoutEffect (
             (fun () ->
-                innerRef.current <- 0
-                outerRef.current <- 0
-                setInnerDelta 0
-                setOuterDelta 0
+                smallRef.current <- 0
+                largeRef.current <- 0
+                setSmallDelta 0
+                setLargeDelta 0
             ),
-            [| box valueKey |]
+            [| box valueKey; box revision |]
         )
 
-        let bumpInner sign =
-            fun () ->
-                innerRef.current <- innerRef.current + sign
-                setInnerDelta innerRef.current
+        let stepFn = props.navigate |> Option.bind (fun n -> n.step)
 
-        let bumpOuter sign =
+        // Only accumulate a click that actually moves the predicted value. When the step
+        // has saturated at a bound (the feasibility ceiling or the increment floor) the
+        // value stops changing; continuing to grow the delta would store invisible
+        // "overflow" that a reversal must first unwind before the value moves again.
+        let changesValue small large =
+            match stepFn with
+            | Some f -> f (small, large) <> f (smallRef.current, largeRef.current)
+            | None -> true
+
+        let bumpSmall sign =
             fun () ->
-                outerRef.current <- outerRef.current + sign
-                setOuterDelta outerRef.current
+                let next = smallRef.current + sign
+
+                if changesValue next largeRef.current then
+                    smallRef.current <- next
+                    setSmallDelta next
+
+        let bumpLarge sign =
+            fun () ->
+                let next = largeRef.current + sign
+
+                if changesValue smallRef.current next then
+                    largeRef.current <- next
+                    setLargeDelta next
 
         // Override only the displayed LABEL with the optimistically stepped value, keeping
         // the original (server-provided) key. The key is a BigRational string the server
         // recognises, so an in-flight dropdown change still dispatches a valid key; only
         // the shown text reflects the optimistic step.
         let displayValues, displaySelected =
-            match props.navigate |> Option.bind (fun n -> n.step), props.values |> Array.tryHead with
-            | Some step, Some(origKey, _) when innerDelta <> 0 || outerDelta <> 0 ->
-                let _, label = step (innerDelta, outerDelta)
+            match stepFn, props.values |> Array.tryHead with
+            | Some step, Some(origKey, _) when smallDelta <> 0 || largeDelta <> 0 ->
+                let _, label = step (smallDelta, largeDelta)
                 [| (origKey, label) |], Some origKey
             | _ -> props.values, props.selected
 
@@ -169,7 +195,7 @@ module SimpleSelect =
                             {|
                                 disabled = firstDisabled
                                 onClick = firstClick
-                                onStep = bumpOuter -1
+                                onStep = bumpLarge -1
                                 icon = Mui.Icons.FirstPageIcon
                             |}
                         )
@@ -186,7 +212,7 @@ module SimpleSelect =
                             {|
                                 disabled = decreaseDisabled
                                 onClick = decreaseClick
-                                onStep = bumpInner -1
+                                onStep = bumpSmall -1
                                 icon = Mui.Icons.SkipPreviousIcon
                             |}
                         )
@@ -203,7 +229,7 @@ module SimpleSelect =
                             {|
                                 disabled = increaseDisabled
                                 onClick = increaseClick
-                                onStep = bumpInner 1
+                                onStep = bumpSmall 1
                                 icon = Mui.Icons.SkipNextIcon
                             |}
                         )
@@ -220,7 +246,7 @@ module SimpleSelect =
                             {|
                                 disabled = lastDisabled
                                 onClick = lastClick
-                                onStep = bumpOuter 1
+                                onStep = bumpLarge 1
                                 icon = Mui.Icons.LastPageIcon
                             |}
                         )
