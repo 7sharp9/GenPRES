@@ -936,8 +936,8 @@ module Order =
 
         // Monotonic counter bumped on every new server response (a fresh Resolved
         // orderContext). Passed into stepped selects so they reset their optimistic
-        // step value even when the server clamps back to the SAME value (e.g. stepping
-        // past the maximum) — in that case the displayed value never changes, so the
+        // step value even when the server returns the SAME value as before (e.g. a no-op
+        // step when already at the maximum) — in that case the displayed value never changes, so the
         // value-based reset alone would leave the stale optimistic value on screen.
         let revisionRef = React.useRef 0
         let prevCtxRef = React.useRef props.orderContext
@@ -1607,9 +1607,54 @@ module Order =
 
                                  let solved = ord |> isSolved
                                  let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
-                                 // specific case where increase is maximized by dose count
+                                 // For a multi-component orderable the dose quantity cannot
+                                 // exceed the prepared orderable quantity. Use it as a feasibility
+                                 // ceiling: the optimistic value stays within it, and an overflowing
+                                 // increase is saturated at the max (saturateInc) instead of overshooting,
+                                 // which the solver would reject — reverting the value. Single
+                                 // component: orderable quantity follows the dose, so no ceiling.
+                                 let doseQtyCeiling = ord |> ViewHelpers.orderableDoseQuantityCeiling
+
+                                 let saturateInc n =
+                                     ord.Orderable.Dose.Quantity
+                                     |> ViewHelpers.incrementStepsToCeiling doseQtyCeiling
+                                     |> Option.map (min n)
+                                     |> Option.defaultValue n
+
+                                 // Outer (first/last) counterpart of saturateInc: clamp the dispatched
+                                 // outer steps so the larger outer increment lands on the last grid
+                                 // point at or below the ceiling instead of overshooting and being
+                                 // reverted by the solver.
+                                 let saturateOuter n =
+                                     ord.Orderable.Dose.Quantity
+                                     |> ViewHelpers.outerIncrementStepsToCeiling doseQtyCeiling
+                                     |> Option.map (min n)
+                                     |> Option.defaultValue n
+
+                                 // Whether a full defined-increment step still fits below the
+                                 // feasibility ceiling. The increment grid cannot generally land
+                                 // exactly on the ceiling, so the server value settles just below it
+                                 // while the optimistic display clamps to the ceiling — leaving
+                                 // DoseCount > 1 (so canIncr stays true) and the increase buttons
+                                 // permanently active despite the field showing the max. Gating on
+                                 // remaining ceiling room disables them once no further step fits.
+                                 let canStepUp =
+                                     ord.Orderable.Dose.Quantity
+                                     |> ViewHelpers.incrementStepsToCeiling doseQtyCeiling
+                                     |> Option.map (fun steps -> steps > 0)
+                                     |> Option.defaultValue true
+
+                                 // Outer counterpart of canStepUp, measured against the outer
+                                 // increment so the last button disables exactly when no further
+                                 // outer step fits below the ceiling.
+                                 let canStepUpOuter =
+                                     ord.Orderable.Dose.Quantity
+                                     |> ViewHelpers.outerIncrementStepsToCeiling doseQtyCeiling
+                                     |> Option.map (fun steps -> steps > 0)
+                                     |> Option.defaultValue true
+
                                  {|
-                                     step = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarStep string
+                                     step = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarStepTo doseQtyCeiling string
                                      first =
                                          if navigable then
                                              (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
@@ -1628,15 +1673,17 @@ module Order =
                                          else
                                              None
                                      increase =
-                                         if solved && canIncr then
-                                             (fun n -> (n, false) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                         if solved && canIncr && canStepUp then
+                                             (fun n -> (saturateInc n, false) |> IncreaseDoseQuantityProperty |> dispatch)
+                                             |> Some
                                          else
                                              None
                                      last =
                                          if navigable then
                                              (fun (_: int) -> SetMaxDoseQuantityProperty |> dispatch) |> Some
-                                         elif solved && canIncr then
-                                             (fun n -> (n, true) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                         elif solved && canIncr && canStepUpOuter then
+                                             (fun n -> (saturateOuter n, true) |> IncreaseDoseQuantityProperty |> dispatch)
+                                             |> Some
                                          else
                                              None
                                      useDebounce = not navigable && solved

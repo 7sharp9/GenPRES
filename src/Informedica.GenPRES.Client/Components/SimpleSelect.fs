@@ -42,7 +42,8 @@ module SimpleSelect =
         // Net click deltas accumulated from the nav buttons. Drive an optimistic displayed
         // value that follows the live click count (the badge) before the server confirms.
         // Inner = single-step decrease/increase (defined increment); outer = first/last in
-        // step state (calculated increment). Reset when the underlying value changes.
+        // step state (calculated increment). Reset when the underlying value or the server
+        // revision changes.
         let innerDelta, setInnerDelta = React.useState 0
         let outerDelta, setOuterDelta = React.useState 0
         let innerRef = React.useRef 0
@@ -55,9 +56,9 @@ module SimpleSelect =
             props.values |> Array.tryHead |> Option.map fst |> Option.defaultValue ""
 
         // A monotonic counter the parent bumps on every server response. It also resets
-        // the optimistic deltas when the server returns the SAME value as before — e.g.
-        // stepping past the maximum is clamped back to the current value, so valueKey
-        // never changes and would otherwise leave the stale optimistic value displayed.
+        // the optimistic deltas when the server returns the SAME value as before — e.g. a
+        // no-op step (already at the maximum) leaves the current value unchanged, so
+        // valueKey never changes and would otherwise leave a stale optimistic value shown.
         let revision =
             props.navigate |> Option.map (fun n -> n.revision) |> Option.defaultValue 0
 
@@ -74,22 +75,39 @@ module SimpleSelect =
             [| box valueKey; box revision |]
         )
 
+        let stepFn = props.navigate |> Option.bind (fun n -> n.step)
+
+        // Only accumulate a click that actually moves the predicted value. When the step
+        // has saturated at a bound (the feasibility ceiling or the increment floor) the
+        // value stops changing; continuing to grow the delta would store invisible
+        // "overflow" that a reversal must first unwind before the value moves again.
+        let changesValue inner outer =
+            match stepFn with
+            | Some f -> f (inner, outer) <> f (innerRef.current, outerRef.current)
+            | None -> true
+
         let bumpInner sign =
             fun () ->
-                innerRef.current <- innerRef.current + sign
-                setInnerDelta innerRef.current
+                let next = innerRef.current + sign
+
+                if changesValue next outerRef.current then
+                    innerRef.current <- next
+                    setInnerDelta next
 
         let bumpOuter sign =
             fun () ->
-                outerRef.current <- outerRef.current + sign
-                setOuterDelta outerRef.current
+                let next = outerRef.current + sign
+
+                if changesValue innerRef.current next then
+                    outerRef.current <- next
+                    setOuterDelta next
 
         // Override only the displayed LABEL with the optimistically stepped value, keeping
         // the original (server-provided) key. The key is a BigRational string the server
         // recognises, so an in-flight dropdown change still dispatches a valid key; only
         // the shown text reflects the optimistic step.
         let displayValues, displaySelected =
-            match props.navigate |> Option.bind (fun n -> n.step), props.values |> Array.tryHead with
+            match stepFn, props.values |> Array.tryHead with
             | Some step, Some(origKey, _) when innerDelta <> 0 || outerDelta <> 0 ->
                 let _, label = step (innerDelta, outerDelta)
                 [| (origKey, label) |], Some origKey

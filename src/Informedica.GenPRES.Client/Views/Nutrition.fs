@@ -633,9 +633,9 @@ module Nutrition =
 
         // Monotonic counter bumped whenever a new server response replaces the order
         // context. Passed into stepped selects so they reset their optimistic step value
-        // even when the server clamps back to the SAME value (e.g. stepping past the
-        // maximum), where the displayed value never changes and the value-based reset
-        // alone would leave the stale optimistic value on screen.
+        // even when the server returns the SAME value as before (e.g. a no-op step when
+        // already at the maximum), where the displayed value never changes and the
+        // value-based reset alone would leave the stale optimistic value on screen.
         let revisionRef = React.useRef 0
         let prevCtxRef = React.useRef ctx
 
@@ -987,8 +987,22 @@ module Nutrition =
                         let solved = ord |> isSolved
                         let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
 
+                        // For a multi-component orderable the dose quantity cannot exceed the
+                        // prepared orderable quantity. Use it as a feasibility ceiling: the
+                        // optimistic value stays within it, and an overflowing increase is
+                        // saturated at the max (saturateInc) instead of overshooting, which the
+                        // solver would reject — reverting the value. Single component: orderable
+                        // quantity follows the dose, so no ceiling.
+                        let doseQtyCeiling = ord |> ViewHelpers.orderableDoseQuantityCeiling
+
+                        let saturateInc n =
+                            ord.Orderable.Dose.Quantity
+                            |> ViewHelpers.incrementStepsToCeiling doseQtyCeiling
+                            |> Option.map (min n)
+                            |> Option.defaultValue n
+
                         {|
-                            step = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarStep string
+                            step = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarStepTo doseQtyCeiling string
                             first =
                                 if navigable then
                                     (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
@@ -1008,7 +1022,8 @@ module Nutrition =
                                     None
                             increase =
                                 if solved && canIncr then
-                                    (fun n -> (n, false) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
+                                    (fun n -> (saturateInc n, false) |> IncreaseDoseQuantityProperty |> dispatch)
+                                    |> Some
                                 else
                                     None
                             last =
