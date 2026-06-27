@@ -137,12 +137,15 @@ module ViewHelpers =
         )
 
 
+    /// The value of the first (key, value) pair of a ValueUnit, if any. Shared helper for
+    /// the increment/step calculations below.
+    let firstSnd (vu: Types.ValueUnit) =
+        vu.Value |> Array.tryHead |> Option.map snd
+
+
     /// The defined (small-step) increment: the defined constraint's increment, else the
     /// solved variable's own increment.
     let definedIncrement (ovar: OrderVariable) : decimal option =
-        let firstSnd (vu: Types.ValueUnit) =
-            vu.Value |> Array.tryHead |> Option.map snd
-
         [ ovar.DefinedConstraints.Incr; ovar.Variable.Incr ]
         |> List.tryPick (Option.bind firstSnd)
 
@@ -164,9 +167,6 @@ module ViewHelpers =
         (ovar: OrderVariable)
         : (int * int -> string * string) option
         =
-        let firstSnd (vu: Types.ValueUnit) =
-            vu.Value |> Array.tryHead |> Option.map snd
-
         let definedIncr = definedIncrement ovar
 
         match ovar.Variable.Vals, definedIncr with
@@ -228,9 +228,6 @@ module ViewHelpers =
     /// feasibility ceiling, never negative. Shared core of incrementStepsToCeiling and
     /// largeIncrementStepsToCeiling — the two differ only in which increment they pass.
     let stepsToCeiling (ceiling: decimal option) (incr: decimal option) (ovar: OrderVariable) : int option =
-        let firstSnd (vu: Types.ValueUnit) =
-            vu.Value |> Array.tryHead |> Option.map snd
-
         match ceiling, ovar.Variable.Vals |> Option.bind firstSnd, incr with
         | Some ceil, Some cur, Some i when i > 0M -> System.Math.Floor((ceil - cur) / i) |> int |> max 0 |> Some
         | _ -> None
@@ -252,9 +249,6 @@ module ViewHelpers =
     /// overshoot the ceiling and get reverted by the solver. None when there is no ceiling
     /// or no usable increment.
     let largeIncrementStepsToCeiling (ceiling: decimal option) (ovar: OrderVariable) : int option =
-        let firstSnd (vu: Types.ValueUnit) =
-            vu.Value |> Array.tryHead |> Option.map snd
-
         let largeIncr =
             ovar.LargeIncr |> Option.bind firstSnd |> Option.orElse (definedIncrement ovar)
 
@@ -328,19 +322,28 @@ module ViewHelpers =
             // leaving DoseCount > 1 (so canIncr stays true) and the increase buttons permanently
             // active despite the field showing the max. Gating on remaining ceiling room
             // disables them once no further step fits.
+            //
+            // No ceiling (single component) → stepping is unconstrained, so stay enabled. With a
+            // ceiling, require a positive step count; if the step count can't be computed (ceiling
+            // known but increment unavailable) disable rather than dispatch an unsaturated step the
+            // solver would revert.
             let canStepUp =
-                ord.Orderable.Dose.Quantity
-                |> incrementStepsToCeiling doseQtyCeiling
-                |> Option.map (fun steps -> steps > 0)
-                |> Option.defaultValue true
+                match doseQtyCeiling with
+                | None -> true
+                | Some _ ->
+                    ord.Orderable.Dose.Quantity
+                    |> incrementStepsToCeiling doseQtyCeiling
+                    |> Option.exists (fun steps -> steps > 0)
 
             // Large-step counterpart of canStepUp, measured against the large increment so the
             // last button disables exactly when no further large step fits below the ceiling.
             let canStepUpLarge =
-                ord.Orderable.Dose.Quantity
-                |> largeIncrementStepsToCeiling doseQtyCeiling
-                |> Option.map (fun steps -> steps > 0)
-                |> Option.defaultValue true
+                match doseQtyCeiling with
+                | None -> true
+                | Some _ ->
+                    ord.Orderable.Dose.Quantity
+                    |> largeIncrementStepsToCeiling doseQtyCeiling
+                    |> Option.exists (fun steps -> steps > 0)
 
             {|
                 step = ord.Orderable.Dose.Quantity |> ovarStepTo doseQtyCeiling string
