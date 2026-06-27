@@ -41,13 +41,13 @@ module SimpleSelect =
 
         // Net click deltas accumulated from the nav buttons. Drive an optimistic displayed
         // value that follows the live click count (the badge) before the server confirms.
-        // Inner = single-step decrease/increase (defined increment); outer = first/last in
-        // step state (calculated increment). Reset when the underlying value or the server
-        // revision changes.
-        let innerDelta, setInnerDelta = React.useState 0
-        let outerDelta, setOuterDelta = React.useState 0
-        let innerRef = React.useRef 0
-        let outerRef = React.useRef 0
+        // Small = single-step decrease/increase (the defined increment); Large = jump
+        // decrease/increase (the server's larger calculated increment). Reset when the
+        // underlying value or the server revision changes.
+        let smallDelta, setSmallDelta = React.useState 0
+        let largeDelta, setLargeDelta = React.useState 0
+        let smallRef = React.useRef 0
+        let largeRef = React.useRef 0
 
         // Use the raw value string as the dependency (a JS primitive compared by value)
         // so the reset only fires when the underlying value actually changes — boxing an
@@ -67,10 +67,10 @@ module SimpleSelect =
         // would briefly show newServerValue + staleDelta × increment.
         React.useLayoutEffect (
             (fun () ->
-                innerRef.current <- 0
-                outerRef.current <- 0
-                setInnerDelta 0
-                setOuterDelta 0
+                smallRef.current <- 0
+                largeRef.current <- 0
+                setSmallDelta 0
+                setLargeDelta 0
             ),
             [| box valueKey; box revision |]
         )
@@ -81,26 +81,26 @@ module SimpleSelect =
         // has saturated at a bound (the feasibility ceiling or the increment floor) the
         // value stops changing; continuing to grow the delta would store invisible
         // "overflow" that a reversal must first unwind before the value moves again.
-        let changesValue inner outer =
+        let changesValue small large =
             match stepFn with
-            | Some f -> f (inner, outer) <> f (innerRef.current, outerRef.current)
+            | Some f -> f (small, large) <> f (smallRef.current, largeRef.current)
             | None -> true
 
-        let bumpInner sign =
+        let bumpSmall sign =
             fun () ->
-                let next = innerRef.current + sign
+                let next = smallRef.current + sign
 
-                if changesValue next outerRef.current then
-                    innerRef.current <- next
-                    setInnerDelta next
+                if changesValue next largeRef.current then
+                    smallRef.current <- next
+                    setSmallDelta next
 
-        let bumpOuter sign =
+        let bumpLarge sign =
             fun () ->
-                let next = outerRef.current + sign
+                let next = largeRef.current + sign
 
-                if changesValue innerRef.current next then
-                    outerRef.current <- next
-                    setOuterDelta next
+                if changesValue smallRef.current next then
+                    largeRef.current <- next
+                    setLargeDelta next
 
         // Override only the displayed LABEL with the optimistically stepped value, keeping
         // the original (server-provided) key. The key is a BigRational string the server
@@ -108,8 +108,8 @@ module SimpleSelect =
         // the shown text reflects the optimistic step.
         let displayValues, displaySelected =
             match stepFn, props.values |> Array.tryHead with
-            | Some step, Some(origKey, _) when innerDelta <> 0 || outerDelta <> 0 ->
-                let _, label = step (innerDelta, outerDelta)
+            | Some step, Some(origKey, _) when smallDelta <> 0 || largeDelta <> 0 ->
+                let _, label = step (smallDelta, largeDelta)
                 [| (origKey, label) |], Some origKey
             | _ -> props.values, props.selected
 
@@ -195,7 +195,7 @@ module SimpleSelect =
                             {|
                                 disabled = firstDisabled
                                 onClick = firstClick
-                                onStep = bumpOuter -1
+                                onStep = bumpLarge -1
                                 icon = Mui.Icons.FirstPageIcon
                             |}
                         )
@@ -212,7 +212,7 @@ module SimpleSelect =
                             {|
                                 disabled = decreaseDisabled
                                 onClick = decreaseClick
-                                onStep = bumpInner -1
+                                onStep = bumpSmall -1
                                 icon = Mui.Icons.SkipPreviousIcon
                             |}
                         )
@@ -229,7 +229,7 @@ module SimpleSelect =
                             {|
                                 disabled = increaseDisabled
                                 onClick = increaseClick
-                                onStep = bumpInner 1
+                                onStep = bumpSmall 1
                                 icon = Mui.Icons.SkipNextIcon
                             |}
                         )
@@ -246,7 +246,7 @@ module SimpleSelect =
                             {|
                                 disabled = lastDisabled
                                 onClick = lastClick
-                                onStep = bumpOuter 1
+                                onStep = bumpLarge 1
                                 icon = Mui.Icons.LastPageIcon
                             |}
                         )

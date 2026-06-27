@@ -198,17 +198,14 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.map (fun cmp ->
-                                            match state.SelectedComponent with
-                                            | Some c when cmp.Name = c ->
-                                                { cmp with OrderableQuantity = cmp.OrderableQuantity |> setOvar s }
-                                            | _ -> cmp
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.map (fun cmp ->
+                                    match state.SelectedComponent with
+                                    | Some c when cmp.Name = c ->
+                                        { cmp with OrderableQuantity = cmp.OrderableQuantity |> setOvar s }
+                                    | _ -> cmp
+                                )
                         }
                         |> UpdateOrderScenario
 
@@ -245,29 +242,25 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.mapi (fun i cmp ->
-                                            if i > 0 then
-                                                cmp
-                                            else
-                                                { cmp with
-                                                    Items =
-                                                        cmp.Items
-                                                        |> Array.map (fun itm ->
-                                                            match state.SelectedItem with
-                                                            | Some subst when subst = itm.Name ->
-                                                                { itm with
-                                                                    Item.Dose.Quantity =
-                                                                        itm.Dose.Quantity |> setOvar s
-                                                                }
-                                                            | _ -> itm
-                                                        )
-                                                }
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.mapi (fun i cmp ->
+                                    if i > 0 then
+                                        cmp
+                                    else
+                                        { cmp with
+                                            Items =
+                                                cmp.Items
+                                                |> Array.map (fun itm ->
+                                                    match state.SelectedItem with
+                                                    | Some subst when subst = itm.Name ->
+                                                        { itm with
+                                                            Item.Dose.Quantity = itm.Dose.Quantity |> setOvar s
+                                                        }
+                                                    | _ -> itm
+                                                )
+                                        }
+                                )
                         }
                         |> UpdateOrderScenario
 
@@ -279,32 +272,26 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.mapi (fun i cmp ->
-                                            if i > 0 then
-                                                cmp
-                                            else
-                                                { cmp with
-                                                    Items =
-                                                        cmp.Items
-                                                        |> Array.map (fun itm ->
-                                                            match state.SelectedItem with
-                                                            | Some subst when subst = itm.Name ->
-                                                                { itm with
-                                                                    Dose =
-                                                                        { itm.Dose with
-                                                                            QuantityAdjust =
-                                                                                itm.Dose.QuantityAdjust |> setOvar s
-                                                                        }
-                                                                }
-                                                            | _ -> itm
-                                                        )
-                                                }
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.mapi (fun i cmp ->
+                                    if i > 0 then
+                                        cmp
+                                    else
+                                        { cmp with
+                                            Items =
+                                                cmp.Items
+                                                |> Array.map (fun itm ->
+                                                    match state.SelectedItem with
+                                                    | Some subst when subst = itm.Name ->
+                                                        { itm with
+                                                            Item.Dose.QuantityAdjust =
+                                                                itm.Dose.QuantityAdjust |> setOvar s
+                                                        }
+                                                    | _ -> itm
+                                                )
+                                        }
+                                )
                         }
                         |> UpdateOrderScenario
 
@@ -316,28 +303,23 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.mapi (fun i cmp ->
-                                            if i > 0 then
-                                                cmp
-                                            else
-                                                { cmp with
-                                                    Items =
-                                                        cmp.Items
-                                                        |> Array.map (fun itm ->
-                                                            match state.SelectedItem with
-                                                            | Some subst when subst = itm.Name ->
-                                                                { itm with
-                                                                    Item.Dose.PerTime = itm.Dose.PerTime |> setOvar s
-                                                                }
-                                                            | _ -> itm
-                                                        )
-                                                }
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.mapi (fun i cmp ->
+                                    if i > 0 then
+                                        cmp
+                                    else
+                                        { cmp with
+                                            Items =
+                                                cmp.Items
+                                                |> Array.map (fun itm ->
+                                                    match state.SelectedItem with
+                                                    | Some subst when subst = itm.Name ->
+                                                        { itm with Item.Dose.PerTime = itm.Dose.PerTime |> setOvar s }
+                                                    | _ -> itm
+                                                )
+                                        }
+                                )
 
                         }
                         |> UpdateOrderScenario
@@ -350,32 +332,26 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.mapi (fun i cmp ->
-                                            if i > 0 then
-                                                cmp
-                                            else
-                                                { cmp with
-                                                    Items =
-                                                        cmp.Items
-                                                        |> Array.map (fun itm ->
-                                                            match state.SelectedItem with
-                                                            | Some subst when subst = itm.Name ->
-                                                                { itm with
-                                                                    Dose =
-                                                                        { itm.Dose with
-                                                                            PerTimeAdjust =
-                                                                                itm.Dose.PerTimeAdjust |> setOvar s
-                                                                        }
-                                                                }
-                                                            | _ -> itm
-                                                        )
-                                                }
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.mapi (fun i cmp ->
+                                    if i > 0 then
+                                        cmp
+                                    else
+                                        { cmp with
+                                            Items =
+                                                cmp.Items
+                                                |> Array.map (fun itm ->
+                                                    match state.SelectedItem with
+                                                    | Some subst when subst = itm.Name ->
+                                                        { itm with
+                                                            Item.Dose.PerTimeAdjust =
+                                                                itm.Dose.PerTimeAdjust |> setOvar s
+                                                        }
+                                                    | _ -> itm
+                                                )
+                                        }
+                                )
 
                         }
                         |> UpdateOrderScenario
@@ -388,28 +364,23 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.mapi (fun i cmp ->
-                                            if i > 0 then
-                                                cmp
-                                            else
-                                                { cmp with
-                                                    Items =
-                                                        cmp.Items
-                                                        |> Array.map (fun itm ->
-                                                            match state.SelectedItem with
-                                                            | Some subst when subst = itm.Name ->
-                                                                { itm with
-                                                                    Item.Dose.Rate = itm.Dose.Rate |> setOvar s
-                                                                }
-                                                            | _ -> itm
-                                                        )
-                                                }
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.mapi (fun i cmp ->
+                                    if i > 0 then
+                                        cmp
+                                    else
+                                        { cmp with
+                                            Items =
+                                                cmp.Items
+                                                |> Array.map (fun itm ->
+                                                    match state.SelectedItem with
+                                                    | Some subst when subst = itm.Name ->
+                                                        { itm with Item.Dose.Rate = itm.Dose.Rate |> setOvar s }
+                                                    | _ -> itm
+                                                )
+                                        }
+                                )
 
                         }
                         |> UpdateOrderScenario
@@ -422,32 +393,25 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.mapi (fun i cmp ->
-                                            if i > 0 then
-                                                cmp
-                                            else
-                                                { cmp with
-                                                    Items =
-                                                        cmp.Items
-                                                        |> Array.map (fun itm ->
-                                                            match state.SelectedItem with
-                                                            | Some subst when subst = itm.Name ->
-                                                                { itm with
-                                                                    Dose =
-                                                                        { itm.Dose with
-                                                                            RateAdjust =
-                                                                                itm.Dose.RateAdjust |> setOvar s
-                                                                        }
-                                                                }
-                                                            | _ -> itm
-                                                        )
-                                                }
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.mapi (fun i cmp ->
+                                    if i > 0 then
+                                        cmp
+                                    else
+                                        { cmp with
+                                            Items =
+                                                cmp.Items
+                                                |> Array.map (fun itm ->
+                                                    match state.SelectedItem with
+                                                    | Some subst when subst = itm.Name ->
+                                                        { itm with
+                                                            Item.Dose.RateAdjust = itm.Dose.RateAdjust |> setOvar s
+                                                        }
+                                                    | _ -> itm
+                                                )
+                                        }
+                                )
 
                         }
                         |> UpdateOrderScenario
@@ -460,37 +424,34 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.mapi (fun i cmp ->
-                                            if i > 0 && cmp.Name <> cname then
-                                                cmp
-                                            else
-                                                { cmp with
-                                                    Items =
-                                                        cmp.Items
-                                                        |> Array.map (fun itm ->
-                                                            match state.SelectedItem with
-                                                            | Some subst when subst = itm.Name ->
-                                                                { itm with
-                                                                    ComponentConcentration =
-                                                                        itm.ComponentConcentration |> setOvar s
-                                                                }
-                                                            | _ ->
-                                                                if itm.Name <> iname then
-                                                                    itm
-                                                                else
-                                                                    { itm with
-                                                                        ComponentConcentration =
-                                                                            itm.ComponentConcentration |> setOvar s
-                                                                    }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.mapi (fun i cmp ->
+                                    if i > 0 && cmp.Name <> cname then
+                                        cmp
+                                    else
+                                        { cmp with
+                                            Items =
+                                                cmp.Items
+                                                |> Array.map (fun itm ->
+                                                    match state.SelectedItem with
+                                                    | Some subst when subst = itm.Name ->
+                                                        { itm with
+                                                            ComponentConcentration =
+                                                                itm.ComponentConcentration |> setOvar s
+                                                        }
+                                                    | _ ->
+                                                        if itm.Name <> iname then
+                                                            itm
+                                                        else
+                                                            { itm with
+                                                                ComponentConcentration =
+                                                                    itm.ComponentConcentration |> setOvar s
+                                                            }
 
-                                                        )
-                                                }
-                                        )
-                                }
+                                                )
+                                        }
+                                )
 
                         }
                         |> UpdateOrderScenario
@@ -503,29 +464,26 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.mapi (fun i cmp ->
-                                            if i > 0 then
-                                                cmp
-                                            else
-                                                { cmp with
-                                                    Items =
-                                                        cmp.Items
-                                                        |> Array.map (fun itm ->
-                                                            match state.SelectedItem with
-                                                            | Some subst when subst = itm.Name ->
-                                                                { itm with
-                                                                    OrderableConcentration =
-                                                                        itm.OrderableConcentration |> setOvar s
-                                                                }
-                                                            | _ -> itm
-                                                        )
-                                                }
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.mapi (fun i cmp ->
+                                    if i > 0 then
+                                        cmp
+                                    else
+                                        { cmp with
+                                            Items =
+                                                cmp.Items
+                                                |> Array.map (fun itm ->
+                                                    match state.SelectedItem with
+                                                    | Some subst when subst = itm.Name ->
+                                                        { itm with
+                                                            OrderableConcentration =
+                                                                itm.OrderableConcentration |> setOvar s
+                                                        }
+                                                    | _ -> itm
+                                                )
+                                        }
+                                )
 
                         }
                         |> UpdateOrderScenario
@@ -538,29 +496,25 @@ module Order =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.mapi (fun i cmp ->
-                                            if i > 0 then
-                                                cmp
-                                            else
-                                                { cmp with
-                                                    Items =
-                                                        cmp.Items
-                                                        |> Array.map (fun itm ->
-                                                            match state.SelectedItem with
-                                                            | Some subst when subst = itm.Name ->
-                                                                { itm with
-                                                                    OrderableQuantity =
-                                                                        itm.OrderableQuantity |> setOvar s
-                                                                }
-                                                            | _ -> itm
-                                                        )
-                                                }
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.mapi (fun i cmp ->
+                                    if i > 0 then
+                                        cmp
+                                    else
+                                        { cmp with
+                                            Items =
+                                                cmp.Items
+                                                |> Array.map (fun itm ->
+                                                    match state.SelectedItem with
+                                                    | Some subst when subst = itm.Name ->
+                                                        { itm with
+                                                            OrderableQuantity = itm.OrderableQuantity |> setOvar s
+                                                        }
+                                                    | _ -> itm
+                                                )
+                                        }
+                                )
 
                         }
                         |> UpdateOrderScenario
@@ -1216,6 +1170,475 @@ module Order =
                     paddingY = (if isMobile then 1 else 2)
                 |}
 
+            let componentSelect =
+                match displayOrder with
+                | Some ord ->
+                    if ord.Orderable.Components |> Array.length <= 1 then
+                        null
+                    else
+                        ord.Orderable.Components
+                        |> Array.map _.Name
+                        |> Array.map (fun s -> s, s)
+                        |> select
+                            false
+                            "componenten"
+                            state.SelectedComponent
+                            (ChangeComponent >> dispatch)
+                            None
+                            false
+                            None
+                            None
+                | _ -> null
+
+            let itemSelect =
+                match displayOrder with
+                | Some ord ->
+                    if ord.Orderable.Components |> Array.isEmpty || itms |> Array.length <= 1 then
+                        null
+                    else
+                        itms
+                        |> Array.map _.Name
+                        |> Array.map (fun s -> s, s)
+                        |> select false "stoffen" state.SelectedItem (ChangeItem >> dispatch) None false None None
+                | _ -> null
+
+            let substDoseQtySelect =
+                match substIndx, displayOrder with
+                | Some i, Some ord when ord.Schedule.IsContinuous |> not && itms |> Array.length > 0 ->
+                    let label, vals =
+                        itms[i].Dose.Quantity.Variable.Vals
+                        |> Option.map (fun v ->
+                            (Terms.``Order Dose`` |> getTerm "keer dosis" |> (fun s -> $"{s} ({v.Unit})")),
+                            v.Value
+                            |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}")
+                            |> Array.distinctBy snd
+                        )
+                        |> Option.defaultValue ("", [||])
+
+                    let warning = itms[i].Dose.Quantity.Level |> getWarning
+
+                    vals
+                    |> select
+                        (isFieldLoading "substDoseQty")
+                        label
+                        None
+                        (ChangeSubstanceDoseQuantity >> dispatch)
+                        None
+                        false
+                        warning
+                        None
+                | _ -> null
+
+            let substDoseQtyAdjSelect =
+                match substIndx, displayOrder with
+                | Some i, Some ord when
+                    (ord.Schedule.IsOnce || ord.Schedule.IsOnceTimed)
+                    && itms |> Array.length > 0
+                    && useAdjust
+                    ->
+                    let label, vals =
+                        itms[i].Dose.QuantityAdjust.Variable.Vals
+                        |> Option.map (fun v ->
+                            (Terms.``Order Adjusted dose``
+                             |> getTerm "keer dosis"
+                             |> fun s -> $"{s} ({v.Unit})"),
+                            v.Value
+                            |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}")
+                            |> Array.distinctBy snd
+                        )
+                        |> Option.defaultValue ("", [||])
+
+                    let warning = itms[i].Dose.QuantityAdjust.Level |> getWarning
+
+                    vals
+                    |> select
+                        (isFieldLoading "substDoseQtyAdj")
+                        label
+                        None
+                        (ChangeSubstanceDoseQuantityAdjust >> dispatch)
+                        None
+                        true
+                        warning
+                        None
+                | _ -> null
+
+            let substPerTimeSelect =
+                match substIndx, displayOrder with
+                | Some i, Some ord when ord.Schedule.IsContinuous |> not && itms |> Array.length > 0 ->
+                    let dispatch =
+                        if useAdjust then
+                            ChangeSubstancePerTimeAdjust >> dispatch
+                        else
+                            ChangeSubstancePerTime >> dispatch
+
+                    let label, vals =
+                        if useAdjust then
+                            itms[i].Dose.PerTimeAdjust.Variable.Vals
+                        else
+                            itms[i].Dose.PerTime.Variable.Vals
+                        |> Option.map (fun v ->
+                            (Terms.``Order Adjusted dose``
+                             |> getTerm "dosering"
+                             |> fun s -> $"{s} ({v.Unit})"),
+                            v.Value
+                            |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}")
+                            |> Array.distinctBy snd
+                        )
+                        |> Option.defaultValue ("", [||])
+
+                    let warning =
+                        if useAdjust then
+                            itms[i].Dose.PerTimeAdjust.Level |> getWarning
+                        else
+                            itms[i].Dose.PerTime.Level |> getWarning
+
+                    vals
+                    |> select (isFieldLoading "substPerTime") label None dispatch None true warning None
+                | _ -> null
+
+            let substRateSelect =
+                let navigate = None
+
+                match substIndx, displayOrder with
+                | Some i, Some ord when ord.Schedule.IsContinuous && itms |> Array.length > 0 ->
+                    let dispatch =
+                        if useAdjust then
+                            ChangeSubstanceRateAdjust >> dispatch
+                        else
+                            ChangeSubstanceRate >> dispatch
+
+                    let warning =
+                        if useAdjust then
+                            itms[i].Dose.RateAdjust.Level |> getWarning
+                        else
+                            itms[i].Dose.Rate.Level |> getWarning
+
+                    let ovar =
+                        if useAdjust then
+                            itms[i].Dose.RateAdjust
+                        else
+                            itms[i].Dose.Rate
+
+                    ovar
+                    |> ViewHelpers.ovarVals (fixPrecision 3)
+                    |> Array.distinctBy snd
+                    |> select
+                        (isFieldLoading "substRate")
+                        (Terms.``Order Adjusted dose`` |> getTerm "dosering")
+                        None
+                        dispatch
+                        navigate
+                        true
+                        warning
+                        None
+                | _ -> null
+
+            let compOrdQtySelect =
+                match displayOrder with
+                | Some ord when ord.Orderable.Components |> Array.length > 1 ->
+                    let cmp =
+                        ord.Orderable.Components
+                        |> Array.tryFind (fun c ->
+                            state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value
+                        )
+
+                    let vals =
+                        cmp
+                        |> Option.map (_.OrderableQuantity >> ViewHelpers.ovarValsWithRange string 3)
+                        |> Option.defaultValue [||]
+
+                    let navigate =
+                        let c = vals |> Array.length
+
+                        let show =
+                            match cmp with
+                            | None -> false
+                            | Some cmp ->
+                                cmp.OrderableQuantity.Variable.Min.IsSome
+                                && cmp.OrderableQuantity.Variable.Incr.IsSome
+                                && cmp.OrderableQuantity.Variable.Max.IsSome
+                                || c >= 1
+
+                        if not show then
+                            None
+                        else
+                            let solved = ord |> isSolved
+
+                            let navigable =
+                                cmp
+                                |> Option.map (_.OrderableQuantity >> OrderVariable.isNavigable)
+                                |> Option.defaultValue false
+
+                            createNav
+                                navigable
+                                solved
+                                SetMinComponentQuantityProperty
+                                DecreaseComponentQuantityProperty
+                                SetMedianComponentQuantityProperty
+                                IncreaseComponentQuantityProperty
+                                SetMaxComponentQuantityProperty
+                                (cmp |> Option.bind (_.OrderableQuantity >> ViewHelpers.ovarStep string))
+
+                    let warning = cmp |> Option.bind (_.OrderableQuantity.Level >> getWarning)
+
+                    vals
+                    |> select
+                        (isFieldLoading "compOrdQty")
+                        "bereiding hoeveelheid"
+                        None
+                        (ChangeComponentOrderableQuantity >> dispatch)
+                        navigate
+                        false
+                        warning
+                        None
+                | _ -> null
+
+            let substCompConcSelect =
+                match substIndx, displayOrder with
+                | Some i, Some ord ->
+                    match itms |> Array.tryItem i with
+                    | Some itm ->
+                        let cname, iname =
+                            ord.Orderable.Components
+                            |> Array.tryHead
+                            |> Option.map _.Name
+                            |> Option.defaultValue "",
+                            itm.Name
+
+                        let change = fun s -> (cname, iname, s) |> ChangeSubstanceComponentConcentration
+
+                        if
+                            itm.ComponentConcentration.DefinedConstraints.Vals
+                            |> Option.map (fun vu -> vu.Value |> Array.length > 1)
+                            |> Option.defaultValue false
+                        then
+                            itm.ComponentConcentration
+                            |> ViewHelpers.ovarVals (fixPrecision 3)
+                            |> select
+                                (isFieldLoading "substCompConc")
+                                "product sterkte"
+                                None
+                                (change >> dispatch)
+                                None
+                                false
+                                None
+                                None
+                        else
+                            null
+                    | None ->
+                        match
+                            ord.Orderable.Components
+                            |> Array.tryFind (fun c ->
+                                state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value
+                            )
+                        with
+                        | Some cmp ->
+                            match cmp.Items |> Array.tryFind (fun i -> i.Name = cmp.Name) with
+                            | Some itm ->
+                                let change =
+                                    fun s -> (cmp.Name, itm.Name, s) |> ChangeSubstanceComponentConcentration
+
+                                if
+                                    itm.ComponentConcentration.DefinedConstraints.Vals
+                                    |> Option.map (fun vu -> vu.Value |> Array.length > 1)
+                                    |> Option.defaultValue false
+                                then
+                                    itm.ComponentConcentration
+                                    |> ViewHelpers.ovarVals string
+                                    |> select
+                                        (isFieldLoading "substCompConc")
+                                        "product sterkte"
+                                        None
+                                        (change >> dispatch)
+                                        None
+                                        false
+                                        None
+                                        None
+                                else
+                                    null
+
+                            | None -> null
+                        | None -> null
+                | _ -> null
+
+            let substOrdQtySelect =
+                match substIndx, displayOrder with
+                | Some i, Some ord when
+                    ord.Schedule.IsContinuous
+                    && itms |> Array.length > 0
+                    && ord.Orderable.Components |> Array.length > 1
+                    ->
+                    let warning = itms[i].OrderableQuantity.Level |> getWarning
+
+                    itms[i].OrderableQuantity
+                    |> ViewHelpers.ovarVals (fixPrecision 3)
+                    |> select
+                        (isFieldLoading "substOrdQty")
+                        $"{itms[i].Name} hoeveelheid"
+                        None
+                        (ChangeSubstanceOrderableQuantity >> dispatch)
+                        None
+                        false
+                        warning
+                        None
+                | _ -> null
+
+            let substOrdConcSelect =
+                match substIndx, displayOrder with
+                | Some i, Some ord when
+                    ord.Schedule.IsContinuous |> not
+                    && itms |> Array.length > 0
+                    && ord.Orderable.Components |> Array.length > 1
+                    ->
+                    let warning = itms[i].OrderableConcentration.Level |> getWarning
+
+                    itms[i].OrderableConcentration
+                    |> ViewHelpers.ovarVals (fixPrecision 3)
+                    |> select
+                        (isFieldLoading "substOrdConc")
+                        $"{itms[i].Name} concentratie"
+                        None
+                        (ChangeSubstanceOrderableConcentration >> dispatch)
+                        None
+                        false
+                        warning
+                        None
+                | _ -> null
+
+            let ordQtySelect =
+                match displayOrder with
+                | Some ord when ord.Orderable.Components |> Array.length > 1 ->
+                    let warning = ord.Orderable.OrderableQuantity.Level |> getWarning
+
+                    ord.Orderable.OrderableQuantity
+                    |> ViewHelpers.ovarVals string
+                    |> select
+                        (isFieldLoading "ordQty")
+                        "totale hoeveelheid"
+                        None
+                        (ChangeOrderableQuantity >> dispatch)
+                        None
+                        false
+                        warning
+                        None
+                | _ -> null
+
+            let frequencySelect =
+                match displayOrder with
+                | Some ord when ord.Schedule.IsDiscontinuous || ord.Schedule.IsTimed ->
+                    let xs = ord.Schedule.Frequency |> ViewHelpers.ovarVals string
+
+                    let navigate =
+                        if xs |> Array.length <> 1 then
+                            None
+                        else
+                            let solved = ord |> isSolved
+                            let navigable = false
+
+                            createNav
+                                navigable
+                                solved
+                                SetMinFrequencyProperty
+                                (fun _ -> DecreaseFrequencyProperty)
+                                SetMedianFrequencyProperty
+                                (fun _ -> IncreaseFrequencyProperty)
+                                SetMaxFrequencyProperty
+                                None
+
+                    let warning = ord.Schedule.Frequency.Level |> getWarning
+
+                    select
+                        (isFieldLoading "frequency")
+                        (Terms.``Order Frequency`` |> getTerm "frequentie")
+                        None
+                        (ChangeFrequency >> dispatch)
+                        navigate
+                        false
+                        warning
+                        None
+                        xs
+                | _ -> null
+
+            let ordDoseQtySelect =
+                match displayOrder with
+                | Some ord when ord.Schedule.IsContinuous |> not ->
+                    let navigate =
+                        ViewHelpers.createDoseQtyNav
+                            dispatch
+                            revision
+                            ord
+                            SetMinDoseQuantityProperty
+                            DecreaseDoseQuantityProperty
+                            SetMedianDoseQuantityProperty
+                            IncreaseDoseQuantityProperty
+                            SetMaxDoseQuantityProperty
+
+                    let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
+
+                    ord.Orderable.Dose.Quantity
+                    |> ViewHelpers.ovarValsWithRange string 3
+                    |> select
+                        (isFieldLoading "ordDoseQty")
+                        "toedien hoeveelheid"
+                        None
+                        (ChangeOrderableDoseQuantity >> dispatch)
+                        navigate
+                        false
+                        warning
+                        None
+                | _ -> null
+
+            let ordDoseRateSelect =
+                match displayOrder with
+                | Some ord when ord.Schedule.IsContinuous || ord.Schedule.IsTimed || ord.Schedule.IsOnceTimed ->
+                    let solved = ord |> isSolved
+                    let navigable = ord.Orderable.Dose.Rate |> OrderVariable.isNavigable
+
+                    let navigate =
+                        createNav
+                            navigable
+                            solved
+                            SetMinDoseRateProperty
+                            DecreaseDoseRateProperty
+                            SetMedianDoseRateProperty
+                            IncreaseDoseRateProperty
+                            SetMaxDoseRateProperty
+                            (ord.Orderable.Dose.Rate |> ViewHelpers.ovarStep string)
+
+                    let warning = ord.Orderable.Dose.Rate.Level |> getWarning
+
+                    ord.Orderable.Dose.Rate
+                    |> ViewHelpers.ovarValsWithRange string 3
+                    |> select
+                        (isFieldLoading "ordDoseRate")
+                        (Terms.``Order Drip rate`` |> getTerm "inloop snelheid")
+                        None
+                        (ChangeOrderableDoseRate >> dispatch)
+                        navigate
+                        false
+                        warning
+                        None
+                | _ -> null
+
+            let timeSelect =
+                match displayOrder with
+                | Some ord ->
+                    let warning = ord.Schedule.Time.Level |> getWarning
+
+                    ord.Schedule.Time
+                    |> ViewHelpers.ovarVals (fixPrecision 2)
+                    |> Array.distinctBy snd
+                    |> select
+                        (isFieldLoading "time")
+                        (Terms.``Order Administration time`` |> getTerm "inloop tijd")
+                        None
+                        (ChangeTime >> dispatch)
+                        None
+                        true
+                        warning
+                        None
+                | _ -> null
+
             JSX.jsx
                 $"""
             import CardHeader from '@mui/material/CardHeader';
@@ -1232,526 +1655,24 @@ module Order =
             ></CardHeader>
             <CardContent sx={contentSx}>
                 <Stack direction={"column"} spacing={if isMobile then 1.5 else 3} >
-                    {match displayOrder with
-                     | Some ord ->
-                         if ord.Orderable.Components |> Array.length <= 1 then
-                             null
-                         else
-                             ord.Orderable.Components
-                             |> Array.map _.Name
-                             |> Array.map (fun s -> s, s)
-                             |> select false "componenten" state.SelectedComponent (ChangeComponent >> dispatch) None false None None
-                     | _ -> null}
-                    {match displayOrder with
-                     | Some ord ->
-                         if ord.Orderable.Components |> Array.isEmpty || itms |> Array.length <= 1 then
-                             null
-                         else
-                             itms
-                             |> Array.map _.Name
-                             |> Array.map (fun s -> s, s)
-                             |> select false "stoffen" state.SelectedItem (ChangeItem >> dispatch) None false None None
-                     | _ -> null}
+                    {componentSelect}
+                    {itemSelect}
                     {dosingDivider}
-                    {match substIndx, displayOrder with
-                     | Some i, Some ord when ord.Schedule.IsContinuous |> not && itms |> Array.length > 0 ->
-                         let label, vals =
-                             itms[i].Dose.Quantity.Variable.Vals
-                             |> Option.map (fun v ->
-                                 (Terms.``Order Dose`` |> getTerm "keer dosis" |> (fun s -> $"{s} ({v.Unit})")),
-                                 v.Value
-                                 |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}")
-                                 |> Array.distinctBy snd
-                             )
-                             |> Option.defaultValue ("", [||])
-
-                         let warning = itms[i].Dose.Quantity.Level |> getWarning
-
-                         vals
-                         |> select
-                             (isFieldLoading "substDoseQty")
-                             label
-                             None
-                             (ChangeSubstanceDoseQuantity >> dispatch)
-                             None
-                             false
-                             warning
-                             None
-                     | _ -> null}
-                    {match substIndx, displayOrder with
-                     | Some i, Some ord when
-                         (ord.Schedule.IsOnce || ord.Schedule.IsOnceTimed)
-                         && itms |> Array.length > 0
-                         && useAdjust
-                         ->
-                         let label, vals =
-                             itms[i].Dose.QuantityAdjust.Variable.Vals
-                             |> Option.map (fun v ->
-                                 (Terms.``Order Adjusted dose``
-                                  |> getTerm "keer dosis"
-                                  |> fun s -> $"{s} ({v.Unit})"),
-                                 v.Value
-                                 |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}")
-                                 |> Array.distinctBy snd
-                             )
-                             |> Option.defaultValue ("", [||])
-
-                         let warning = itms[i].Dose.QuantityAdjust.Level |> getWarning
-
-                         vals
-                         |> select
-                             (isFieldLoading "substDoseQtyAdj")
-                             label
-                             None
-                             (ChangeSubstanceDoseQuantityAdjust >> dispatch)
-                             None
-                             true
-                             warning
-                             None
-                     | _ -> null}
-                    {match substIndx, displayOrder with
-                     | Some i, Some ord when ord.Schedule.IsContinuous |> not && itms |> Array.length > 0 ->
-                         let dispatch =
-                             if useAdjust then
-                                 ChangeSubstancePerTimeAdjust >> dispatch
-                             else
-                                 ChangeSubstancePerTime >> dispatch
-
-                         let label, vals =
-                             if useAdjust then
-                                 itms[i].Dose.PerTimeAdjust.Variable.Vals
-                             else
-                                 itms[i].Dose.PerTime.Variable.Vals
-                             |> Option.map (fun v ->
-                                 (Terms.``Order Adjusted dose``
-                                  |> getTerm "dosering"
-                                  |> fun s -> $"{s} ({v.Unit})"),
-                                 v.Value
-                                 |> Array.map (fun (s, d) -> s, $"{d |> fixPrecision 3} {v.Unit}")
-                                 |> Array.distinctBy snd
-                             )
-                             |> Option.defaultValue ("", [||])
-
-                         let warning =
-                             if useAdjust then
-                                 itms[i].Dose.PerTimeAdjust.Level |> getWarning
-                             else
-                                 itms[i].Dose.PerTime.Level |> getWarning
-
-                         vals
-                         |> select (isFieldLoading "substPerTime") label None dispatch None true warning None
-                     | _ -> null}
-                    {let navigate = None
-
-                     match substIndx, displayOrder with
-                     | Some i, Some ord when ord.Schedule.IsContinuous && itms |> Array.length > 0 ->
-                         let dispatch =
-                             if useAdjust then
-                                 ChangeSubstanceRateAdjust >> dispatch
-                             else
-                                 ChangeSubstanceRate >> dispatch
-
-                         let warning =
-                             if useAdjust then
-                                 itms[i].Dose.RateAdjust.Level |> getWarning
-                             else
-                                 itms[i].Dose.Rate.Level |> getWarning
-
-                         let ovar =
-                             if useAdjust then
-                                 itms[i].Dose.RateAdjust
-                             else
-                                 itms[i].Dose.Rate
-
-                         ovar
-                         |> ViewHelpers.ovarVals (fixPrecision 3)
-                         |> Array.distinctBy snd
-                         |> select
-                             (isFieldLoading "substRate")
-                             (Terms.``Order Adjusted dose`` |> getTerm "dosering")
-                             None
-                             dispatch
-                             navigate
-                             true
-                             warning
-                             None
-                     | _ -> null}
+                    {substDoseQtySelect}
+                    {substDoseQtyAdjSelect}
+                    {substPerTimeSelect}
+                    {substRateSelect}
                     {preparationDivider}
-                    {match displayOrder with
-                     | Some ord when ord.Orderable.Components |> Array.length > 1 ->
-                         let cmp =
-                             ord.Orderable.Components
-                             |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
-
-                         let vals =
-                             cmp
-                             |> Option.map (_.OrderableQuantity >> ViewHelpers.ovarValsWithRange string 3)
-                             |> Option.defaultValue [||]
-
-                         let navigate =
-                             let c = vals |> Array.length
-
-                             let show =
-                                 match cmp with
-                                 | None -> false
-                                 | Some cmp ->
-                                     cmp.OrderableQuantity.Variable.Min.IsSome
-                                     && cmp.OrderableQuantity.Variable.Incr.IsSome
-                                     && cmp.OrderableQuantity.Variable.Max.IsSome
-                                     || c >= 1
-
-                             if not show then
-                                 None
-                             else
-                                 let solved = ord |> isSolved
-
-                                 let navigable =
-                                     cmp
-                                     |> Option.map (_.OrderableQuantity >> OrderVariable.isNavigable)
-                                     |> Option.defaultValue false
-
-                                 createNav
-                                     navigable
-                                     solved
-                                     SetMinComponentQuantityProperty
-                                     DecreaseComponentQuantityProperty
-                                     SetMedianComponentQuantityProperty
-                                     IncreaseComponentQuantityProperty
-                                     SetMaxComponentQuantityProperty
-                                     (cmp |> Option.bind (_.OrderableQuantity >> ViewHelpers.ovarStep string))
-
-                         let warning = cmp |> Option.bind (_.OrderableQuantity.Level >> getWarning)
-
-                         vals
-                         |> select
-                             (isFieldLoading "compOrdQty")
-                             "bereiding hoeveelheid"
-                             None
-                             (ChangeComponentOrderableQuantity >> dispatch)
-                             navigate
-                             false
-                             warning
-                             None
-                     | _ -> null}
-                    {match substIndx, displayOrder with
-                     | Some i, Some ord ->
-                         match itms |> Array.tryItem i with
-                         | Some itm ->
-                             let cname, iname =
-                                 ord.Orderable.Components
-                                 |> Array.tryHead
-                                 |> Option.map _.Name
-                                 |> Option.defaultValue "",
-                                 itm.Name
-
-                             let change = fun s -> (cname, iname, s) |> ChangeSubstanceComponentConcentration
-
-                             if
-                                 itm.ComponentConcentration.DefinedConstraints.Vals
-                                 |> Option.map (fun vu -> vu.Value |> Array.length > 1)
-                                 |> Option.defaultValue false
-                             then
-                                 itm.ComponentConcentration
-                                 |> ViewHelpers.ovarVals (fixPrecision 3)
-                                 |> select (isFieldLoading "substCompConc") "product sterkte" None (change >> dispatch) None false None None
-                             else
-                                 null
-                         | None ->
-                             match
-                                 ord.Orderable.Components
-                                 |> Array.tryFind (fun c -> state.SelectedComponent.IsNone || c.Name = state.SelectedComponent.Value)
-                             with
-                             | Some cmp ->
-                                 match cmp.Items |> Array.tryFind (fun i -> i.Name = cmp.Name) with
-                                 | Some itm ->
-                                     let change =
-                                         fun s -> (cmp.Name, itm.Name, s) |> ChangeSubstanceComponentConcentration
-
-                                     if
-                                         itm.ComponentConcentration.DefinedConstraints.Vals
-                                         |> Option.map (fun vu -> vu.Value |> Array.length > 1)
-                                         |> Option.defaultValue false
-                                     then
-                                         itm.ComponentConcentration
-                                         |> ViewHelpers.ovarVals string
-                                         |> select
-                                             (isFieldLoading "substCompConc")
-                                             "product sterkte"
-                                             None
-                                             (change >> dispatch)
-                                             None
-                                             false
-                                             None
-                                             None
-                                     else
-                                         null
-
-                                 | None -> null
-                             | None -> null
-
-                     | _ -> null
-
-                }
-                    {match substIndx, displayOrder with
-                     | Some i, Some ord when
-                         ord.Schedule.IsContinuous
-                         && itms |> Array.length > 0
-                         && ord.Orderable.Components |> Array.length > 1
-                         ->
-                         let warning = itms[i].OrderableQuantity.Level |> getWarning
-
-                         itms[i].OrderableQuantity
-                         |> ViewHelpers.ovarVals (fixPrecision 3)
-                         |> select
-                             (isFieldLoading "substOrdQty")
-                             $"{itms[i].Name} hoeveelheid"
-                             None
-                             (ChangeSubstanceOrderableQuantity >> dispatch)
-                             None
-                             false
-                             warning
-                             None
-                     | _ -> null}
-                    {match substIndx, displayOrder with
-                     | Some i, Some ord when
-                         ord.Schedule.IsContinuous |> not
-                         && itms |> Array.length > 0
-                         && ord.Orderable.Components |> Array.length > 1
-                         ->
-                         let warning = itms[i].OrderableConcentration.Level |> getWarning
-
-                         itms[i].OrderableConcentration
-                         |> ViewHelpers.ovarVals (fixPrecision 3)
-                         |> select
-                             (isFieldLoading "substOrdConc")
-                             $"{itms[i].Name} concentratie"
-                             None
-                             (ChangeSubstanceOrderableConcentration >> dispatch)
-                             None
-                             false
-                             warning
-                             None
-                     | _ -> null}
-                    {match displayOrder with
-                     | Some ord when ord.Orderable.Components |> Array.length > 1 ->
-                         let warning = ord.Orderable.OrderableQuantity.Level |> getWarning
-
-                         ord.Orderable.OrderableQuantity
-                         |> ViewHelpers.ovarVals string
-                         |> select
-                             (isFieldLoading "ordQty")
-                             "totale hoeveelheid"
-                             None
-                             (ChangeOrderableQuantity >> dispatch)
-                             None
-                             false
-                             warning
-                             None
-                     | _ -> null}
+                    {compOrdQtySelect}
+                    {substCompConcSelect}
+                    {substOrdQtySelect}
+                    {substOrdConcSelect}
+                    {ordQtySelect}
                     {administrationDivider}
-                    {match displayOrder with
-                     | Some ord when ord.Schedule.IsDiscontinuous || ord.Schedule.IsTimed ->
-                         let xs = ord.Schedule.Frequency |> ViewHelpers.ovarVals string
-
-                         let navigate =
-                             if xs |> Array.length <> 1 then
-                                 None
-                             else
-                                 let solved = ord |> isSolved
-                                 let navigable = false
-
-                                 createNav
-                                     navigable
-                                     solved
-                                     SetMinFrequencyProperty
-                                     (fun _ -> DecreaseFrequencyProperty)
-                                     SetMedianFrequencyProperty
-                                     (fun _ -> IncreaseFrequencyProperty)
-                                     SetMaxFrequencyProperty
-                                     None
-
-                         let warning = ord.Schedule.Frequency.Level |> getWarning
-
-                         select
-                             (isFieldLoading "frequency")
-                             (Terms.``Order Frequency`` |> getTerm "frequentie")
-                             None
-                             (ChangeFrequency >> dispatch)
-                             navigate
-                             false
-                             warning
-                             None
-                             xs
-                     | _ -> null}
-                    {match displayOrder with
-                     | Some ord when ord.Schedule.IsContinuous |> not ->
-                         // only show nav if all components have
-                         // a distinct orderable quantity
-                         let showNav =
-                             ord.Orderable.Components
-                             |> Array.forall (fun cmp ->
-                                 cmp.OrderableQuantity.Variable.Vals
-                                 |> Option.map (fun vu -> vu.Value |> Array.length = 1)
-                                 |> Option.defaultValue false
-                             )
-
-                         let navigate =
-                             if not showNav then
-                                 None
-                             else
-                                 let canIncr =
-                                     ord.Orderable.Components |> Array.length = 1
-                                     || ord.Orderable.DoseCount.Variable.Vals
-                                        |> Option.map (fun vu -> vu.Value |> Array.map snd |> Array.forall (fun v -> v > 1m))
-                                        |> Option.defaultValue false
-
-                                 let solved = ord |> isSolved
-                                 let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
-                                 // For a multi-component orderable the dose quantity cannot
-                                 // exceed the prepared orderable quantity. Use it as a feasibility
-                                 // ceiling: the optimistic value stays within it, and an overflowing
-                                 // increase is saturated at the max (saturateInc) instead of overshooting,
-                                 // which the solver would reject — reverting the value. Single
-                                 // component: orderable quantity follows the dose, so no ceiling.
-                                 let doseQtyCeiling = ord |> ViewHelpers.orderableDoseQuantityCeiling
-
-                                 let saturateInc n =
-                                     ord.Orderable.Dose.Quantity
-                                     |> ViewHelpers.incrementStepsToCeiling doseQtyCeiling
-                                     |> Option.map (min n)
-                                     |> Option.defaultValue n
-
-                                 // Outer (first/last) counterpart of saturateInc: clamp the dispatched
-                                 // outer steps so the larger outer increment lands on the last grid
-                                 // point at or below the ceiling instead of overshooting and being
-                                 // reverted by the solver.
-                                 let saturateOuter n =
-                                     ord.Orderable.Dose.Quantity
-                                     |> ViewHelpers.outerIncrementStepsToCeiling doseQtyCeiling
-                                     |> Option.map (min n)
-                                     |> Option.defaultValue n
-
-                                 // Whether a full defined-increment step still fits below the
-                                 // feasibility ceiling. The increment grid cannot generally land
-                                 // exactly on the ceiling, so the server value settles just below it
-                                 // while the optimistic display clamps to the ceiling — leaving
-                                 // DoseCount > 1 (so canIncr stays true) and the increase buttons
-                                 // permanently active despite the field showing the max. Gating on
-                                 // remaining ceiling room disables them once no further step fits.
-                                 let canStepUp =
-                                     ord.Orderable.Dose.Quantity
-                                     |> ViewHelpers.incrementStepsToCeiling doseQtyCeiling
-                                     |> Option.map (fun steps -> steps > 0)
-                                     |> Option.defaultValue true
-
-                                 // Outer counterpart of canStepUp, measured against the outer
-                                 // increment so the last button disables exactly when no further
-                                 // outer step fits below the ceiling.
-                                 let canStepUpOuter =
-                                     ord.Orderable.Dose.Quantity
-                                     |> ViewHelpers.outerIncrementStepsToCeiling doseQtyCeiling
-                                     |> Option.map (fun steps -> steps > 0)
-                                     |> Option.defaultValue true
-
-                                 {|
-                                     step = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarStepTo doseQtyCeiling string
-                                     first =
-                                         if navigable then
-                                             (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
-                                         elif solved then
-                                             (fun n -> (n, true) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
-                                         else
-                                             None
-                                     decrease =
-                                         if solved then
-                                             (fun n -> (n, false) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
-                                         else
-                                             None
-                                     median =
-                                         if navigable then
-                                             (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
-                                         else
-                                             None
-                                     increase =
-                                         if solved && canIncr && canStepUp then
-                                             (fun n -> (saturateInc n, false) |> IncreaseDoseQuantityProperty |> dispatch)
-                                             |> Some
-                                         else
-                                             None
-                                     last =
-                                         if navigable then
-                                             (fun (_: int) -> SetMaxDoseQuantityProperty |> dispatch) |> Some
-                                         elif solved && canIncr && canStepUpOuter then
-                                             (fun n -> (saturateOuter n, true) |> IncreaseDoseQuantityProperty |> dispatch)
-                                             |> Some
-                                         else
-                                             None
-                                     useDebounce = not navigable && solved
-                                     revision = revision
-                                 |}
-                                 |> Some
-
-                         let warning = ord.Orderable.Dose.Quantity.Level |> getWarning
-
-                         ord.Orderable.Dose.Quantity
-                         |> ViewHelpers.ovarValsWithRange string 3
-                         |> select
-                             (isFieldLoading "ordDoseQty")
-                             "toedien hoeveelheid"
-                             None
-                             (ChangeOrderableDoseQuantity >> dispatch)
-                             navigate
-                             false
-                             warning
-                             None
-                     | _ -> null}
-                    {match displayOrder with
-                     | Some ord when ord.Schedule.IsContinuous || ord.Schedule.IsTimed || ord.Schedule.IsOnceTimed ->
-                         let solved = ord |> isSolved
-                         let navigable = ord.Orderable.Dose.Rate |> OrderVariable.isNavigable
-
-                         let navigate =
-                             createNav
-                                 navigable
-                                 solved
-                                 SetMinDoseRateProperty
-                                 DecreaseDoseRateProperty
-                                 SetMedianDoseRateProperty
-                                 IncreaseDoseRateProperty
-                                 SetMaxDoseRateProperty
-                                 (ord.Orderable.Dose.Rate |> ViewHelpers.ovarStep string)
-
-                         let warning = ord.Orderable.Dose.Rate.Level |> getWarning
-
-                         ord.Orderable.Dose.Rate
-                         |> ViewHelpers.ovarValsWithRange string 3
-                         |> select
-                             (isFieldLoading "ordDoseRate")
-                             (Terms.``Order Drip rate`` |> getTerm "inloop snelheid")
-                             None
-                             (ChangeOrderableDoseRate >> dispatch)
-                             navigate
-                             false
-                             warning
-                             None
-                     | _ -> null}
-                    {match displayOrder with
-                     | Some ord ->
-                         let warning = ord.Schedule.Time.Level |> getWarning
-
-                         ord.Schedule.Time
-                         |> ViewHelpers.ovarVals (fixPrecision 2)
-                         |> Array.distinctBy snd
-                         |> select
-                             (isFieldLoading "time")
-                             (Terms.``Order Administration time`` |> getTerm "inloop tijd")
-                             None
-                             (ChangeTime >> dispatch)
-                             None
-                             true
-                             warning
-                             None
-                     | _ -> null}
+                    {frequencySelect}
+                    {ordDoseQtySelect}
+                    {ordDoseRateSelect}
+                    {timeSelect}
                 </Stack>
                 {loadingIndicator}
             </CardContent>

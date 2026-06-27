@@ -966,77 +966,16 @@ module Nutrition =
 
                 let vals = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarValsWithRange string 3
 
-                let showNav =
-                    ord.Orderable.Components
-                    |> Array.forall (fun cmp ->
-                        cmp.OrderableQuantity.Variable.Vals
-                        |> Option.map (fun vu -> vu.Value |> Array.length = 1)
-                        |> Option.defaultValue false
-                    )
-
                 let doseQtyNav =
-                    if not showNav then
-                        None
-                    else
-                        let canIncr =
-                            ord.Orderable.Components |> Array.length = 1
-                            || ord.Orderable.DoseCount.Variable.Vals
-                               |> Option.map (fun vu -> vu.Value |> Array.map snd |> Array.forall (fun v -> v > 1m))
-                               |> Option.defaultValue false
-
-                        let solved = ord |> isSolved
-                        let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
-
-                        // For a multi-component orderable the dose quantity cannot exceed the
-                        // prepared orderable quantity. Use it as a feasibility ceiling: the
-                        // optimistic value stays within it, and an overflowing increase is
-                        // saturated at the max (saturateInc) instead of overshooting, which the
-                        // solver would reject — reverting the value. Single component: orderable
-                        // quantity follows the dose, so no ceiling.
-                        let doseQtyCeiling = ord |> ViewHelpers.orderableDoseQuantityCeiling
-
-                        let saturateInc n =
-                            ord.Orderable.Dose.Quantity
-                            |> ViewHelpers.incrementStepsToCeiling doseQtyCeiling
-                            |> Option.map (min n)
-                            |> Option.defaultValue n
-
-                        {|
-                            step = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarStepTo doseQtyCeiling string
-                            first =
-                                if navigable then
-                                    (fun (_: int) -> SetMinDoseQuantityProperty |> dispatch) |> Some
-                                elif solved then
-                                    (fun n -> (n, true) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
-                                else
-                                    None
-                            decrease =
-                                if solved then
-                                    (fun n -> (n, false) |> DecreaseDoseQuantityProperty |> dispatch) |> Some
-                                else
-                                    None
-                            median =
-                                if navigable then
-                                    (fun () -> SetMedianDoseQuantityProperty |> dispatch) |> Some
-                                else
-                                    None
-                            increase =
-                                if solved && canIncr then
-                                    (fun n -> (saturateInc n, false) |> IncreaseDoseQuantityProperty |> dispatch)
-                                    |> Some
-                                else
-                                    None
-                            last =
-                                if navigable then
-                                    (fun (_: int) -> SetMaxDoseQuantityProperty |> dispatch) |> Some
-                                elif solved && canIncr then
-                                    (fun n -> (n, true) |> IncreaseDoseQuantityProperty |> dispatch) |> Some
-                                else
-                                    None
-                            useDebounce = not navigable && solved
-                            revision = revision
-                        |}
-                        |> Some
+                    ViewHelpers.createDoseQtyNav
+                        dispatch
+                        revision
+                        ord
+                        SetMinDoseQuantityProperty
+                        DecreaseDoseQuantityProperty
+                        SetMedianDoseQuantityProperty
+                        IncreaseDoseQuantityProperty
+                        SetMaxDoseQuantityProperty
 
                 select
                     isLoading

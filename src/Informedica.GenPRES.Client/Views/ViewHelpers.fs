@@ -137,10 +137,20 @@ module ViewHelpers =
         )
 
 
-    /// Build a per-click step function for a solved order variable. Given the net inner
-    /// click delta (single-step buttons, DEFINED increment) and the net outer click delta
-    /// (first/last buttons, server CALCULATED increment) it returns the (key, label) of the
-    /// predicted value. This mirrors the server step (Informedica.GenORDER.Lib.OrderVariable.step),
+    /// The defined (small-step) increment: the defined constraint's increment, else the
+    /// solved variable's own increment.
+    let definedIncrement (ovar: OrderVariable) : decimal option =
+        let firstSnd (vu: Types.ValueUnit) =
+            vu.Value |> Array.tryHead |> Option.map snd
+
+        [ ovar.DefinedConstraints.Incr; ovar.Variable.Incr ]
+        |> List.tryPick (Option.bind firstSnd)
+
+
+    /// Build a per-click step function for a solved order variable. Given the net small-step
+    /// click delta (single-step buttons, the DEFINED increment) and the net large-step click
+    /// delta (jump buttons, the server's CALCULATED LargeIncr) it returns the (key, label) of
+    /// the predicted value. This mirrors the server step (Informedica.GenORDER.Lib.OrderVariable.step),
     /// which moves freely along the increment grid with NO upper bound and is then re-solved —
     /// so the optimistic value is deliberately NOT bounded to the defined range (doing so would
     /// make it undershoot what the server returns). The only ceiling applied is the structural
@@ -157,21 +167,18 @@ module ViewHelpers =
         let firstSnd (vu: Types.ValueUnit) =
             vu.Value |> Array.tryHead |> Option.map snd
 
-        let definedIncr =
-            [ ovar.DefinedConstraints.Incr; ovar.Variable.Incr ]
-            |> List.tryPick (Option.bind firstSnd)
-
-        // The outer (first/last) buttons follow the server-provided effective increment
-        // (OuterIncr); when the server emits none, the outer step falls back to the
-        // defined increment (i.e. behaves like the inner buttons).
-        let outerIncr = ovar.OuterIncr |> Option.bind firstSnd
+        let definedIncr = definedIncrement ovar
 
         match ovar.Variable.Vals, definedIncr with
-        | Some vals, Some di when di > 0M ->
+        | Some vals, Some smallIncr when smallIncr > 0M ->
             match firstSnd vals with
             | Some cur ->
                 let unit = vals.Unit
-                let ci = outerIncr |> Option.defaultValue di
+
+                // The large step follows the server-provided LargeIncr; when the server emits
+                // none, it falls back to the defined increment (behaving like the small step).
+                let largeIncr =
+                    ovar.LargeIncr |> Option.bind firstSnd |> Option.defaultValue smallIncr
 
                 // The server's step applies no upper bound (it explores freely and re-solves),
                 // so the prediction follows the increment grid freely. Apply only the structural
@@ -179,10 +186,13 @@ module ViewHelpers =
                 // genuinely enforces (the floor keeps the value non-zero positive).
                 let applyBounds v =
                     let v = ceiling |> Option.map (min v) |> Option.defaultValue v
-                    max v di
+                    max v smallIncr
 
-                (fun (innerDelta, outerDelta) ->
-                    let next = (cur + decimal innerDelta * di + decimal outerDelta * ci) |> applyBounds
+                (fun (smallDelta, largeDelta) ->
+                    let next =
+                        cur + decimal smallDelta * smallIncr + decimal largeDelta * largeIncr
+                        |> applyBounds
+
                     string next, $"{format next} {unit}"
                 )
                 |> Some
@@ -214,45 +224,159 @@ module ViewHelpers =
             None
 
 
-    /// How many inner (defined-increment) steps fit between the variable's current value
-    /// and a feasibility ceiling. Used to saturate an increase at the maximum: dispatching
-    /// more steps than this would overshoot the ceiling, which the solver rejects — leaving
-    /// the value reverted to where it was instead of landing on the max. None when there is
-    /// no ceiling or no usable increment (i.e. no saturation needed).
+    /// How many whole `incr`-sized steps fit between the variable's current value and a
+    /// feasibility ceiling, never negative. Shared core of incrementStepsToCeiling and
+    /// largeIncrementStepsToCeiling — the two differ only in which increment they pass.
+    let stepsToCeiling (ceiling: decimal option) (incr: decimal option) (ovar: OrderVariable) : int option =
+        let firstSnd (vu: Types.ValueUnit) =
+            vu.Value |> Array.tryHead |> Option.map snd
+
+        match ceiling, ovar.Variable.Vals |> Option.bind firstSnd, incr with
+        | Some ceil, Some cur, Some i when i > 0M -> System.Math.Floor((ceil - cur) / i) |> int |> max 0 |> Some
+        | _ -> None
+
+
+    /// How many whole defined-increment steps fit between the current value and a
+    /// feasibility ceiling. Used to cap an increase so it lands on the last step below the
+    /// ceiling rather than overshooting it — an overshoot is rejected by the solver, which
+    /// reverts the value to where it started. Returns 0 when less than one step fits (already
+    /// at the max). None when there is no ceiling or no usable increment.
     let incrementStepsToCeiling (ceiling: decimal option) (ovar: OrderVariable) : int option =
+        ovar |> stepsToCeiling ceiling (definedIncrement ovar)
+
+
+    /// Like <see cref="incrementStepsToCeiling"/> but counts steps of the LARGE increment
+    /// (the server's calculated LargeIncr used by the jump buttons), falling back to the
+    /// defined increment when the server emits none. Lets a large step saturate at the
+    /// feasibility ceiling exactly like a small step, so the larger increment does not
+    /// overshoot the ceiling and get reverted by the solver. None when there is no ceiling
+    /// or no usable increment.
+    let largeIncrementStepsToCeiling (ceiling: decimal option) (ovar: OrderVariable) : int option =
         let firstSnd (vu: Types.ValueUnit) =
             vu.Value |> Array.tryHead |> Option.map snd
 
-        let definedIncr =
-            [ ovar.DefinedConstraints.Incr; ovar.Variable.Incr ]
-            |> List.tryPick (Option.bind firstSnd)
+        let largeIncr =
+            ovar.LargeIncr |> Option.bind firstSnd |> Option.orElse (definedIncrement ovar)
 
-        match ceiling, ovar.Variable.Vals |> Option.bind firstSnd, definedIncr with
-        | Some ceil, Some cur, Some incr when incr > 0M ->
-            System.Math.Floor((ceil - cur) / incr) |> int |> max 0 |> Some
-        | _ -> None
+        ovar |> stepsToCeiling ceiling largeIncr
 
 
-    /// Like <see cref="incrementStepsToCeiling"/> but counts steps of the OUTER
-    /// (server-calculated) increment used by the first/last buttons, falling back to the
-    /// defined increment when the server emits none. Lets an outer step saturate at the
-    /// feasibility ceiling exactly like the inner step, so the larger outer increment does
-    /// not overshoot the ceiling and get reverted by the solver. None when there is no
-    /// ceiling or no usable increment.
-    let outerIncrementStepsToCeiling (ceiling: decimal option) (ovar: OrderVariable) : int option =
-        let firstSnd (vu: Types.ValueUnit) =
-            vu.Value |> Array.tryHead |> Option.map snd
+    /// Build the navigate record for the orderable dose-quantity select, shared by the Order
+    /// and Nutrition views. Handles the optimistic stepping with feasibility-ceiling
+    /// saturation: the displayed value follows the click count up to the prepared orderable
+    /// quantity, and dispatched steps are saturated at that ceiling so an overshoot is not
+    /// reverted by the solver. The five message constructors (setMin/decr/setMed/incr/setMax)
+    /// are supplied by each view from its own Msg type. Returns None when navigation must be
+    /// hidden (a multi-component orderable whose components do not each have a single distinct
+    /// orderable quantity).
+    let createDoseQtyNav
+        dispatch
+        revision
+        (ord: Order)
+        (setMin: 'Msg)
+        (decr: int * bool -> 'Msg)
+        (setMed: 'Msg)
+        (incr: int * bool -> 'Msg)
+        (setMax: 'Msg)
+        =
+        // Only show nav when every component has a single distinct orderable quantity.
+        let showNav =
+            ord.Orderable.Components
+            |> Array.forall (fun cmp ->
+                cmp.OrderableQuantity.Variable.Vals
+                |> Option.map (fun vu -> vu.Value |> Array.length = 1)
+                |> Option.defaultValue false
+            )
 
-        let definedIncr =
-            [ ovar.DefinedConstraints.Incr; ovar.Variable.Incr ]
-            |> List.tryPick (Option.bind firstSnd)
+        if not showNav then
+            None
+        else
+            let canIncr =
+                ord.Orderable.Components |> Array.length = 1
+                || ord.Orderable.DoseCount.Variable.Vals
+                   |> Option.map (fun vu -> vu.Value |> Array.map snd |> Array.forall (fun v -> v > 1m))
+                   |> Option.defaultValue false
 
-        let outerIncr = ovar.OuterIncr |> Option.bind firstSnd |> Option.orElse definedIncr
+            let solved = ord |> isSolved
+            let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
 
-        match ceiling, ovar.Variable.Vals |> Option.bind firstSnd, outerIncr with
-        | Some ceil, Some cur, Some incr when incr > 0M ->
-            System.Math.Floor((ceil - cur) / incr) |> int |> max 0 |> Some
-        | _ -> None
+            // For a multi-component orderable the dose quantity cannot exceed the prepared
+            // orderable quantity. Use it as a feasibility ceiling: the optimistic value stays
+            // within it, and an overflowing increase is saturated at the max (saturateInc)
+            // instead of overshooting, which the solver would reject — reverting the value.
+            // Single component: orderable quantity follows the dose, so no ceiling.
+            let doseQtyCeiling = ord |> orderableDoseQuantityCeiling
+
+            let saturateInc n =
+                ord.Orderable.Dose.Quantity
+                |> incrementStepsToCeiling doseQtyCeiling
+                |> Option.map (min n)
+                |> Option.defaultValue n
+
+            // Large-step counterpart of saturateInc: clamp the dispatched large steps so the
+            // larger increment lands on the last grid point at or below the ceiling instead of
+            // overshooting and being reverted by the solver.
+            let saturateLarge n =
+                ord.Orderable.Dose.Quantity
+                |> largeIncrementStepsToCeiling doseQtyCeiling
+                |> Option.map (min n)
+                |> Option.defaultValue n
+
+            // Whether a full defined-increment step still fits below the feasibility ceiling.
+            // The increment grid cannot generally land exactly on the ceiling, so the server
+            // value settles just below it while the optimistic display clamps to the ceiling —
+            // leaving DoseCount > 1 (so canIncr stays true) and the increase buttons permanently
+            // active despite the field showing the max. Gating on remaining ceiling room
+            // disables them once no further step fits.
+            let canStepUp =
+                ord.Orderable.Dose.Quantity
+                |> incrementStepsToCeiling doseQtyCeiling
+                |> Option.map (fun steps -> steps > 0)
+                |> Option.defaultValue true
+
+            // Large-step counterpart of canStepUp, measured against the large increment so the
+            // last button disables exactly when no further large step fits below the ceiling.
+            let canStepUpLarge =
+                ord.Orderable.Dose.Quantity
+                |> largeIncrementStepsToCeiling doseQtyCeiling
+                |> Option.map (fun steps -> steps > 0)
+                |> Option.defaultValue true
+
+            {|
+                step = ord.Orderable.Dose.Quantity |> ovarStepTo doseQtyCeiling string
+                first =
+                    if navigable then
+                        (fun (_: int) -> setMin |> dispatch) |> Some
+                    elif solved then
+                        (fun n -> (n, true) |> decr |> dispatch) |> Some
+                    else
+                        None
+                decrease =
+                    if solved then
+                        (fun n -> (n, false) |> decr |> dispatch) |> Some
+                    else
+                        None
+                median =
+                    if navigable then
+                        (fun () -> setMed |> dispatch) |> Some
+                    else
+                        None
+                increase =
+                    if solved && canIncr && canStepUp then
+                        (fun n -> (saturateInc n, false) |> incr |> dispatch) |> Some
+                    else
+                        None
+                last =
+                    if navigable then
+                        (fun (_: int) -> setMax |> dispatch) |> Some
+                    elif solved && canIncr && canStepUpLarge then
+                        (fun n -> (saturateLarge n, true) |> incr |> dispatch) |> Some
+                    else
+                        None
+                useDebounce = not navigable && solved
+                revision = revision
+            |}
+            |> Some
 
 
     let ovarDisplay select (name: string) (format: decimal -> string) minWidth (ovar: OrderVariable) =
