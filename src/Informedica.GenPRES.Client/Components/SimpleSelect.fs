@@ -18,7 +18,7 @@ module SimpleSelect =
                 selected: string option
                 values: (string * string)[]
                 updateSelected: string option -> unit
-                navigate:
+                stepper:
                     {|
                         step: (int * int -> string * string) option
                         first: (int -> unit) option
@@ -60,7 +60,7 @@ module SimpleSelect =
         // no-op step (already at the maximum) leaves the current value unchanged, so
         // valueKey never changes and would otherwise leave a stale optimistic value shown.
         let revision =
-            props.navigate |> Option.map (fun n -> n.revision) |> Option.defaultValue 0
+            props.stepper |> Option.map (fun n -> n.revision) |> Option.defaultValue 0
 
         // useLayoutEffect (not useEffect) so the deltas are reset BEFORE the browser
         // paints the frame on which the server's new value arrives — otherwise that frame
@@ -75,7 +75,7 @@ module SimpleSelect =
             [| box valueKey; box revision |]
         )
 
-        let stepFn = props.navigate |> Option.bind (fun n -> n.step)
+        let stepFn = props.stepper |> Option.bind (fun n -> n.step)
 
         // Only accumulate a click that actually moves the predicted value. When the step
         // has saturated at a bound (the feasibility ceiling or the increment floor) the
@@ -133,15 +133,18 @@ module SimpleSelect =
 
         let clear = fun _ -> None |> props.updateSelected
 
+        let menuItemSx =
+            {|
+                maxWidth = 400
+                paddingY = if isMobile then 0.25 else 0.75
+            |}
+
         let items =
             displayValues
             |> Array.mapi (fun i (k, v) ->
                 JSX.jsx
                     $"""
-                <MenuItem key={i} value={k} sx = { {|
-                                                       maxWidth = 400
-                                                       paddingY = (if isMobile then 0.25 else 0.75)
-                                                   |} } dense={isMobile} >
+                <MenuItem key={i} value={k} sx={menuItemSx} dense={isMobile} >
                     {v}
                 </MenuItem>
                 """
@@ -172,7 +175,7 @@ module SimpleSelect =
             |}
 
         let navigation =
-            props.navigate
+            props.stepper
             |> Option.map (fun nav ->
                 let getNav prop =
                     match prop with
@@ -186,19 +189,19 @@ module SimpleSelect =
 
                 let firstDisabled, firstClick = nav.first |> getNavN
                 let decreaseDisabled, decreaseClick = nav.decrease |> getNavN
+                let medianDisabled, medianClick = nav.median |> getNav
                 let increaseDisabled, increaseClick = nav.increase |> getNavN
                 let lastDisabled, lastClick = nav.last |> getNavN
 
                 let firstButton =
                     if nav.useDebounce then
-                        ClickCountingButton.View(
+                        ClickCountingButton.View
                             {|
                                 disabled = firstDisabled
                                 onClick = firstClick
                                 onStep = bumpLarge -1
                                 icon = Mui.Icons.FirstPageIcon
                             |}
-                        )
                     else
                         JSX.jsx
                             $"""
@@ -208,14 +211,13 @@ module SimpleSelect =
 
                 let decreaseButton =
                     if nav.useDebounce then
-                        ClickCountingButton.View(
+                        ClickCountingButton.View
                             {|
                                 disabled = decreaseDisabled
                                 onClick = decreaseClick
                                 onStep = bumpSmall -1
                                 icon = Mui.Icons.SkipPreviousIcon
                             |}
-                        )
                     else
                         JSX.jsx
                             $"""
@@ -223,16 +225,22 @@ module SimpleSelect =
                         <IconButton disabled={decreaseDisabled} onClick={fun _ -> decreaseClick 1} >{Mui.Icons.SkipPreviousIcon}</IconButton>
                         """
 
+                let medianButton =
+                    JSX.jsx
+                        $"""
+                    import IconButton from "@mui/material/IconButton";
+                    <IconButton disabled={medianDisabled} onClick={fun _ -> medianClick ()} >{Mui.Icons.PauseIcon}</IconButton>
+                    """
+
                 let increaseButton =
                     if nav.useDebounce then
-                        ClickCountingButton.View(
+                        ClickCountingButton.View
                             {|
                                 disabled = increaseDisabled
                                 onClick = increaseClick
                                 onStep = bumpSmall 1
                                 icon = Mui.Icons.SkipNextIcon
                             |}
-                        )
                     else
                         JSX.jsx
                             $"""
@@ -242,14 +250,13 @@ module SimpleSelect =
 
                 let lastButton =
                     if nav.useDebounce then
-                        ClickCountingButton.View(
+                        ClickCountingButton.View
                             {|
                                 disabled = lastDisabled
                                 onClick = lastClick
                                 onStep = bumpLarge 1
                                 icon = Mui.Icons.LastPageIcon
                             |}
-                        )
                     else
                         JSX.jsx
                             $"""
@@ -268,7 +275,7 @@ module SimpleSelect =
                 <ButtonGroup variant="text" aria-label="navigation button group">
                     {firstButton}
                     {decreaseButton}
-                    <IconButton disabled={nav.median |> getNav |> fst} onClick={fun _ -> (nav.median |> getNav |> snd) ()} >{Mui.Icons.PauseIcon}</IconButton>
+                    {medianButton}
                     {increaseButton}
                     {lastButton}
                 </ButtonGroup>
@@ -283,7 +290,7 @@ module SimpleSelect =
                 navigation
 
         let hasNavigation =
-            props.navigate
+            props.stepper
             |> Option.map (fun nav ->
                 nav.first.IsSome
                 || nav.decrease.IsSome

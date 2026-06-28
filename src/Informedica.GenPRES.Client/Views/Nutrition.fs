@@ -84,7 +84,7 @@ module Nutrition =
         let update
             updateOrderScenario
             resetOrderScenario
-            (navigate:
+            (stepper:
                 {|
                     setRateMin: OrderLoader -> unit
                     setRateDec: int * bool -> OrderLoader -> unit
@@ -148,17 +148,14 @@ module Nutrition =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.map (fun cmp ->
-                                            if cmp.Name = cmpName then
-                                                { cmp with OrderableQuantity = cmp.OrderableQuantity |> setOvar s }
-                                            else
-                                                cmp
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.map (fun cmp ->
+                                    if cmp.Name = cmpName then
+                                        { cmp with OrderableQuantity = cmp.OrderableQuantity |> setOvar s }
+                                    else
+                                        cmp
+                                )
                         }
                         |> UpdateOrderScenario
 
@@ -170,20 +167,16 @@ module Nutrition =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.map (fun cmp ->
-                                            if cmp.Name = cmpName then
-                                                { cmp with
-                                                    Component.Dose.QuantityAdjust =
-                                                        cmp.Dose.QuantityAdjust |> setOvar s
-                                                }
-                                            else
-                                                cmp
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.map (fun cmp ->
+                                    if cmp.Name = cmpName then
+                                        { cmp with
+                                            Component.Dose.QuantityAdjust = cmp.Dose.QuantityAdjust |> setOvar s
+                                        }
+                                    else
+                                        cmp
+                                )
                         }
                         |> UpdateOrderScenario
 
@@ -231,27 +224,25 @@ module Nutrition =
                 | _ -> state, Cmd.none
 
             // Rate navigation
-            | SetMinDoseRateProperty -> handleNav navigate.setRateMin
-            | DecreaseDoseRateProperty(n, uc) -> handleNav (navigate.setRateDec (n, uc))
-            | SetMedianDoseRateProperty -> handleNav navigate.setRateMed
-            | IncreaseDoseRateProperty(n, uc) -> handleNav (navigate.setRateInc (n, uc))
-            | SetMaxDoseRateProperty -> handleNav navigate.setRateMax
+            | SetMinDoseRateProperty -> handleNav stepper.setRateMin
+            | DecreaseDoseRateProperty(n, uc) -> handleNav (stepper.setRateDec (n, uc))
+            | SetMedianDoseRateProperty -> handleNav stepper.setRateMed
+            | IncreaseDoseRateProperty(n, uc) -> handleNav (stepper.setRateInc (n, uc))
+            | SetMaxDoseRateProperty -> handleNav stepper.setRateMax
 
             // Dose Quantity navigation
-            | SetMinDoseQuantityProperty -> handleNav navigate.setDoseQtyMin
-            | DecreaseDoseQuantityProperty(n, uc) -> handleNav (navigate.setDoseQtyDec (n, uc))
-            | SetMedianDoseQuantityProperty -> handleNav navigate.setDoseQtyMed
-            | IncreaseDoseQuantityProperty(n, uc) -> handleNav (navigate.setDoseQtyInc (n, uc))
-            | SetMaxDoseQuantityProperty -> handleNav navigate.setDoseQtyMax
+            | SetMinDoseQuantityProperty -> handleNav stepper.setDoseQtyMin
+            | DecreaseDoseQuantityProperty(n, uc) -> handleNav (stepper.setDoseQtyDec (n, uc))
+            | SetMedianDoseQuantityProperty -> handleNav stepper.setDoseQtyMed
+            | IncreaseDoseQuantityProperty(n, uc) -> handleNav (stepper.setDoseQtyInc (n, uc))
+            | SetMaxDoseQuantityProperty -> handleNav stepper.setDoseQtyMax
 
             // Component Quantity navigation
-            | SetMinComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMin
-            | DecreaseComponentQuantityProperty(cmp, n, uc) ->
-                handleNavWithCmp cmp (navigate.setComponentQtyDec (n, uc))
-            | SetMedianComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMed
-            | IncreaseComponentQuantityProperty(cmp, n, uc) ->
-                handleNavWithCmp cmp (navigate.setComponentQtyInc (n, uc))
-            | SetMaxComponentQuantityProperty cmp -> handleNavWithCmp cmp navigate.setComponentQtyMax
+            | SetMinComponentQuantityProperty cmp -> handleNavWithCmp cmp stepper.setComponentQtyMin
+            | DecreaseComponentQuantityProperty(cmp, n, uc) -> handleNavWithCmp cmp (stepper.setComponentQtyDec (n, uc))
+            | SetMedianComponentQuantityProperty cmp -> handleNavWithCmp cmp stepper.setComponentQtyMed
+            | IncreaseComponentQuantityProperty(cmp, n, uc) -> handleNavWithCmp cmp (stepper.setComponentQtyInc (n, uc))
+            | SetMaxComponentQuantityProperty cmp -> handleNavWithCmp cmp stepper.setComponentQtyMax
 
 
     open Elmish
@@ -715,7 +706,7 @@ module Nutrition =
             Api.NavigateNutritionOrderContext(planRef.current, ncId, Api.ResetOrderScenario, ctx)
             |> props.nutritionPlanMsg
 
-        let navigate =
+        let stepper =
             let create nav =
                 fun (ol: OrderLoader) ->
                     let updCtx =
@@ -844,7 +835,7 @@ module Nutrition =
             |}
 
         let state, dispatch =
-            React.useElmish (init (Resolved ctx), update updateOrderScenario resetOrderScenario navigate, [| box ctx |])
+            React.useElmish (init (Resolved ctx), update updateOrderScenario resetOrderScenario stepper, [| box ctx |])
 
         let isOrderLoading = props.isRecalculating
         let isLoading = state.Order.IsNone && not props.isRecalculating
@@ -868,6 +859,7 @@ module Nutrition =
                     // Quantity control (bereiding)
                     let qtyVals = cmp.OrderableQuantity |> ViewHelpers.ovarValsWithRange string 3
 
+                    // can jump to the min, median, or max
                     let navigable = cmp.OrderableQuantity |> OrderVariable.isNavigable
                     let solved = ord |> isSolved
 
@@ -885,7 +877,7 @@ module Nutrition =
                         else
                             let cmpName = cmp.Name
 
-                            ViewHelpers.createNav
+                            ViewHelpers.createStepper
                                 dispatch
                                 revision
                                 navigable
@@ -967,7 +959,7 @@ module Nutrition =
                 let vals = ord.Orderable.Dose.Quantity |> ViewHelpers.ovarValsWithRange string 3
 
                 let doseQtyNav =
-                    ViewHelpers.createDoseQtyNav
+                    ViewHelpers.createDoseQtyStepper
                         dispatch
                         revision
                         ord
@@ -1077,10 +1069,11 @@ module Nutrition =
             match displayOrder with
             | Some ord when ord.Schedule.IsTimed || ord.Schedule.IsContinuous ->
                 let solved = ord |> isSolved
+                // can jump to the min, median, or max
                 let navigable = ord.Orderable.Dose.Rate |> OrderVariable.isNavigable
 
                 let nav =
-                    ViewHelpers.createNav
+                    ViewHelpers.createStepper
                         dispatch
                         revision
                         navigable
@@ -1140,12 +1133,13 @@ module Nutrition =
                 $"""
             import Grid from '@mui/material/Grid';
             import Typography from '@mui/material/Typography';
+            import Divider from '@mui/material/Divider';
             <Grid container spacing={{2}}>
                 <Grid size={halfSize}>
-                    <Typography variant="caption" color="text.secondary">bereiding</Typography>
+                    <Divider><Typography variant="caption">bereiding</Typography></Divider>
                 </Grid>
                 <Grid size={halfSize}>
-                    <Typography variant="caption" color="text.secondary">dosering</Typography>
+                    <Divider><Typography variant="caption">dosering</Typography></Divider>
                 </Grid>
             </Grid>
             """

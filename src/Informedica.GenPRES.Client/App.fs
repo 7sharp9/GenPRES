@@ -497,13 +497,10 @@ module private Elmish =
 
             let ctx =
                 { OrderContext.empty with
-                    Filter =
-                        { OrderContext.empty.Filter with
-                            Indication = indication |> nonEmpty
-                            Generic = Some generic
-                            Route = route |> nonEmpty
-                            DoseType = doseType |> nonEmpty |> Option.map DoseType.doseTypeFromString
-                        }
+                    OrderContext.Filter.Indication = indication |> nonEmpty
+                    OrderContext.Filter.Generic = Some generic
+                    OrderContext.Filter.Route = route |> nonEmpty
+                    OrderContext.Filter.DoseType = doseType |> nonEmpty |> Option.map DoseType.doseTypeFromString
                 }
 
             { state with
@@ -1281,6 +1278,20 @@ let View () =
                 """
         | None -> null
 
+    let genPresProps =
+        {|
+            appEnv = appEnv
+            showDisclaimer = state.ShowDisclaimer
+            isDemo = state.IsDemo
+            acceptDisclaimer = fun _ -> AcceptDisclaimer |> dispatch
+            updatePage = UpdatePage >> dispatch
+            page = state.Page
+            languages = Localization.languages
+            hospitals = state.Hospitals
+            switchLang = UpdateLanguage >> dispatch
+            switchHosp = UpdateHospital >> dispatch
+        |}
+
     JSX.jsx
         $"""
     import {{ ThemeProvider }} from '@mui/material/styles';
@@ -1300,19 +1311,7 @@ let View () =
                 <CssBaseline />
                 {serverErrorBanner}
                 {Components.Router.View {| onUrlChanged = UrlChanged >> dispatch |}}
-                {Pages.GenPres.View
-                     {|
-                         appEnv = appEnv
-                         showDisclaimer = state.ShowDisclaimer
-                         isDemo = state.IsDemo
-                         acceptDisclaimer = fun _ -> AcceptDisclaimer |> dispatch
-                         updatePage = UpdatePage >> dispatch
-                         page = state.Page
-                         languages = Localization.languages
-                         hospitals = state.Hospitals
-                         switchLang = UpdateLanguage >> dispatch
-                         switchHosp = UpdateHospital >> dispatch
-                     |}
+                {Pages.GenPres.View genPresProps
                  |> toReact
                  |> Components.Context.Context state.Context}
             </Box>

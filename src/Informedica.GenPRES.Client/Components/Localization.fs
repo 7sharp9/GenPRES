@@ -40,6 +40,12 @@ module Localization =
                 """
             )
 
+        let menuOrigin =
+            {|
+                vertical = "top"
+                horizontal = "right"
+            |}
+
         JSX.jsx
             $"""
         import Box from '@mui/material/Box';
@@ -57,15 +63,9 @@ module Localization =
             <Menu
                 sx={ {| marginTop = "40px" |} }
                 anchorEl={anchorElLang}
-                anchorOrigin={ {|
-                                   vertical = "top"
-                                   horizontal = "right"
-                               |} }
+                anchorOrigin={menuOrigin}
                 keepMounted
-                transformOrigin={ {|
-                                      vertical = "top"
-                                      horizontal = "right"
-                                  |} }
+                transformOrigin={menuOrigin}
                 open={anchorElLang.IsSome}
                 onClose={handleCloseLangMenu}
             >

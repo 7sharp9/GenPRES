@@ -183,20 +183,19 @@ module Patient =
                     isExpanded |> not |> setExpanded
 
         let createSelect label sel changeValue vs =
-            Components.SimpleSelect.View(
+            Components.SimpleSelect.View
                 {|
                     label = label
                     selected = sel |> Option.map string
                     values = vs
                     updateSelected = changeValue
-                    navigate = None
+                    stepper = None
                     isLoading = false
                     disabled = false
                     hasClear = true
                     warning = None
                     minWidth = None
                 |}
-            )
 
         let wghts =
             [| 21000..1000..100000 |]
@@ -382,12 +381,15 @@ module Patient =
                         )
             |]
             |> Array.map (fun el ->
+                let gridSize =
+                    {|
+                        xs = 6
+                        lg = 2
+                    |}
+
                 JSX.jsx
                     $"""
-                <Grid size = { {|
-                                   xs = 6
-                                   lg = 2
-                               |} }>{el}</Grid>
+                <Grid size={gridSize}>{el}</Grid>
                 """
             )
 
@@ -437,13 +439,16 @@ module Patient =
 
             |]
             |> Array.map (fun el ->
+                let gridSize =
+                    {|
+                        xs = 6
+                        md = 4
+                        lg = 4
+                    |}
+
                 JSX.jsx
                     $"""
-                <Grid size = { {|
-                                   xs = 6
-                                   md = 4
-                                   lg = 4
-                               |} }>{el}</Grid>
+                <Grid size={gridSize}>{el}</Grid>
                 """
             )
 

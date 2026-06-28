@@ -122,12 +122,11 @@ module Totals =
             columns
             |> Array.mapi (fun i col ->
                 $"table{i + 1}",
-                Components.BasicTable.View(
+                Components.BasicTable.View
                     {|
                         header = [||]
                         rows = mapRow props.intake col
                     |}
-                )
                 |> toReact
             )
 

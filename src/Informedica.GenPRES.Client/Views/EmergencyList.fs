@@ -305,40 +305,45 @@ module EmergencyList =
             """
             |> toReact
 
+        let boxSx = {| height = "100%" |}
+
+        let tableProps =
+            {|
+                hideFilter = false
+                columns = columns
+                rows = rows
+                rowCreate = rowCreate
+                height = "100%"
+                onRowClick = onSelectItem
+                checkboxSelection = false
+                selectedRows = [||]
+                onSelectChange = ignore
+                showToolbar = true
+                showFooter = true
+                onPrint =
+                    Some(fun filteredRows ->
+                        setPrintData filteredRows
+                        setPrintOpen true
+                    )
+                selectedFilter = Some filterState
+                onFilterChange = Some onFilterChange
+            |}
+
+        let printDialogProps =
+            {|
+                isOpen = printOpen
+                onClose = fun () -> setPrintOpen false
+                title = Terms.``Emergency List`` |> getTerm "Noodlijst"
+                children = printContent
+            |}
+
         JSX.jsx
             $"""
         import Box from '@mui/material/Box';
         import React from 'react';
 
-        <Box sx={ {| height = "100%" |} }>
-            {Components.ResponsiveTable.View(
-                 {|
-                     hideFilter = false
-                     columns = columns
-                     rows = rows
-                     rowCreate = rowCreate
-                     height = "100%"
-                     onRowClick = onSelectItem
-                     checkboxSelection = false
-                     selectedRows = [||]
-                     onSelectChange = ignore
-                     showToolbar = true
-                     showFooter = true
-                     onPrint =
-                         Some(fun filteredRows ->
-                             setPrintData filteredRows
-                             setPrintOpen true
-                         )
-                     selectedFilter = Some filterState
-                     onFilterChange = Some onFilterChange
-                 |}
-             )}
-            {ViewHelpers.PrintView.PrintDialog
-                 {|
-                     isOpen = printOpen
-                     onClose = fun () -> setPrintOpen false
-                     title = Terms.``Emergency List`` |> getTerm "Noodlijst"
-                     children = printContent
-                 |}}
+        <Box sx={boxSx}>
+            {Components.ResponsiveTable.View tableProps}
+            {ViewHelpers.PrintView.PrintDialog printDialogProps}
         </Box>
         """

@@ -15,7 +15,7 @@ module ViewHelpers =
     let filterSelect disabled isLoading lbl selected dispatch xs =
         let isEmpty = xs |> Array.isEmpty
 
-        Components.SimpleSelect.View(
+        Components.SimpleSelect.View
             {|
                 updateSelected = if isEmpty then ignore else dispatch
                 label = lbl
@@ -24,11 +24,10 @@ module ViewHelpers =
                 isLoading = isLoading
                 disabled = disabled || isEmpty
                 hasClear = true
-                navigate = None
+                stepper = None
                 warning = None
                 minWidth = None
             |}
-        )
 
 
     let getWarning warning =
@@ -39,14 +38,14 @@ module ViewHelpers =
         | IsAlert -> Some Mui.Colors.Red.``700``
 
 
-    let orderSelect alwaysShow disabled isLoading lbl selected updateSelected navigate hasClear warning minWidth xs =
+    let orderSelect alwaysShow disabled isLoading lbl selected updateSelected stepper hasClear warning minWidth xs =
 
-        if not alwaysShow && xs |> Array.isEmpty && navigate |> Option.isNone then
+        if not alwaysShow && xs |> Array.isEmpty && stepper |> Option.isNone then
             null
         else
-            let isEmpty = xs |> Array.isEmpty && navigate |> Option.isNone
+            let isEmpty = xs |> Array.isEmpty && stepper |> Option.isNone
 
-            Components.SimpleSelect.View(
+            Components.SimpleSelect.View
                 {|
                     updateSelected = if isEmpty then ignore else updateSelected
                     label = lbl
@@ -60,13 +59,14 @@ module ViewHelpers =
                     disabled = disabled || isEmpty
                     hasClear = hasClear
                     warning = warning
-                    navigate = navigate
+                    stepper = stepper
                     minWidth = minWidth
                 |}
-            )
 
 
-    let createNav
+    /// Build the stepper record for a select. `navigable` = can jump to the min, median, or max
+    /// (gates the first/median/last buttons); `solved` enables single-step decrease/increase.
+    let createStepper
         dispatch
         revision
         navigable
@@ -255,7 +255,7 @@ module ViewHelpers =
         ovar |> stepsToCeiling ceiling largeIncr
 
 
-    /// Build the navigate record for the orderable dose-quantity select, shared by the Order
+    /// Build the stepper record for the orderable dose-quantity select, shared by the Order
     /// and Nutrition views. Handles the optimistic stepping with feasibility-ceiling
     /// saturation: the displayed value follows the click count up to the prepared orderable
     /// quantity, and dispatched steps are saturated at that ceiling so an overshoot is not
@@ -263,7 +263,7 @@ module ViewHelpers =
     /// are supplied by each view from its own Msg type. Returns None when navigation must be
     /// hidden (a multi-component orderable whose components do not each have a single distinct
     /// orderable quantity).
-    let createDoseQtyNav
+    let createDoseQtyStepper
         dispatch
         revision
         (ord: Order)
@@ -292,6 +292,7 @@ module ViewHelpers =
                    |> Option.defaultValue false
 
             let solved = ord |> isSolved
+            // can jump to the min, median, or max
             let navigable = ord.Orderable.Dose.Quantity |> OrderVariable.isNavigable
 
             // For a multi-component orderable the dose quantity cannot exceed the prepared
@@ -392,7 +393,7 @@ module ViewHelpers =
     let autoComplete disabled isLoading lbl selected dispatch xs =
         let isEmpty = xs |> Array.isEmpty
 
-        Components.Autocomplete.View(
+        Components.Autocomplete.View
             {|
                 updateSelected = if isEmpty then ignore else dispatch
                 label = lbl
@@ -401,7 +402,6 @@ module ViewHelpers =
                 isLoading = isLoading
                 disabled = disabled || isEmpty
             |}
-        )
 
 
     let inlineProgress isLoading =

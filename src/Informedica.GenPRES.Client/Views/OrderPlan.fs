@@ -306,7 +306,7 @@ module OrderPlan =
         let refreshOrderScenario (ctx: OrderContext) =
             orderContextMsg (Api.ResetOrderScenario, ctx)
 
-        let navigateOrderScenario =
+        let stepOrderScenario =
             {|
                 // Frequency
                 setMinFrequency = fun ctx -> orderContextMsg (Api.SetMinScheduleFrequencyProperty, ctx)
@@ -395,7 +395,7 @@ module OrderPlan =
                 {|
                     orderContext = orderContext
                     updateOrderScenario = updateOrderScenario
-                    navigateOrderScenario = navigateOrderScenario
+                    stepOrderScenario = stepOrderScenario
                     refreshOrderScenario = refreshOrderScenario
                     closeOrder = handleModalClose
                     localizationTerms = localizationTerms
