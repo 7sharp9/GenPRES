@@ -497,13 +497,10 @@ module private Elmish =
 
             let ctx =
                 { OrderContext.empty with
-                    Filter =
-                        { OrderContext.empty.Filter with
-                            Indication = indication |> nonEmpty
-                            Generic = Some generic
-                            Route = route |> nonEmpty
-                            DoseType = doseType |> nonEmpty |> Option.map DoseType.doseTypeFromString
-                        }
+                    OrderContext.Filter.Indication = indication |> nonEmpty
+                    OrderContext.Filter.Generic = Some generic
+                    OrderContext.Filter.Route = route |> nonEmpty
+                    OrderContext.Filter.DoseType = doseType |> nonEmpty |> Option.map DoseType.doseTypeFromString
                 }
 
             { state with
