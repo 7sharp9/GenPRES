@@ -119,7 +119,7 @@ module Order =
         let update
             updateOrderScenario
             resetOrderScenario
-            (navigate:
+            (stepper:
                 {|
                     setFreqMin: OrderLoader -> unit
                     setFreqDec: OrderLoader -> unit
@@ -562,29 +562,29 @@ module Order =
                 | _ -> state, Cmd.none
 
             // == Frequency ==
-            | SetMinFrequencyProperty -> handleNav navigate.setFreqMin
-            | DecreaseFrequencyProperty -> handleNav navigate.setFreqDec
-            | SetMedianFrequencyProperty -> handleNav navigate.setFreqMed
-            | IncreaseFrequencyProperty -> handleNav navigate.setFreqInc
-            | SetMaxFrequencyProperty -> handleNav navigate.setFreqMax
+            | SetMinFrequencyProperty -> handleNav stepper.setFreqMin
+            | DecreaseFrequencyProperty -> handleNav stepper.setFreqDec
+            | SetMedianFrequencyProperty -> handleNav stepper.setFreqMed
+            | IncreaseFrequencyProperty -> handleNav stepper.setFreqInc
+            | SetMaxFrequencyProperty -> handleNav stepper.setFreqMax
             // == Rate ==
-            | SetMinDoseRateProperty -> handleNav navigate.setRateMin
-            | DecreaseDoseRateProperty(n, uc) -> handleNav (navigate.setRateDec (n, uc))
-            | SetMedianDoseRateProperty -> handleNav navigate.setRateMed
-            | IncreaseDoseRateProperty(n, uc) -> handleNav (navigate.setRateInc (n, uc))
-            | SetMaxDoseRateProperty -> handleNav navigate.setRateMax
+            | SetMinDoseRateProperty -> handleNav stepper.setRateMin
+            | DecreaseDoseRateProperty(n, uc) -> handleNav (stepper.setRateDec (n, uc))
+            | SetMedianDoseRateProperty -> handleNav stepper.setRateMed
+            | IncreaseDoseRateProperty(n, uc) -> handleNav (stepper.setRateInc (n, uc))
+            | SetMaxDoseRateProperty -> handleNav stepper.setRateMax
             // == DoseQty ==
-            | SetMinDoseQuantityProperty -> handleNav navigate.setDoseQtyMin
-            | DecreaseDoseQuantityProperty(n, uc) -> handleNav (navigate.setDoseQtyDec (n, uc))
-            | SetMedianDoseQuantityProperty -> handleNav navigate.setDoseQtyMed
-            | IncreaseDoseQuantityProperty(n, uc) -> handleNav (navigate.setDoseQtyInc (n, uc))
-            | SetMaxDoseQuantityProperty -> handleNav navigate.setDoseQtyMax
+            | SetMinDoseQuantityProperty -> handleNav stepper.setDoseQtyMin
+            | DecreaseDoseQuantityProperty(n, uc) -> handleNav (stepper.setDoseQtyDec (n, uc))
+            | SetMedianDoseQuantityProperty -> handleNav stepper.setDoseQtyMed
+            | IncreaseDoseQuantityProperty(n, uc) -> handleNav (stepper.setDoseQtyInc (n, uc))
+            | SetMaxDoseQuantityProperty -> handleNav stepper.setDoseQtyMax
             // == ComponentQty ==
-            | SetMinComponentQuantityProperty -> handleNav navigate.setComponentQtyMin
-            | DecreaseComponentQuantityProperty(n, uc) -> handleNav (navigate.setComponentQtyDec (n, uc))
-            | SetMedianComponentQuantityProperty -> handleNav navigate.setComponentQtyMed
-            | IncreaseComponentQuantityProperty(n, uc) -> handleNav (navigate.setComponentQtyInc (n, uc))
-            | SetMaxComponentQuantityProperty -> handleNav navigate.setComponentQtyMax
+            | SetMinComponentQuantityProperty -> handleNav stepper.setComponentQtyMin
+            | DecreaseComponentQuantityProperty(n, uc) -> handleNav (stepper.setComponentQtyDec (n, uc))
+            | SetMedianComponentQuantityProperty -> handleNav stepper.setComponentQtyMed
+            | IncreaseComponentQuantityProperty(n, uc) -> handleNav (stepper.setComponentQtyInc (n, uc))
+            | SetMaxComponentQuantityProperty -> handleNav stepper.setComponentQtyMax
 
 
         let showOrderName (ord: Order option) =
@@ -649,7 +649,7 @@ module Order =
             {|
                 orderContext: Deferred<OrderContext>
                 updateOrderScenario: OrderContext -> unit
-                navigateOrderScenario:
+                stepOrderScenario:
                     {|
                         // Frequency
                         setMinFrequency: OrderContext -> unit
@@ -737,7 +737,7 @@ module Order =
                 |> props.refreshOrderScenario
             | _ -> ()
 
-        let navigate =
+        let stepper =
             let create nav =
                 fun (ol: OrderLoader) ->
                     match props.orderContext with
@@ -839,35 +839,35 @@ module Order =
 
             {|
                 // Frequency
-                setFreqMin = create props.navigateOrderScenario.setMinFrequency
-                setFreqDec = create props.navigateOrderScenario.decrFrequency
-                setFreqMed = create props.navigateOrderScenario.setMedianFrequency
-                setFreqInc = create props.navigateOrderScenario.incrFrequency
-                setFreqMax = create props.navigateOrderScenario.setMaxFrequency
+                setFreqMin = create props.stepOrderScenario.setMinFrequency
+                setFreqDec = create props.stepOrderScenario.decrFrequency
+                setFreqMed = create props.stepOrderScenario.setMedianFrequency
+                setFreqInc = create props.stepOrderScenario.incrFrequency
+                setFreqMax = create props.stepOrderScenario.setMaxFrequency
                 // Dose Rate
-                setRateMin = create props.navigateOrderScenario.setMinRate
-                setRateDec = createWithN props.navigateOrderScenario.decrRate
-                setRateMed = create props.navigateOrderScenario.setMedianRate
-                setRateInc = createWithN props.navigateOrderScenario.incrRate
-                setRateMax = create props.navigateOrderScenario.setMaxRate
+                setRateMin = create props.stepOrderScenario.setMinRate
+                setRateDec = createWithN props.stepOrderScenario.decrRate
+                setRateMed = create props.stepOrderScenario.setMedianRate
+                setRateInc = createWithN props.stepOrderScenario.incrRate
+                setRateMax = create props.stepOrderScenario.setMaxRate
                 // Dose Quantity
-                setDoseQtyMin = create props.navigateOrderScenario.setMinDoseQty
-                setDoseQtyDec = createWithN props.navigateOrderScenario.decrDoseQty
-                setDoseQtyMed = create props.navigateOrderScenario.setMedianDoseQty
-                setDoseQtyInc = createWithN props.navigateOrderScenario.incrDoseQty
-                setDoseQtyMax = create props.navigateOrderScenario.setMaxDoseQty
+                setDoseQtyMin = create props.stepOrderScenario.setMinDoseQty
+                setDoseQtyDec = createWithN props.stepOrderScenario.decrDoseQty
+                setDoseQtyMed = create props.stepOrderScenario.setMedianDoseQty
+                setDoseQtyInc = createWithN props.stepOrderScenario.incrDoseQty
+                setDoseQtyMax = create props.stepOrderScenario.setMaxDoseQty
                 // Component Quantity
-                setComponentQtyMin = createWithCmp props.navigateOrderScenario.setMinComponentQty
-                setComponentQtyDec = createWithCmpN props.navigateOrderScenario.decrComponentQty
-                setComponentQtyMed = createWithCmp props.navigateOrderScenario.setMedianComponentQty
-                setComponentQtyInc = createWithCmpN props.navigateOrderScenario.incrComponentQty
-                setComponentQtyMax = createWithCmp props.navigateOrderScenario.setMaxComponentQty
+                setComponentQtyMin = createWithCmp props.stepOrderScenario.setMinComponentQty
+                setComponentQtyDec = createWithCmpN props.stepOrderScenario.decrComponentQty
+                setComponentQtyMed = createWithCmp props.stepOrderScenario.setMedianComponentQty
+                setComponentQtyInc = createWithCmpN props.stepOrderScenario.incrComponentQty
+                setComponentQtyMax = createWithCmp props.stepOrderScenario.setMaxComponentQty
             |}
 
         let state, dispatch =
             React.useElmish (
                 init props.orderContext,
-                update updateOrderScenario resetOrderScenario navigate,
+                update updateOrderScenario resetOrderScenario stepper,
                 [| box props.orderContext |]
             )
 
@@ -1108,7 +1108,7 @@ module Order =
                        |> Option.map (fun v -> v.Value |> Array.isEmpty |> not)
                        |> Option.defaultValue false
                 // orderable dose rate: shown when continuous/timed/onceTimed
-                // (navigate is always Some, so select renders even with empty vals)
+                // (stepper is always Some, so select renders even with empty vals)
                 let hasDoseRate =
                     ord.Schedule.IsContinuous || ord.Schedule.IsTimed || ord.Schedule.IsOnceTimed
                 // administration time: shown when has vals
@@ -1162,7 +1162,7 @@ module Order =
                 null
 
         let content =
-            let createNav = ViewHelpers.createNav dispatch revision
+            let createStepper = ViewHelpers.createStepper dispatch revision
 
             let contentSx =
                 {|
@@ -1297,7 +1297,7 @@ module Order =
                 | _ -> null
 
             let substRateSelect =
-                let navigate = None
+                let stepper = None
 
                 match substIndx, displayOrder with
                 | Some i, Some ord when ord.Schedule.IsContinuous && itms |> Array.length > 0 ->
@@ -1327,7 +1327,7 @@ module Order =
                         (Terms.``Order Adjusted dose`` |> getTerm "dosering")
                         None
                         dispatch
-                        navigate
+                        stepper
                         true
                         warning
                         None
@@ -1347,7 +1347,7 @@ module Order =
                         |> Option.map (_.OrderableQuantity >> ViewHelpers.ovarValsWithRange string 3)
                         |> Option.defaultValue [||]
 
-                    let navigate =
+                    let stepper =
                         let c = vals |> Array.length
 
                         let show =
@@ -1364,12 +1364,13 @@ module Order =
                         else
                             let solved = ord |> isSolved
 
+                            // can jump to the min, median, or max
                             let navigable =
                                 cmp
                                 |> Option.map (_.OrderableQuantity >> OrderVariable.isNavigable)
                                 |> Option.defaultValue false
 
-                            createNav
+                            createStepper
                                 navigable
                                 solved
                                 SetMinComponentQuantityProperty
@@ -1387,7 +1388,7 @@ module Order =
                         "bereiding hoeveelheid"
                         None
                         (ChangeComponentOrderableQuantity >> dispatch)
-                        navigate
+                        stepper
                         false
                         warning
                         None
@@ -1528,14 +1529,15 @@ module Order =
                 | Some ord when ord.Schedule.IsDiscontinuous || ord.Schedule.IsTimed ->
                     let xs = ord.Schedule.Frequency |> ViewHelpers.ovarVals string
 
-                    let navigate =
+                    let stepper =
                         if xs |> Array.length <> 1 then
                             None
                         else
                             let solved = ord |> isSolved
+                            // frequency: no jump to the min, median, or max
                             let navigable = false
 
-                            createNav
+                            createStepper
                                 navigable
                                 solved
                                 SetMinFrequencyProperty
@@ -1552,7 +1554,7 @@ module Order =
                         (Terms.``Order Frequency`` |> getTerm "frequentie")
                         None
                         (ChangeFrequency >> dispatch)
-                        navigate
+                        stepper
                         false
                         warning
                         None
@@ -1562,8 +1564,8 @@ module Order =
             let ordDoseQtySelect =
                 match displayOrder with
                 | Some ord when ord.Schedule.IsContinuous |> not ->
-                    let navigate =
-                        ViewHelpers.createDoseQtyNav
+                    let stepper =
+                        ViewHelpers.createDoseQtyStepper
                             dispatch
                             revision
                             ord
@@ -1582,7 +1584,7 @@ module Order =
                         "toedien hoeveelheid"
                         None
                         (ChangeOrderableDoseQuantity >> dispatch)
-                        navigate
+                        stepper
                         false
                         warning
                         None
@@ -1592,10 +1594,11 @@ module Order =
                 match displayOrder with
                 | Some ord when ord.Schedule.IsContinuous || ord.Schedule.IsTimed || ord.Schedule.IsOnceTimed ->
                     let solved = ord |> isSolved
+                    // can jump to the min, median, or max
                     let navigable = ord.Orderable.Dose.Rate |> OrderVariable.isNavigable
 
-                    let navigate =
-                        createNav
+                    let stepper =
+                        createStepper
                             navigable
                             solved
                             SetMinDoseRateProperty
@@ -1614,7 +1617,7 @@ module Order =
                         (Terms.``Order Drip rate`` |> getTerm "inloop snelheid")
                         None
                         (ChangeOrderableDoseRate >> dispatch)
-                        navigate
+                        stepper
                         false
                         warning
                         None
@@ -1639,6 +1642,8 @@ module Order =
                         None
                 | _ -> null
 
+            let titleSlotProps = {| title = {| variant = "h6" |} |}
+
             JSX.jsx
                 $"""
             import CardHeader from '@mui/material/CardHeader';
@@ -1651,7 +1656,7 @@ module Order =
             <CardHeader
                 sx = {headerSx}
                 title={displayOrder |> showOrderName}
-                slotProps={ {| title = {| variant = "h6" |} |} }
+                slotProps={titleSlotProps}
             ></CardHeader>
             <CardContent sx={contentSx}>
                 <Stack direction={"column"} spacing={if isMobile then 1.5 else 3} >

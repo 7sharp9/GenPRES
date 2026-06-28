@@ -128,7 +128,7 @@ module Prescribe =
         let select = ViewHelpers.filterSelect isAnythingLoading
 
         let multiSelect isLoading lbl selected dispatch xs =
-            Components.MultipleSelect.View(
+            Components.MultipleSelect.View
                 {|
                     updateSelected = dispatch
                     label = lbl
@@ -137,7 +137,6 @@ module Prescribe =
                     isLoading = isLoading
                     disabled = isAnythingLoading
                 |}
-            )
 
         let autoComplete = ViewHelpers.autoComplete isAnythingLoading
 
@@ -502,7 +501,7 @@ module Prescribe =
                          {|
                              orderContext = orderContext
                              updateOrderScenario = fun ctx -> orderContextMsg (Api.UpdateOrderScenario, ctx)
-                             navigateOrderScenario =
+                             stepOrderScenario =
                                  {|
                                      // Frequency
                                      setMinFrequency = fun ctx -> orderContextMsg (Api.SetMinScheduleFrequencyProperty, ctx)

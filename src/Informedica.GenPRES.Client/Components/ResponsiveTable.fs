@@ -202,6 +202,13 @@ module ResponsiveTable =
                     """
                 )
 
+            let columnSpacing =
+                {|
+                    xs = 1
+                    sm = 2
+                    md = 3
+                |}
+
             JSX.jsx
                 $"""
             import Grid from '@mui/material/Grid';
@@ -212,11 +219,7 @@ module ResponsiveTable =
                 <Box sx={ {| marginBottom = 1.5 |} }>
                     {props.filter |> Option.defaultValue null}
                 </Box>
-                <Grid container rowSpacing={1} columnSpacing={ {|
-                                                                   xs = 1
-                                                                   sm = 2
-                                                                   md = 3
-                                                               |} } >
+                <Grid container rowSpacing={1} columnSpacing={columnSpacing} >
                     {React.Fragment(cards |> unbox<seq<ReactElement>>)}
                 </Grid>
             </Stack>
@@ -311,7 +314,7 @@ module ResponsiveTable =
                         |> Array.distinct
                         |> Array.sortBy _.ToLower()
 
-                    MultipleSelect.View(
+                    MultipleSelect.View
                         {|
                             label = "Filter"
                             selected = state
@@ -320,7 +323,6 @@ module ResponsiveTable =
                             isLoading = false
                             disabled = false
                         |}
-                    )
             |> toReact
 
         let onRowClick = fun pars -> pars?id |> string |> props.onRowClick
