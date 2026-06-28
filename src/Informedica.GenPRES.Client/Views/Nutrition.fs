@@ -148,17 +148,14 @@ module Nutrition =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.map (fun cmp ->
-                                            if cmp.Name = cmpName then
-                                                { cmp with OrderableQuantity = cmp.OrderableQuantity |> setOvar s }
-                                            else
-                                                cmp
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.map (fun cmp ->
+                                    if cmp.Name = cmpName then
+                                        { cmp with OrderableQuantity = cmp.OrderableQuantity |> setOvar s }
+                                    else
+                                        cmp
+                                )
                         }
                         |> UpdateOrderScenario
 
@@ -170,20 +167,16 @@ module Nutrition =
                 | Some ord ->
                     let msg =
                         { ord with
-                            Orderable =
-                                { ord.Orderable with
-                                    Components =
-                                        ord.Orderable.Components
-                                        |> Array.map (fun cmp ->
-                                            if cmp.Name = cmpName then
-                                                { cmp with
-                                                    Component.Dose.QuantityAdjust =
-                                                        cmp.Dose.QuantityAdjust |> setOvar s
-                                                }
-                                            else
-                                                cmp
-                                        )
-                                }
+                            Order.Orderable.Components =
+                                ord.Orderable.Components
+                                |> Array.map (fun cmp ->
+                                    if cmp.Name = cmpName then
+                                        { cmp with
+                                            Component.Dose.QuantityAdjust = cmp.Dose.QuantityAdjust |> setOvar s
+                                        }
+                                    else
+                                        cmp
+                                )
                         }
                         |> UpdateOrderScenario
 
@@ -1140,12 +1133,13 @@ module Nutrition =
                 $"""
             import Grid from '@mui/material/Grid';
             import Typography from '@mui/material/Typography';
+            import Divider from '@mui/material/Divider';
             <Grid container spacing={{2}}>
                 <Grid size={halfSize}>
-                    <Typography variant="caption" color="text.secondary">bereiding</Typography>
+                    <Divider><Typography variant="caption">bereiding</Typography></Divider>
                 </Grid>
                 <Grid size={halfSize}>
-                    <Typography variant="caption" color="text.secondary">dosering</Typography>
+                    <Divider><Typography variant="caption">dosering</Typography></Divider>
                 </Grid>
             </Grid>
             """
