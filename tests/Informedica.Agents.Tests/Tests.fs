@@ -151,25 +151,24 @@ module Tests =
             testList "Stateful Agent Operations" [
 
                 testAsync "stateful agent should maintain state" {
+                    let mutable observedState = 0
+
                     let agent = Agent.createStateful (0, fun state msg ->
-                        let state =
+                        let newState =
                             match msg with
                             | AddToState value -> state + value
                             | _ -> state
-
-                        if not (state = 5 || state = 8) then
-                            printfn $"current state should be 5 then 8: but is {state}"
-                        state
-                        )
+                        observedState <- newState
+                        newState)
 
                     agent.Post (AddToState 5)
-                    do! Async.Sleep 50
+                    do! waitUntilAsync 5000 (fun () -> observedState = 5)
+                    observedState |> Expect.equal "State should be 5 after first add" 5
 
                     agent.Post (AddToState 3)
-                    do! Async.Sleep 50
+                    do! waitUntilAsync 5000 (fun () -> observedState = 8)
+                    observedState |> Expect.equal "State should be 8 after second add" 8
 
-                    // We can't directly check state, but we can test through side effects
-                    true |> Expect.isTrue "Agent should maintain state internally"
                     agent |> Agent.dispose
                 }
 
@@ -350,12 +349,39 @@ module Tests =
 
                     agent |> Agent.dispose
                 }
+
+                testAsync "slow processor should not block indefinitely with timeout" {
+                    let agent = Agent.createReply (fun _ ->
+                        Thread.Sleep 2_000    // keep > timeout, but avoid long ThreadPool blocking on CI
+                        "done")
+                    let result = agent |> Agent.tryPostAndReply 500 "test"
+                    result |> Expect.isNone "should time out, not hang"
+                    agent |> Agent.dispose
+                }
+
+                testAsync "agent with pending messages can be stopped cleanly" {
+                    let mutable processed = 0
+                    let agent = Agent.createSimple (fun _ ->
+                        Thread.Sleep 50
+                        Interlocked.Increment(&processed) |> ignore)
+                    for _ in 1..10 do agent.Post ()
+                    // Wait until at least one message has been processed before
+                    // disposing, so the assertion is guaranteed to hold regardless
+                    // of scheduler timing on slow CI runners.
+                    do! waitUntilAsync 5000 (fun () -> processed >= 1)
+                    agent |> Agent.dispose
+                    Expect.isGreaterThan "some should have processed before disposal" (processed, 0)
+                }
             ]
 
 
         // Disposal and cancellation tests
+        // testSequenced: "Agent.post on disposed agent should be silent" redirects
+        // Console.Error (process-global). Running disposal tests sequentially prevents
+        // concurrent tests that also post to disposed agents from bleeding into the
+        // captured stderr buffer.
         let disposalTests =
-            testList "Disposal and Cancellation" [
+            testSequenced <| testList "Disposal and Cancellation" [
 
                 test "disposed agent should not accept new messages" {
                     let agent = Agent.createSimple (fun _ -> ())
@@ -363,10 +389,10 @@ module Tests =
                     agent |> Agent.dispose
 
                     // This should not throw, but message won't be processed
-                    let b =
+                    let wasPosted =
                         agent
                         |> Agent.post "test"
-                    b |> Expect.isFalse "Posting to disposed agent should not throw, but post is not performed"
+                    wasPosted |> Expect.isFalse "Posting to disposed agent should not throw, but post is not performed"
                 }
 
                 testAsync "disposal should stop agent processing" {
@@ -394,6 +420,25 @@ module Tests =
                     do! waitUntilAsync 5000 (fun () -> not isProcessing)
 
                     isProcessing |> Expect.isFalse "Agent should stop processing after disposal"
+                }
+
+                test "Disposing an agent twice should be safe" {
+                    let agent = Agent.createSimple (fun _ -> ())
+                    agent |> Agent.dispose
+                    agent |> Agent.dispose  // must not throw
+                }
+
+                test "Agent.post on disposed agent should be silent" {
+                    let agent = Agent.createSimple (fun _ -> ())
+                    agent |> Agent.dispose
+
+                    let original = Console.Error
+                    use buf = new System.IO.StringWriter()
+                    Console.SetError(buf)
+                    let _ = agent |> Agent.post "test"
+                    Console.SetError(original)
+
+                    buf.ToString() |> Expect.equal "should print nothing to stderr" ""
                 }
             ]
 
@@ -501,13 +546,14 @@ module Tests =
                         Thread.Sleep 10 // Small delay to test concurrency
                         msg * 2)
 
-                    // Start multiple concurrent requests
+                    // Start multiple concurrent requests using the async variant so
+                    // Async.Parallel can yield threads rather than block them.
                     let tasks = [
-                        async { return agent |> Agent.postAndReply 1 }
-                        async { return agent |> Agent.postAndReply 2 }
-                        async { return agent |> Agent.postAndReply 3 }
-                        async { return agent |> Agent.postAndReply 4 }
-                        async { return agent |> Agent.postAndReply 5 }
+                        agent |> Agent.postAndAsyncReply 1
+                        agent |> Agent.postAndAsyncReply 2
+                        agent |> Agent.postAndAsyncReply 3
+                        agent |> Agent.postAndAsyncReply 4
+                        agent |> Agent.postAndAsyncReply 5
                     ]
 
                     let! results = Async.Parallel tasks
@@ -1064,7 +1110,6 @@ module Tests =
                 }
             ]
 
-        // Property-based tests
         // Property-based tests
         let propertyTests =
             testList "Property-based Tests" [
