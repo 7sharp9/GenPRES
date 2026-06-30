@@ -72,7 +72,12 @@ Target.create
     )
 
 
-Target.create "Build" (fun _ -> run dotnet [ "build"; sln ] ".")
+Target.create
+    "Build"
+    (fun _ ->
+        run dotnet [ "restore"; sln ] "."
+        run dotnet [ "build"; sln; "--no-restore" ] "."
+    )
 
 
 Target.create
