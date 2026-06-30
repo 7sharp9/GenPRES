@@ -1439,11 +1439,17 @@ module OrderProcessorTests =
 
                 test "component orderable quantity change still works on a solved order with dose count = 1" {
                     // sanity: the normal path (no preceding dose-quantity change) keeps working
-                    let _, err = solvedTpn () |> increaseGluc
+                    let solved = solvedTpn ()
+                    let before = solved |> componentOrbQty "gluc 10%"
+                    let changed, err = solved |> increaseGluc
+                    let after = changed |> componentOrbQty "gluc 10%"
 
                     err
                     |> hasEmptyValueSetError
                     |> Expect.isFalse "should not raise a ValueRangeEmptyValueSet"
+
+                    // also guard against a silent snap-back on the base path
+                    after |> Expect.notEqual "gluc 10% orderable quantity should change" before
                 }
             ]
 
