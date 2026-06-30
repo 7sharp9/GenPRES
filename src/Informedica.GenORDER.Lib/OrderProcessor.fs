@@ -63,7 +63,7 @@ module OrderProcessor =
 
     // == Property Change Dose Rate
 
-    let orderPropertyIncrOrDecrDoseRate step ord =
+    let orderPropertyIncrOrDecrOrderableDoseRate step ord =
         ord
         // clear dose rates
         |> OrderPropertyChange.proc
@@ -80,7 +80,7 @@ module OrderProcessor =
 
     // == Property Change Dose Quantity
 
-    let orderPropertyIncrOrDecrDoseQuantity step ord =
+    let orderPropertyIncrOrDecrOrderableDoseQuantity step ord =
 
         ord
         // clear order quantities
@@ -90,7 +90,7 @@ module OrderProcessor =
                     ScheduleTime Time.setToNonZeroPositive
 
                 if ord.Orderable.Components |> List.length > 1 then
-                    OrderableDoseCount OrderVariable.Count.setToMinIsOne
+                    OrderableDoseCount OrderVariable.Count.setMinToOne
                 else
                     OrderableDoseCount OrderVariable.Count.setToOne
                     OrderableQuantity Quantity.setToNonZeroPositive
@@ -126,7 +126,7 @@ module OrderProcessor =
     /// <param name="step">The function to apply (increase or decrease) to the component quantity</param>
     /// <param name="cmp">The name of the component to modify</param>
     /// <param name="ord">The order to process</param>
-    let orderPropertyIncrOrDecrComponentQuantity step cmp ord =
+    let orderPropertyIncrOrDecrComponentOrderableQuantity step cmp ord =
         ord
         |> OrderPropertyChange.proc
             [
@@ -140,9 +140,9 @@ module OrderProcessor =
                 // clear to allow recalculation with potentially out-of-bounds values
                 ComponentOrderableCount(cmp, OrderVariable.Count.setToNonZeroPositive)
                 ComponentOrderableConcentration("", Concentration.setToNonZeroPositive)
-                // dose count (orb_dos_cnt) stays constant, so component dose quantity
+                // component dose quantity
                 // is recalculated via: cmp_orb_qty = orb_dos_cnt * cmp_dos_qty
-                // if cmp_orb_qty is out of bounds, cmp_dos_qty will also be out of bounds
+                // if cmp_orb_qty is out of bounds, cmp_dos_qty can also be out of bounds
                 ComponentDose(cmp, Dose.setQuantityToNonZeroPositive)
                 ItemDose(cmp, "", Dose.setQuantityToNonZeroPositive)
                 // in addition to work with non-continuous as well
@@ -158,10 +158,18 @@ module OrderProcessor =
                 // all item orderable concentrations change because total orb_qty changes
                 // (eq 4: itm_orb_cnc = itm_orb_qty / orb_qty)
                 ItemOrderableConcentration("", "", Concentration.setToNonZeroPositive)
-                // orderable doses are derived from component doses
-                // clear to accept propagated out-of-bounds values
-                OrderableDose Dose.applyQuantityMinIncrConstraints
-                OrderableDose Dose.setPerTimeToNonZeroPositive
+
+                // recalc orb_dos_cnt when only one component, so only
+                // that component can change
+                if ord.Orderable.Components.Length = 1 then
+                    OrderableDoseCount OrderVariable.Count.setToNonZeroPositive
+                else
+                    // the composition has changed so reset
+                    OrderableDoseCount OrderVariable.Count.setToOne
+                    // orderable doses are derived from component doses
+                    // clear to accept propagated out-of-bounds values
+                    OrderableDose Dose.applyQuantityMinIncrConstraints
+                    OrderableDose Dose.setPerTimeToNonZeroPositive
             ]
         |> OrderPropertyChange.proc [ ComponentOrderableQuantity(cmp, step) ]
 
@@ -185,26 +193,30 @@ module OrderProcessor =
         | SetMaxScheduleFrequency -> ord |> setFreq Frequency.setMaxValue
         // Dose Quantity
         | DecreaseOrderableDoseQuantity(n, useCalc) ->
-            ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.decreaseQuantity useCalc n)
+            ord
+            |> orderPropertyIncrOrDecrOrderableDoseQuantity (Dose.decreaseQuantity useCalc n)
         | IncreaseOrderableDoseQuantity(n, useCalc) ->
-            ord |> orderPropertyIncrOrDecrDoseQuantity (Dose.increaseQuantity useCalc n)
+            ord
+            |> orderPropertyIncrOrDecrOrderableDoseQuantity (Dose.increaseQuantity useCalc n)
         | SetMinOrderableDoseQuantity -> ord |> setDose (Dose.setMinDose ord.Schedule false)
         | SetMaxOrderableDoseQuantity -> ord |> setDose (Dose.setMaxDose ord.Schedule false)
         | SetMedianOrderableDoseQuantity -> ord |> setDose (Dose.setMedianDose ord.Schedule false)
         | SetOrderableDoseQuantityPerc n -> ord |> setDose (Dose.setPercValue n ord.Schedule false)
         // Dose Rate
-        | DecreaseOrderableDoseRate(n, useCalc) -> ord |> orderPropertyIncrOrDecrDoseRate (Dose.decreaseRate useCalc n)
-        | IncreaseOrderableDoseRate(n, useCalc) -> ord |> orderPropertyIncrOrDecrDoseRate (Dose.increaseRate useCalc n)
+        | DecreaseOrderableDoseRate(n, useCalc) ->
+            ord |> orderPropertyIncrOrDecrOrderableDoseRate (Dose.decreaseRate useCalc n)
+        | IncreaseOrderableDoseRate(n, useCalc) ->
+            ord |> orderPropertyIncrOrDecrOrderableDoseRate (Dose.increaseRate useCalc n)
         | SetMinOrderableDoseRate -> ord |> setDose (Dose.setMinDose ord.Schedule true)
         | SetMaxOrderableDoseRate -> ord |> setDose (Dose.setMaxDose ord.Schedule true)
         | SetMedianOrderableDoseRate -> ord |> setDose (Dose.setMedianDose ord.Schedule true)
         // Component Quantity
         | DecreaseComponentOrderableQuantity(cmp, n, useCalc) ->
             ord
-            |> orderPropertyIncrOrDecrComponentQuantity (Quantity.decrease useCalc n) cmp
+            |> orderPropertyIncrOrDecrComponentOrderableQuantity (Quantity.decrease useCalc n) cmp
         | IncreaseComponentOrderableQuantity(cmp, n, useCalc) ->
             ord
-            |> orderPropertyIncrOrDecrComponentQuantity (Quantity.increase useCalc n) cmp
+            |> orderPropertyIncrOrDecrComponentOrderableQuantity (Quantity.increase useCalc n) cmp
         | SetMinComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMinValue
         | SetMaxComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMaxValue
         | SetMedianComponentOrderableQuantity cmp -> ord |> setCmpOrbQty cmp Quantity.setMedianValue

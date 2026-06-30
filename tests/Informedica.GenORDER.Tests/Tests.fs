@@ -1350,6 +1350,104 @@ module EquationsTests =
             ]
 
 
+// Regression tests for issue #381: after the orderable dose quantity is
+// changed so that dose quantity <> orderable quantity (orb_dos_cnt <> 1),
+// changing an individual component orderable quantity used to over-determine
+// the orderable dose quantity onto an off-increment value. The solver then
+// threw a ValueRangeEmptyValueSet, the order state stayed poisoned, the UI
+// value snapped back and every subsequent server update failed.
+module OrderProcessorTests =
+
+    module N = Variable.Name
+
+    let private noLogger = Logging.noOp
+
+    /// Run an OrderCommand through the pipeline, keeping the order on error.
+    let private run cmd ord =
+        match OrderProcessor.processPipeline noLogger (cmd ord) with
+        | Ok o -> o, None
+        | Error(o, msgs) -> o, Some msgs
+
+    /// Build and fully solve the multi-component timed TPN scenario.
+    let private solvedTpn () =
+        Scenarios.tpn
+        |> Medication.toOrderDto
+        |> Order.Dto.fromDto
+        |> function
+            | Ok o -> o
+            | Error e -> failwith $"could not create tpn order: %A{e}"
+        |> run CalcMinMax
+        |> fst
+        |> run IncreaseIncrements
+        |> fst
+        |> run CalcValues
+        |> fst
+        |> run SolveOrder
+        |> fst
+
+    /// The orderable-quantity value range of a named component, as a string.
+    let private componentOrbQty (cmp: string) (ord: Order) =
+        ord
+        |> Order.toOrdVars
+        |> List.filter (fun ov -> (ov.Variable.Name |> N.toString).Contains $"{cmp}]_orb_qty")
+        |> List.map (fun ov -> ov.Variable.Values |> Variable.ValueRange.toString true)
+        |> String.concat "; "
+
+    let private hasEmptyValueSetError msgs =
+        msgs
+        |> Option.defaultValue []
+        |> List.exists (fun m -> ($"%A{m}").Contains "EmptyValueSet")
+
+    // change the orderable dose quantity so that orb_dos_cnt <> 1
+    let private lowerOrderableDoseQuantity ord =
+        ord
+        |> run (fun o -> ChangeProperty(o, DecreaseOrderableDoseQuantity(5, true)))
+        |> fst
+
+    let private increaseGluc ord =
+        ord
+        |> run (fun o -> ChangeProperty(o, IncreaseComponentOrderableQuantity("gluc 10%", 1, true)))
+
+    [<Tests>]
+    let tests =
+        testList
+            "OrderProcessor component change after dose-quantity change (issue #381)"
+            [
+                test "component orderable quantity change does not crash the solver after a dose-quantity change" {
+                    let afterDoseChange = solvedTpn () |> lowerOrderableDoseQuantity
+                    let _, err = afterDoseChange |> increaseGluc
+
+                    err
+                    |> hasEmptyValueSetError
+                    |> Expect.isFalse "should not raise a ValueRangeEmptyValueSet"
+
+                    err |> Expect.isNone "component change should solve without error"
+                }
+
+                test "component orderable quantity actually changes (no snap-back) after a dose-quantity change" {
+                    let afterDoseChange = solvedTpn () |> lowerOrderableDoseQuantity
+                    let before = afterDoseChange |> componentOrbQty "gluc 10%"
+                    let changed, err = afterDoseChange |> increaseGluc
+                    let after = changed |> componentOrbQty "gluc 10%"
+
+                    // a clean solve is what prevents the UI from snapping back to the previous value
+                    err |> Expect.isNone "component change should solve without error"
+
+                    after
+                    |> Expect.notEqual "gluc 10% orderable quantity should change, not snap back" before
+                }
+
+                test "component orderable quantity change still works on a solved order with dose count = 1" {
+                    // sanity: the normal path (no preceding dose-quantity change) keeps working
+                    let _, err = solvedTpn () |> increaseGluc
+
+                    err
+                    |> hasEmptyValueSetError
+                    |> Expect.isFalse "should not raise a ValueRangeEmptyValueSet"
+                }
+            ]
+
+
 [<Tests>]
 let tests =
     testList
