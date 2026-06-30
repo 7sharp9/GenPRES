@@ -435,8 +435,11 @@ module Tests =
                     let original = Console.Error
                     use buf = new System.IO.StringWriter()
                     Console.SetError(buf)
-                    let _ = agent |> Agent.post "test"
-                    Console.SetError(original)
+                    try
+                        let _ = agent |> Agent.post "test"
+                        ()
+                    finally
+                        Console.SetError(original)
 
                     buf.ToString() |> Expect.equal "should print nothing to stderr" ""
                 }
