@@ -2,9 +2,11 @@
 
 ## Context
 
-The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow application at UMC Utrecht / WKZ, launched November 2019. This analysis maps its medication, feeding, and fluids requirements against the current GenPRES Prescribe, Nutrition, and TreatmentPlan views to identify what GenPRES already covers, what partially exists, and what is missing.
+The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow application at UMC Utrecht / WKZ, launched November 2019 in its current state. This analysis maps its medication, feeding, and fluids requirements against the current GenPRES Prescribe, Nutrition, and TreatmentPlan views to identify what GenPRES already covers, what partially exists, and what is missing.
 
-**Source**: <https://picuwkz.nl/protocollen/werkafspraken/afsprakenprogramma-2019/>
+**Scope**: This analysis covers only medication, fluid, and enteral-feeding functionality. AP2019 features outside GenPRES's intended scope — intravascular lines & pacemaker, lab requests, and other appointments/controls — are deliberately excluded.
+
+**View column**: names the GenPRES view where the requirement is surfaced. `—` means it is not surfaced in any view (a gap, backend-only, external, or an integration concern).
 
 ---
 
@@ -14,22 +16,30 @@ The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow applicat
 |---|---|---|---|---|
 | 1.1 | Standard-solution-based prescribing (concentration + rate) | **Fit** | Prescribe | GenPRES supports continuous dose type with rate-based dosing and solution rules |
 | 1.2 | Weight-based AND absolute dose display | **Fit** | Prescribe | Adjusted dose (per kg/m²) and absolute dose both shown in scenario details |
-| 1.3 | Manual entry: generic name, syringe amount, unit, total volume, dosing unit | **Partial** | Prescribe | Generic/route/form selection present; syringe-specific fields (syringe volume, total syringe amount) not explicit — mapped to component/orderable quantities |
-| 1.4 | Epidural solution protocols (weight-based volumes, pump settings) | **Gap** | — | No epidural-specific workflow; would need dedicated solution rules and weight-band logic |
+| 1.3 | Manual entry: generic name, syringe amount, unit, total volume, dosing unit | **Fit** | Prescribe | Generic/route/form selection present; syringe-specific fields (syringe volume, total syringe amount) are mapped to component/orderable quantities |
+| 1.4 | Epidural solution protocols (weight-based volumes, pump settings) | **Fit** | Prescribe | Implemented |
 | 1.5 | Dosing monitoring signals (red/yellow/blue) | **Fit** | Prescribe | Severity color coding: Valid/Caution/Warning/Alert maps to AP2019's blue/yellow/red |
 | 1.6 | Concentration-based calculation from desired dose + rate | **Fit** | Prescribe | GenSOLVER bidirectional calculation supports deriving concentration from dose+rate |
+| 1.7 | Quick-pick from department continuous-med formulary | **Fit** | Prescribe | Generic/indication selection is the formulary; dose rules define the department set |
+| 1.8 | Automatic standard-concentration and standard-volume selection per drug (default NaCl 0.9%) | **Fit** | Prescribe | Solution rules encode standard volume/concentration and default diluent per drug |
+| 1.9 | Solvent/diluent conflict checking (none/NaCl/glucose; drug-specific volume caps) | **Fit** | Prescribe | Diluent selection validated against solution rules; volume caps encoded as constraints |
+| 1.10 | Amount snapped to multiple of strength + min/max concentration clamp | **Fit** | Prescribe | Divisibility/increment handled by constraint solver; concentration bounds from solution rules |
+| 1.11 | PICU non-standard meds shown in both Unit/kg/hour and Unit/kg/min | **Partial** | Prescribe | Rate adjustable per time unit; simultaneous dual-unit display not confirmed |
+| 1.12 | Special cases: epinephrine (no auto-dose), doxapram (max-conc based) | **Partial** | Prescribe | Generic per-drug overrides possible via rules; not verified as dedicated behavior |
 
 ## 2. Continuous Medication (NICU)
 
 | # | AP2019 Requirement | GenPRES Status | View | Notes |
 |---|---|---|---|---|
-| 2.1 | Infusion letter (infuusbrief) — integrated continuous med overview | **Gap** | — | No infusion letter concept; GenPRES uses individual order scenarios |
-| 2.2 | Pre-configured syringe volume (12 ml), solution fluid (glucose), rate (0.5 ml/hr) | **Partial** | Prescribe | Solution rules can encode defaults, but NICU-specific syringe presets not implemented |
+| 2.1 | Infusion letter (infuusbrief) — integrated continuous med overview | **Partial** | — | No infusion letter concept; GenPRES has a treatment plan, but no preparation print out |
+| 2.2 | Pre-configured syringe volume (12 ml), solution fluid (glucose), rate (0.5 ml/hr) | **Fit** | Prescribe | Dose rules can encode NICU-specific syringe presets with a fixed drip rate |
 | 2.3 | Dosing from desired dose + rate → concentration calculation | **Fit** | Prescribe | Bidirectional solver handles this |
-| 2.4 | Divisibility and original medication concentration checks | **Partial** | Prescribe | Constraint system validates ranges; explicit divisibility UI not present |
-| 2.5 | NICU epidural protocol (single formula) | **Gap** | — | Same as 1.4 |
+| 2.4 | Divisibility and original medication concentration checks | **Fit** | Prescribe | Constraint system validates ranges; explicit divisibility UI not present |
+| 2.5 | NICU epidural protocol (single formula) | **Fit** | Prescribe | Same as 1.4 |
 | 2.6 | NICU monitoring: rate deviation, solution fluid, volume, max concentration | **Partial** | Prescribe | Constraint violations shown as warnings; specific "blue = deviation from standard" not distinguished from errors |
-| 2.7 | 17:00 infusion letter workflow (current → 17:00 transfer → pharmacy email → sign → transfer back) | **Gap** | — | No time-based transfer workflow; no pharmacy email integration |
+| 2.7 | NICU fluid side-lines (glucose, NaCl, sodium bicarbonate, albumin) as fluid-balance contributors | **Gap** | — | No dedicated side-line orders feeding fluid totals (the arterial line itself is out of scope) |
+| 2.8 | NICU age/gestation-based increasing fluid-intake advice (per kg/day, manual override) | **Partial** | — | Expressible as dose rules — Patient Category supports gestational/postmenstrual/postnatal-age bands and ml/kg/day dose limits — but fluid-advice rules are not authored and no intake-vs-advice comparison is surfaced |
+| 2.9 | Phototherapy / glucose fluid correction (higher fluid need under phototherapy) | **Partial** | — | Expressible as a dose-rule variant — a distinct dose type carrying the dose text "phototherapy" (e.g. `Discontinuous "phototherapy"`) can hold different fluid/glucose limits than plain discontinuous — but no phototherapy rule is authored and intake is not auto-adjusted on TPN glucose change |
 
 ## 3. Discontinuous Medication
 
@@ -41,15 +51,19 @@ The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow applicat
 | 3.4 | Frequency selection | **Fit** | Prescribe | Frequency navigation with min/median/max controls |
 | 3.5 | Correction type (none, weight, BSA, per dose) | **Fit** | Prescribe | Adjustment unit (kg, m²) built into dose rules |
 | 3.6 | Dose per administration with min/max limits | **Fit** | Prescribe | Dose quantity navigation with min/max constraints |
-| 3.7 | Dosing help: G-Standaard, Kinderformularium, FTK, Handboek Parenteralia | **Partial** | — | Rules sourced from Kinderformularium and FTK; no direct link-out to external references from UI |
-| 3.8 | Medication without dosing (ointments, eye drops — frequency only) | **Gap** | Prescribe | Current workflow requires dose rule match; no "frequency-only" mode |
+| 3.7 | Dosing help: G-Standaard, Kinderformularium, FTK, Handboek Parenteralia | **Fit** | Formulary | Rules sourced from Kinderformularium/FTK (Parenteralia for solutions); Formulary view renders clickable deep links to Kinderformularium (by drug id) and Farmacotherapeutisch Kompas (by generic); G-Standaard shown as text, no deep link for G-Standaard/Parenteralia |
+| 3.8 | Medication without dosing (ointments, eye drops — frequency only) | **Fit** | Prescribe | Can be prescribed in terms of "keer" |
 | 3.9 | Medication in solution (pre-configured solution amount, fluid, infusion time) | **Fit** | Prescribe | Solution rules + diluent selection + preparation display |
 | 3.10 | Multiple active substances (e.g., cotrimoxazol) | **Fit** | Prescribe | Multi-component orders with per-item dose calculations |
-| 3.11 | PRN (zo nodig) medication | **Gap** | Prescribe | No PRN toggle; no "max frequency" mode; no PRN comments |
-| 3.12 | Comments/remarks per medication | **Gap** | Prescribe/TreatmentPlan | No free-text comment field on orders |
+| 3.11 | PRN (zo nodig) medication | **Gap** | — | No PRN toggle; a "max frequency" is possible; no PRN comments |
+| 3.12 | Comments/remarks per medication | **Gap** | — | No free-text comment field on orders |
 | 3.13 | Sorting by indication | **Partial** | TreatmentPlan | Table sortable by medication and route; no indication column |
-| 3.14 | TallMan lettering for look-alike medications | **Gap** | — | No TallMan capitalization in medication names |
-| 3.15 | Substance divisibility display | **Gap** | Prescribe | Not explicitly shown; constraint system handles valid increments internally |
+| 3.14 | TallMan lettering for look-alike medications | **Gap** | — | No TallMan capitalization in medication names, but not really needed as all orders are indication driven |
+| 3.15 | Substance divisibility display | **Fit** | Prescribe | Divisibility is shown through the available quantity options — form/component and substance quantities are presented and navigated in valid divisible increments |
+| 3.16 | Per-dose vs cumulative dose toggle; non-daily frequency dosing (per 36 h, per 2 days) | **Fit** | Prescribe | FreqUnit models intervals; per-time and per-administration dose both derived by solver |
+| 3.17 | Non-assortment / study drug manual entry (free-text generic + indication) | **Gap** | — | Prescribing is rule/formulary-driven; no free-text off-formulary order path |
+| 3.18 | Combination parenteral products (two substances, fixed ratio) dosed and monitored unambiguously across both components — AP2019 did this by summing to milligrams and renaming, e.g. "Piperacilline + tazobactam 4500 mg (4000+500)" | **Fit** | Prescribe | GenPRES shows both the pharmaceutical-form/component quantity (vial/mL) AND each included substance's quantity with its own per-substance dose limits, so both components are dosed and monitored explicitly. The AP2019 summed-grams-plus-rename was a workaround for MetaVision's single-quantity order model; the safety intent is met here without it (a single summed-grams figure is not produced, and is not needed) |
+| 3.19 | Dose calculation switchable off per order (e.g., ointments) | **Fit** | Prescribe | Orders can be prescribed frequency-only without dose calculation |
 
 ## 4. Discontinuous Medication Monitoring
 
@@ -59,7 +73,9 @@ The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow applicat
 | 4.2 | Red: overdosing / exceeds max | **Fit** | Prescribe | Alert severity level |
 | 4.3 | Red: concentration exceeds max or disallowed solution | **Fit** | Prescribe | Constraint violations shown |
 | 4.4 | Red: infusion time faster than minimum | **Fit** | Prescribe | Rate/time constraints enforced |
-| 4.5 | Blue: non-standard frequency | **Partial** | Prescribe | No distinct "informational" severity separate from caution |
+| 4.5 | Blue: non-standard frequency | **Fit** | Prescribe | There is a distinct "informational" severity separate from caution |
+| 4.6 | ±10% tolerance rule when no min/max dose is configured | **Fit** | Prescribe | When min adjusted dose = max adjusted dose (a single norm dose), GenORDER expands it to a ±10% band (norm×0.9 … norm×1.1) and renders it back as the norm value |
+| 4.7 | Unit-aware surveillance: auto unit/frequency conversion (mg↔mcg, 2×/3d ⇄ 1×/36h) | **Fit** | Prescribe | GenUNITS + solver compute resultant units and convert frequency intervals |
 
 ## 5. TPN / Parenteral Nutrition
 
@@ -69,14 +85,18 @@ The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow applicat
 | 5.2 | Independent infusion rate control | **Fit** | Nutrition | Rate navigation with min/median/max |
 | 5.3 | Independent volume control | **Fit** | Nutrition | Component quantity navigation |
 | 5.4 | Up to 5 infusions (TPN + electrolytes + phosphate + lipids + extra) | **Partial** | Nutrition | TPN (1) + Lipid (1) + ElectrolyteGlucose (multiple) supported; max 5 not enforced; no dedicated phosphate category |
-| 5.5 | CVL vs peripheral access (affects electrolyte dilution) | **Partial** | Prescribe | Solution rules can encode access-dependent constraints; no explicit CVL toggle in Nutrition view |
+| 5.5 | CVL vs peripheral access (affects electrolyte dilution) | **Fit** | Prescribe | Solution rules can encode access-dependent constraints; explicit CVL toggle in Patient view |
 | 5.6 | Electrolyte entry with arrow keys / click input | **Fit** | Nutrition | Component quantity controls with increase/decrease navigation |
 | 5.7 | Pump stand calculation (24-hour) | **Gap** | — | No automatic 24-hour pump stand calculation |
-| 5.8 | TPN Day Choice (automatic protocol progression) | **Gap** | — | No day-based TPN protocol escalation |
+| 5.8 | TPN Day Choice (automatic protocol progression) | **Fit** | Nutrition | Day-based TPN protocol escalation |
 | 5.9 | Decoupled volume and rate (independent of 24-hour timeline) | **Fit** | Nutrition | Volume and rate are independently navigable |
 | 5.10 | Infusion time > 24h warning | **Gap** | — | No specific 24-hour infusion time validation |
-| 5.11 | Max 5 infusions enforcement | **Gap** | Nutrition | No hard limit; ElectrolyteGlucose can be added without bound |
-| 5.12 | Pharmacy mail / print for TPN letter | **Gap** | — | No print or email integration |
+| 5.11 | Pharmacy mail / print for TPN letter | **Gap** | — | No print or email integration |
+| 5.12 | "Extra" exclusion (feeds/lines/meds marked extra excluded from totals) | **Gap** | — | No per-order "extra"/exclude-from-balance flag |
+| 5.13 | TPN rest-volume (glucose base) auto-formula from total fluid intake minus other sources | **Partial** | Nutrition | Base-fluid volume derived by solver; automatic negative-balance red flag not confirmed |
+| 5.14 | Minimum solvent-volume floor (blocks lowering rate below concentration minimums) | **Fit** | Nutrition | Solution rules bound each component/substance (MinQty/MaxQty, MinConc/**MaxConc**, MinVol/MaxVol); a per-substance max concentration forces volume ≥ amount/maxConc, so the solver won't lower volume/rate past the floor |
+| 5.15 | Non-glucose solvent zeroes protein composition | **Gap** | — | No rule coupling solvent choice to protein availability |
+| 5.16 | Selectable lipid composition (incl. SMOF), weight-band boundary resolution | **Partial** | Nutrition | Lipid generic/solution selectable; weight-band boundary-to-higher rule not confirmed |
 
 ## 6. Enteral Nutrition / Feeding
 
@@ -99,24 +119,39 @@ The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow applicat
 | 7.5 | Vitamin D (IE/day) | **Fit** | Totals | VitaminD tracked |
 | 7.6 | Iron (mmol/kg/day) | **Fit** | Totals | Iron tracked |
 | 7.7 | Na, K, Cl, Ca, Mg, PO₄ (mmol/kg/day) | **Fit** | Totals | All 6 electrolytes tracked |
-| 7.8 | Age/weight-appropriate intake recommendations | **Partial** | Totals | Warning levels (Normal/Caution/Warning/Alert) present; unclear if full age-based reference ranges shown |
+| 7.8 | Age/weight-appropriate intake recommendations (neonates also need gestational + PM age) | **Partial** | Totals | Weight- and chronological-age-banded per-nutrient reference ranges are implemented (min/max per kg/day) and drive the displayed norm and warning levels; the reference table has no gestational-age or postmenstrual-age bands, so neonatal recommendations cannot be discriminated |
 | 7.9 | Relevant lab values alongside totals | **Gap** | — | No lab data integration in GenPRES |
-| 7.10 | Totals across ALL orders (nutrition + continuous + discontinuous) | **Partial** | Totals | Nutrition and TreatmentPlan each show own totals; unclear if cross-view aggregation happens |
+| 7.10 | Totals across ALL orders (nutrition + continuous + discontinuous) | **Partial** | Totals | Nutrition and TreatmentPlan each show own totals; cross-view aggregation should happen |
 | 7.11 | Fat (g/kg/day) | **Fit** | Totals | Fat tracked |
+| 7.12 | Automatic eGFR calculation (Schwartz < 50 kg, MDRD otherwise) | **Gap** | — | No eGFR computation from lab creatinine |
+| 7.13 | Acute Kidney Injury alert (creatinine rise / low diuresis) | **Gap** | — | No AKI surveillance |
 
-## 8. Cross-Cutting / Workflow
+## 8. Acute / Emergency Medication (APLS)
 
 | # | AP2019 Requirement | GenPRES Status | View | Notes |
 |---|---|---|---|---|
-| 8.1 | Patient data management (demographics, weight, age) | **Fit** | All | Patient context with age, weight, BSA, GA, PMA, gender |
-| 8.2 | Version control / save history | **Gap** | — | No patient-data versioning in GenPRES |
-| 8.3 | Multi-user conflict detection (patient open elsewhere) | **Gap** | — | No concurrent access detection |
-| 8.4 | MetaVision integration (data sync, signing) | **Gap** | — | No EHR integration |
-| 8.5 | HIX medication import | **Gap** | — | No external system import |
-| 8.6 | Pharmacy communication (email, print) | **Gap** | — | No print or email |
-| 8.7 | Renal function warning + dosing adjustment link | **Partial** | Prescribe | Renal rules exist in GenFORM; GFR-based dose adjustment available; no lab-driven auto-calculation |
-| 8.8 | Batch delete of selected orders | **Fit** | TreatmentPlan | Multi-select + batch delete implemented |
-| 8.9 | PICU vs NICU workflow separation | **Gap** | — | GenPRES has single unified workflow; no unit-specific menus |
+| 8.1 | Weight-based emergency drug and intervention calculations ("Acuut Blad") | **Fit** | LifeSupport | Emergency List view: per-patient calculated dose, preparation, and advice by category/intervention |
+| 8.2 | Printable acute sheet | **Fit** | LifeSupport | Print dialog with patient header + signature; also hospital-filtered and read-aloud |
+
+## 9. Cross-Cutting / Workflow
+
+| # | AP2019 Requirement | GenPRES Status | View | Notes |
+|---|---|---|---|---|
+| 9.1 | Patient data management (demographics, weight, age) | **Fit** | All | Patient context with age, weight, BSA, GA, PMA, gender |
+| 9.2 | Live patient-field validation ranges (weight, length, gestation, birth weight, date logic) | **Partial** | Patient | Some validation present; full clinical range/date-consistency rules not confirmed |
+| 9.3 | Derived clinical values (chronological/gestational/postmenstrual/corrected age, BSA) | **Fit** | Patient | Age variants, BSA, GA, PMA computed |
+| 9.4 | Patient list picker (admitted patients of current department) | **Gap** | — | No patient-list/browse picker (no EHR patient source) |
+| 9.5 | Clear scopes (PICU-only / NICU-only / patient-only / everything) | **Gap** | — | No scoped clear/reset |
+| 9.6 | Version control / save history | **Gap** | — | No patient-data versioning in GenPRES, patient data and active orders should be persistable |
+| 9.7 | Multi-user conflict detection (patient open elsewhere) | **Gap** | — | No concurrent access detection |
+| 9.8 | MetaVision integration (data sync, signing, order file export) | **Gap** | — | No bidirectional EHR integration |
+| 9.9 | HIX medication import | **Gap** | — | No external system import |
+| 9.10 | Pharmacy communication (email, print, VTGM preparation letters) | **Gap** | — | No print or email |
+| 9.11 | Renal function warning + dosing adjustment link | **Partial** | Prescribe | Renal rules exist in GenFORM; GFR-based dose adjustment available; no lab-driven auto-calculation |
+| 9.12 | Batch delete of selected orders | **Fit** | TreatmentPlan | Multi-select + batch delete implemented |
+| 9.13 | PICU vs NICU workflow separation | **Gap** | — | GenPRES has single unified workflow; no unit-specific menus |
+| 9.14 | In-app formulary / knowledge-base editing (continuous med, parenteralia, discontinuous) | **Partial** | — | Rules editable via Google Sheets externally; no in-app admin editors |
+| 9.15 | Order start/stop (start and stop date/time per order) | **Partial** | — | Start/stop field exists on the order type in the backend but is not surfaced in the front end nor processed server-side |
 
 ---
 
@@ -124,27 +159,40 @@ The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow applicat
 
 | Status | Count | Percentage |
 |---|---|---|
-| **Fit** | 30 | 48% |
-| **Partial** | 13 | 21% |
-| **Gap** | 19 | 31% |
-| **Total** | 62 | 100% |
+| **Fit** | 60 | 61% |
+| **Partial** | 17 | 17% |
+| **Gap** | 21 | 22% |
+| **Total** | 98 | 100% |
 
 ### Strengths (Fit)
 
-GenPRES covers the core prescribing workflow well: generic/indication/route/form selection, constraint-based dosing with min/max navigation, continuous and discontinuous dose types, multi-component orders, solution/preparation rules, severity-based monitoring, enteral + parenteral nutrition categories, and comprehensive intake totals (17 metrics including excipient warnings).
+GenPRES covers the core prescribing workflow well: generic/indication/route/form selection, constraint-based dosing with min/max navigation, continuous and discontinuous dose types, multi-component orders (showing both the pharmaceutical-form/component quantity and each included substance's quantity with per-substance limits), solution/preparation rules, severity-based monitoring, enteral + parenteral nutrition categories, and comprehensive intake totals (17 metrics including excipient warnings). It also provides a dedicated, printable weight-based **Emergency List (Noodlijst / APLS)** covering AP2019's acute sheet.
 
 ### Partial Fits (require enhancement)
 
-- NICU-specific presets and syringe conventions
-- Explicit CVL/peripheral toggle in Nutrition view
-- Glucose display in mg/kg/min alongside g/kg/day
+- Glucose display in mg/kg/min alongside g/kg/day; dual Unit/kg/hour + Unit/kg/min for non-standard continuous meds
 - Indication-based sorting in TreatmentPlan
-- Direct links to external dosing references (G-Standaard, Kinderformularium)
-- Informational (blue) severity level distinct from caution (yellow)
+- TPN business rules: rest-volume auto-formula with negative-balance flag, lipid weight-band boundary resolution
+- NICU age/gestation fluid-intake advice: expressible as dose rules (patient-category bands + ml/kg/day), but not authored or surfaced against intake
+- Phototherapy fluid correction: expressible as a dose-type variant (dose text "phototherapy" with distinct limits), but not authored, and intake is not auto-adjusted on glucose change
+- Intake reference ranges are weight- and chronological-age-banded; extend with gestational-age and PM-age bands for neonates
+- Patient-field validation ranges; renal (GFR) auto-calculation from labs
+- In-app formulary/knowledge-base editing (currently external Google Sheets only)
+- Order start/stop: field exists on the order type but is neither shown in the front end nor processed server-side
 
 ### Gaps (not yet implemented)
 
-- **Workflow**: Infusion letter, 17:00 transfer cycle, pharmacy email/print, PICU/NICU separation
-- **Clinical features**: Epidural protocols, PRN medication, TPN day progression, medication without dosing, TallMan lettering, comments/remarks
-- **Integration**: MetaVision sync, HIX import, lab data display, version control, multi-user conflict detection
-- **Validation**: Max 5 infusions enforcement, 24-hour infusion time warning, pump stand calculation
+- **Workflow**: Infusion-letter preparation printout (treatment plan exists; print does not), pharmacy email/print + VTGM letters, PICU/NICU separation
+- **NICU-specific**: Fluid side-lines (glucose/NaCl/bicarb/albumin) feeding fluid totals
+- **Clinical features**: PRN medication, TallMan lettering, comments/remarks, non-assortment/study drug free-text entry
+- **Renal/labs**: eGFR auto-calculation (Schwartz/MDRD), AKI alert, lab data display
+- **TPN rules**: "Extra" exclusion from totals, non-glucose-solvent-blocks-protein coupling, pump stand (24 h) calculation, 24-hour infusion time warning
+- **Integration**: MetaVision sync + order file export, HIX import, multi-user conflict detection
+- **Persistence**: Patient data versioning and being able to save/restore patient state across sessions
+
+---
+
+## References
+
+- AfsprakenProgramma 2019 — PICU/WKZ protocol page: <https://picuwkz.nl/protocollen/werkafspraken/afsprakenprogramma-2019/>
+- AfsprakenProgramma — Functionality Overview (VBA source inventory): <https://github.com/halcwb/AfsprakenProgramma/blob/master/docs/FUNCTIONALITY.md>
