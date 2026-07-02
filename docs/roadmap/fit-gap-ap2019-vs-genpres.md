@@ -4,7 +4,7 @@
 
 The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow application at UMC Utrecht / WKZ, launched November 2019 in its current state. This analysis maps its medication, feeding, and fluids requirements against the current GenPRES Prescribe, Nutrition, and TreatmentPlan views to identify what GenPRES already covers, what partially exists, and what is missing.
 
-**Scope**: This analysis covers only medication, fluid, and enteral-feeding functionality. AP2019 features outside GenPRES's intended scope — intravascular lines & pacemaker, lab requests, and other appointments/controls — are deliberately excluded.
+**Scope**: This analysis covers medication, fluid, and enteral-feeding functionality, plus the cross-cutting workflow and user/access-management concerns that surround them. AP2019 features outside GenPRES's intended scope — intravascular lines & pacemaker, lab requests, and other appointments/controls — are deliberately excluded.
 
 **View column**: names the GenPRES view where the requirement is surfaced. `—` means it is not surfaced in any view (a gap, backend-only, external, or an integration concern).
 
@@ -153,16 +153,28 @@ The AfsprakenProgramma 2019 (AP2019) is the PICU/NICU clinical workflow applicat
 | 9.14 | In-app formulary / knowledge-base editing (continuous med, parenteralia, discontinuous) | **Partial** | — | Rules editable via Google Sheets externally; no in-app admin editors |
 | 9.15 | Order start/stop (start and stop date/time per order) | **Partial** | — | Start/stop field exists on the order type in the backend but is not surfaced in the front end nor processed server-side |
 
+## 10. User & Access Management
+
+AP2019's user management was lightweight: identity and role were **trusted from MetaVision / the Windows registry** rather than verified in-app (no credential check existed in code; admin actions were gated by a hardcoded password). GenPRES has only a single shared admin password (`GENPRES_PASSWORD`) that gates admin operations, producing a boolean authenticated state with no user identity, role, or audit binding.
+
+| # | AP2019 Requirement | GenPRES Status | View | Notes |
+|---|---|---|---|---|
+| 10.1 | Per-user identity (named clinician: login, first/last name) | **Gap** | — | AP2019 carried a user object (`ClassUser`: Login, FirstName, LastName, Role, PIN) sourced from MetaVision. GenPRES has only a shared admin password; `IsAuthenticated` is a bare boolean with no individual identity |
+| 10.2 | Role-based authorization (Beheerders / Apotheek / Prescriber) | **Gap** | — | AP2019 role-gated ribbon groups by user type (`GetVisibleAdmin`, `GetVisibleDevelopment`). GenPRES authorization is binary (admin password or not); no role tiers to gate features |
+| 10.3 | Prescriber registry + electronic signing (PIN, Signed state) | **Gap** | — | AP2019 had a `Prescriber` table, `GetPrescriberPIN`, and `Signed` bit columns; signing itself lived MetaVision-side. GenPRES has no prescriber registry, PIN, or per-order signed state. Related to 9.8 |
+| 10.4 | Per-user audit trail (who viewed which patient, what changed) | **Gap** | — | AP2019 logged action + user login + hospital number (IGJ/GMP traceability). GenPRES logs server activity but not per clinical user; an MDR-relevant traceability gap. Related to 9.6 |
+| 10.5 | EHR-sourced login provenance (MetaVision / registry) | **Gap** | — | AP2019 derived identity and role from MetaVision (`Users` ⨝ `t_UsersType`) and registry `HKCU\SOFTWARE\UMCU\MV`. GenPRES has no EHR identity source. Related to 9.8 |
+
 ---
 
 ## Summary
 
 | Status | Count | Percentage |
 |---|---|---|
-| **Fit** | 60 | 61% |
+| **Fit** | 60 | 58% |
 | **Partial** | 17 | 17% |
-| **Gap** | 21 | 22% |
-| **Total** | 98 | 100% |
+| **Gap** | 26 | 25% |
+| **Total** | 103 | 100% |
 
 ### Strengths (Fit)
 
@@ -189,6 +201,7 @@ GenPRES covers the core prescribing workflow well: generic/indication/route/form
 - **TPN rules**: "Extra" exclusion from totals, non-glucose-solvent-blocks-protein coupling, pump stand (24 h) calculation, 24-hour infusion time warning
 - **Integration**: MetaVision sync + order file export, HIX import, multi-user conflict detection
 - **Persistence**: Patient data versioning and being able to save/restore patient state across sessions
+- **User & access management**: per-user identity, role-based authorization (Admin/Pharmacy/Prescriber), prescriber registry + electronic signing, per-user audit trail, and EHR-sourced login — GenPRES has only a single shared admin password
 
 ---
 
