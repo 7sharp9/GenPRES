@@ -30,4 +30,10 @@ jobs:
       env:
         CI: true
         GENPRES_DEBUG: 1
-      run: dotnet run ServerTests
+      run: dotnet run ServerTests -- --junit-path test-results.xml
+
+    - name: Publish test results
+      if: always()
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      with:
+        files: test-results.xml
