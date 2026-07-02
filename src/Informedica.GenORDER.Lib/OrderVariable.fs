@@ -1386,7 +1386,7 @@ module OrderVariable =
             >> count
 
 
-        let setToMinIsOne =
+        let setMinToOne =
             toOrdVar
             >> (fun ovar ->
                 { ovar with
