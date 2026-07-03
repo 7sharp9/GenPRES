@@ -1478,9 +1478,23 @@ module Tests =
         let mg = Units.Mass.milliGram
         let mgPerKg = Units.Mass.milliGram |> ValueUnit.per Units.Weight.kiloGram
         let kg = Units.Weight.kiloGram
+        let day = Units.Time.day
+        let mgPerDay = mg |> ValueUnit.per day
+        let mgPerKgPerDay = mgPerKg |> ValueUnit.per day
+        let perDay = Units.Count.times |> ValueUnit.per day
 
         let pat15kg =
             { Patient.patient with Weight = Some(ValueUnit.singleWithUnit kg 15N) }
+
+        let pat24kg =
+            { Patient.patient with Weight = Some(ValueUnit.singleWithUnit kg 24N) }
+
+        /// A frequency ValueUnit set (per day) from a list of frequencies.
+        let freqSet (vs: bigint list) =
+            vs
+            |> List.map BigRational.fromBigInt
+            |> List.toArray
+            |> ValueUnit.withUnit perDay
 
         let tests =
             testList
@@ -1596,6 +1610,515 @@ module Tests =
                         let result = dl |> PrescriptionRule.adjustDoseLimitToPatient None pat15kg
 
                         result |> Expect.equal "should be unchanged" dl
+                    }
+
+                    // Regression tests for the frequency-based reconciliation of an
+                    // adjusted per-time target against an absolute quantity cap.
+                    // See ceftriaxon 24 kg: 100 mg/kg/day, qty max 2000 mg, freqs {1;2}.
+
+                    // The ceftriaxon 24 kg DoseLimit: adjusted per-time target of
+                    // 100 mg/kg/day, absolute per-time max 4000 mg/day and an
+                    // absolute quantity cap.
+                    let ceftriaxonLike qtyMax =
+                        { DoseLimit.limit with
+                            AdjustUnit = Some kg
+                            DoseUnit = mg
+                            Quantity =
+                                {
+                                    Min = None
+                                    Max = Some(mkLimit qtyMax mg)
+                                }
+                            PerTime =
+                                {
+                                    Min = None
+                                    Max = Some(mkLimit 4000N mgPerDay)
+                                }
+                            PerTimeAdjust =
+                                {
+                                    Min = Some(mkLimit 100N mgPerKgPerDay)
+                                    Max = Some(mkLimit 100N mgPerKgPerDay)
+                                }
+                        }
+
+                    test "keeps target and does not pin quantity when reachable at a higher frequency" {
+                        // 100 mg/kg/day * 24 kg = 2400 mg/day. Unreachable in one dose
+                        // (>2000 cap) but reachable at freq 2 (1200 mg x2 = 2400 mg/day).
+                        let dl = ceftriaxonLike 2000N
+
+                        let result =
+                            dl
+                            |> PrescriptionRule.adjustDoseLimitToPatient (Some(freqSet [ 1I; 2I ])) pat24kg
+
+                        result.Quantity.Min
+                        |> Expect.isNone "quantity should not be pinned when target is reachable"
+
+                        result.PerTimeAdjust
+                        |> Expect.notEqual "adjusted per-time target should be preserved" MinMax.empty
+                    }
+
+                    test "pins quantity to max and clears per-time adjust when unreachable at any frequency" {
+                        // qty cap 500 mg: even at freq 2 the needed per-dose is
+                        // 2400/2 = 1200 mg > 500, so the absolute cap must win.
+                        let dl = ceftriaxonLike 500N
+
+                        let result =
+                            dl
+                            |> PrescriptionRule.adjustDoseLimitToPatient (Some(freqSet [ 1I; 2I ])) pat24kg
+
+                        result.Quantity.Min
+                        |> Expect.equal "quantity min should be pinned to max" result.Quantity.Max
+
+                        result.PerTimeAdjust
+                        |> Expect.equal "adjusted per-time target should be cleared" MinMax.empty
+                    }
+
+                    test "frequency blocks are skipped when no frequencies are given" {
+                        // With no frequency set neither maxFreq nor minFreq exist,
+                        // so the freq-based reconciliation must not fire.
+                        let dl = ceftriaxonLike 2000N
+
+                        let result = dl |> PrescriptionRule.adjustDoseLimitToPatient None pat24kg
+
+                        result.Quantity.Min |> Expect.isNone "quantity should be untouched"
+
+                        result.PerTimeAdjust
+                        |> Expect.notEqual "adjusted per-time target should be preserved" MinMax.empty
+                    }
+                ]
+
+
+    /// Data-driven regression over real NKF dose rules that are bounded by an
+    /// absolute MaxQty and also carry an adjusted dose limit. Each rule is run,
+    /// through the real parse -> getDoseLimits -> adjustDoseLimitToPatient
+    /// pipeline, with a patient adjustment sized to conflict with the adjusted
+    /// limit. The resolved DoseLimit must always leave at least one feasible
+    /// frequency (otherwise the solver fails with an empty frequency set).
+    module MaxQtyConflictTests =
+
+        let kg = Units.Weight.kiloGram
+        let cm = Units.Height.centiMeter
+
+        // --- build DoseRuleData rows programmatically, by column NAME ---
+
+        let headerCols =
+            [|
+                "RowId"
+                "RuleId"
+                "GrpId"
+                "SortNo"
+                "Source"
+                "Generic"
+                "Form"
+                "Brand"
+                "Route"
+                "GPKs"
+                "HPKs"
+                "Indication"
+                "SourceText"
+                "PatientText"
+                "ScheduleText"
+                "Loc"
+                "Dep"
+                "IsAdult"
+                "Gender"
+                "MinAge"
+                "MaxAge"
+                "MinWeight"
+                "MaxWeight"
+                "MinBSA"
+                "MaxBSA"
+                "MinGestAge"
+                "MaxGestAge"
+                "MinPMAge"
+                "MaxPMAge"
+                "DoseType"
+                "DoseText"
+                "CmpBased"
+                "Component"
+                "Substance"
+                "Freqs"
+                "DoseUnit"
+                "AdjustUnit"
+                "FreqUnit"
+                "RateUnit"
+                "MinTime"
+                "MaxTime"
+                "TimeUnit"
+                "MinInt"
+                "MaxInt"
+                "IntUnit"
+                "MinDur"
+                "MaxDur"
+                "DurUnit"
+                "MinQty"
+                "MaxQty"
+                "MinQtyAdj"
+                "MaxQtyAdj"
+                "MinPerTime"
+                "MaxPerTime"
+                "MinPerTimeAdj"
+                "MaxPerTimeAdj"
+                "MinRate"
+                "MaxRate"
+                "MinRateAdj"
+                "MaxRateAdj"
+                "Validated"
+                "FreqCheck"
+                "DoseCheck"
+            |]
+
+        let mkRow (fields: (string * string) list) =
+            let m = Map.ofList fields
+            headerCols |> Array.map (fun h -> m |> Map.tryFind h |> Option.defaultValue "")
+
+        let baseFields gen route dose freqs du au fu =
+            [
+                "Source", "NKF"
+                "Generic", gen
+                "Route", route
+                "DoseType", dose
+                "Component", gen
+                "Substance", gen
+                "Freqs", freqs
+                "DoseUnit", du
+                "AdjustUnit", au
+                "FreqUnit", fu
+            ]
+
+        // Only MaxQty-bounded rules with an adjusted dose limit.
+        let cases: (string * (string * string) list) list =
+            [
+                // PerTimeAdjust vs MaxQty (exercises the fixed freq block)
+                "aciclovir",
+                baseFields "aciclovir" "ORAAL" "discontinuous" "3" "mg" "m2" "dag"
+                @ [
+                    "MaxQty", "2000"
+                    "MinPerTimeAdj", "1000"
+                    "MaxPerTimeAdj", "1000"
+                ]
+                "bupropion",
+                baseFields "bupropion" "ORAAL" "discontinuous" "1;2" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "150"
+                    "MaxPerTime", "300"
+                    "MinPerTimeAdj", "3"
+                ]
+                "carbamazepine",
+                baseFields "carbamazepine" "ORAAL" "discontinuous" "2;3" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "1000"
+                    "MaxPerTime", "1000"
+                    "MinPerTimeAdj", "10"
+                    "MaxPerTimeAdj", "10"
+                ]
+                "ceftaroline<12",
+                baseFields "ceftaroline" "INTRAVENEUS" "timed" "3" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "400"
+                    "MinPerTimeAdj", "36"
+                    "MaxPerTimeAdj", "36"
+                ]
+                "ceftaroline>12",
+                baseFields "ceftaroline" "INTRAVENEUS" "timed" "3" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "400"
+                    "MaxPerTime", "1800"
+                    "MinPerTimeAdj", "36"
+                    "MaxPerTimeAdj", "36"
+                ]
+                "dasatinib",
+                baseFields "dasatinib" "ORAAL" "discontinuous" "1" "mg" "m2" "dag"
+                @ [
+                    "MaxQty", "110"
+                    "MinPerTimeAdj", "65"
+                    "MaxPerTimeAdj", "65"
+                ]
+                "fluconazol",
+                baseFields "fluconazol" "ORAAL" "discontinuous" "1" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "800"
+                    "MaxPerTime", "800"
+                    "MinPerTimeAdj", "25"
+                    "MaxPerTimeAdj", "25"
+                ]
+                "fytomenadion",
+                baseFields "fytomenadion" "INTRAVENEUS" "discontinuous" "1" "mL" "kg" "dag"
+                @ [
+                    "MaxQty", "10"
+                    "MaxPerTime", "10"
+                    "MinPerTimeAdj", "1"
+                    "MaxPerTimeAdj", "1"
+                ]
+                "methylprednisolon",
+                baseFields "methylprednisolon" "INTRAVENEUS" "timed" "1" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "1000"
+                    "MinPerTimeAdj", "10"
+                    "MaxPerTimeAdj", "10"
+                ]
+                "natriumfosfaat",
+                baseFields "natriumfosfaat" "RECTAAL" "discontinuous" "1" "mL" "kg" "dag"
+                @ [
+                    "MaxQty", "133"
+                    "MinPerTimeAdj", "2.5"
+                    "MaxPerTimeAdj", "2.5"
+                ]
+                "posaconazol",
+                baseFields "posaconazol" "INTRAVENEUS" "discontinuous" "2" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "300"
+                    "MinPerTimeAdj", "12"
+                    "MaxPerTimeAdj", "12"
+                ]
+                "rifampicine",
+                baseFields "rifampicine" "ORAAL" "discontinuous" "1" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "600"
+                    "MinPerTimeAdj", "20"
+                    "MaxPerTimeAdj", "20"
+                ]
+
+                // QuantityAdjust vs MaxQty (regression: already-correct block)
+                "adenosine",
+                baseFields "adenosine" "INTRAVENEUS" "once" "" "microg" "kg" ""
+                @ [ "MaxQty", "6000"; "MinQtyAdj", "100"; "MaxQtyAdj", "100" ]
+                "albendazol",
+                baseFields "albendazol" "ORAAL" "once" "" "mg" "kg" ""
+                @ [ "MaxQty", "400"; "MinQtyAdj", "15"; "MaxQtyAdj", "15" ]
+                "alimemazine",
+                baseFields "alimemazine" "ORAAL" "discontinuous" "1" "mg" "kg" "dag"
+                @ [ "MaxQty", "50"; "MinQtyAdj", "2"; "MaxQtyAdj", "4" ]
+                "amiodaron-1",
+                baseFields "amiodaron" "INTRAVENEUS" "onceTimed" "" "mg" "kg" ""
+                @ [ "MaxQty", "300"; "MinQtyAdj", "5"; "MaxQtyAdj", "5" ]
+                "amiodaron-2",
+                baseFields "amiodaron" "INTRAVENEUS" "onceTimed" "" "mg" "kg" ""
+                @ [ "MaxQty", "150"; "MinQtyAdj", "5"; "MaxQtyAdj", "5" ]
+                "diclofenac",
+                baseFields "diclofenac" "INTRAVENEUS" "discontinuous" "1;2;3;4" "mg" "kg" "dag"
+                @ [ "MaxQty", "37.5"; "MinQtyAdj", "0.3"; "MaxQtyAdj", "0.5" ]
+                "fysostigmine",
+                baseFields "fysostigmine" "INTRAVENEUS" "discontinuous" "1;2;3;4" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "0.5"
+                    "MinQtyAdj", "0.02"
+                    "MaxQtyAdj", "0.02"
+                    "MaxPerTime", "2"
+                ]
+                "mepivacaine",
+                baseFields "mepivacaine" "EPIDURAAL" "once" "" "mg" "kg" ""
+                @ [ "MaxQty", "400"; "MinQtyAdj", "10" ]
+                "metamizol",
+                baseFields "metamizol" "INTRAVENEUS" "discontinuous" "1;2;3;4" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "1000"
+                    "MinQtyAdj", "8"
+                    "MaxQtyAdj", "16"
+                    "MaxPerTime", "4000"
+                ]
+                "midazolam",
+                baseFields "midazolam" "OROMUCOSAAL" "once" "" "mg" "kg" ""
+                @ [ "MaxQty", "10"; "MinQtyAdj", "0.2"; "MaxQtyAdj", "0.5" ]
+                "pembrolizumab",
+                baseFields "pembrolizumab" "INTRAVENEUS" "timed" "1" "mg" "kg" "week"
+                @ [ "MaxQty", "200"; "MinQtyAdj", "2"; "MaxQtyAdj", "2" ]
+                "tocilizumab",
+                baseFields "tocilizumab" "INTRAVENEUS" "once" "" "mg" "kg" ""
+                @ [ "MaxQty", "800"; "MinQtyAdj", "12"; "MaxQtyAdj", "12" ]
+                "tramadol",
+                baseFields "tramadol" "ORAAL" "discontinuous" "1;2;3;4" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "100"
+                    "MinQtyAdj", "1"
+                    "MaxQtyAdj", "2"
+                    "MaxPerTime", "400"
+                    "MaxPerTimeAdj", "8"
+                ]
+                "ibuprofen",
+                baseFields "ibuprofen" "INTRAVENEUS" "discontinuous" "1;2;3;4" "mg" "kg" "dag"
+                @ [
+                    "MaxQty", "400"
+                    "MinQtyAdj", "10"
+                    "MaxQtyAdj", "10"
+                    "MaxPerTimeAdj", "40"
+                ]
+            ]
+
+        let data =
+            cases
+            |> List.map (fun (label, fs) -> mkRow (("RowId", label) :: fs))
+            |> List.toArray
+            |> Array.append [| headerCols |]
+
+        let parseResult = DoseRuleData.parseDoseRuleData data
+
+        let parsed =
+            match parseResult with
+            | Ok ds -> ds
+            | Error _ -> [||]
+
+        let doseLimits = parsed |> DoseRule.getDoseLimits
+
+        // --- helpers (mirror the exploratory MaxQtyConflicts.fsx script) ---
+
+        let scale (r: BigRational) vu =
+            vu |> ValueUnit.applyToValue (Array.map (fun x -> x * r))
+
+        /// The adjust value (kg or m2) that just pushes the adjusted dose past
+        /// MaxQty at the lowest frequency. For multi-frequency rules this lands
+        /// in the "reachable at a higher frequency" window.
+        let conflictingAdj (dl: DoseLimit) (minFreq: ValueUnit option) =
+            match dl.AdjustUnit, dl.Quantity.Max |> Option.map Limit.getValueUnit with
+            | Some _, Some qmax ->
+                match dl.QuantityAdjust.Min |> Option.map Limit.getValueUnit with
+                | Some qadjMin -> qmax / qadjMin |> scale (11N / 10N) |> Some
+                | None ->
+                    match dl.PerTimeAdjust.Min |> Option.map Limit.getValueUnit, minFreq with
+                    | Some ptmMin, Some f -> qmax * f / ptmMin |> scale (11N / 10N) |> Some
+                    | _ -> None
+            | _ -> None
+
+        let bsaOf w h =
+            { Patient.patient with
+                Weight = Some w
+                Height = Some h
+            }
+            |> Patient.calcBSA
+
+        /// A patient whose weight (kg) or BSA (m2) equals the target adjust value.
+        let patientFor (dl: DoseLimit) (adjVU: ValueUnit) =
+            if dl.AdjustUnit.Value |> Units.eqsUnit kg then
+                { Patient.patient with
+                    Weight = Some(adjVU |> ValueUnit.convertTo kg)
+                    Height = Some(ValueUnit.singleWithUnit cm 150N)
+                }
+            else
+                let h = ValueUnit.singleWithUnit cm 175N
+                let mutable w = 1
+                let mutable found = None
+
+                while found.IsNone && w <= 400 do
+                    let wv = ValueUnit.singleWithUnit kg (BigRational.fromInt w)
+
+                    match bsaOf wv h with
+                    | Some b when (b >? adjVU) || b = adjVU -> found <- Some wv
+                    | _ -> ()
+
+                    w <- w + 1
+
+                { Patient.patient with
+                    Weight = Some(found |> Option.defaultValue (ValueUnit.singleWithUnit kg 400N))
+                    Height = Some h
+                }
+
+        let freqOf (d: DoseRuleData) =
+            if d.ScheduleData.Freqs |> Array.isEmpty then
+                None
+            else
+                d.ScheduleData.FreqUnit
+                |> Utils.Units.freqUnit
+                |> Option.map (fun fu -> d.ScheduleData.Freqs |> ValueUnit.withUnit fu)
+
+        /// Model of the solver step: with a pinned quantity, is there a frequency
+        /// in the rule's set for which the surviving PerTimeAdjust bounds hold? An
+        /// unpinned quantity leaves the solver free. False => empty frequency set.
+        let isSolvable (dl: DoseLimit) (pat: Patient) (freqVU: ValueUnit option) =
+            match
+                dl.Quantity.Min |> Option.map Limit.getValueUnit, dl.Quantity.Max |> Option.map Limit.getValueUnit
+            with
+            | Some qmin, Some qmax when qmin = qmax ->
+                match dl.AdjustUnit, freqVU with
+                | Some au, Some fvu ->
+                    let adj =
+                        (if au |> Units.eqsUnit kg then
+                             pat.Weight
+                         else
+                             pat |> Patient.calcBSA)
+                        |> Option.get
+
+                    let qtyAdj = qmax / adj
+                    let fu = fvu |> ValueUnit.getUnit
+
+                    fvu
+                    |> ValueUnit.getValue
+                    |> Array.exists (fun fv ->
+                        let ptm = qtyAdj * ValueUnit.singleWithUnit fu fv
+
+                        let geMin =
+                            dl.PerTimeAdjust.Min
+                            |> Option.map (fun l -> ptm >? Limit.getValueUnit l || ptm = Limit.getValueUnit l)
+                            |> Option.defaultValue true
+
+                        let leMax =
+                            dl.PerTimeAdjust.Max
+                            |> Option.map (fun l -> ptm <? Limit.getValueUnit l || ptm = Limit.getValueUnit l)
+                            |> Option.defaultValue true
+
+                        geMin && leMax
+                    )
+                | _ -> true
+            | _ -> true
+
+        /// Resolve one rule with a conflict-inducing patient. None when no
+        /// adjusted-vs-MaxQty conflict is possible for the rule.
+        let resolveConflict (d: DoseRuleData) (dl: DoseLimit) =
+            let freqVU = freqOf d
+            let minFreq = freqVU |> Option.bind ValueUnit.minValue
+
+            conflictingAdj dl minFreq
+            |> Option.map (fun adjVU ->
+                let pat = patientFor dl adjVU
+                dl |> PrescriptionRule.adjustDoseLimitToPatient freqVU pat, pat, freqVU
+            )
+
+        let byLabel =
+            Array.zip parsed doseLimits
+            |> Array.map (fun (d, dl) -> d.RowId, (d, dl))
+            |> Map.ofArray
+
+        let tests =
+            testList
+                "MaxQty adjusted-dose conflicts"
+                [
+                    test "fixture parses and maps one dose limit per rule" {
+                        parseResult |> Result.isOk |> Expect.isTrue "fixture should parse"
+
+                        doseLimits.Length |> Expect.equal "one dose limit per rule" cases.Length
+                    }
+
+                    // one test per MaxQty-bounded rule: the resolved DoseLimit must
+                    // leave at least one feasible frequency (no empty-set crash)
+                    for d, dl in Array.zip parsed doseLimits do
+                        test $"{d.RowId}: adjusted-vs-MaxQty conflict resolves to a solvable dose limit" {
+                            match resolveConflict d dl with
+                            | None -> failtestf "%s: expected an adjusted-vs-MaxQty conflict to test" d.RowId
+                            | Some(res, pat, freqVU) ->
+                                isSolvable res pat freqVU
+                                |> Expect.isTrue $"{d.RowId} should have a feasible frequency after adjustment"
+                        }
+
+                    // explicit branch coverage
+                    test "multi-frequency rule (bupropion) preserves the adjusted target" {
+                        let d, dl = byLabel |> Map.find "bupropion"
+
+                        match resolveConflict d dl with
+                        | None -> failtest "bupropion: expected a conflict"
+                        | Some(res, _, _) ->
+                            res.Quantity.Min |> Expect.isNone "quantity should not be pinned"
+
+                            res.PerTimeAdjust
+                            |> Expect.notEqual "adjusted target should be preserved" MinMax.empty
+                    }
+
+                    test "single-frequency rule (rifampicine) pins to max and clears the adjusted target" {
+                        let d, dl = byLabel |> Map.find "rifampicine"
+
+                        match resolveConflict d dl with
+                        | None -> failtest "rifampicine: expected a conflict"
+                        | Some(res, _, _) ->
+                            res.Quantity.Min |> Expect.equal "quantity min pinned to max" res.Quantity.Max
+
+                            res.PerTimeAdjust |> Expect.equal "adjusted target cleared" MinMax.empty
                     }
                 ]
 
@@ -2741,6 +3264,7 @@ module Tests =
             [
                 DoseLimitTests.tests
                 AdjustDoseLimitTests.tests
+                MaxQtyConflictTests.tests
                 PatientCategoryTests.tests
                 DoseTypeTests.tests
                 LimitTargetTests.tests
