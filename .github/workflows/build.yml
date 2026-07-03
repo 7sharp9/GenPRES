@@ -31,3 +31,9 @@ jobs:
         CI: true
         GENPRES_DEBUG: 1
       run: dotnet run ServerTests
+
+    - name: Publish test results
+      if: always() && runner.os == 'Linux'
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      with:
+        files: '**/TestResults/**/*.trx'

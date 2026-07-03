@@ -170,6 +170,8 @@ Target.create
                 "quiet"
                 "--logger"
                 "console;verbosity=minimal"
+                "--logger"
+                "trx;LogFileName=test-results.trx"
             ]
         |> CreateProcess.withWorkingDirectory "."
         |> CreateProcess.redirectOutputIfNotRedirected
