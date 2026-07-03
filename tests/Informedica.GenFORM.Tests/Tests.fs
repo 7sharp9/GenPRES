@@ -1786,16 +1786,14 @@ module Tests =
             ]
 
         // Only MaxQty-bounded rules with an adjusted dose limit.
+        // Note: rules whose adjusted target only conflicts at a physically
+        // unreachable body size are intentionally excluded — e.g. aciclovir
+        // (1000 mg/m2/day, max 2000 mg/dose, 3x/day) would need a BSA of ~6 m2
+        // to conflict, so it cannot induce a realistic adjusted-vs-MaxQty
+        // conflict and is not a meaningful test case.
         let cases: (string * (string * string) list) list =
             [
                 // PerTimeAdjust vs MaxQty (exercises the fixed freq block)
-                "aciclovir",
-                baseFields "aciclovir" "ORAAL" "discontinuous" "3" "mg" "m2" "dag"
-                @ [
-                    "MaxQty", "2000"
-                    "MinPerTimeAdj", "1000"
-                    "MaxPerTimeAdj", "1000"
-                ]
                 "bupropion",
                 baseFields "bupropion" "ORAAL" "discontinuous" "1;2" "mg" "kg" "dag"
                 @ [
@@ -2006,10 +2004,18 @@ module Tests =
 
                     w <- w + 1
 
-                { Patient.patient with
-                    Weight = Some(found |> Option.defaultValue (ValueUnit.singleWithUnit kg 400N))
-                    Height = Some h
-                }
+                match found with
+                | Some wv ->
+                    { Patient.patient with
+                        Weight = Some wv
+                        Height = Some h
+                    }
+                | None ->
+                    // fail loudly rather than fall back to a size that does not
+                    // actually conflict, which would make the test vacuous
+                    failwithf
+                        "patientFor: BSA %s is unreachable within 400 kg; this rule cannot induce a realistic adjusted-vs-MaxQty conflict"
+                        (adjVU |> ValueUnit.toStringDecimalDutchShortWithPrec 2)
 
         let freqOf (d: DoseRuleData) =
             if d.ScheduleData.Freqs |> Array.isEmpty then
@@ -2019,44 +2025,65 @@ module Tests =
                 |> Utils.Units.freqUnit
                 |> Option.map (fun fu -> d.ScheduleData.Freqs |> ValueUnit.withUnit fu)
 
-        /// Model of the solver step: with a pinned quantity, is there a frequency
-        /// in the rule's set for which the surviving PerTimeAdjust bounds hold? An
-        /// unpinned quantity leaves the solver free. False => empty frequency set.
+        /// Model of the solver step: is there a frequency in the rule's set for
+        /// which a valid quantity satisfies the surviving PerTimeAdjust bounds and
+        /// the absolute PerTime cap? Returns false when no frequency works (the
+        /// reported empty-frequency-set crash).
+        ///
+        /// - Pinned quantity: each frequency gives one adjusted per-time value that
+        ///   must sit within both PerTimeAdjust bounds.
+        /// - Unpinned quantity: the dose is free in (0, qmax], so upper bounds are
+        ///   always satisfiable by a smaller dose; feasibility hinges on reaching
+        ///   the lower target at the maximum quantity, and on the absolute PerTime
+        ///   cap admitting that adjusted target.
         let isSolvable (dl: DoseLimit) (pat: Patient) (freqVU: ValueUnit option) =
-            match
-                dl.Quantity.Min |> Option.map Limit.getValueUnit, dl.Quantity.Max |> Option.map Limit.getValueUnit
-            with
-            | Some qmin, Some qmax when qmin = qmax ->
-                match dl.AdjustUnit, freqVU with
-                | Some au, Some fvu ->
-                    let adj =
-                        (if au |> Units.eqsUnit kg then
-                             pat.Weight
-                         else
-                             pat |> Patient.calcBSA)
-                        |> Option.get
+            match dl.AdjustUnit, freqVU, dl.Quantity.Max |> Option.map Limit.getValueUnit with
+            | Some au, Some fvu, Some qmax ->
+                let adj =
+                    (if au |> Units.eqsUnit kg then
+                         pat.Weight
+                     else
+                         pat |> Patient.calcBSA)
+                    |> Option.get
 
-                    let qtyAdj = qmax / adj
-                    let fu = fvu |> ValueUnit.getUnit
+                let pinned =
+                    match dl.Quantity.Min |> Option.map Limit.getValueUnit with
+                    | Some qmin -> qmin = qmax
+                    | None -> false
 
-                    fvu
+                let fu = fvu |> ValueUnit.getUnit
+
+                let ge v l =
+                    v >? Limit.getValueUnit l || v = Limit.getValueUnit l
+
+                let le v l =
+                    v <? Limit.getValueUnit l || v = Limit.getValueUnit l
+
+                // the absolute PerTime cap must be able to admit the lower adjusted
+                // target (an unpinned quantity can otherwise not both reach the
+                // adjusted minimum and stay under the absolute maximum)
+                let capAdmitsTarget =
+                    match dl.PerTimeAdjust.Min, dl.PerTime.Max with
+                    | Some pm, Some cap -> le (Limit.getValueUnit pm * adj) cap
+                    | _ -> true
+
+                capAdmitsTarget
+                && (fvu
                     |> ValueUnit.getValue
                     |> Array.exists (fun fv ->
-                        let ptm = qtyAdj * ValueUnit.singleWithUnit fu fv
-
-                        let geMin =
-                            dl.PerTimeAdjust.Min
-                            |> Option.map (fun l -> ptm >? Limit.getValueUnit l || ptm = Limit.getValueUnit l)
-                            |> Option.defaultValue true
-
+                        // adjusted per-time at the maximum allowed quantity
+                        let ptmAtMax = (qmax / adj) * ValueUnit.singleWithUnit fu fv
+                        let geMin = dl.PerTimeAdjust.Min |> Option.forall (ge ptmAtMax)
+                        // pinned: the single value must also respect the upper bound;
+                        // unpinned: a smaller dose always can, so no upper check
                         let leMax =
-                            dl.PerTimeAdjust.Max
-                            |> Option.map (fun l -> ptm <? Limit.getValueUnit l || ptm = Limit.getValueUnit l)
-                            |> Option.defaultValue true
+                            if pinned then
+                                dl.PerTimeAdjust.Max |> Option.forall (le ptmAtMax)
+                            else
+                                true
 
                         geMin && leMax
-                    )
-                | _ -> true
+                    ))
             | _ -> true
 
         /// Resolve one rule with a conflict-inducing patient. None when no
