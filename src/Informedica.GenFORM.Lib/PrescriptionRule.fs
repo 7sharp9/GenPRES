@@ -7,7 +7,7 @@ module PrescriptionRule =
     open Informedica.Utils.Lib.BCL
     open Informedica.GenUnits.Lib
 
-    let adjustDoseLimitToPatient (freq: ValueUnit option) (pat: Patient) (dl: DoseLimit) =
+    let adjustDoseLimitToPatient (freqs: ValueUnit option) (pat: Patient) (dl: DoseLimit) =
         if dl.AdjustUnit |> Option.isNone then
             dl
         else
@@ -17,6 +17,13 @@ module PrescriptionRule =
                 else
                     pat |> Patient.calcBSA
                 |> Option.get
+            // The frequency that minimizes the per administration dose (highest
+            // frequency), used to test whether an adjusted target is reachable
+            // at all before pinning the absolute quantity.
+            let maxFreq = freqs |> Option.bind ValueUnit.maxValue
+            // The frequency that maximizes the per administration dose (lowest
+            // frequency), used to test the absolute quantity floor.
+            let minFreq = freqs |> Option.bind ValueUnit.minValue
             // recalculate the max dose per administration
             // if min adjust * adj >= max absolute, pin to max
             match
@@ -51,11 +58,14 @@ module PrescriptionRule =
                         }
                 | _ -> dl
             // recalculate the max dose per administration with the freq
-            // if min adjust * adj / freq >= max absolute, pin to max
+            // if the adjusted per time target is unreachable even at the
+            // highest frequency (min adjust * adj / maxFreq >= max absolute),
+            // pin the quantity to its max and drop the now-unreachable
+            // PerTimeAdjust target so the frequency is not over-constrained
             |> fun dl ->
                 match
                     dl.Quantity.Max |> Option.map Limit.getValueUnit,
-                    freq,
+                    maxFreq,
                     dl.PerTimeAdjust.Min |> Option.map Limit.getValueUnit
                 with
                 | Some max, Some freq, Some min ->
@@ -64,13 +74,18 @@ module PrescriptionRule =
                     if norm <? max then
                         dl
                     else
-                        { dl with Quantity.Min = dl.Quantity.Max }
+                        { dl with
+                            PerTimeAdjust = MinMax.empty
+                            Quantity.Min = dl.Quantity.Max
+                        }
                 | _ -> dl
-            // if max adjust * adj / freq <= min absolute, pin to min
+            // if the adjusted per time max, even at the lowest frequency, stays
+            // at or below the absolute min quantity (max adjust * adj / minFreq
+            // <= min absolute), pin to min
             |> fun dl ->
                 match
                     dl.Quantity.Min |> Option.map Limit.getValueUnit,
-                    freq,
+                    minFreq,
                     dl.PerTimeAdjust.Max |> Option.map Limit.getValueUnit
                 with
                 | Some min, Some freq, Some max ->
@@ -263,12 +278,10 @@ module PrescriptionRule =
             if filter.Patient.Weight |> Option.isNone || filter.Patient.Height |> Option.isNone then
                 pr
             else
-                let freq =
-                    pr.DoseRule.Frequencies
-                    |> Option.map (fun vu ->
-                        let u = vu |> ValueUnit.getUnit
-                        vu |> ValueUnit.getValue |> Array.min |> ValueUnit.singleWithUnit u
-                    )
+                // pass the full frequency set: adjustDoseLimitToPatient derives
+                // both the highest frequency (reachability) and the lowest
+                // frequency (floor) from it
+                let freq = pr.DoseRule.Frequencies
 
                 { pr with
                     DoseRule =

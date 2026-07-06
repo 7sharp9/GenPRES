@@ -58,6 +58,9 @@ type Agent<'T>(body: Agent<'T> -> Async<unit>) as self =
             cts.Token
         )
 
+    // Guards against double-disposal.
+    let mutable isDisposed = false
+
     /// <summary>
     /// Event that is triggered when an unhandled exception occurs in the agent's processing loop.
     /// </summary>
@@ -176,11 +179,14 @@ type Agent<'T>(body: Agent<'T> -> Async<unit>) as self =
     interface IDisposable with
         /// <summary>
         /// Disposes the agent and cancels its processing.
+        /// Idempotent: safe to call multiple times.
         /// </summary>
         member _.Dispose() =
-            cts.Cancel()
-            cts.Dispose()
-            (mbox :> IDisposable).Dispose()
+            if not isDisposed then
+                isDisposed <- true
+                cts.Cancel()
+                cts.Dispose()
+                (mbox :> IDisposable).Dispose()
 
 
 // Convenience module for creating and using agents with common patterns
@@ -297,7 +303,10 @@ module Agent =
         try
             agent.Post msg
             true
-        with ex ->
+        with
+        // Disposal is a normal exit state, not an error worth reporting and muddying the logs.
+        | :? ObjectDisposedException -> false
+        | ex ->
             eprintfn $"cannot post {msg} because:\n{ex.ToString()}"
             false
 
