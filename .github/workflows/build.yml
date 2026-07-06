@@ -22,6 +22,7 @@ jobs:
         cache: true
         cache-dependency-path: |
           global.json
+          .config/dotnet-tools.json
           paket.dependencies
           **/paket.references
           **/paket.lock
