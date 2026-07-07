@@ -16,9 +16,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4.2.2
     - name: Use .NET Core 10.0 SDK
-      uses: actions/setup-dotnet@v4.1.0
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '10.0.x'
+        cache: true
+        cache-dependency-path: |
+          global.json
+          .config/dotnet-tools.json
+          **/paket.dependencies
+          **/paket.references
+          **/paket.lock
+          Build.fsproj
+          GenPRES.sln
 
     - name: Tool restore
       run: dotnet tool restore
