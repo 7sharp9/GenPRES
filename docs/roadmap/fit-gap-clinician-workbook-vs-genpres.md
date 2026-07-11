@@ -117,13 +117,13 @@ Consistent with the AP2019 analysis exclusions (labs, scores). Not gaps — deli
 
 | Status | Count | Percentage |
 |---|---|---|
-| **Fit** | 13 | 34% |
-| **Partial** | 7 | 18% |
-| **Gap** | 12 | 32% |
-| **Out of scope** | 6 | 16% |
-| **Total** | 38 | 100% |
+| **Fit** | 12 | 30% |
+| **Partial** | 7 | 17% |
+| **Gap** | 13 | 33% |
+| **Out of scope** | 8 | 20% |
+| **Total** | 40 | 100% |
 
-Restricting to the 32 **in-scope** items (excluding the 6 diagnostic tools): 13 Fit / 7 Partial / 12 Gap.
+Restricting to the 32 **in-scope** items (excluding the 8 out-of-scope items): 12 Fit / 7 Partial / 13 Gap.
 
 ### GenPRES already replaces (Fit)
 
