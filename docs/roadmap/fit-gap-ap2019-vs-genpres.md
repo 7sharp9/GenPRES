@@ -207,5 +207,6 @@ GenPRES covers the core prescribing workflow well: generic/indication/route/form
 
 ## References
 
+- [Fit-Gap Analysis: Clinician Calculation Workbook vs GenPRES](fit-gap-clinician-workbook-vs-genpres.md) — companion analysis mapping a clinician's personal bedside-calculation workbook (shadow tooling) against GenPRES
 - AfsprakenProgramma 2019 — PICU/WKZ protocol page: <https://picuwkz.nl/protocollen/werkafspraken/afsprakenprogramma-2019/>
 - AfsprakenProgramma — Functionality Overview (VBA source inventory): <https://github.com/halcwb/AfsprakenProgramma/blob/master/docs/FUNCTIONALITY.md>
