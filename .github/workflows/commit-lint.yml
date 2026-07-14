@@ -1,0 +1,71 @@
+name: Commit message lint
+
+# Re-runs the same check as the local Husky commit-msg hook (.husky/scripts/commit-lint.fsx) against
+# every commit in the PR, so the convention in commit-message.instructions.md is enforced even
+# when a contributor has no local Husky hooks installed or bypassed them with --no-verify. 
+# The single source of truth is the regex that only exists in .husky/scripts/commit-lint.fsx.
+# So locally or in the CI process this script is run against every commit in the PR, if any 
+# commit fails the check, the PR will be blocked from merging.  This is to support and enforce 
+# the commit message and PR text to support robust change log details.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches: [master]
+
+concurrency:
+  group: commit-lint-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  commit-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Use .NET Core 10.0 SDK
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Lint commit messages in PR range
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$BASE_SHA" || -z "$HEAD_SHA" ]]; then
+            echo "::error::BASE_SHA or HEAD_SHA missing from pull_request event payload"
+            exit 1
+          fi
+
+          # Captured into a variable (not piped via process substitution) so that`set -e` aborts 
+          # the job if `git log` itself fails, instead of linting zero commits and reporting success.
+          commits=$(git log --no-merges --format=%H "$BASE_SHA..$HEAD_SHA")
+
+          if [[ -z "$commits" ]]; then
+            echo "No non-merge commits in range $BASE_SHA..$HEAD_SHA"
+            exit 0
+          fi
+
+          failed=0
+
+          while IFS= read -r sha; do
+            subject=$(git log -1 --format=%s "$sha")
+            tmp=$(mktemp)
+            git log -1 --format=%B "$sha" > "$tmp"
+
+            if ! dotnet fsi .husky/scripts/commit-lint.fsx "$tmp"; then
+              echo "::error::Invalid commit message ($sha): $subject"
+              failed=1
+            fi
+
+            rm -f "$tmp"
+          done <<< "$commits"
+
+          exit "$failed"
