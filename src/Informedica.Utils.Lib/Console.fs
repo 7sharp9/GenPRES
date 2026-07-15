@@ -111,7 +111,7 @@ module ConsoleWriter =
 
 
     let writeInfoMessage (text: string) (writeLine: bool) (writeTime: bool) =
-        let info = Constants.HTMLCodeSymbols.TryFind "info"
+        let info = Some Constants.info
 
         writeColoredText info "INFO:" colors.InfoFrontColor colors.InfoBackColor false writeTime
         writeSpace ()
