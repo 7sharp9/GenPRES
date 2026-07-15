@@ -71,7 +71,7 @@ module ConsoleWriter =
             Console.ResetColor()
 
             if writeCurrentTime then
-                let clock = Constants.HTMLCodeSymbols.TryFind "clock" |> Option.defaultValue ""
+                let clock = Constants.clock
 
                 Console.ForegroundColor <- colors.StandardFrontColor
                 Console.BackgroundColor <- colors.StandardBackColor
