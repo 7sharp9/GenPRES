@@ -106,7 +106,7 @@ module ConsoleWriter =
 
 
     let writeQuestionMessage (text: string) (writeLine: bool) (writeTime: bool) =
-        let question = Constants.HTMLCodeSymbols.TryFind "question"
+        let question = Some Constants.question
         writeColoredText question text colors.QuestionFrontColor colors.QuestionBackColor writeLine writeTime
 
 
