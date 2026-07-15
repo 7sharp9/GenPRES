@@ -15,6 +15,7 @@ module Constants =
     let error = "❌"
     let info = "ℹ"
     let warning = "⚠"
+    let question = "⁉"
 
     let HTMLCodeSymbols =
         [
