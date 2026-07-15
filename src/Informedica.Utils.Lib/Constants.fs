@@ -10,6 +10,7 @@ module Constants =
     let rocket = "🚀"
     let stopwatch = "⏱"
     let hourglass = "⌛"
+    let clock = "🕰"
 
     let HTMLCodeSymbols =
         [
