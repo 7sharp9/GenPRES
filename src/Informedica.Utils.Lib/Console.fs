@@ -127,7 +127,7 @@ module ConsoleWriter =
 
 
     let writeWarningMessage (text: string) (_: bool) (writeTime: bool) =
-        let warning = Constants.HTMLCodeSymbols.TryFind "warning"
+        let warning = Some Constants.warning
 
         writeColoredText warning "WARNING:" colors.WarningFrontColor colors.WarningBackColor false writeTime
         writeSpace ()
