@@ -13,6 +13,7 @@ module Constants =
     let clock = "🕰"
     let floppyDisk = "💾"
     let error = "❌"
+    let info = "ℹ"
 
     let HTMLCodeSymbols =
         [
