@@ -119,7 +119,7 @@ module ConsoleWriter =
 
 
     let writeErrorMessage (text: string) (writeLine: bool) (writeTime: bool) =
-        let error = Constants.HTMLCodeSymbols.TryFind "error"
+        let error = Some Constants.error
 
         writeColoredText error "ERROR:" colors.ErrorFrontColor colors.ErrorBackColor false writeTime
         writeSpace ()
