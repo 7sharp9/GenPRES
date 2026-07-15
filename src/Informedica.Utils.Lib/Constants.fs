@@ -14,6 +14,7 @@ module Constants =
     let floppyDisk = "💾"
     let error = "❌"
     let info = "ℹ"
+    let warning = "⚠"
 
     let HTMLCodeSymbols =
         [
