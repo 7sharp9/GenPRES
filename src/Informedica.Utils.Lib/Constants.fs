@@ -6,6 +6,7 @@ module Constants =
     open System.Net
 
     let check = "✅"
+    let crossMark = "❌"
 
     let HTMLCodeSymbols =
         [
