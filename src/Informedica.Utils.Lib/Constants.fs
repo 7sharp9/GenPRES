@@ -5,6 +5,8 @@ module Constants =
 
     open System.Net
 
+    let check = "✅"
+
     let HTMLCodeSymbols =
         [
             "check", "&#9989;"
