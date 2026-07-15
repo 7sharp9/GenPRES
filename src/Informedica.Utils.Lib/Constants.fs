@@ -8,6 +8,7 @@ module Constants =
     let check = "✅"
     let crossMark = "❌"
     let rocket = "🚀"
+    let stopwatch = "⏱"
 
     let HTMLCodeSymbols =
         [
