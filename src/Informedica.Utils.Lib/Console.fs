@@ -139,7 +139,7 @@ module ConsoleWriter =
         if Env.getItem "GENPRES_DEBUG" |> Option.defaultValue "" <> "1" then
             ()
         else
-            let debug = Constants.HTMLCodeSymbols.TryFind "debug"
+            let debug = Some Constants.debug
 
             writeColoredText debug "DEBUG:" colors.StandardFrontColor colors.StandardBackColor false writeTime
             writeSpace ()
