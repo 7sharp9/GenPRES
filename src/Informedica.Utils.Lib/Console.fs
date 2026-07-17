@@ -71,7 +71,7 @@ module ConsoleWriter =
             Console.ResetColor()
 
             if writeCurrentTime then
-                let clock = Constants.HTMLCodeSymbols.TryFind "clock" |> Option.defaultValue ""
+                let clock = Constants.clock
 
                 Console.ForegroundColor <- colors.StandardFrontColor
                 Console.BackgroundColor <- colors.StandardBackColor
@@ -106,12 +106,12 @@ module ConsoleWriter =
 
 
     let writeQuestionMessage (text: string) (writeLine: bool) (writeTime: bool) =
-        let question = Constants.HTMLCodeSymbols.TryFind "question"
+        let question = Some Constants.question
         writeColoredText question text colors.QuestionFrontColor colors.QuestionBackColor writeLine writeTime
 
 
     let writeInfoMessage (text: string) (writeLine: bool) (writeTime: bool) =
-        let info = Constants.HTMLCodeSymbols.TryFind "info"
+        let info = Some Constants.info
 
         writeColoredText info "INFO:" colors.InfoFrontColor colors.InfoBackColor false writeTime
         writeSpace ()
@@ -119,7 +119,7 @@ module ConsoleWriter =
 
 
     let writeErrorMessage (text: string) (writeLine: bool) (writeTime: bool) =
-        let error = Constants.HTMLCodeSymbols.TryFind "error"
+        let error = Some Constants.error
 
         writeColoredText error "ERROR:" colors.ErrorFrontColor colors.ErrorBackColor false writeTime
         writeSpace ()
@@ -127,7 +127,7 @@ module ConsoleWriter =
 
 
     let writeWarningMessage (text: string) (_: bool) (writeTime: bool) =
-        let warning = Constants.HTMLCodeSymbols.TryFind "warning"
+        let warning = Some Constants.warning
 
         writeColoredText warning "WARNING:" colors.WarningFrontColor colors.WarningBackColor false writeTime
         writeSpace ()
@@ -139,7 +139,7 @@ module ConsoleWriter =
         if Env.getItem "GENPRES_DEBUG" |> Option.defaultValue "" <> "1" then
             ()
         else
-            let debug = Constants.HTMLCodeSymbols.TryFind "debug"
+            let debug = Some Constants.debug
 
             writeColoredText debug "DEBUG:" colors.StandardFrontColor colors.StandardBackColor false writeTime
             writeSpace ()
