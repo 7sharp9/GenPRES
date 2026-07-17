@@ -17,7 +17,7 @@ module StopWatch =
         let ms =
             stopwatch.Elapsed.TotalMilliseconds.ToString("G", CultureInfo.InvariantCulture)
 
-        let sw = Constants.HTMLCodeSymbols.TryFind "stopwatch" |> Option.defaultValue ""
+        let sw = Constants.stopwatch
         ConsoleWriter.writeInfoMessage $"%s{sw}  - %s{ms} ms: %s{msg}" true false
 
         result
