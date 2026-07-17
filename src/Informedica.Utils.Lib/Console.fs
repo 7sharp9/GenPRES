@@ -71,11 +71,9 @@ module ConsoleWriter =
             Console.ResetColor()
 
             if writeCurrentTime then
-                let clock = Constants.clock
-
                 Console.ForegroundColor <- colors.StandardFrontColor
                 Console.BackgroundColor <- colors.StandardBackColor
-                Console.Out.Write($"{clock}  {DateTime.Now} : ")
+                Console.Out.Write($"🕰  {DateTime.Now} : ")
 
             match symbol with
             | None -> ()
@@ -106,12 +104,12 @@ module ConsoleWriter =
 
 
     let writeQuestionMessage (text: string) (writeLine: bool) (writeTime: bool) =
-        let question = Some Constants.question
+        let question = Some "⁉"
         writeColoredText question text colors.QuestionFrontColor colors.QuestionBackColor writeLine writeTime
 
 
     let writeInfoMessage (text: string) (writeLine: bool) (writeTime: bool) =
-        let info = Some Constants.info
+        let info = Some "ℹ"
 
         writeColoredText info "INFO:" colors.InfoFrontColor colors.InfoBackColor false writeTime
         writeSpace ()
@@ -119,7 +117,7 @@ module ConsoleWriter =
 
 
     let writeErrorMessage (text: string) (writeLine: bool) (writeTime: bool) =
-        let error = Some Constants.error
+        let error = Some "❌"
 
         writeColoredText error "ERROR:" colors.ErrorFrontColor colors.ErrorBackColor false writeTime
         writeSpace ()
@@ -127,7 +125,7 @@ module ConsoleWriter =
 
 
     let writeWarningMessage (text: string) (_: bool) (writeTime: bool) =
-        let warning = Some Constants.warning
+        let warning = Some "⚠"
 
         writeColoredText warning "WARNING:" colors.WarningFrontColor colors.WarningBackColor false writeTime
         writeSpace ()
@@ -139,7 +137,7 @@ module ConsoleWriter =
         if Env.getItem "GENPRES_DEBUG" |> Option.defaultValue "" <> "1" then
             ()
         else
-            let debug = Some Constants.debug
+            let debug = Some "🔧"
 
             writeColoredText debug "DEBUG:" colors.StandardFrontColor colors.StandardBackColor false writeTime
             writeSpace ()
