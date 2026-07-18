@@ -7,7 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Constants.fs" />
     <Compile Include="Memoization.fs" />
     <Compile Include="Reflection.fs" />
     <Compile Include="NullCheck.fs" />
