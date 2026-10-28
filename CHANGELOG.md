@@ -1,5 +1,5 @@
 ---
-last_commit_released: 95425d4fd991b233399fed20924b12278ad8d37a
+last_commit_released: 6f46d45719eeab5a8e2fdd1df938b7ea83dd8f6b
 pre_release: alpha
 name: GenPRES
 updaters:
@@ -20,6 +20,62 @@ All notable changes to GenPRES will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## 0.1.2-alpha.46 - 2026-10-28
+
+### 🚀 Features
+
+* *(api)* Carry the products of a component ([1e3db118](https://github.com/7sharp9/GenPRES/commit/1e3db118f9388e387492d46727f30078f4a25b49))
+* *(client)* The intent policy says which field offers a recalculation ([57b514c1](https://github.com/7sharp9/GenPRES/commit/57b514c1d45d1ffdfec98e8db64072398002cbc9))
+* *(genorder)* Carry the products of a component ([651cbd6f](https://github.com/7sharp9/GenPRES/commit/651cbd6f60afff8e76647ac0e6135176a2200248))
+* *(genorder)* Write and read a medication as YAML ([9fc2116b](https://github.com/7sharp9/GenPRES/commit/9fc2116b4069c9c0518fa6baf521206b90ffbb99))
+* *(genorder)* Add the order variable helpers of the order program ([8b90866a](https://github.com/7sharp9/GenPRES/commit/8b90866a1ea31166f08234177db78221335cff53))
+* *(genorder)* Which variables the kept variables determine ([7c6d599a](https://github.com/7sharp9/GenPRES/commit/7c6d599abb45a73b0db0b25682b0d945a6498710))
+* *(genorder)* Add the types of the order program ([24b96e9a](https://github.com/7sharp9/GenPRES/commit/24b96e9ad6bd03626321f20156ec7ea30047ed1e))
+* *(genorder)* Select and set back an order variable by reference ([f7684b1c](https://github.com/7sharp9/GenPRES/commit/f7684b1c71fefeff82be878627bb4816e327bb4c))
+* *(genorder)* Run an order action as a list of effects ([5d6b354b](https://github.com/7sharp9/GenPRES/commit/5d6b354b52ebc0d8ceea55f3bc71d5467bb825f7))
+* *(genorder)* The step recipes of the order program ([9aa8083f](https://github.com/7sharp9/GenPRES/commit/9aa8083fddf141cc3ab2412dc12a1bd128b7504a))
+* *(genorder)* The recalculation kinds of the order program ([2686b2a3](https://github.com/7sharp9/GenPRES/commit/2686b2a369284dec79336b6bdb23b84e361dca3e))
+* *(genorder)* Set an order value through the order program ([9a2b888c](https://github.com/7sharp9/GenPRES/commit/9a2b888cf858fcfa1d08d567ae32305ba947fb61))
+* *(genorder)* The item concentrations of a component per product ([58167c24](https://github.com/7sharp9/GenPRES/commit/58167c247f7f22958b33db03ec6a024154b451af))
+* *(genorder)* Solve an order per combination of concentrations ([4b3ba2c2](https://github.com/7sharp9/GenPRES/commit/4b3ba2c24e5d031bdf7c5475f44d00f7b511e02a))
+* *(utils)* Write and read a BigRational as exact text ([19df2941](https://github.com/7sharp9/GenPRES/commit/19df2941f6f5cb3e56289dc71e171f87b14e3e15))
+
+### 🐞 Bug Fixes
+
+* *(client)* Keep the order and picks on a refused change ([0de6430a](https://github.com/7sharp9/GenPRES/commit/0de6430af0607eddfe6b8a8c7ce21d6bd360d24f))
+* *(client)* Keep a refused selection on its scenario ([fd7d7894](https://github.com/7sharp9/GenPRES/commit/fd7d7894bc0fe860c85fc6a025630840d10082ab))
+* *(client)* Show the running time as a range ([3b986131](https://github.com/7sharp9/GenPRES/commit/3b9861318c812dea6e5493e217c039f3f03641c9))
+* *(client)* A recalculated field shows loading until its answer ([4afb87aa](https://github.com/7sharp9/GenPRES/commit/4afb87aa86abea6a8067b23f54d6c4298b71d13d))
+* *(genorder)* Offer reachable rounded dose values ([be6e047b](https://github.com/7sharp9/GenPRES/commit/be6e047b81165da322412c2ffe0b82e4d97c4374))
+* *(genorder)* Tie item concentrations to the component share ([b3d654c8](https://github.com/7sharp9/GenPRES/commit/b3d654c890e66dd30224c97a532e5faa64c819cc))
+* *(genorder)* Report a pick that cannot be solved ([9743852a](https://github.com/7sharp9/GenPRES/commit/9743852aedba8d601b0d187b04a10740389a1331))
+* *(genorder)* Solve item concentrations by share ([def801ea](https://github.com/7sharp9/GenPRES/commit/def801eaec3d3b5401d80bb0950b2353f9d6ed81))
+* *(genorder)* Keep products when calculating ([be379560](https://github.com/7sharp9/GenPRES/commit/be379560e716d6bb2c12fe057f8dcc64151e6b78))
+* *(genorder)* Pair item strengths by product ([158f6a42](https://github.com/7sharp9/GenPRES/commit/158f6a428c1cf03fd501d3341e080d97169dbf8c))
+* *(genorder)* Cap the rounded steps ([adfff2f2](https://github.com/7sharp9/GenPRES/commit/adfff2f2a081574d708c7e3dd7d95a2035960c3e))
+* *(genorder)* Give the rate after the dose quantity ([12629d6d](https://github.com/7sharp9/GenPRES/commit/12629d6d47aa11471a06bef837e5dcf0496e1c07))
+* *(genorder)* Give a missing medication value an error ([7f027a9d](https://github.com/7sharp9/GenPRES/commit/7f027a9dcdd1f2949df64d06593272beec030a94))
+* *(genorder)* Refuse a product without an id ([b65ee470](https://github.com/7sharp9/GenPRES/commit/b65ee47069db5f5a018342fdc9fb2a425d1efd54))
+* *(genorder)* Dose total by rate for continuous only ([fae43ae3](https://github.com/7sharp9/GenPRES/commit/fae43ae351e415e50d146f5de9810c7f4b1a8640))
+* *(genorder)* Stop offering undiluted IV orders ([154c12a4](https://github.com/7sharp9/GenPRES/commit/154c12a4b722762cf25c595cdf2a3ff9dd13ed52))
+* *(genorder)* Swap the value caps of a timed order ([7d82edda](https://github.com/7sharp9/GenPRES/commit/7d82edda204949328dafb4b4e82e20bf4166ed55))
+* *(genorder)* Select from a large range without listing it ([5aad6191](https://github.com/7sharp9/GenPRES/commit/5aad6191f3b7c936ccd00f646eee94ae03df7b7a))
+* *(genorder)* A failed effect keeps the order it ran on ([b3d88d03](https://github.com/7sharp9/GenPRES/commit/b3d88d03e579738b596d948bbe2e475736066758))
+* *(genorder)* Match component names in any case in a step ([45a6f80d](https://github.com/7sharp9/GenPRES/commit/45a6f80d6b70656a21bf559397574de257426d5d))
+* *(genorder)* A recalculation changes what depends on the field ([3e36bafb](https://github.com/7sharp9/GenPRES/commit/3e36bafbb4bf44c801d4177e8e42bbf38abe381d))
+* *(genorder)* Creation writes the order and dose counts ([ec44803f](https://github.com/7sharp9/GenPRES/commit/ec44803fec0fed7059401effafe94270a1c5b64a))
+* *(genorder)* Set the dose count when the rules give none ([781f6527](https://github.com/7sharp9/GenPRES/commit/781f6527fb6022949db8dd4d651f091903a98625))
+* *(genorder)* Offer only values a complete order reaches ([27bd91e2](https://github.com/7sharp9/GenPRES/commit/27bd91e21a7e951d1a369d0b94f29ccc56b9f2b5))
+* *(genorder)* Drop a value only when a failed solve proves it ([e0c6e471](https://github.com/7sharp9/GenPRES/commit/e0c6e471e2ca44e94efb2aa2b54bb714dec68516))
+* *(genorder)* Run whole when a stepped range cannot be listed ([0c2c636b](https://github.com/7sharp9/GenPRES/commit/0c2c636b502f8556faf90870e049a5d954ffa21a))
+* *(gensolver)* Combine increments by lcm ([3f76a5b5](https://github.com/7sharp9/GenPRES/commit/3f76a5b5d7773ecec443ebd847a8a726f6159127))
+* *(gensolver)* Compare divisors on base values ([9e75a944](https://github.com/7sharp9/GenPRES/commit/9e75a9447b0e52ef892df380be9b5cfd6aaf7c7d))
+* *(gensolver)* Evaluate solved equations ([f953d483](https://github.com/7sharp9/GenPRES/commit/f953d483fa812afa5129d75efbf59eb831a8c7e6))
+* *(gensolver)* Count a range with two increments exactly ([aa4092e2](https://github.com/7sharp9/GenPRES/commit/aa4092e2f924eb8d2568ffc7d5fca9c168c3e0b6))
+* *(utils)* Read a long decimal exactly ([8434146b](https://github.com/7sharp9/GenPRES/commit/8434146b9fef6195c9175b737430f4f0184a5b65))
+
+<strong><small>[View changes on Github](https://github.com/7sharp9/GenPRES/compare/95425d4fd991b233399fed20924b12278ad8d37a..6f46d45719eeab5a8e2fdd1df938b7ea83dd8f6b)</small></strong>
 
 ## 0.1.2-alpha.45 - 2026-10-10
 
